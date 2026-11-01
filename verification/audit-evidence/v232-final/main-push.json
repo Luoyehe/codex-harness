@@ -1,0 +1,1341 @@
+{
+  "schemaVersion": 1,
+  "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "branch": "main",
+  "event": "push",
+  "additionalConfirmationOnly": true,
+  "terminal": true,
+  "runs": [
+    {
+      "id": 41320390235,
+      "name": "Security checks",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "head_branch": "main",
+      "event": "push",
+      "run_attempt": 1,
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390235",
+      "updated_at": "2026-11-01T15:19:07Z"
+    },
+    {
+      "id": 41320390096,
+      "name": "Reviewed checks",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "head_branch": "main",
+      "event": "push",
+      "run_attempt": 1,
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096",
+      "updated_at": "2026-11-01T15:19:25Z"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124889126380,
+      "run_id": 41320390235,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:16:42Z",
+      "completed_at": "2026-11-01T15:19:06Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390235/job/124889126380",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:16:43Z",
+          "completed_at": "2026-11-01T15:16:43Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:16:43Z",
+          "completed_at": "2026-11-01T15:16:45Z"
+        },
+        {
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:16:45Z",
+          "completed_at": "2026-11-01T15:16:54Z"
+        },
+        {
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:16:54Z",
+          "completed_at": "2026-11-01T15:19:04Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:19:04Z",
+          "completed_at": "2026-11-01T15:19:04Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:19:04Z",
+          "completed_at": "2026-11-01T15:19:05Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-01T15:19:05Z",
+          "completed_at": "2026-11-01T15:19:05Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-01T15:19:05Z",
+          "completed_at": "2026-11-01T15:19:05Z"
+        }
+      ]
+    },
+    {
+      "id": 124889126627,
+      "run_id": 41320390235,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:16:42Z",
+      "completed_at": "2026-11-01T15:16:53Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390235/job/124889126627",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:16:43Z",
+          "completed_at": "2026-11-01T15:16:44Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:16:44Z",
+          "completed_at": "2026-11-01T15:16:47Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:16:47Z",
+          "completed_at": "2026-11-01T15:16:47Z"
+        },
+        {
+          "name": "Run npm install --global pnpm@11.22.0 --ignore-scripts --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:16:47Z",
+          "completed_at": "2026-11-01T15:16:49Z"
+        },
+        {
+          "name": "Run pnpm audit --audit-level high --json > dependency-audit.json",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:16:49Z",
+          "completed_at": "2026-11-01T15:16:50Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:16:50Z",
+          "completed_at": "2026-11-01T15:16:51Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-01T15:16:51Z",
+          "completed_at": "2026-11-01T15:16:51Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-01T15:16:51Z",
+          "completed_at": "2026-11-01T15:16:51Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:16:51Z",
+          "completed_at": "2026-11-01T15:16:52Z"
+        }
+      ]
+    },
+    {
+      "id": 124889126803,
+      "run_id": 41320390235,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:16:42Z",
+      "completed_at": "2026-11-01T15:18:13Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390235/job/124889126803",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:16:43Z",
+          "completed_at": "2026-11-01T15:16:44Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:16:44Z",
+          "completed_at": "2026-11-01T15:16:46Z"
+        },
+        {
+          "name": "Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:16:46Z",
+          "completed_at": "2026-11-01T15:17:00Z"
+        },
+        {
+          "name": "Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:17:00Z",
+          "completed_at": "2026-11-01T15:18:10Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:18:10Z",
+          "completed_at": "2026-11-01T15:18:11Z"
+        },
+        {
+          "name": "Post Run github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:18:11Z",
+          "completed_at": "2026-11-01T15:18:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-01T15:18:11Z",
+          "completed_at": "2026-11-01T15:18:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-01T15:18:12Z",
+          "completed_at": "2026-11-01T15:18:12Z"
+        }
+      ]
+    },
+    {
+      "id": 124889126052,
+      "run_id": 41320390096,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:16:42Z",
+      "completed_at": "2026-11-01T15:17:14Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096/job/124889126052",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:16:43Z",
+          "completed_at": "2026-11-01T15:16:44Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:16:44Z",
+          "completed_at": "2026-11-01T15:16:46Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:16:46Z",
+          "completed_at": "2026-11-01T15:16:47Z"
+        },
+        {
+          "name": "Scan source and complete Git objects",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:16:47Z",
+          "completed_at": "2026-11-01T15:17:09Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:17:09Z",
+          "completed_at": "2026-11-01T15:17:11Z"
+        },
+        {
+          "name": "Select reviewed changes or source-bound full closeout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:17:11Z",
+          "completed_at": "2026-11-01T15:17:11Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:17:11Z",
+          "completed_at": "2026-11-01T15:17:12Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:17:12Z",
+          "completed_at": "2026-11-01T15:17:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-01T15:17:12Z",
+          "completed_at": "2026-11-01T15:17:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-01T15:17:12Z",
+          "completed_at": "2026-11-01T15:17:12Z"
+        }
+      ]
+    },
+    {
+      "id": 124889277532,
+      "run_id": 41320390096,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:17:18Z",
+      "completed_at": "2026-11-01T15:17:40Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096/job/124889277532",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:17:19Z",
+          "completed_at": "2026-11-01T15:17:20Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:17:20Z",
+          "completed_at": "2026-11-01T15:17:22Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:17:22Z",
+          "completed_at": "2026-11-01T15:17:22Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:17:22Z",
+          "completed_at": "2026-11-01T15:17:24Z"
+        },
+        {
+          "name": "Build actual Ledger as the unprivileged runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:17:24Z",
+          "completed_at": "2026-11-01T15:17:33Z"
+        },
+        {
+          "name": "Run root fixtures only on the disposable hosted runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:17:33Z",
+          "completed_at": "2026-11-01T15:17:36Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:17:36Z",
+          "completed_at": "2026-11-01T15:17:38Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:17:38Z",
+          "completed_at": "2026-11-01T15:17:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-01T15:17:38Z",
+          "completed_at": "2026-11-01T15:17:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-01T15:17:38Z",
+          "completed_at": "2026-11-01T15:17:38Z"
+        }
+      ]
+    },
+    {
+      "id": 124889277533,
+      "run_id": 41320390096,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:17:17Z",
+      "completed_at": "2026-11-01T15:19:13Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096/job/124889277533",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:17:18Z",
+          "completed_at": "2026-11-01T15:17:20Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:17:20Z",
+          "completed_at": "2026-11-01T15:17:31Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:17:31Z",
+          "completed_at": "2026-11-01T15:17:39Z"
+        },
+        {
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:17:39Z",
+          "completed_at": "2026-11-01T15:17:39Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:17:39Z",
+          "completed_at": "2026-11-01T15:17:40Z"
+        },
+        {
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:17:40Z",
+          "completed_at": "2026-11-01T15:18:09Z"
+        },
+        {
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:18:09Z",
+          "completed_at": "2026-11-01T15:18:16Z"
+        },
+        {
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-11-01T15:18:16Z",
+          "completed_at": "2026-11-01T15:18:16Z"
+        },
+        {
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-01T15:18:16Z",
+          "completed_at": "2026-11-01T15:18:16Z"
+        },
+        {
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-01T15:18:16Z",
+          "completed_at": "2026-11-01T15:18:41Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-01T15:18:41Z",
+          "completed_at": "2026-11-01T15:18:42Z"
+        },
+        {
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-01T15:18:42Z",
+          "completed_at": "2026-11-01T15:19:08Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:19:08Z",
+          "completed_at": "2026-11-01T15:19:09Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-11-01T15:19:09Z",
+          "completed_at": "2026-11-01T15:19:10Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-11-01T15:19:10Z",
+          "completed_at": "2026-11-01T15:19:10Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-11-01T15:19:10Z",
+          "completed_at": "2026-11-01T15:19:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-11-01T15:19:12Z",
+          "completed_at": "2026-11-01T15:19:12Z"
+        }
+      ]
+    },
+    {
+      "id": 124889277539,
+      "run_id": 41320390096,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:17:17Z",
+      "completed_at": "2026-11-01T15:18:13Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096/job/124889277539",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:17:18Z",
+          "completed_at": "2026-11-01T15:17:19Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:17:19Z",
+          "completed_at": "2026-11-01T15:17:21Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:17:21Z",
+          "completed_at": "2026-11-01T15:17:22Z"
+        },
+        {
+          "name": "Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:17:22Z",
+          "completed_at": "2026-11-01T15:17:32Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:17:32Z",
+          "completed_at": "2026-11-01T15:17:32Z"
+        },
+        {
+          "name": "Install pinned dependencies and build the actual modules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:17:32Z",
+          "completed_at": "2026-11-01T15:17:46Z"
+        },
+        {
+          "name": "Prepare independent official CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-01T15:17:46Z",
+          "completed_at": "2026-11-01T15:17:52Z"
+        },
+        {
+          "name": "Prepare pinned Go and authenticated public modules",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-11-01T15:17:53Z",
+          "completed_at": "2026-11-01T15:17:53Z"
+        },
+        {
+          "name": "Retain failed Go preparation logs",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-01T15:17:53Z",
+          "completed_at": "2026-11-01T15:17:53Z"
+        },
+        {
+          "name": "Verify isolated Windows process controllers before native tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-01T15:17:53Z",
+          "completed_at": "2026-11-01T15:17:53Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-11-01T15:17:53Z",
+          "completed_at": "2026-11-01T15:17:53Z"
+        },
+        {
+          "name": "Run exact selection and retain platform skips for reconciliation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-01T15:17:53Z",
+          "completed_at": "2026-11-01T15:18:10Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:18:10Z",
+          "completed_at": "2026-11-01T15:18:11Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-11-01T15:18:11Z",
+          "completed_at": "2026-11-01T15:18:11Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-11-01T15:18:11Z",
+          "completed_at": "2026-11-01T15:18:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-11-01T15:18:11Z",
+          "completed_at": "2026-11-01T15:18:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-11-01T15:18:12Z",
+          "completed_at": "2026-11-01T15:18:12Z"
+        }
+      ]
+    },
+    {
+      "id": 124889810054,
+      "run_id": 41320390096,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:19:16Z",
+      "completed_at": "2026-11-01T15:19:24Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096/job/124889810054",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-01T15:19:16Z",
+          "completed_at": "2026-11-01T15:19:17Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-01T15:19:17Z",
+          "completed_at": "2026-11-01T15:19:20Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-01T15:19:20Z",
+          "completed_at": "2026-11-01T15:19:20Z"
+        },
+        {
+          "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-01T15:19:20Z",
+          "completed_at": "2026-11-01T15:19:21Z"
+        },
+        {
+          "name": "Require all identities and complement every skipped case",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-01T15:19:21Z",
+          "completed_at": "2026-11-01T15:19:21Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-01T15:19:21Z",
+          "completed_at": "2026-11-01T15:19:22Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-01T15:19:22Z",
+          "completed_at": "2026-11-01T15:19:22Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-01T15:19:22Z",
+          "completed_at": "2026-11-01T15:19:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-01T15:19:23Z",
+          "completed_at": "2026-11-01T15:19:23Z"
+        }
+      ]
+    }
+  ],
+  "runsRaw": [
+    {
+      "id": 41320390235,
+      "name": "Security checks",
+      "node_id": "WFR_kwLOUX2EC88AAAAJnuMeWw",
+      "head_branch": "main",
+      "head_sha": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "path": ".github/workflows/security.yml",
+      "display_title": "Restore real account recovery fixtures and include composed consumers",
+      "run_number": 37,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_id": 396881977,
+      "check_suite_id": 111988388037,
+      "check_suite_node_id": "CS_kwDOUX2EC88AAAAaEwcwxQ",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390235",
+      "pull_requests": [],
+      "created_at": "2026-11-01T15:16:39Z",
+      "updated_at": "2026-11-01T15:19:07Z",
+      "actor": {
+        "login": "Luoyehe",
+        "id": 62980425,
+        "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Luoyehe",
+        "html_url": "https://github.com/Luoyehe",
+        "followers_url": "https://api.github.com/users/Luoyehe/followers",
+        "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+        "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+        "repos_url": "https://api.github.com/users/Luoyehe/repos",
+        "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "run_attempt": 1,
+      "referenced_workflows": [],
+      "run_started_at": "2026-11-01T15:16:39Z",
+      "triggering_actor": {
+        "login": "Luoyehe",
+        "id": 62980425,
+        "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Luoyehe",
+        "html_url": "https://github.com/Luoyehe",
+        "followers_url": "https://api.github.com/users/Luoyehe/followers",
+        "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+        "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+        "repos_url": "https://api.github.com/users/Luoyehe/repos",
+        "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "jobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/jobs",
+      "logs_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/logs",
+      "check_suite_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-suites/111988388037",
+      "artifacts_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/artifacts",
+      "cancel_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/cancel",
+      "rerun_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/rerun",
+      "previous_attempt_url": null,
+      "workflow_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/workflows/396881977",
+      "head_commit": {
+        "id": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+        "tree_id": "8f6c2210c320006887b23b371ca6d60b903a89bc",
+        "message": "Restore real account recovery fixtures and include composed consumers",
+        "timestamp": "2026-11-01T15:02:25Z",
+        "author": {
+          "name": "Codex",
+          "email": "codex@openai.com"
+        },
+        "committer": {
+          "name": "Codex",
+          "email": "codex@openai.com"
+        }
+      },
+      "repository": {
+        "id": 1367180299,
+        "node_id": "R_kgDOUX2ECw",
+        "name": "codex-harness",
+        "full_name": "Luoyehe/codex-harness",
+        "private": false,
+        "owner": {
+          "login": "Luoyehe",
+          "id": 62980425,
+          "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+          "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Luoyehe",
+          "html_url": "https://github.com/Luoyehe",
+          "followers_url": "https://api.github.com/users/Luoyehe/followers",
+          "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+          "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+          "repos_url": "https://api.github.com/users/Luoyehe/repos",
+          "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/Luoyehe/codex-harness",
+        "description": "Self-hosted WebUI for the open-source Codex agent \u2014 approvals, sandbox, terminal, diff, auto-compaction, MCP; works with ChatGPT, Zhipu Coding Plan and custom OpenAI-compatible APIs.",
+        "fork": false,
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness",
+        "forks_url": "https://api.github.com/repos/Luoyehe/codex-harness/forks",
+        "keys_url": "https://api.github.com/repos/Luoyehe/codex-harness/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/Luoyehe/codex-harness/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/Luoyehe/codex-harness/teams",
+        "hooks_url": "https://api.github.com/repos/Luoyehe/codex-harness/hooks",
+        "issue_events_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/Luoyehe/codex-harness/events",
+        "assignees_url": "https://api.github.com/repos/Luoyehe/codex-harness/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/Luoyehe/codex-harness/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/tags",
+        "blobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/Luoyehe/codex-harness/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/Luoyehe/codex-harness/languages",
+        "stargazers_url": "https://api.github.com/repos/Luoyehe/codex-harness/stargazers",
+        "contributors_url": "https://api.github.com/repos/Luoyehe/codex-harness/contributors",
+        "subscribers_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscribers",
+        "subscription_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscription",
+        "commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/Luoyehe/codex-harness/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/Luoyehe/codex-harness/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/Luoyehe/codex-harness/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/Luoyehe/codex-harness/merges",
+        "archive_url": "https://api.github.com/repos/Luoyehe/codex-harness/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/Luoyehe/codex-harness/downloads",
+        "issues_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/Luoyehe/codex-harness/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/Luoyehe/codex-harness/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/Luoyehe/codex-harness/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/Luoyehe/codex-harness/labels{/name}",
+        "releases_url": "https://api.github.com/repos/Luoyehe/codex-harness/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/Luoyehe/codex-harness/deployments"
+      },
+      "head_repository": {
+        "id": 1367180299,
+        "node_id": "R_kgDOUX2ECw",
+        "name": "codex-harness",
+        "full_name": "Luoyehe/codex-harness",
+        "private": false,
+        "owner": {
+          "login": "Luoyehe",
+          "id": 62980425,
+          "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+          "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Luoyehe",
+          "html_url": "https://github.com/Luoyehe",
+          "followers_url": "https://api.github.com/users/Luoyehe/followers",
+          "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+          "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+          "repos_url": "https://api.github.com/users/Luoyehe/repos",
+          "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/Luoyehe/codex-harness",
+        "description": "Self-hosted WebUI for the open-source Codex agent \u2014 approvals, sandbox, terminal, diff, auto-compaction, MCP; works with ChatGPT, Zhipu Coding Plan and custom OpenAI-compatible APIs.",
+        "fork": false,
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness",
+        "forks_url": "https://api.github.com/repos/Luoyehe/codex-harness/forks",
+        "keys_url": "https://api.github.com/repos/Luoyehe/codex-harness/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/Luoyehe/codex-harness/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/Luoyehe/codex-harness/teams",
+        "hooks_url": "https://api.github.com/repos/Luoyehe/codex-harness/hooks",
+        "issue_events_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/Luoyehe/codex-harness/events",
+        "assignees_url": "https://api.github.com/repos/Luoyehe/codex-harness/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/Luoyehe/codex-harness/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/tags",
+        "blobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/Luoyehe/codex-harness/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/Luoyehe/codex-harness/languages",
+        "stargazers_url": "https://api.github.com/repos/Luoyehe/codex-harness/stargazers",
+        "contributors_url": "https://api.github.com/repos/Luoyehe/codex-harness/contributors",
+        "subscribers_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscribers",
+        "subscription_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscription",
+        "commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/Luoyehe/codex-harness/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/Luoyehe/codex-harness/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/Luoyehe/codex-harness/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/Luoyehe/codex-harness/merges",
+        "archive_url": "https://api.github.com/repos/Luoyehe/codex-harness/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/Luoyehe/codex-harness/downloads",
+        "issues_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/Luoyehe/codex-harness/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/Luoyehe/codex-harness/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/Luoyehe/codex-harness/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/Luoyehe/codex-harness/labels{/name}",
+        "releases_url": "https://api.github.com/repos/Luoyehe/codex-harness/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/Luoyehe/codex-harness/deployments"
+      }
+    },
+    {
+      "id": 41320390096,
+      "name": "Reviewed checks",
+      "node_id": "WFR_kwLOUX2EC88AAAAJnuMd0A",
+      "head_branch": "main",
+      "head_sha": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "path": ".github/workflows/affected.yml",
+      "display_title": "Restore real account recovery fixtures and include composed consumers",
+      "run_number": 58,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_id": 396386315,
+      "check_suite_id": 111988387697,
+      "check_suite_node_id": "CS_kwDOUX2EC88AAAAaEwcvcQ",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41320390096",
+      "pull_requests": [],
+      "created_at": "2026-11-01T15:16:39Z",
+      "updated_at": "2026-11-01T15:19:25Z",
+      "actor": {
+        "login": "Luoyehe",
+        "id": 62980425,
+        "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Luoyehe",
+        "html_url": "https://github.com/Luoyehe",
+        "followers_url": "https://api.github.com/users/Luoyehe/followers",
+        "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+        "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+        "repos_url": "https://api.github.com/users/Luoyehe/repos",
+        "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "run_attempt": 1,
+      "referenced_workflows": [],
+      "run_started_at": "2026-11-01T15:16:39Z",
+      "triggering_actor": {
+        "login": "Luoyehe",
+        "id": 62980425,
+        "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Luoyehe",
+        "html_url": "https://github.com/Luoyehe",
+        "followers_url": "https://api.github.com/users/Luoyehe/followers",
+        "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+        "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+        "repos_url": "https://api.github.com/users/Luoyehe/repos",
+        "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "jobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/jobs",
+      "logs_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/logs",
+      "check_suite_url": "https://api.github.com/repos/Luoyehe/codex-harness/check-suites/111988387697",
+      "artifacts_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/artifacts",
+      "cancel_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/cancel",
+      "rerun_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/rerun",
+      "previous_attempt_url": null,
+      "workflow_url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/workflows/396386315",
+      "head_commit": {
+        "id": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+        "tree_id": "8f6c2210c320006887b23b371ca6d60b903a89bc",
+        "message": "Restore real account recovery fixtures and include composed consumers",
+        "timestamp": "2026-11-01T15:02:25Z",
+        "author": {
+          "name": "Codex",
+          "email": "codex@openai.com"
+        },
+        "committer": {
+          "name": "Codex",
+          "email": "codex@openai.com"
+        }
+      },
+      "repository": {
+        "id": 1367180299,
+        "node_id": "R_kgDOUX2ECw",
+        "name": "codex-harness",
+        "full_name": "Luoyehe/codex-harness",
+        "private": false,
+        "owner": {
+          "login": "Luoyehe",
+          "id": 62980425,
+          "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+          "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Luoyehe",
+          "html_url": "https://github.com/Luoyehe",
+          "followers_url": "https://api.github.com/users/Luoyehe/followers",
+          "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+          "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+          "repos_url": "https://api.github.com/users/Luoyehe/repos",
+          "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/Luoyehe/codex-harness",
+        "description": "Self-hosted WebUI for the open-source Codex agent \u2014 approvals, sandbox, terminal, diff, auto-compaction, MCP; works with ChatGPT, Zhipu Coding Plan and custom OpenAI-compatible APIs.",
+        "fork": false,
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness",
+        "forks_url": "https://api.github.com/repos/Luoyehe/codex-harness/forks",
+        "keys_url": "https://api.github.com/repos/Luoyehe/codex-harness/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/Luoyehe/codex-harness/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/Luoyehe/codex-harness/teams",
+        "hooks_url": "https://api.github.com/repos/Luoyehe/codex-harness/hooks",
+        "issue_events_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/Luoyehe/codex-harness/events",
+        "assignees_url": "https://api.github.com/repos/Luoyehe/codex-harness/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/Luoyehe/codex-harness/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/tags",
+        "blobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/Luoyehe/codex-harness/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/Luoyehe/codex-harness/languages",
+        "stargazers_url": "https://api.github.com/repos/Luoyehe/codex-harness/stargazers",
+        "contributors_url": "https://api.github.com/repos/Luoyehe/codex-harness/contributors",
+        "subscribers_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscribers",
+        "subscription_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscription",
+        "commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/Luoyehe/codex-harness/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/Luoyehe/codex-harness/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/Luoyehe/codex-harness/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/Luoyehe/codex-harness/merges",
+        "archive_url": "https://api.github.com/repos/Luoyehe/codex-harness/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/Luoyehe/codex-harness/downloads",
+        "issues_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/Luoyehe/codex-harness/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/Luoyehe/codex-harness/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/Luoyehe/codex-harness/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/Luoyehe/codex-harness/labels{/name}",
+        "releases_url": "https://api.github.com/repos/Luoyehe/codex-harness/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/Luoyehe/codex-harness/deployments"
+      },
+      "head_repository": {
+        "id": 1367180299,
+        "node_id": "R_kgDOUX2ECw",
+        "name": "codex-harness",
+        "full_name": "Luoyehe/codex-harness",
+        "private": false,
+        "owner": {
+          "login": "Luoyehe",
+          "id": 62980425,
+          "node_id": "MDQ6VXNlcjYyOTgwNDI1",
+          "avatar_url": "https://avatars.githubusercontent.com/u/62980425?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Luoyehe",
+          "html_url": "https://github.com/Luoyehe",
+          "followers_url": "https://api.github.com/users/Luoyehe/followers",
+          "following_url": "https://api.github.com/users/Luoyehe/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Luoyehe/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Luoyehe/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Luoyehe/subscriptions",
+          "organizations_url": "https://api.github.com/users/Luoyehe/orgs",
+          "repos_url": "https://api.github.com/users/Luoyehe/repos",
+          "events_url": "https://api.github.com/users/Luoyehe/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Luoyehe/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/Luoyehe/codex-harness",
+        "description": "Self-hosted WebUI for the open-source Codex agent \u2014 approvals, sandbox, terminal, diff, auto-compaction, MCP; works with ChatGPT, Zhipu Coding Plan and custom OpenAI-compatible APIs.",
+        "fork": false,
+        "url": "https://api.github.com/repos/Luoyehe/codex-harness",
+        "forks_url": "https://api.github.com/repos/Luoyehe/codex-harness/forks",
+        "keys_url": "https://api.github.com/repos/Luoyehe/codex-harness/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/Luoyehe/codex-harness/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/Luoyehe/codex-harness/teams",
+        "hooks_url": "https://api.github.com/repos/Luoyehe/codex-harness/hooks",
+        "issue_events_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/Luoyehe/codex-harness/events",
+        "assignees_url": "https://api.github.com/repos/Luoyehe/codex-harness/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/Luoyehe/codex-harness/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/tags",
+        "blobs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/Luoyehe/codex-harness/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/Luoyehe/codex-harness/languages",
+        "stargazers_url": "https://api.github.com/repos/Luoyehe/codex-harness/stargazers",
+        "contributors_url": "https://api.github.com/repos/Luoyehe/codex-harness/contributors",
+        "subscribers_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscribers",
+        "subscription_url": "https://api.github.com/repos/Luoyehe/codex-harness/subscription",
+        "commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/Luoyehe/codex-harness/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/Luoyehe/codex-harness/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/Luoyehe/codex-harness/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/Luoyehe/codex-harness/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/Luoyehe/codex-harness/merges",
+        "archive_url": "https://api.github.com/repos/Luoyehe/codex-harness/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/Luoyehe/codex-harness/downloads",
+        "issues_url": "https://api.github.com/repos/Luoyehe/codex-harness/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/Luoyehe/codex-harness/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/Luoyehe/codex-harness/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/Luoyehe/codex-harness/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/Luoyehe/codex-harness/labels{/name}",
+        "releases_url": "https://api.github.com/repos/Luoyehe/codex-harness/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/Luoyehe/codex-harness/deployments"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v232-main-push-jobs-41320390235-20261101T152041635944Z.json",
+      "sha256": "a982c396b66d3385bf93333e7835c29bec798161c6651e57598a1ced4d75800d",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235/jobs?per_page=100",
+      "headers": {
+        "Date": "Sun, 01 Nov 2026 15:20:43 GMT",
+        "X-RateLimit-Remaining": "7",
+        "X-RateLimit-Reset": "1793546810"
+      }
+    },
+    {
+      "path": ".work/v232-main-push-run-41320390235-20261101T152041635944Z.json",
+      "sha256": "10b66082be96f336f3fdcc75d9039cb90bde2dd154632876942caf07a629d3dd",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390235",
+      "headers": {
+        "Date": "Sun, 01 Nov 2026 15:20:45 GMT",
+        "X-RateLimit-Remaining": "6",
+        "X-RateLimit-Reset": "1793546810"
+      }
+    },
+    {
+      "path": ".work/v232-main-push-jobs-41320390096-20261101T152041635944Z.json",
+      "sha256": "6adafac16f75e0df90788fe72bd5d582ecb177b67efb276590a896a290c41216",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096/jobs?per_page=100",
+      "headers": {
+        "Date": "Sun, 01 Nov 2026 15:20:48 GMT",
+        "X-RateLimit-Remaining": "5",
+        "X-RateLimit-Reset": "1793546810"
+      }
+    },
+    {
+      "path": ".work/v232-main-push-run-41320390096-20261101T152041635944Z.json",
+      "sha256": "5d753dfab7a267646645d1a1fef317a14d87a8df216144c817dadc88995428df",
+      "url": "https://api.github.com/repos/Luoyehe/codex-harness/actions/runs/41320390096",
+      "headers": {
+        "Date": "Sun, 01 Nov 2026 15:20:50 GMT",
+        "X-RateLimit-Remaining": "4",
+        "X-RateLimit-Reset": "1793546810"
+      }
+    }
+  ],
+  "discovery": {
+    "path": ".work/v232-main-push-discovery-20261101T151822223881Z.json",
+    "sha256": "f3d58c50889f7b7fb0a5c5f2b5e0c09b4a5e303a8951704dd8cc6a14031b0966"
+  },
+  "completedEpoch": 1793546452.006493,
+  "fullRunEvidence": {
+    "path": ".work/v232-ci3-monitor-summary.json",
+    "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db"
+  },
+  "signature": "[[[41320390235, \"completed\", \"success\"], [41320390096, \"completed\", \"success\"]], [[124889126380, \"completed\", \"success\"], [124889126627, \"completed\", \"success\"], [124889126803, \"completed\", \"success\"], [124889126052, \"completed\", \"success\"], [124889277532, \"completed\", \"success\"], [124889277533, \"completed\", \"success\"], [124889277539, \"completed\", \"success\"], [124889810054, \"completed\", \"success\"]]]",
+  "stateChanged": true
+}

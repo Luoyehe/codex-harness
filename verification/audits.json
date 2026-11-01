@@ -8638,7 +8638,7 @@
     "defaultBranchEvidenceOnly": true
   },
   "v232FullTests": {
-    "status": "pending",
+    "status": "passed",
     "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
     "sourceFiles": 2004,
     "failedPredecessor": {
@@ -8648,10 +8648,79 @@
         "path": ".work/v232-ci2-monitor-summary.json",
         "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9"
       }
+    },
+    "attempt": 3,
+    "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+    "files": 263,
+    "cases": 3073,
+    "coverageGaps": [],
+    "run": 41319241294,
+    "securityRun": 41319294754,
+    "evidence": {
+      "path": "verification/audit-evidence/v232-final/ci3.json",
+      "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db"
+    },
+    "codeql": {
+      "path": "verification/audit-evidence/v232-final/codeql.json",
+      "sha256": "760491152ebb7ed4764f68814a15c2f531c3bdfef147c551a07760616d91bc56"
     }
   },
   "v232ReleaseDeployment": {
-    "status": "pending",
-    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938"
+    "status": "passed",
+    "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+    "sourceFiles": 2004,
+    "release": "c8d6a03a4d790424e495ef33849505fdb379bbae164de2a30bfe95ad662dd608",
+    "servicesLeftRunning": true,
+    "evidence": {
+      "path": "verification/audit-evidence/v232-final/deployment.json",
+      "sha256": "156026114825bb51d6d22ba4ffc032f9cc71b36348db609075ba78632c1b4aed"
+    }
+  },
+  "v232BrowserAcceptance": {
+    "status": "passed-with-explicit-scope",
+    "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+    "evidence": {
+      "path": "verification/audit-evidence/v232-final/browser.json",
+      "sha256": "920af87b7ba765d38dadeb1ed7c7017e0fc044d9adec0bc4738d26ed06e1df52"
+    },
+    "staleLink": {
+      "path": "verification/audit-evidence/v232-final/stale-link.json",
+      "sha256": "7305788e9949691ac0988403e8f0ae575d9a6cdd471b17717ec5f98397ecebd4"
+    }
+  },
+  "v232Publication": {
+    "schemaVersion": 1,
+    "status": "published",
+    "version": "2.3.2",
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.2",
+    "title": "v2.3.2 · 会话列表与独立转换修复",
+    "latest": true,
+    "prerelease": false,
+    "tag": "v2.3.2",
+    "tagCommit": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+    "observedAt": "2026-11-01T15:29:14.807Z",
+    "evidence": {
+      "path": "verification/audit-evidence/v232-final/publication.json",
+      "sha256": "17bbc715592b917976a5755cbe510fd0a1c0e0a2558a148c7dbdbb40a45f81df"
+    },
+    "screenshot": ".work/v232-release-published.png"
+  },
+  "v232ReleaseCloseout": {
+    "status": "passed-with-explicit-scope",
+    "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+    "sourceFiles": 2004,
+    "evidence": {
+      "path": "verification/audit-evidence/v232-final/closeout.json",
+      "sha256": "b751052e8ebf38d8003fca4242c3620cb6ba6cba5cd60d6418f8f1c3a8e51d84"
+    },
+    "evidenceIndex": {
+      "path": "verification/audit-evidence/v232-final/evidence-index.json",
+      "sha256": "8678ad8c5f4aafb616a60a0dda174a9d3699498e48bd9635a01eee310cbe9d1d"
+    },
+    "defaultBranchEvidenceOnly": true
   }
 }

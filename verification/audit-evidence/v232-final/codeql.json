@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "final-main-codeql-inventory-and-exact-source-review",
+  "complete": true,
+  "findings": [],
+  "completedAt": "2026-11-01T15:21:53.672Z",
+  "headObserved": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "newAlertIds": [],
+  "openAlertIds": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "reviewedCurrentAlerts": 16,
+  "legacyInventoryOnlyIds": [
+    2,
+    3,
+    4
+  ],
+  "files": [
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+    },
+    {
+      "path": "scripts/check-builtin-mcp.mjs",
+      "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2"
+    },
+    {
+      "path": "src/runtime/workspace-witness.ts",
+      "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+    },
+    {
+      "path": "src/runtime/input-context.ts",
+      "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+    },
+    {
+      "path": "src/runtime/imports.ts",
+      "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+    },
+    {
+      "path": "src/core/validation.ts",
+      "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+    },
+    {
+      "path": "tests/deploy/test_https_health.py",
+      "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+    },
+    {
+      "path": "deploy/install_recovery.py",
+      "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+    },
+    {
+      "path": "tests/deploy/test_dns_tls.py",
+      "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126"
+    },
+    {
+      "path": "tests/deploy/vision_stdio_probe.mjs",
+      "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+    }
+  ],
+  "inventory": {
+    "path": ".work/v232-final-codeql-ui.txt",
+    "sha256": "ac4fe89137a02a7071f7caddf20aee48a1ab05c5766ca045dd410e48199eb4ea"
+  },
+  "priorSemanticReview": {
+    "path": ".work/v232-copy-codeql-review.json",
+    "sha256": "a28e5a6bc36f1adbc80138bd18fdce66aa6c9cc2978b9afc72b4c373161af0b7"
+  },
+  "securityRuns": [
+    41319294754,
+    41320390235
+  ],
+  "method": "After actual manual and main security runs succeeded, refreshed main CodeQL inventory. All 19 IDs match; every current alert source file is byte-identical to its retained semantic disposition. Inherit those dispositions explicitly; no suppression or historical source reading. Current fixture/selection repairs introduce no change to these sources.",
+  "limits": [
+    "19 alerts remain open; no zero-alert or dismissal claim.",
+    "The current source alert files are bound by hashes; the exact head and completed security workflows are recorded in this final review.",
+    "Legacy IDs are inventory only; no archival product source was opened.",
+    "CI1 and CI2 failures remain preserved. The separate CI3 full matrix passed; see v232-ci3-monitor-summary.json SHA256 f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db."
+  ]
+}

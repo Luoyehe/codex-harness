@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-closeout-public-summary",
+  "status": "passed-with-explicit-scope",
+  "complete": true,
+  "version": "2.3.2",
+  "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "tag": "v2.3.2",
+  "testedTagCommit": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "release": "c8d6a03a4d790424e495ef33849505fdb379bbae164de2a30bfe95ad662dd608",
+  "audit": {
+    "round": "v232-composed-fixture-final",
+    "requiredCleanRounds": 1,
+    "completeCleanRounds": 1,
+    "userOverride": true,
+    "unchangedByteSemanticInheritanceExplicit": true,
+    "evidence": {
+      "path": "verification/audit-evidence/v232-fixture-isolation/audit.json",
+      "sha256": "513e86efb6771a082a07533cb7135aea16d7b135b5f3c370cdbf3e1571175f1d"
+    }
+  },
+  "fullTests": {
+    "attempt": 3,
+    "status": "passed",
+    "run": 41319241294,
+    "securityRun": 41319294754,
+    "files": 263,
+    "distinctCases": 3073,
+    "coverageGaps": [],
+    "earlierFailuresRetained": true
+  },
+  "deployment": {
+    "status": "passed",
+    "completedPhases": 8,
+    "executionMode": "root",
+    "effectiveUid": 0,
+    "rootAllowed": true,
+    "servicesLeftRunning": true,
+    "accountAndProjectConfigurationFingerprintsPreserved": true,
+    "proxyAndTlsSelectionPreserved": true,
+    "unknownReceiptCountRetained": 1,
+    "strictPublicHttpsAndAssetsVerified": true
+  },
+  "browser": {
+    "status": "passed-with-explicit-scope",
+    "existingConversationAutoLoaded": true,
+    "providerScopedComposer": true,
+    "newConversationAllProviders": true,
+    "twoStepConversionCancelAndDraftPreservation": true,
+    "rootBadgeSingleLineLeft": true,
+    "mobile390And320NoHorizontalOverflow": true,
+    "viewportReset": true,
+    "paidTurnSubmitted": false,
+    "productionConversationConversionPerformed": false
+  },
+  "publication": {
+    "status": "published",
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.2",
+    "latest": true
+  },
+  "codeql": {
+    "openAlerts": 19,
+    "closedAlerts": 2,
+    "currentAlertDispositions": 16,
+    "legacyInventoryOnlyIds": [
+      2,
+      3,
+      4
+    ],
+    "zeroAlertClaim": false
+  },
+  "evidence": {
+    "browser": {
+      "path": "verification/audit-evidence/v232-final/browser.json",
+      "sha256": "920af87b7ba765d38dadeb1ed7c7017e0fc044d9adec0bc4738d26ed06e1df52"
+    },
+    "ci-evidence-index": {
+      "path": "verification/audit-evidence/v232-final/ci-evidence-index.json",
+      "sha256": "4ed2a4d5812a2d0684c4d97b3a08d60c604843fea01c60ed54cf0fe96f95b97e"
+    },
+    "ci3": {
+      "path": "verification/audit-evidence/v232-final/ci3.json",
+      "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db"
+    },
+    "codeql": {
+      "path": "verification/audit-evidence/v232-final/codeql.json",
+      "sha256": "760491152ebb7ed4764f68814a15c2f531c3bdfef147c551a07760616d91bc56"
+    },
+    "deployment": {
+      "path": "verification/audit-evidence/v232-final/deployment.json",
+      "sha256": "156026114825bb51d6d22ba4ffc032f9cc71b36348db609075ba78632c1b4aed"
+    },
+    "main-push": {
+      "path": "verification/audit-evidence/v232-final/main-push.json",
+      "sha256": "9f4edecba5a25bde5aae8c8003a8fa2ad686dd551d82faf3cbea84784db72ace"
+    },
+    "public-https": {
+      "path": "verification/audit-evidence/v232-final/public-https.json",
+      "sha256": "69ef9ad870f49a4322f368a79409948b26f3a1b1e387a13b1c8fc81c8ff93ab8"
+    },
+    "publication": {
+      "path": "verification/audit-evidence/v232-final/publication.json",
+      "sha256": "17bbc715592b917976a5755cbe510fd0a1c0e0a2558a148c7dbdbb40a45f81df"
+    },
+    "stale-link": {
+      "path": "verification/audit-evidence/v232-final/stale-link.json",
+      "sha256": "7305788e9949691ac0988403e8f0ae575d9a6cdd471b17717ec5f98397ecebd4"
+    }
+  },
+  "ciLessons": {
+    "path": "verification/reports/v232-ci-lessons.md",
+    "sha256": "6d8648a5adaf7dbd059107d38863e87e6a1ff90f09665057bfd98aa4734e0578"
+  },
+  "defaultBranchCloseout": {
+    "scope": "Declared non-executable evidence only",
+    "tagRemainsOnTestedCandidate": true
+  },
+  "limits": [
+    "3073 is actual hosted unique-case reconciliation; platform-specific skips remain recorded. Raw case artifacts were not individually downloaded.",
+    "Native conversion independence was tested with the pinned CLI and isolated protocol service. No commercial inference or external MCP tool was invoked.",
+    "Original conversation preservation applies to conversion after native close flush; shared project files and external effects are not rolled back.",
+    "An old browser link no longer resolves. The current project list loads. No session-file pre-upgrade baseline exists for that link, so disappearance time and cause are unknown.",
+    "Viewport checks are not physical iOS acceptance. Authentication metadata preservation does not prove current OAuth validity. Future certificate renewal was not retested.",
+    "One old unknown receipt remains retained while activityUncertain is false; it was not replayed or deleted."
+  ]
+}

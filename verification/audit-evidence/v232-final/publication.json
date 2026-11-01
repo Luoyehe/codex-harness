@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "version": "2.3.2",
+  "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.2",
+  "title": "v2.3.2 · 会话列表与独立转换修复",
+  "latest": true,
+  "prerelease": false,
+  "tag": "v2.3.2",
+  "tagCommit": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "observedAt": "2026-11-01T15:29:14.807Z",
+  "evidence": "Actual published page shows title, Latest, tag and tested commit.",
+  "screenshot": ".work/v232-release-published.png"
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "v232-final-ci-evidence-index",
+  "createdAt": "2026-11-01T15:28:58.912454+00:00",
+  "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "entries": {
+    "ci3": {
+      "path": "verification/audit-evidence/v232-final/ci3.json",
+      "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db",
+      "original": {
+        "path": ".work/v232-ci3-monitor-summary.json",
+        "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db"
+      },
+      "copyMethod": "byte-for-byte"
+    },
+    "main-push": {
+      "path": "verification/audit-evidence/v232-final/main-push.json",
+      "sha256": "9f4edecba5a25bde5aae8c8003a8fa2ad686dd551d82faf3cbea84784db72ace",
+      "original": {
+        "path": ".work/v232-main-push-observation-20261101T152041635944Z.json",
+        "sha256": "9f4edecba5a25bde5aae8c8003a8fa2ad686dd551d82faf3cbea84784db72ace"
+      },
+      "copyMethod": "byte-for-byte"
+    },
+    "codeql": {
+      "path": "verification/audit-evidence/v232-final/codeql.json",
+      "sha256": "760491152ebb7ed4764f68814a15c2f531c3bdfef147c551a07760616d91bc56",
+      "original": {
+        "path": ".work/v232-final-codeql-review.json",
+        "sha256": "5303b5157ee4fc7b0c7dbb83f28f1423ebc2c24f24271ec2ee68f55deacddff3"
+      },
+      "copyMethod": "CRLF to LF only; JSON value and original source hash preserved"
+    }
+  },
+  "lessons": {
+    "path": "verification/reports/v232-ci-lessons.md",
+    "sha256": "6d8648a5adaf7dbd059107d38863e87e6a1ff90f09665057bfd98aa4734e0578"
+  },
+  "limits": [
+    "Original report bytes and their raw-evidence path/hash provenance are retained; ignored raw files are not silently claimed to be Git artifacts.",
+    "CI1/CI2 failed records remain in v232-ci-repair and v232-fixture-isolation.",
+    "Only CI/source-review evidence is archived here; browser, deployment and publication acceptance belong to the root closeout."
+  ]
+}

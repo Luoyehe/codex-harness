@@ -1,0 +1,753 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-v232-ci3-full-monitor",
+  "complete": true,
+  "result": "passed",
+  "fullGatePassed": true,
+  "deploymentPerformed": false,
+  "completedAt": "2026-11-01T15:17:35.718611+00:00",
+  "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "branch": "Luoyehe/root-execution-mode",
+  "event": "workflow_dispatch",
+  "testRun": 41319241294,
+  "securityRun": 41319294754,
+  "authorizationSha256": "274c597e649f14f2f9a65d63bb17e72680af62819815ba4dd7eb014b0fbcb87f",
+  "baseHead": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+  "runs": [
+    {
+      "id": 41319241294,
+      "name": "Reviewed checks",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T15:03:23Z",
+      "updated_at": "2026-11-01T15:15:21Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294"
+    },
+    {
+      "id": 41319294754,
+      "name": "Security checks",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 1,
+      "created_at": "2026-11-01T15:04:01Z",
+      "updated_at": "2026-11-01T15:06:07Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319294754"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124885729464,
+      "run_id": 41319241294,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:03:27Z",
+      "completed_at": "2026-11-01T15:04:00Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294/job/124885729464"
+    },
+    {
+      "id": 124885883155,
+      "run_id": 41319241294,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:03Z",
+      "completed_at": "2026-11-01T15:05:05Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294/job/124885883155"
+    },
+    {
+      "id": 124885883159,
+      "run_id": 41319241294,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:03Z",
+      "completed_at": "2026-11-01T15:15:05Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294/job/124885883159"
+    },
+    {
+      "id": 124885883188,
+      "run_id": 41319241294,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:03Z",
+      "completed_at": "2026-11-01T15:11:11Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294/job/124885883188"
+    },
+    {
+      "id": 124888712533,
+      "run_id": 41319241294,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:15:08Z",
+      "completed_at": "2026-11-01T15:15:21Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319241294/job/124888712533"
+    },
+    {
+      "id": 124885892943,
+      "run_id": 41319294754,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:05Z",
+      "completed_at": "2026-11-01T15:06:06Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319294754/job/124885892943"
+    },
+    {
+      "id": 124885893109,
+      "run_id": 41319294754,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:05Z",
+      "completed_at": "2026-11-01T15:05:13Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319294754/job/124885893109"
+    },
+    {
+      "id": 124885893170,
+      "run_id": 41319294754,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-01T15:04:05Z",
+      "completed_at": "2026-11-01T15:04:17Z",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/41319294754/job/124885893170"
+    }
+  ],
+  "plan": {
+    "schemaVersion": 1,
+    "complete": true,
+    "raw": {
+      "path": ".work/v232-ci3-plan-raw.txt",
+      "sha256": "2a4b6fe7a232829bf8b31c483f23e28533113f1486460ca2b026ae74329543d7"
+    },
+    "planLine": 244,
+    "plan": {
+      "mode": "authorized-full",
+      "base": "68a8ea26e9f3753430f5d5a1823f3fd1540c8e6b",
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "files": 263,
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ]
+    },
+    "authorizationSha256": "274c597e649f14f2f9a65d63bb17e72680af62819815ba4dd7eb014b0fbcb87f",
+    "historyScan": {
+      "line": 209,
+      "status": "passed-with-reviewed-historical-patterns",
+      "findings": [],
+      "reviewedHistoricalPatterns": 32,
+      "rawScannerStatus": "blocked",
+      "scannedFiles": 5677,
+      "skipped": []
+    },
+    "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+    "sourceBinding": "Authorized-full planner validated the exact committed source authorization; stdout reports plan identity, while final coverage must independently bind result source digest.",
+    "fullGatePassed": false
+  },
+  "platforms": [
+    {
+      "target": "linux",
+      "raw": {
+        "path": ".work/v232-ci3-linux-raw.txt",
+        "sha256": "fdc5efd19159d4ebc7ca393133dcea51bee09fa75a391f39314bbcf3b6f7f8be"
+      },
+      "groupSummaries": [
+        {
+          "line": 923,
+          "output": {
+            "event": "ci-test-group",
+            "group": "javascript",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 193,
+            "cases": {
+              "total": 2111,
+              "passed": 2095,
+              "failed": 0,
+              "skipped": 16,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1536,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 46,
+            "cases": {
+              "total": 606,
+              "passed": 605,
+              "failed": 0,
+              "skipped": 1,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1538,
+          "output": {
+            "event": "ci-test-group",
+            "group": "go",
+            "state": "completed",
+            "status": "passed",
+            "exitCode": 0,
+            "selectedFiles": 1,
+            "cases": {
+              "total": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null,
+            "phases": [
+              {
+                "name": "module-verification",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "test-discovery",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "go-test",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "executable-build",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "version-plugin-probe",
+                "status": "passed",
+                "exitCode": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "target": "windows",
+      "raw": {
+        "path": ".work/v232-ci3-windows-raw.txt",
+        "sha256": "c38a2172b35c57276fec528889e7b7c86f0fcb7a485b69c7598db3e7d0cc56f4"
+      },
+      "groupSummaries": [
+        {
+          "line": 1057,
+          "output": {
+            "event": "ci-test-group",
+            "group": "javascript",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 193,
+            "cases": {
+              "total": 2111,
+              "passed": 2106,
+              "failed": 0,
+              "skipped": 5,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1670,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "skipped",
+            "exitCode": 3,
+            "selectedFiles": 46,
+            "cases": {
+              "total": 606,
+              "passed": 507,
+              "failed": 0,
+              "skipped": 99,
+              "other": 0
+            },
+            "reason": null
+          }
+        },
+        {
+          "line": 1672,
+          "output": {
+            "event": "ci-test-group",
+            "group": "go",
+            "state": "completed",
+            "status": "passed",
+            "exitCode": 0,
+            "selectedFiles": 1,
+            "cases": {
+              "total": 20,
+              "passed": 20,
+              "failed": 0,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null,
+            "phases": [
+              {
+                "name": "module-verification",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "test-discovery",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "go-test",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "executable-build",
+                "status": "passed",
+                "exitCode": 0
+              },
+              {
+                "name": "version-plugin-probe",
+                "status": "passed",
+                "exitCode": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "target": "linux-root",
+      "raw": {
+        "path": ".work/v232-ci3-root-raw.txt",
+        "sha256": "737f484f9ee5d1ef6f377afd501dedcddd7135680ce3d1614d23bf49b23ace52"
+      },
+      "groupSummaries": [
+        {
+          "line": 652,
+          "output": {
+            "event": "ci-test-group",
+            "group": "deploy",
+            "state": "completed",
+            "status": "passed",
+            "exitCode": 0,
+            "selectedFiles": 23,
+            "cases": {
+              "total": 336,
+              "passed": 336,
+              "failed": 0,
+              "skipped": 0,
+              "other": 0
+            },
+            "reason": null
+          }
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "raw": {
+      "path": ".work/v232-ci3-coverage-raw.txt",
+      "sha256": "929fbc24109ab6ad9eef7284f2d2f09f9a433440078cadfaca2629026e51f71a"
+    },
+    "line": 241,
+    "output": {
+      "status": "passed",
+      "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "files": 263,
+      "cases": 3073,
+      "coverageGaps": [],
+      "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+    }
+  },
+  "selectedFiles": 263,
+  "deduplicatedCases": 3073,
+  "coverageGaps": [],
+  "security": {
+    "workflow": "completed/success",
+    "jobs": "Dependencies and both CodeQL languages completed/success",
+    "zeroAlertsClaimed": false,
+    "alertReviewOwner": "root"
+  },
+  "failureClosures": [
+    {
+      "priorRun": 41316151654,
+      "platform": "linux",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "caseCount": 16,
+      "cases": [
+        {
+          "line": 1155,
+          "case": "InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous"
+        },
+        {
+          "line": 1156,
+          "case": "InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate"
+        },
+        {
+          "line": 1157,
+          "case": "InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers"
+        },
+        {
+          "line": 1158,
+          "case": "InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery"
+        },
+        {
+          "line": 1159,
+          "case": "InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery"
+        },
+        {
+          "line": 1160,
+          "case": "InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled"
+        },
+        {
+          "line": 1161,
+          "case": "InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled"
+        },
+        {
+          "line": 1162,
+          "case": "InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries"
+        },
+        {
+          "line": 1163,
+          "case": "InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state"
+        },
+        {
+          "line": 1165,
+          "case": "InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running"
+        },
+        {
+          "line": 1171,
+          "case": "InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry"
+        },
+        {
+          "line": 1172,
+          "case": "InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers"
+        },
+        {
+          "line": 1039,
+          "case": "TransactionTests.test_health_failure_confirms_stop_before_restoring_old_release"
+        },
+        {
+          "line": 1042,
+          "case": "TransactionTests.test_unconfirmed_stop_never_changes_pointer_or_recovery_barrier"
+        },
+        {
+          "line": 1044,
+          "case": "TransactionTests.test_unknown_recovery_stop_preserves_candidate_and_transaction"
+        },
+        {
+          "line": 1153,
+          "case": "InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-linux-raw.txt",
+        "sha256": "fdc5efd19159d4ebc7ca393133dcea51bee09fa75a391f39314bbcf3b6f7f8be"
+      }
+    },
+    {
+      "priorRun": 41316151654,
+      "platform": "windows",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "caseCount": 13,
+      "cases": [
+        {
+          "line": 1289,
+          "case": "InstallationRecoveryTests.test_failed_first_start_clears_current_and_never_becomes_previous"
+        },
+        {
+          "line": 1290,
+          "case": "InstallationRecoveryTests.test_forward_repair_terminal_publication_does_not_stop_a_healthy_candidate"
+        },
+        {
+          "line": 1291,
+          "case": "InstallationRecoveryTests.test_interrupted_commit_repair_restores_both_release_pointers"
+        },
+        {
+          "line": 1292,
+          "case": "InstallationRecoveryTests.test_interrupted_upgrade_after_failed_enable_requires_recovery"
+        },
+        {
+          "line": 1293,
+          "case": "InstallationRecoveryTests.test_interrupted_upgrade_of_completed_install_requires_recovery"
+        },
+        {
+          "line": 1294,
+          "case": "InstallationRecoveryTests.test_legacy_failed_current_same_candidate_is_started_and_enabled"
+        },
+        {
+          "line": 1295,
+          "case": "InstallationRecoveryTests.test_legacy_successful_disabled_installation_is_not_reenabled"
+        },
+        {
+          "line": 1296,
+          "case": "InstallationRecoveryTests.test_partial_enable_failure_retains_healthy_commit_and_retries"
+        },
+        {
+          "line": 1297,
+          "case": "InstallationRecoveryTests.test_prepare_retry_completes_enable_then_preserves_later_disabled_state"
+        },
+        {
+          "line": 1299,
+          "case": "InstallationRecoveryTests.test_published_commit_error_keeps_the_healthy_release_running"
+        },
+        {
+          "line": 1305,
+          "case": "InstallationRecoveryTests.test_unknown_stop_retains_pointer_until_a_confirmed_retry"
+        },
+        {
+          "line": 1306,
+          "case": "InstallationRecoveryTests.test_unpublished_commit_failure_can_repair_both_release_pointers"
+        },
+        {
+          "line": 1287,
+          "case": "InstallationRecoveryTests.test_completion_record_write_failure_can_retry_after_successful_enable"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-windows-raw.txt",
+        "sha256": "c38a2172b35c57276fec528889e7b7c86f0fcb7a485b69c7598db3e7d0cc56f4"
+      }
+    },
+    {
+      "priorRun": 41316151654,
+      "platform": "linux-root",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "caseCount": 7,
+      "cases": [
+        {
+          "line": 324,
+          "case": "CandidateArchiveRootTests.test_common_exclusive_created_lock_allows_real_verified_archive"
+        },
+        {
+          "line": 328,
+          "case": "CandidateArchiveRootTests.test_legacy_archive_verification_failure_keeps_pending_recovery_and_retry"
+        },
+        {
+          "line": 329,
+          "case": "CandidateArchiveRootTests.test_legacy_pre_workspace_archive_uses_real_verification_and_restores_services"
+        },
+        {
+          "line": 330,
+          "case": "CandidateArchiveRootTests.test_legacy_workspace_archive_uses_real_verification_and_restores_services"
+        },
+        {
+          "line": 532,
+          "case": "JournalManagementRecoveryTests.test_activation_recovers_before_candidate_start_and_preserves_previous"
+        },
+        {
+          "line": 537,
+          "case": "ManagementBoundaryTests.test_builtin_edge_blocks_legacy_release_even_if_current_release_metadata_is_old"
+        },
+        {
+          "line": 540,
+          "case": "ManagementBoundaryTests.test_initialized_browser_account_blocks_token_only_downgrade_without_reading_account_database"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-root-raw.txt",
+        "sha256": "737f484f9ee5d1ef6f377afd501dedcddd7135680ce3d1614d23bf49b23ace52"
+      }
+    },
+    {
+      "priorRun": 41318007104,
+      "platform": "linux-root",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "caseCount": 2,
+      "cases": [
+        {
+          "line": 316,
+          "case": "AccountRecoveryTests.test_failed_account_candidate_retains_selected_tree_and_stopped_services_instead_of_legacy_restore"
+        },
+        {
+          "line": 318,
+          "case": "AccountRecoveryTests.test_repair_rejects_legacy_auth_restore_after_interrupting_account_candidate"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-root-raw.txt",
+        "sha256": "737f484f9ee5d1ef6f377afd501dedcddd7135680ce3d1614d23bf49b23ace52"
+      }
+    },
+    {
+      "area": "Previously failing JS fixture contracts, independent conversation assertions and selector prevention",
+      "platform": "linux",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "files": [
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 498,
+          "text": " ✓ tests/runtime/defaults-lifecycle.test.ts (16 tests | 1 skipped) 2703ms"
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 492,
+          "text": " ✓ web/tests/defaults.test.tsx (4 tests) 3851ms"
+        },
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "line": 546,
+          "text": " ✓ tests/runtime/provider-switch-native.test.ts (1 test) 11167ms"
+        },
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 561,
+          "text": " ✓ tests/tooling/select-tests.test.ts (20 tests) 159ms"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-linux-raw.txt",
+        "sha256": "fdc5efd19159d4ebc7ca393133dcea51bee09fa75a391f39314bbcf3b6f7f8be"
+      }
+    },
+    {
+      "area": "Previously failing JS fixture contracts, independent conversation assertions and selector prevention",
+      "platform": "windows",
+      "verifiedInRun": 41319241294,
+      "head": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+      "files": [
+        {
+          "path": "tests/runtime/defaults-lifecycle.test.ts",
+          "line": 597,
+          "text": " ✓ tests/runtime/defaults-lifecycle.test.ts (16 tests) 36578ms"
+        },
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "line": 520,
+          "text": " ✓ web/tests/defaults.test.tsx (4 tests) 4945ms"
+        },
+        {
+          "path": "tests/runtime/windows-job.test.ts",
+          "line": 948,
+          "text": " ✓ tests/runtime/windows-job.test.ts (8 tests) 14694ms"
+        },
+        {
+          "path": "tests/runtime/provider-switch-native.test.ts",
+          "line": 591,
+          "text": " ✓ tests/runtime/provider-switch-native.test.ts (1 test) 13473ms"
+        },
+        {
+          "path": "tests/tooling/select-tests.test.ts",
+          "line": 627,
+          "text": " ✓ tests/tooling/select-tests.test.ts (20 tests) 601ms"
+        }
+      ],
+      "raw": {
+        "path": ".work/v232-ci3-windows-raw.txt",
+        "sha256": "c38a2172b35c57276fec528889e7b7c86f0fcb7a485b69c7598db3e7d0cc56f4"
+      }
+    }
+  ],
+  "preservedFailureReviews": [
+    {
+      "path": ".work/v232-ci1-monitor-summary.json",
+      "sha256": "1e6a8ec7ab0e064c8ca0629fa3503922e41f50a161f7a56532247094dc825a6f"
+    },
+    {
+      "path": ".work/v232-ci2-monitor-summary.json",
+      "sha256": "5e0c95c0ac87328eb56926819f8e2f5d66d32ca7afd3a35d7e672b8faef9b9d9"
+    }
+  ],
+  "repairEvidence": [
+    {
+      "path": ".work/v232-ci1-js-fixture-repair.json",
+      "sha256": "8d7b051300e75196cbd3986b73d5bc344345a1f28c6560eac5415f56cdca815c"
+    },
+    {
+      "path": ".work/v232-ci-js-session-independent-review.json",
+      "sha256": "556e656420abfb291feea56f4b4b928240de2d94ba9dd553ecda1c7f8ea58f28"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-repair.json",
+      "sha256": "768ea6d5d9ed781b8c930b462be20c29490b12daa1cbaf8215840c1324c4a18f"
+    },
+    {
+      "path": ".work/v232-ci2-account-fixture-repair-review.json",
+      "sha256": "f7993704e9f3e5601e7be159e5dd30ebc45b274e232044ba64013a1bc0814037"
+    }
+  ],
+  "evidence": {
+    "observations": [
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T150429137461Z.json",
+        "sha256": "577afa017abdf41f6f2413fc30370bfad13b15c73ae1eb0f829997c987cf59c6"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T150636038942Z.json",
+        "sha256": "8f0f8b1f684ca22104da185fe64947b5fa0ec01d7af0c27b2a32e72024583415"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T150842797380Z.json",
+        "sha256": "4b101d70b4f874e057787841d4a80a3705b3848b21c59d93e7cf46aa211e61b0"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T151036402270Z.json",
+        "sha256": "16b8238b17f627c3b98093a7aa82f3172c7fc76556eac193c5de367de6233f95"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T151153181473Z.json",
+        "sha256": "cd2282e4b38134f98a1ddf0b85448b75d8590a12580831497058bce1629287ed"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T151353182594Z.json",
+        "sha256": "6219870fe213efe02c25280eb9cef77f76fb94e63c2f32f8807261aaadaa2e4c"
+      },
+      {
+        "path": ".work/v232-copy-ci3-observation-20261101T151526586901Z.json",
+        "sha256": "444ecb277825c768e2280d3deb1ac8d1af996f6e9d58a0c2a91369a9bb13b918"
+      }
+    ],
+    "finalObservation": {
+      "path": ".work/v232-copy-ci3-observation-20261101T151526586901Z.json",
+      "sha256": "444ecb277825c768e2280d3deb1ac8d1af996f6e9d58a0c2a91369a9bb13b918"
+    },
+    "planReview": {
+      "path": ".work/v232-copy-ci3-plan-review.json",
+      "sha256": "9f5ef492d0af1f7385b4373060f9e75d3e0c7d5f77814a9bf6bde149b4981fa7"
+    }
+  },
+  "method": [
+    "Unauthenticated public API GET only, exact head/topic/workflow_dispatch/run/attempt1. At least60seconds between batches. Completed Security evidence retained without repeated queries; final Reviewed workflow and check inventory captured. No retry/dispatch/cancel.",
+    "Complete actual hosted raw logs supplied by root. All final group summaries report no failed/other cases. The hosted reconciliation independently binds the source, head,263 selected files,3073 unique case identities and empty coverageGaps.",
+    "Previously failing Python case identities individually matched current ok lines; affected JS files and new prevention regression matched current passing file summaries. CI1 and CI2 remain failed historical runs."
+  ],
+  "limits": [
+    "Individual platform case JSON artifacts were not downloaded. Full case identity reconciliation is the hosted workflow result, cited by exact raw hash and line; platform counts are not summed to invent dedup totals.",
+    "Platform-specific skips remain recorded and are accepted only through actual cross-platform reconciliation; no zero-skips claim.",
+    "Security job success does not mean zero open CodeQL alerts or dismiss any alert. Root owns the current alert inventory/dispositions.",
+    "This report binds the manual full runs only. A later fast-forward main/push selected run at the same head is separate additional confirmation, not a replacement full run.",
+    "No product tests were rerun locally by this monitor and no service, model inference, external MCP or deployment was invoked."
+  ]
+}

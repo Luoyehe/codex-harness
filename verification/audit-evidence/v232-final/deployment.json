@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-v232-ci3-deployment-summary",
+  "complete": true,
+  "result": "passed",
+  "commit": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "sourceFiles": 2004,
+  "version": "2.3.2",
+  "currentRelease": "c8d6a03a4d790424e495ef33849505fdb379bbae164de2a30bfe95ad662dd608",
+  "previousRelease": "435375a6aba85a16f4c407d54525e8daccf409f21efc14d5f0518cf2f36629d5",
+  "completedAt": "2026-11-01T15:24:30.388192+00:00",
+  "ci": {
+    "fullGatePassed": true,
+    "files": 263,
+    "cases": 3073,
+    "coverageGaps": [],
+    "testRun": 41319241294,
+    "securityRun": 41319294754,
+    "priorFailedCIRunsRetained": true
+  },
+  "phases": [
+    {
+      "phase": "control-update",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:18:47.942889+00:00"
+    },
+    {
+      "phase": "config-layer-migrate",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:19:00.764925+00:00"
+    },
+    {
+      "phase": "candidate-archive",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:19:40.536610+00:00"
+    },
+    {
+      "phase": "application-update",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:23:20.073866+00:00"
+    },
+    {
+      "phase": "verify",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:23:34.293936+00:00"
+    },
+    {
+      "phase": "status",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:23:47.232234+00:00"
+    },
+    {
+      "phase": "proxy-status",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:23:53.237885+00:00"
+    },
+    {
+      "phase": "candidate-list",
+      "exitCode": 0,
+      "completedAt": "2026-11-01T15:24:03.850343+00:00"
+    }
+  ],
+  "configurationLayer": {
+    "officialMigrationChecked": true,
+    "changed": false,
+    "layer": "system-v1"
+  },
+  "services": {
+    "worker": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "gateway": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "caddy": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "proxy": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "static"
+    },
+    "proxy-routes": {
+      "ActiveState": "active",
+      "SubState": "exited",
+      "UnitFileState": "static"
+    }
+  },
+  "executionMode": {
+    "mode": "root",
+    "effectiveUid": 0,
+    "rootAllowed": true
+  },
+  "preserved": {
+    "executionPolicy": true,
+    "accountMetadata": true,
+    "registeredProjectMetadata": true,
+    "unknownReceiptMetadata": true,
+    "credentialFileMetadata": true,
+    "nativeAndRootHomes": true,
+    "lockInodesAndModes": true,
+    "proxyCoreAndConfiguration": true,
+    "tlsConfiguration": true
+  },
+  "serviceProxy": {
+    "enabled": true,
+    "ready": true,
+    "coreVersion": "26.10.31"
+  },
+  "strictVerification": {
+    "integrity": true,
+    "permissions": true,
+    "unitPolicy": "current",
+    "sudoPolicy": "current",
+    "https": true,
+    "publicAssetHashes": true
+  },
+  "activity": {
+    "runtimeKnown": true,
+    "gatewayActivityUncertain": false,
+    "noPendingManagement": true,
+    "historicalUnknownReceiptsPreserved": true
+  },
+  "privateEvidence": [
+    {
+      "name": "v232-ci3-monitor-summary.json",
+      "sha256": "f935811551b3cf6c7812c43358d99e85dfb7bc977b6b1d9504bec65dc01e98db"
+    },
+    {
+      "name": "v232-ci3-deploy-gate-enabled.json",
+      "sha256": "9f9da263a8f33841618ab613cead77bd6f0f257d297f830953ee657e9ba6ab6d"
+    },
+    {
+      "name": "v232-stage-d9e42d7e4fde-result.json",
+      "sha256": "3fbdcb231c66970cc68bbfe26522a9c20f64bae6ce3c8cd727fbef346a49078c"
+    },
+    {
+      "name": "v232-ci3-admission.json",
+      "sha256": "3961e39687355c4b3eeab097c70949c7410596f3091649389a0bc8b4910b7cd0"
+    },
+    {
+      "name": "v232-ci3-data-baseline.json",
+      "sha256": "79c3cb8a645690e55a0e9dfee411a941e5100b2807e5c2263f448dbee9b9035a"
+    },
+    {
+      "name": "v232-ci3-acceptance-after.json",
+      "sha256": "1613f445178377c92d36ebb86e4ae23b7c5135706cb73f5bf5b17b708d20ec1b"
+    },
+    {
+      "name": "v232-ci3-public-assets.json",
+      "sha256": "6807960057a78420d12dd79ddeb7d8a62ed5d1bb4c1ca682f24246f28ed40bf3"
+    },
+    {
+      "name": "v232-ci3-public-result.json",
+      "sha256": "4640e65b13c1aae99c3f2fbc7c8fab7096267bbb8f0b6bdf52a44c6f6d151cd5"
+    },
+    {
+      "name": "v232-ci3-old-tab-metadata.json",
+      "sha256": "13b45e48cb312913cd8c7642b5399f6231e08a91f68024b0dbde254073bc7457"
+    },
+    {
+      "name": "v232-deployment-ci3.json",
+      "sha256": "2f88e2f6c540052914ec77bf6adaaa2e64eac0762f51b7ac3b220d6dee8c718c"
+    }
+  ],
+  "limits": [
+    "Data fingerprint baseline was recorded after control/configuration/archive phases and before application update; admission separately recorded pre-upgrade identity, selections and unknown receipt count.",
+    "Account/project/receipt metadata equality and persistent-directory metadata do not prove every historical conversation file is byte-identical. No conversation-body baseline was collected.",
+    "An old bookmarked thread ID is currently absent from both instance HOME indexes and matching rollout filenames. There is no immediately pre-upgrade per-thread baseline for that ID, so its disappearance time and cause cannot be determined.",
+    "Authenticated browser QA was performed separately by the root agent. This report performs no conversation conversion, message submission, commercial inference, MCP tool call or publication.",
+    "Anonymous public HTTPS was routed through the existing local HTTP CONNECT proxy with public-CA hostname/validity checks; external egress geography is not independently established.",
+    "The retained historical unknown receipt is not deleted or replayed. It is distinct from the current clear runtime/gateway activity barrier."
+  ],
+  "publicationPerformed": false
+}

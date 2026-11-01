@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-upgrade-anonymous-public-https-verification",
+  "commit": "d9e42d7e4fde62cc9cbd77e20240a8d575243d24",
+  "sourceDigest": "00847eac9b065171a5faea3604d592972f5d94a26ef2eb16851b18ee5ada4938",
+  "startedAt": "2026-11-01T15:24:37.823Z",
+  "complete": true,
+  "status": "passed",
+  "trust": "Explicit Node bundled public root certificates; rejectUnauthorized=true; TLS>=1.2; fixed SNI and hostname",
+  "checks": {
+    "localProxyListenerReachable": true,
+    "health": {
+      "status": 200,
+      "ok": true
+    },
+    "home": {
+      "status": 200,
+      "utf8Html": true,
+      "directAssetsFetched": 2
+    },
+    "currentBuildAssetHashes": {
+      "matched": true,
+      "index": true,
+      "directAssets": 2
+    },
+    "publicCAHostnameAndValidity": true
+  },
+  "release": "c8d6a03a4d790424e495ef33849505fdb379bbae164de2a30bfe95ad662dd608",
+  "evidence": {
+    "rawResultSha256": "4640e65b13c1aae99c3f2fbc7c8fab7096267bbb8f0b6bdf52a44c6f6d151cd5",
+    "assetManifestSha256": "6807960057a78420d12dd79ddeb7d8a62ed5d1bb4c1ca682f24246f28ed40bf3"
+  },
+  "limits": [
+    "Four anonymous GETs; no cookies, account RPC, model calls, or conversation mutations.",
+    "Existing explicit local CONNECT proxy; independent egress geography not asserted."
+  ]
+}
