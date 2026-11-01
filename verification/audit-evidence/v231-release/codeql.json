@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-v231-ci2-codeql-review",
+  "complete": true,
+  "codeScanningReviewComplete": true,
+  "completedAt": "2026-11-01T11:14:23.402053+00:00",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "securityRun": 41300625926,
+  "workflowConclusion": "success",
+  "workflowProof": [
+    {
+      "id": 124830601255,
+      "runId": 41300625926,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:32Z",
+      "completedAt": "2026-11-01T11:11:00Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601255"
+    },
+    {
+      "id": 124830601555,
+      "runId": 41300625926,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:33Z",
+      "completedAt": "2026-11-01T11:09:44Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601555"
+    },
+    {
+      "id": 124830601571,
+      "runId": 41300625926,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:32Z",
+      "completedAt": "2026-11-01T11:12:23Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601571"
+    }
+  ],
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "newAlertIds": [],
+  "automaticallyFixedAlertIds": [],
+  "dismissedAlerts": [],
+  "reviewedCurrentAlerts": 16,
+  "uniqueCurrentSourcePaths": 13,
+  "inheritedUnchangedDispositions": 16,
+  "freshChangedDispositions": 0,
+  "legacyInventoryOnlyIds": [
+    2,
+    3,
+    4
+  ],
+  "currentHeadAnchor": {
+    "alert": 17,
+    "sourceUrl": "https://github.com/Luoyehe/codex-harness/blob/f728f9b925e5e474a7fca52e92b7ae368ca352df/src/runtime/service.ts#L821-L821",
+    "line": 821
+  },
+  "currentSourceDispositions": [
+    {
+      "id": 21,
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0",
+        "gitHeadBlob": "75ca73c7532e7a8b38e3b5732fc32bef81cc8d07"
+      },
+      "unchanged": true,
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 20,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 19,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 18,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8",
+        "gitHeadBlob": "83138be3fbe670b4aed508daa06a42266f094780"
+      },
+      "unchanged": true,
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 17,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "44b04fcf1e68529e2e634ee007aaabe516c15c114c4d5fb1ee72fa3116faf904",
+        "gitHeadBlob": "b83f4db29fe328b34dd9f376007b410089198b16"
+      },
+      "unchanged": true,
+      "disposition": "The former UI location service.ts:723 has moved: current SHA256 sink is line821. It hashes canonical cwd, selected nonsecret model/permission options, current native configuration and generation solely into an in-memory equality key for the defaults cache/in-flight coalescing. It is not a password verifier and is neither persisted nor returned. Cache remains capped16 at855 and cleared on generation invalidation at799. Current new account-read probe selects the enabled ChatGPT provider, uses refreshToken:false, returns the official account response, and closes the probe; it does not read auth.json or output token fields. Current notifications invalidate the account/defaults generation and existing error/login-completion redaction remains. Cross-provider migration does not alter the hash purpose or introduce a diagnostic credential sink.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d",
+        "gitHeadBlob": "881dfa1547e45a6c0cf71f83082d454497673c89"
+      },
+      "unchanged": true,
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3",
+        "gitHeadBlob": "8f3df5f04a6c1ddd45c700ecc4734d34f4d82f75"
+      },
+      "unchanged": true,
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f",
+        "gitHeadBlob": "424bae35c57cae14add63e43ecd7476a84fe4df6"
+      },
+      "unchanged": true,
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+        "gitHeadBlob": "29570076a730b713f8dd3708acf83b5e6ad18352"
+      },
+      "unchanged": true,
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9",
+        "gitHeadBlob": "50bc4a3c0c0a99c1126adcf2083b64a1aad93c7b"
+      },
+      "unchanged": true,
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+        "gitHeadBlob": "e1d8677cfeaa41772aca3feaa5e385eab7caf1f4"
+      },
+      "unchanged": true,
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a",
+        "gitHeadBlob": "c5f523ab5cbd32792ba14fb8a18583c9e07a9412"
+      },
+      "unchanged": true,
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d",
+        "gitHeadBlob": "e1d8677cfeaa41772aca3feaa5e385eab7caf1f4"
+      },
+      "unchanged": true,
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c",
+        "gitHeadBlob": "7b43ff3c22720ebefaf586980cfe4056930b825b"
+      },
+      "unchanged": true,
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "78b61c735fd9ffab0ca95216621b456c7bf4bbe4c2f7d29e829b0269d0c8ccde",
+        "gitHeadBlob": "927e4de3f616848f53e5e8ea594cbb00d14783f6"
+      },
+      "unchanged": true,
+      "disposition": "Current native_launcher.py:348 writes the selected managed Bedrock bearer only to the credential-helper stdout protocol, then returns; it is not a new diagnostic log. The complete fixed invocation/UID/GID/root authorization and provider-owned environment chain was reread at lines267-387: controlled native.json, fixed HOME, exact real/effective identity, restricted supplementary groups, root provider-env ownership/mode, enabled helper provider selection and bounded token checks precede output. This sink and its purpose remain unchanged. New file-store enforcement is confined to app-server/catalog-server and appends a fixed file setting after rejecting conflicting stores; its only new surfaced error is the static auth_store_unsupported message. Other launcher failures remain generic. No shared-auth token, file body or user TOML appears in these messages. The separately bound independent shared-auth review supplies author independence for those additions. Previously reviewed pinned official bearer consumer piping/trimming evidence is retained; not freshly fetched or a live descriptor observation.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d",
+        "gitHeadBlob": "64c885e430769521bc304f50a3b7898de7cb41fe"
+      },
+      "unchanged": true,
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "Current local SHA256 and exact candidate Git blob identity verified; inherit the recorded CI1 semantic review, not a fresh whole-file review."
+    }
+  ],
+  "findings": [],
+  "originalEvidence": {
+    "path": ".work/v231-ci2-codeql-final-review.json",
+    "sha256": "01be933b7b938fe26c79e37922616477f5447b90314d0ca94b266b4fb6f008c5"
+  },
+  "method": [
+    "Actual final candidate alert inventory and exact candidate source hashes were independently checked; current-source semantic dispositions retain their recorded inheritance depth.",
+    "The separately captured terminal workflow/jobs prove security success; the earlier review intentionally did not infer a terminal workflow state.",
+    "Original DOM/API evidence stays outside Git with hashes in the original review. No alert was dismissed or suppressed."
+  ],
+  "limits": [
+    "19 open alerts remain; this is a source-backed disposition review, not a zero-alert claim.",
+    "Three legacy-path entries are inventory only; no archived implementation was read and no safety conclusion is made about it.",
+    "Only alert17 detail was freshly opened as an exact-current-head anchor; other IDs combine refreshed inventory with exact unchanged source/Git evidence.",
+    "This report does not assert deployment, login or publication completion."
+  ]
+}

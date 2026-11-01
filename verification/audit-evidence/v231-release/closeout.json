@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "release-closeout-public-summary",
+  "status": "passed",
+  "complete": true,
+  "version": "2.3.1",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "tag": "v2.3.1",
+  "testedTagCommit": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "release": "435375a6aba85a16f4c407d54525e8daccf409f21efc14d5f0518cf2f36629d5",
+  "audit": {
+    "round": "v231-round3",
+    "requiredCleanRounds": 1,
+    "completeCleanRounds": 1,
+    "userOverride": true,
+    "unchangedByteSemanticInheritanceExplicit": true,
+    "evidence": {
+      "path": "verification/audit-evidence/v231-ci2/round3-team.json",
+      "sha256": "8fe5c59cbd93132068fac9f14d0b39d64a64be61c3c55b73e575b5fe8235bef3"
+    }
+  },
+  "fullTests": {
+    "attempt": 2,
+    "status": "passed",
+    "run": 41300607471,
+    "securityRun": 41300625926,
+    "files": 256,
+    "distinctCases": 2994,
+    "coverageGaps": [],
+    "priorFailurePreserved": true
+  },
+  "deployment": {
+    "status": "passed",
+    "completedPhases": 7,
+    "executionMode": "root",
+    "effectiveUid": 0,
+    "rootAllowed": true,
+    "servicesAllActive": true,
+    "proxySelectionPreserved": true,
+    "tlsSelectionPreserved": true,
+    "authMetadataPreserved": true,
+    "strictPublicHttpsAndAssetsVerified": true,
+    "unknownReceiptCountRetained": 1
+  },
+  "browser": {
+    "status": "passed-with-explicit-scope",
+    "completedConversationAutoLoaded": true,
+    "sharedModelMenu": {
+      "zhipu": 2,
+      "chatgpt": 8
+    },
+    "crossProviderSelectionAndReasoningVerified": true,
+    "unsentDraftEnabledSendThenRestored": true,
+    "desktopAndMobileViewportVerified": true,
+    "viewportReset": true
+  },
+  "publication": {
+    "status": "published",
+    "latest": true,
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.1"
+  },
+  "codeql": {
+    "openAlerts": 19,
+    "closedAlerts": 2,
+    "reviewedCurrentAlerts": 16,
+    "legacyInventoryOnlyIds": [
+      2,
+      3,
+      4
+    ],
+    "zeroAlertClaim": false
+  },
+  "evidence": {
+    "ci": {
+      "path": "verification/audit-evidence/v231-release/ci.json",
+      "sha256": "c7ed58048af3e0a02fd5a6c85cd43587c0e9bc485efbee06b470c57a5b99b19a"
+    },
+    "codeql": {
+      "path": "verification/audit-evidence/v231-release/codeql.json",
+      "sha256": "17f18a1f02d95d2d8f3f3d76601babd79f9459f0d4e2500f711b3c77c868a29f"
+    },
+    "deployment": {
+      "path": "verification/audit-evidence/v231-release/deployment.json",
+      "sha256": "62a19b05916b0b482e2e4621fb7f99d9811ea6867beb383848fee982612451a3"
+    },
+    "browser": {
+      "path": "verification/audit-evidence/v231-release/browser.json",
+      "sha256": "20f23cfa490d391b6dabf43e3f129f385adee07d940eec601c7f1a27ebaa8019"
+    },
+    "publication": {
+      "path": "verification/audit-evidence/v231-release/publication.json",
+      "sha256": "b98ef4d0376d24d97c627545c4c9fa858b20389b857827001a7eadb3392f89b6"
+    }
+  },
+  "defaultBranchCloseout": {
+    "subsequentCommitScope": "Declared non-executable verification evidence only.",
+    "tagRemainsTestedCandidate": true
+  },
+  "paidInference": false,
+  "externalMcp": false,
+  "limits": [
+    "2994 is the hosted unique-case reconciliation count; applicable-platform skips remain recorded and are not added as separate successful cases.",
+    "The post-deployment known-idle observation preceded browser loading of an existing completed conversation; no new turn or external MCP tool was submitted.",
+    "Authentication file presence, ownership and permissions were preserved; no credential content was read and OAuth validity was not independently verified.",
+    "Live ROOT mode and the current browser login were preserved without switching execution mode; shared-auth handoff is covered by isolated tests, not a live mode-switch claim.",
+    "Cross-provider live acceptance exercised model selection, reasoning controls and send readiness only, not paid model execution.",
+    "Mobile 390x844 browser viewport acceptance is not physical iOS-device acceptance.",
+    "Proxy and TLS configuration were preserved; future certificate renewal and DNS API permissions were not retested.",
+    "CodeQL remains 19 open/2 closed; current-source dispositions and legacy inventory boundaries are retained, with no dismissal or zero-alert claim."
+  ]
+}

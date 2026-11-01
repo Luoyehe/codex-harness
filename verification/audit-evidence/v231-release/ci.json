@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-v231-ci2-summary",
+  "complete": true,
+  "result": "passed",
+  "completedAt": "2026-11-01T11:21:03.181Z",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "base": "3dda095a40142edb7d6276dde2f66b76fc985225",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "authorizationSha256": "ec1157775245257b7a4c0964ac9b6bf5c740592d38476e1a68d3862e11b1f223",
+  "fullGatePassed": true,
+  "scope": "Source-bound CI and security evidence only. Deployment and publication completion are not asserted.",
+  "runs": [
+    {
+      "id": 41300625926,
+      "name": "Security checks",
+      "event": "workflow_dispatch",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-11-01T11:09:28Z",
+      "updatedAt": "2026-11-01T11:12:24Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926"
+    },
+    {
+      "id": 41300607471,
+      "name": "Reviewed checks",
+      "event": "workflow_dispatch",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-11-01T11:09:14Z",
+      "updatedAt": "2026-11-01T11:20:15Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471"
+    }
+  ],
+  "actualPlan": {
+    "mode": "authorized-full",
+    "base": "3dda095a40142edb7d6276dde2f66b76fc985225",
+    "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "files": 256,
+    "targets": [
+      "linux",
+      "windows",
+      "linux-root"
+    ],
+    "rawLog": {
+      "sha256": "be93ecfa1f420a8a6a554f642dbbc7d876f2c56a9d73099f9f8217af8cfadc63",
+      "retention": "Original raw log retained outside Git; content not published."
+    },
+    "rawLine": 242
+  },
+  "actualCoverage": {
+    "jobId": 124832941270,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124832941270",
+    "output": {
+      "status": "passed",
+      "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+      "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+      "files": 256,
+      "cases": 2994,
+      "coverageGaps": [],
+      "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+    },
+    "rawLog": {
+      "sha256": "c6928b8ab7f8ae5f905481e890d92d8e97a00639c77a18034422ac2a50be267e",
+      "retention": "Original raw log retained outside Git; content not published."
+    },
+    "rawLine": 241
+  },
+  "platforms": [
+    {
+      "target": "linux",
+      "jobId": 124830677751,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677751",
+      "rawLog": {
+        "sha256": "d110b6ed3876a29ace14b461403db28c577737720d8eba65930a931c6025c262",
+        "retention": "Original raw log retained outside Git; content not published."
+      },
+      "groups": [
+        {
+          "group": "javascript",
+          "status": "skipped",
+          "exitCode": 3,
+          "selectedFiles": 187,
+          "cases": {
+            "total": 2071,
+            "passed": 2055,
+            "failed": 0,
+            "skipped": 16,
+            "other": 0
+          },
+          "rawLine": 900
+        },
+        {
+          "group": "deploy",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 45,
+          "cases": {
+            "total": 574,
+            "passed": 574,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "rawLine": 1481
+        },
+        {
+          "group": "go",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 1,
+          "cases": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "phases": [
+            {
+              "name": "module-verification",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "test-discovery",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "go-test",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "executable-build",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "version-plugin-probe",
+              "status": "passed",
+              "exitCode": 0
+            }
+          ],
+          "rawLine": 1483
+        }
+      ]
+    },
+    {
+      "target": "windows",
+      "jobId": 124830677698,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677698",
+      "rawLog": {
+        "sha256": "9df07c978255ec4d8c30720c658825ee148957e77b6633a033471552f47b96ef",
+        "retention": "Original raw log retained outside Git; content not published."
+      },
+      "groups": [
+        {
+          "group": "javascript",
+          "status": "skipped",
+          "exitCode": 3,
+          "selectedFiles": 187,
+          "cases": {
+            "total": 2071,
+            "passed": 2066,
+            "failed": 0,
+            "skipped": 5,
+            "other": 0
+          },
+          "rawLine": 1028
+        },
+        {
+          "group": "deploy",
+          "status": "skipped",
+          "exitCode": 3,
+          "selectedFiles": 45,
+          "cases": {
+            "total": 574,
+            "passed": 475,
+            "failed": 0,
+            "skipped": 99,
+            "other": 0
+          },
+          "rawLine": 1609
+        },
+        {
+          "group": "go",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 1,
+          "cases": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "phases": [
+            {
+              "name": "module-verification",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "test-discovery",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "go-test",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "executable-build",
+              "status": "passed",
+              "exitCode": 0
+            },
+            {
+              "name": "version-plugin-probe",
+              "status": "passed",
+              "exitCode": 0
+            }
+          ],
+          "rawLine": 1611
+        }
+      ]
+    },
+    {
+      "target": "linux-root",
+      "jobId": 124830677690,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677690",
+      "rawLog": {
+        "sha256": "2a602722e95eeaaf4a0b562717364658682497e34ffb864c1e562067b49f0989",
+        "retention": "Original raw log retained outside Git; content not published."
+      },
+      "groups": [
+        {
+          "group": "deploy",
+          "status": "passed",
+          "exitCode": 0,
+          "selectedFiles": 23,
+          "cases": {
+            "total": 329,
+            "passed": 329,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          },
+          "rawLine": 642
+        }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": 124830601255,
+      "runId": 41300625926,
+      "name": "codeql (python)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:32Z",
+      "completedAt": "2026-11-01T11:11:00Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601255"
+    },
+    {
+      "id": 124830601555,
+      "runId": 41300625926,
+      "name": "dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:33Z",
+      "completedAt": "2026-11-01T11:09:44Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601555"
+    },
+    {
+      "id": 124830601571,
+      "runId": 41300625926,
+      "name": "codeql (javascript-typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:32Z",
+      "completedAt": "2026-11-01T11:12:23Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300625926/job/124830601571"
+    },
+    {
+      "id": 124830549634,
+      "runId": 41300607471,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:18Z",
+      "completedAt": "2026-11-01T11:09:51Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830549634"
+    },
+    {
+      "id": 124830677690,
+      "runId": 41300607471,
+      "name": "root_deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:53Z",
+      "completedAt": "2026-11-01T11:10:32Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677690"
+    },
+    {
+      "id": 124830677698,
+      "runId": 41300607471,
+      "name": "standard (windows-2025, windows, 0.164.0-win32-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:53Z",
+      "completedAt": "2026-11-01T11:20:03Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677698"
+    },
+    {
+      "id": 124830677751,
+      "runId": 41300607471,
+      "name": "standard (ubuntu-24.04, linux, 0.164.0-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:09:53Z",
+      "completedAt": "2026-11-01T11:16:52Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124830677751"
+    },
+    {
+      "id": 124832941270,
+      "runId": 41300607471,
+      "name": "Verified case coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-01T11:20:06Z",
+      "completedAt": "2026-11-01T11:20:14Z",
+      "url": "https://github.com/Luoyehe/codex-harness/actions/runs/41300607471/job/124832941270"
+    }
+  ],
+  "security": {
+    "runId": 41300625926,
+    "languageJobsAndDependencies": "completed/success",
+    "review": "verification/audit-evidence/v231-release/codeql.json",
+    "openAlerts": 19,
+    "closedAlerts": 2,
+    "newAlertIds": []
+  },
+  "priorFailedAttempt": {
+    "head": "c923ff9aca26ea6e6651e52772816c061664742d",
+    "sourceDigest": "a794fecf4bd7e60bf207a44eb1fa1db7efdd0e6b5d1afdd5099ce921ed949094",
+    "runId": 41299562756,
+    "result": "failed",
+    "fullGatePassed": false,
+    "publicEvidence": {
+      "path": "verification/audit-evidence/v231-ci2/ci1-failure.json",
+      "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
+    },
+    "failures": [
+      {
+        "file": "web/tests/device-login.test.tsx",
+        "assertion": "expected true to be false"
+      },
+      {
+        "file": "web/tests/shared-model-directory.test.tsx",
+        "assertion": "expected Beta model最高 to contain 读取模型设置"
+      }
+    ],
+    "note": "The first full run failed on Linux and Windows. Later local fixture repairs and this new full run do not rewrite the first result."
+  },
+  "originalEvidence": {
+    "path": ".work/v231-ci2-monitor-summary.json",
+    "sha256": "81b82e68bef6570df0fc0d0f1044a7029a213fcf133cd1c41776fcb14d50539f"
+  },
+  "limits": [
+    "2994 is the hosted reconciliation unique-case count; platform duplicate observations are not summed.",
+    "Linux JavaScript16, Windows JavaScript5 and Windows deploy99 platform skips remain explicit. Reconciliation requires each case to pass on an appropriate platform.",
+    "Original raw logs and individual case archives are not embedded. Group summaries and exact hosted final reconciliation support this record.",
+    "Successful security jobs are not a claim of zero open CodeQL alerts.",
+    "No deployment, current account state or release publication acceptance is asserted."
+  ]
+}

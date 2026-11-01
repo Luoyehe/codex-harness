@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "browser-public-summary",
+  "status": "passed-with-explicit-scope",
+  "version": "2.3.1",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "release": "435375a6aba85a16f4c407d54525e8daccf409f21efc14d5f0518cf2f36629d5",
+  "observedAt": "2026-11-01T11:26:48.352956+00:00",
+  "checks": {
+    "existingBrowserLoginPreserved": true,
+    "connected": true,
+    "compactRootBadge": true,
+    "savedProviderKindDisabled": true,
+    "builtinMcpExplainsAutomaticAvailability": true,
+    "builtinMcpApiKeyNoSecondaryOAuth": true,
+    "existingOrdinaryConversationAutoLoaded": true,
+    "manualResumeClicked": false,
+    "allEnabledProviderModelsInSameConversation": true,
+    "zhipuModelCount": 2,
+    "chatgptModelCount": 8,
+    "crossProviderSelectionUpdatesReasoning": true,
+    "sendEnabledWithUnsentDraft": true,
+    "draftAndSelectionRestored": true,
+    "mobileViewport390x844": true,
+    "mobileSettingsNavigationAndFormUsable": true,
+    "viewportReset": true
+  },
+  "modelMessagesSent": 0,
+  "externalMcpToolsCalled": 0,
+  "providerSaves": 0,
+  "modeSwitches": 0,
+  "paidInference": false,
+  "externalMcp": false,
+  "evidence": {
+    "acceptanceSha256": "adfdc600b9cdd8105d7e555c2f79eacd4b65db9d8fb723042ece22abaea667a1",
+    "screenshotSha256": [
+      "c2347277cb75934f8c14a54570dc24470e34c9ff2a84fb23af51dae76cbbaf10",
+      "d551d12793e5c8df979c586254e4aabaeb1c53356aed8e8351270da68ed5e253",
+      "f760f08e483caa2df1700b9ff98d1ce3dceb4dda5404a3b5943e22e2a01d1d1c"
+    ]
+  },
+  "limits": [
+    "An existing completed conversation loaded through the ordinary UI; no queue/goal confirmation, turn start or external MCP tool was submitted.",
+    "Cross-provider execution is covered by official CLI with local protocol fixtures; live browser exercised selection only.",
+    "Mobile browser viewport is not physical iOS device acceptance.",
+    "Shared credentials mode handoff is covered by isolated tests; live ROOT mode and current login were preserved without a mode switch.",
+    "The deployment observation of known-idle state preceded this browser session; no post-browser idle observation is claimed.",
+    "No private conversation titles, messages, account identity or screenshot contents are published."
+  ]
+}

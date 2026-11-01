@@ -8444,10 +8444,25 @@
           "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
         }
       }
+    },
+    {
+      "attempt": 2,
+      "status": "passed",
+      "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+      "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+      "run": 41300607471,
+      "securityRun": 41300625926,
+      "files": 256,
+      "cases": 2994,
+      "coverageGaps": [],
+      "evidence": {
+        "path": "verification/audit-evidence/v231-release/ci.json",
+        "sha256": "c7ed58048af3e0a02fd5a6c85cd43587c0e9bc485efbee06b470c57a5b99b19a"
+      }
     }
   ],
   "v231FullTests": {
-    "status": "pending",
+    "status": "passed",
     "attempt": 2,
     "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
     "sourceFiles": 1991,
@@ -8458,10 +8473,75 @@
         "path": ".work/v231-ci1-failure-summary.json",
         "sha256": "bd164390a36c28ae4077fab2387e4cbbbd552bd60547c9f7cc196b8fb0a11efb"
       }
+    },
+    "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "files": 256,
+    "cases": 2994,
+    "coverageGaps": [],
+    "run": 41300607471,
+    "securityRun": 41300625926,
+    "evidence": {
+      "path": "verification/audit-evidence/v231-release/ci.json",
+      "sha256": "c7ed58048af3e0a02fd5a6c85cd43587c0e9bc485efbee06b470c57a5b99b19a"
+    },
+    "codeql": {
+      "path": "verification/audit-evidence/v231-release/codeql.json",
+      "sha256": "17f18a1f02d95d2d8f3f3d76601babd79f9459f0d4e2500f711b3c77c868a29f"
     }
   },
   "v231ReleaseDeployment": {
-    "status": "pending",
-    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6"
+    "status": "passed",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "sourceFiles": 1991,
+    "release": "435375a6aba85a16f4c407d54525e8daccf409f21efc14d5f0518cf2f36629d5",
+    "mode": "root",
+    "effectiveUid": 0,
+    "rootAllowed": true,
+    "servicesLeftRunning": true,
+    "allManagedServicesActive": true,
+    "proxySelectionPreserved": true,
+    "tlsSelectionPreserved": true,
+    "authMetadataPreserved": true,
+    "unknownReceiptCountRetained": 1,
+    "evidence": {
+      "path": "verification/audit-evidence/v231-release/deployment.json",
+      "sha256": "62a19b05916b0b482e2e4621fb7f99d9811ea6867beb383848fee982612451a3"
+    }
+  },
+  "v231BrowserAcceptance": {
+    "status": "passed-with-explicit-scope",
+    "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "evidence": {
+      "path": "verification/audit-evidence/v231-release/browser.json",
+      "sha256": "20f23cfa490d391b6dabf43e3f129f385adee07d940eec601c7f1a27ebaa8019"
+    }
+  },
+  "v231Publication": {
+    "status": "published",
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.1",
+    "latest": true,
+    "tagCommit": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "evidence": {
+      "path": "verification/audit-evidence/v231-release/publication.json",
+      "sha256": "b98ef4d0376d24d97c627545c4c9fa858b20389b857827001a7eadb3392f89b6"
+    }
+  },
+  "v231ReleaseCloseout": {
+    "status": "passed",
+    "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+    "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+    "sourceFiles": 1991,
+    "evidence": {
+      "path": "verification/audit-evidence/v231-release/closeout.json",
+      "sha256": "ee23dae8582d77b581402e2bb7be9a159e6fbb8ee8cee8a4af18be6bc82ac437"
+    },
+    "evidenceIndex": {
+      "path": "verification/audit-evidence/v231-release/evidence-index.json",
+      "sha256": "3b591f4306f9ce483ae4460322914588badf161b9df5090f10b2dfaa6954d935"
+    },
+    "defaultBranchEvidenceOnly": true
   }
 }

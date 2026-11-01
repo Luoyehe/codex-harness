@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "publication-public-summary",
+  "status": "published",
+  "version": "2.3.1",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.1",
+  "tag": "v2.3.1",
+  "tagCommit": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "latest": true,
+  "evidence": {
+    "authenticatedUiSha256": "d97a939bf1f0bbfc09d1369478d2f7375c97148fe096f4f16d63840245efa1e3",
+    "screenshotSha256": "51aa4b8572cc3cfdb3a2d04fb916f62ef5e84d539737d961e16ce6f8ef0aebe2"
+  },
+  "defaultBranchCloseout": {
+    "subsequentCommitScope": "Declared non-executable verification evidence only.",
+    "tagRemainsTestedCandidate": true
+  },
+  "limits": [
+    "Publication was verified in the authenticated release UI; raw UI and screenshot contents remain outside Git."
+  ]
+}

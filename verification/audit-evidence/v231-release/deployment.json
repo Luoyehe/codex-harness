@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "kind": "deployment-public-summary",
+  "status": "passed",
+  "version": "2.3.1",
+  "head": "f728f9b925e5e474a7fca52e92b7ae368ca352df",
+  "sourceDigest": "1d1e1a4e5c18b1b6d155f615f99005b7070bb407f4d895b40bf6f8d73f6059d6",
+  "sourceFiles": 1991,
+  "release": "435375a6aba85a16f4c407d54525e8daccf409f21efc14d5f0518cf2f36629d5",
+  "completedAt": "2026-11-01T11:24:29.547634+00:00",
+  "verifiedAt": "2026-11-01T11:24:35.743716+00:00",
+  "executionMode": "root",
+  "effectiveUid": 0,
+  "rootAllowed": true,
+  "servicesAllActive": true,
+  "services": {
+    "worker": {
+      "active": true,
+      "state": "running"
+    },
+    "gateway": {
+      "active": true,
+      "state": "running"
+    },
+    "caddy": {
+      "active": true,
+      "state": "running"
+    },
+    "proxy": {
+      "active": true,
+      "state": "running"
+    },
+    "proxy-routes": {
+      "active": true,
+      "state": "exited"
+    }
+  },
+  "preserved": {
+    "rootAuthorization": true,
+    "executionIdentity": true,
+    "proxySelection": true,
+    "tlsSelection": true,
+    "authFileMetadata": true
+  },
+  "authentication": {
+    "metadataFilesChecked": 2,
+    "presenceOwnershipPermissionsPreserved": true,
+    "contentsRead": false,
+    "oauthValidityVerified": false
+  },
+  "runtime": {
+    "connected": true,
+    "knownIdle": true,
+    "gatewayActivityUncertain": false
+  },
+  "unknownReceipts": {
+    "countBefore": 1,
+    "countAfter": 1,
+    "countRetained": true,
+    "retirementRequested": false
+  },
+  "publicHttps": {
+    "strictCertificateAndHostnameVerification": true,
+    "releaseAssetBytesMatched": true,
+    "assets": [
+      {
+        "path": "/index.html",
+        "bytes": 409,
+        "sha256": "8c07a763a70912171383587cf5ec89339adb23ca9698482dfe13342d8de55f0c",
+        "httpStatus": 200
+      },
+      {
+        "path": "/assets/index-CHdxiijS.js",
+        "bytes": 1375205,
+        "sha256": "12c65abbe0ebd91ff30dbce2220a62d64d0241986a6208350cb23b4087306020",
+        "httpStatus": 200
+      },
+      {
+        "path": "/assets/index-CIIrZIro.css",
+        "bytes": 55043,
+        "sha256": "8f2e40349fc2778decfd28028e8e180c1b997a668b75af59e27d161c4b561388",
+        "httpStatus": 200
+      }
+    ]
+  },
+  "phases": [
+    {
+      "phase": "control-update",
+      "exitCode": 0,
+      "rawSha256": "22be8a02b9847b0f340f276f37ebaa46b6fb9a17740ae5696c942603d1fd4d59"
+    },
+    {
+      "phase": "candidate-archive",
+      "exitCode": 0,
+      "rawSha256": "8ea9577f9aaa8908f609c2ec0997ed94acb706ed3b200d57922256b432bc5f4a"
+    },
+    {
+      "phase": "application-update",
+      "exitCode": 0,
+      "rawSha256": "d9e0c21afbb9a4a16cf5527d26f61cadc6a0865cb69b5ef087b5e4cf6358ef93"
+    },
+    {
+      "phase": "verify",
+      "exitCode": 0,
+      "rawSha256": "fcb751c5d379994cb99d1596bb8193f5b32fdc830e85df485bfc3a2f3b572d50"
+    },
+    {
+      "phase": "status",
+      "exitCode": 0,
+      "rawSha256": "993cc833591136a2642a725d311813fc08e3383f34811c8d0be93e44a92fb6fc"
+    },
+    {
+      "phase": "proxy-status",
+      "exitCode": 0,
+      "rawSha256": "9b4541bb75508b5866a6380ebe4ee1ae746473f6ce77939bb05705651e21182f"
+    },
+    {
+      "phase": "candidate-list",
+      "exitCode": 0,
+      "rawSha256": "02acb0a335f1663cc0cca809298f65ed86692e3b32d37e0ad7584935a64f44a7"
+    }
+  ],
+  "evidence": {
+    "preDeploymentObservationSha256": "d3cefaecf023dcf27b6c283740694e5bcdfcb1d92a8b7bb5cc80bf7b29088ec2",
+    "postDeploymentObservationSha256": "f0b1998da83fe5a0645d4486ffa8dd0128367f8cfd5a2cee9eb2d09c5191862d",
+    "strictPublicAssetsSha256": "f00a3cf33e764591f4b0f4e9645286f5d3be326272b3e25908ae67b3c59f0036",
+    "remoteApplicationReceiptSha256": "8bc64ff8988f8a0672ee31fb0be4e741b49fecdb51e49ef52bcfe2c9f5f16121"
+  },
+  "paidInference": false,
+  "externalMcp": false,
+  "limits": [
+    "Auth metadata preservation does not establish OAuth validity; credential contents were not read.",
+    "This record verifies deployment state and anonymous public HTML/JS/CSS assets. Logged-in browser acceptance is recorded separately; no model inference or external MCP calls are claimed.",
+    "This observation checked unknown receipts by retained count only; no receipt identifiers or bodies are included in this public record."
+  ]
+}
