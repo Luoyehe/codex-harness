@@ -478,7 +478,6 @@ hr {
 .sidebar-row > .project, .sidebar-row > .thread-link { width: 100%; }
 .project-chevron { flex-shrink: 0; font-size: 11px; color: var(--muted); }
 .project-conversations { margin: 3px 0 7px 13px; padding-left: 7px; border-left: 1px solid var(--line); }
-.project-conversations .sidebar-section { padding: 6px 4px 2px; font-size: 10px; letter-spacing: 0; }
 .project-conversations .thread-link { padding: 9px 6px; gap: 5px; }
 .sidebar-actions { display: contents; }
 .sidebar-more { width: 32px; height: 34px; flex-shrink: 0; color: var(--muted); font-size: 20px; }

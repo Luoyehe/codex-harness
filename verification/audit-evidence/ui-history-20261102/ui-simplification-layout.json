@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "kind": "ui-simplification-layout-implementation",
+  "authorId": "/root/v220_final_deploy",
+  "completedAt": "2026-11-01T16:18:52.523742+00:00",
+  "complete": true,
+  "baseHead": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "changes": [
+    {
+      "request": "Move ROOT to the right tool area immediately left of connection status",
+      "implementation": "Move the existing RootExecutionNotice after the flex:1 breadcrumb and before connection; retain its role/status, pending identity rendering and settings callback. Reuse existing no-wrap topbar and mobile connection-dot rules without a new wrapper or state."
+    },
+    {
+      "request": "Remove the recent-conversations heading row and combine refresh with sorting",
+      "implementation": "Replace the separate heading row and padded sort label with one flex sidebar-list-tools row. Sorting keeps its existing values and callback; refresh keeps its accessible name and handler, including when the optional sort callback is absent."
+    },
+    {
+      "request": "Remove unused structure/style/copy",
+      "implementation": "Delete project-conversations .sidebar-section override and standalone/sidebar-local sort padding. Replace the unarchive dialog reference to the removed 最近会话 column with the project conversation list. The archive explanation now names the surviving 已归档 navigation entry rather than the removed heading."
+    }
+  ],
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "df096bb7077722a038efe3046bd0110bafa155714c6f7d6cd65dbb62a859ae4a",
+      "bytes": 83203,
+      "beforeSha256": "2dc882d67c4123682a7d0a142a592835362bad9f67b2555d05043d388ff66c63"
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "93da1470ac053dc8973ae58e1a8993b317c417af386dac01be2bd1898ce2b804",
+      "bytes": 12585,
+      "beforeSha256": "7b63bc2d246695982692cc4662c382e343f9bc9b60f4e07bf312ea987b0b1924"
+    },
+    {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "sha256": "aab18cf9ba954e9f07c2138df7cea89a0e65fbfb086fba29e91833848341454f",
+      "bytes": 5779,
+      "beforeSha256": "d0b93d5deb5612f2ff7af38b2d744021d757bd3bff7fdfc17484a5aedb3331a1"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "1b284e23d1a0e95213f5042e51f06d36ac510db846a9f0c01e39eb52919acfe4",
+      "bytes": 31447,
+      "beforeSha256": "14eca48f369edaabb78994ea2b70c416b744884eadab8d3555e41d07ded7583b"
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "2cc63cb027bff3ecb876a08b3cd009b6afd445dee848ce897441112b9a6c5143",
+      "bytes": 4192,
+      "beforeSha256": "4c34764b2b49740d3c68a51204c174a6be1ded30cc5097501a8ecf34a4f61832"
+    }
+  ],
+  "consumerInspection": [
+    "Sidebar callers: Workspace desktop sidebar and mobile Dialog share the same component.",
+    "Sidebar semantic tests cover project scope, search/order/refresh/pagination callbacks, row actions and mobile dialog Escape.",
+    "Existing actual-App project-handoff test covers ROOT notice retention and fail-closed identity changes; execution-mode test covers compact badge and settings action without privilege mutation.",
+    "Searched web TSX/CSS for removed 最近会话 and project-conversations .sidebar-section; no stale references remain. Generic sidebar-section still serves the Project header and is retained."
+  ],
+  "validation": {
+    "targeted": {
+      "command": "node scripts/run-tests.mjs --targeted web/tests/sidebar.test.tsx web/tests/sidebar-management.test.tsx web/tests/project-handoff.test.tsx web/tests/execution-mode.test.tsx",
+      "node": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe",
+      "exitCode": 0,
+      "files": 4,
+      "cases": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "report": {
+        "path": ".work/test-results/run-5L3Cvy/vitest.json",
+        "sha256": "42db2cd6d3ad68dd1596afa56d4bc7b60aa725488544027687feb2fa929b9897",
+        "bytes": 11668
+      },
+      "log": {
+        "path": ".work/ui-simplification-layout-tests.log",
+        "sha256": "b34eb785d00ec2b9e5b99933c52712e39744ef0c12dc1546f2f64cbd3cf46bb9",
+        "bytes": 9188
+      },
+      "testFileHashes": [
+        {
+          "path": "web/tests/sidebar.test.tsx",
+          "sha256": "f54c2222aeab655cf3efb4891448d80d5aae7b9c7e032e4a47b6d9588d89b88f",
+          "bytes": 11234
+        },
+        {
+          "path": "web/tests/sidebar-management.test.tsx",
+          "sha256": "a8ffee97839c3f8574b7044d501816b6a7f5270112b97a13ed371ecf8b13fdde",
+          "bytes": 8243
+        },
+        {
+          "path": "web/tests/project-handoff.test.tsx",
+          "sha256": "60371c1a2c2b7a583569607ae49921ee4432c7a1b462d9c30d3cab3315eb80b1",
+          "bytes": 9753
+        },
+        {
+          "path": "web/tests/execution-mode.test.tsx",
+          "sha256": "bcf9f6646bbde5e53551cfe3af543b86d1497ef4ff2b09e6b66fd8bcc6256293",
+          "bytes": 11786
+        }
+      ],
+      "testedSourceFiles": [
+        {
+          "path": "web/Workspace.tsx",
+          "sha256": "df096bb7077722a038efe3046bd0110bafa155714c6f7d6cd65dbb62a859ae4a"
+        },
+        {
+          "path": "web/components/Sidebar.tsx",
+          "sha256": "93da1470ac053dc8973ae58e1a8993b317c417af386dac01be2bd1898ce2b804"
+        },
+        {
+          "path": "web/components/SidebarManagementDialog.tsx",
+          "sha256": "f9a3c6c2bb41160441c8e7fe91b7753c43d262ca21181005725144ff64a42272"
+        },
+        {
+          "path": "web/styles.css",
+          "sha256": "1b284e23d1a0e95213f5042e51f06d36ac510db846a9f0c01e39eb52919acfe4"
+        },
+        {
+          "path": "web/styles-extensions.css",
+          "sha256": "2cc63cb027bff3ecb876a08b3cd009b6afd445dee848ce897441112b9a6c5143"
+        }
+      ]
+    },
+    "diffCheck": {
+      "exitCode": 0,
+      "scope": [
+        "web/Workspace.tsx",
+        "web/components/Sidebar.tsx",
+        "web/components/SidebarManagementDialog.tsx",
+        "web/styles.css",
+        "web/styles-extensions.css"
+      ]
+    },
+    "lineEndings": "All five changed files are LF; no CRLF.",
+    "postTestCopyCorrection": {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "change": "Archive explanation now points to 已归档.",
+      "review": "No existing test matches the old sentence; buttons/actions and handlers unchanged. git diff --check passed.",
+      "rerun": false,
+      "reason": "Parent explicitly requested no repeat of 33 passing tests for this text-only correction."
+    }
+  },
+  "testsChanged": [],
+  "limits": [
+    "Existing semantic/integration tests are reused unchanged; no test mirrors the layout implementation.",
+    "JSDOM confirms interactions and accessibility, not rendered pixel geometry. Desktop/mobile visual acceptance is delegated to root; no browser session was used here.",
+    "No full test run, build, deployment, production access, operation-state change, commit or push."
+  ],
+  "instructionsRead": [
+    "AGENTS.md",
+    "scripts/RELEASE-PREFLIGHT.md",
+    "verification/reports/reviewed-checks-history.md"
+  ]
+}

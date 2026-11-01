@@ -59,7 +59,15 @@ export function mediaSources(item: Item): MediaSource[] {
           : { inline: item.result }
         : typeof item.savedPath === 'string'
           ? { path: item.savedPath }
-          : { unavailable: '原生只提供文件 ID，没有可读取的图片内容。' }),
+          : {
+              unavailable: ['in_progress', 'inProgress', 'pending'].includes(String(item.status))
+                ? '图片正在生成，请等待结果。'
+                : item.status === 'failed'
+                  ? '图片生成失败，未返回可预览的图片。'
+                  : typeof item.fileId === 'string' && item.fileId
+                    ? '原生只提供文件 ID，没有可读取的图片内容。'
+                    : '原生没有提供可读取的图片内容。',
+            }),
     });
   return sources.slice(0, 8);
 }

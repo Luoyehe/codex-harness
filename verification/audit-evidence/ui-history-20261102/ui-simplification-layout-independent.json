@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-targeted-review",
+  "reviewerId": "/root/v230_audit_gateway_tooling",
+  "completedAt": "2026-11-01T16:26:18.142452+00:00",
+  "complete": true,
+  "clean": true,
+  "status": "passed",
+  "findings": [],
+  "files": [
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "df096bb7077722a038efe3046bd0110bafa155714c6f7d6cd65dbb62a859ae4a"
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "93da1470ac053dc8973ae58e1a8993b317c417af386dac01be2bd1898ce2b804"
+    },
+    {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "sha256": "aab18cf9ba954e9f07c2138df7cea89a0e65fbfb086fba29e91833848341454f"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "1b284e23d1a0e95213f5042e51f06d36ac510db846a9f0c01e39eb52919acfe4"
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "2cc63cb027bff3ecb876a08b3cd009b6afd445dee848ce897441112b9a6c5143"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/ui-simplification-layout.json",
+      "sha256": "310924a55b1fb18f0036af5fa4f82e4a3af9082347af8d80dc27c192109dde3b"
+    },
+    {
+      "path": ".work/test-results/run-5L3Cvy/vitest.json",
+      "sha256": "42db2cd6d3ad68dd1596afa56d4bc7b60aa725488544027687feb2fa929b9897"
+    }
+  ],
+  "method": "Read the complete five-file diff, full Sidebar and SidebarManagementDialog, Workspace topbar and desktop/mobile Sidebar callers, affected CSS rules and existing responsive/root-badge CSS. Trace removed labels/selectors and accessible names; check reported test JSON and exact source hashes without rerunning tests.",
+  "checks": [
+    {
+      "scope": "ROOT position and behavior",
+      "result": "RootExecutionNotice is immediately before connection and after flex:1/min-width:0 breadcrumb. Same execution identity, confirmed status and settings callback retained; no mutation added. Notice is inline-flex with flex-shrink:0; button white-space:nowrap; topbar remains one flex row."
+    },
+    {
+      "scope": "Sidebar row and access",
+      "result": "One flex sidebar-list-tools row contains named 会话排序 select and 刷新会话列表 button. Optional absent sort still leaves refresh. Callback values, project ownership, search, archive, pagination and row actions remain unchanged; project-named nav preserves list accessibility."
+    },
+    {
+      "scope": "Narrow viewport static constraints",
+      "result": "Shared Sidebar is reused in mobile Dialog. Sort label flex:1/min-width:0 with width:100% select and refresh flex-shrink:0 avoids intrinsic width pushing the row. Existing mobile topbar truncates breadcrumb, renders connection as a dot and hides desktop-only actions. ROOT has no wrap. This is CSS/DOM review, not measured browser geometry."
+    },
+    {
+      "scope": "Removed structure and wording",
+      "result": "Removed recent/search/archive heading row has no remaining old 最近会话 references in web source. Deleted project-conversations sidebar-section override has no remaining consumer; generic sidebar-section still serves Project. SidebarManagementDialog refers to existing 已归档 control and project conversation list."
+    },
+    {
+      "scope": "Test evidence",
+      "result": "Author run-5L3Cvy records 4 files/33 passed/0 failed. Tested source hashes match four current files; SidebarManagementDialog has the disclosed post-test copy-only wording correction. Read both final sentences and verified event handlers unchanged; do not claim exact final dialog hash was rerun."
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "web/components/ExecutionModeSettings.tsx",
+      "sha256": "c2af340235cc4d1db2b6ea235f69c51077bb2820574e0fe8e1e43e0d394a28b3"
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "sha256": "d042265ab8c584580115b5f2ba233aa95cce53f5d81b6389f6855e4749b75939"
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "sha256": "67e5886d0eed5dc9011edf904d4832824ec4a722566657bfc04431d3e1ee3331"
+    },
+    {
+      "path": "web/main.tsx",
+      "sha256": "a19b6395e30927be8069dba1baaef0c6ee203a4ca30e76649eca988483178a54"
+    }
+  ],
+  "limits": [
+    "No tests, build, source edits, browser operation, remote operation, commit or deployment performed for this independent review.",
+    "No independent pixel/overflow measurement or physical-device interaction; parent owns visual acceptance.",
+    "Narrow layout and adjacent caller review, not a new whole-repository audit."
+  ]
+}

@@ -40,7 +40,7 @@ it('distinguishes a confirmed project failure from message delivery and reads th
   expect(JSON.stringify(await listOperations())).not.toContain('项目执行账号');
   await expect(createOperation('turn/start', { threadId: 'another' })).resolves.toBeDefined();
 });
-it('does not resurrect an acknowledged failure after a late reason read, reconciliation or remount', async () => {
+it('does not resurrect a dismissed failure after a late reason read, reconciliation or remount', async () => {
   const failed = await createOperation('project/add', {});
   await updateOperation(failed.id, 'not_sent');
   let finish!: (value: unknown) => void;
@@ -48,7 +48,7 @@ it('does not resurrect an acknowledged failure after a late reason read, reconci
   const view = render(<Harness api={api} />);
   fireEvent.click(await screen.findByText('1 笔操作未执行'));
   fireEvent.click(screen.getByRole('button', { name: '查看失败原因' }));
-  fireEvent.click(screen.getByRole('button', { name: '已知悉' }));
+  fireEvent.click(screen.getByRole('button', { name: '关闭提醒' }));
   await waitFor(() => expect(view.container.textContent).toBe(''));
   await act(async () => {
     finish({ operationId: failed.id, method: 'project/add', state: 'not_sent', error: { message: 'Late reason' } });
@@ -196,7 +196,7 @@ it('unblocks a missing operation only after retirement returns a not-sent fence'
   const retire = await screen.findByRole('button', { name: '阻止尚未登记的请求' });
   await expect(createOperation('conversation/start', { projectId: 'p' })).rejects.toThrow();
   fireEvent.click(retire);
-  await screen.findByRole('button', { name: '已知悉' });
+  await screen.findByRole('button', { name: '关闭提醒' });
   expect((await listOperations())[0]?.state).toBe('not_sent');
   await expect(createOperation('conversation/start', { projectId: 'p' })).resolves.toBeDefined();
 });

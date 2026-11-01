@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "kind": "thread-execution-settings-global-capabilities-cleanup",
+  "complete": true,
+  "createdAt": "2026-11-01T16:31:01.431130+00:00",
+  "baseHead": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "findingClosed": "provider-capabilities-scope-label",
+  "reason": "The fixed official CLI reads its latest global provider config for the empty-parameter capability query; it does not establish the displayed thread provider capability.",
+  "changes": [
+    "Removed global capability request, response validation, separate read state, refresh call, and current-provider capability copy from this thread settings surface.",
+    "Retained validated thread/session snapshot, project-scoped permissionProfile pagination, settings updates, and recovery/identity guards unchanged.",
+    "Updated the existing request-level UI test to prove initial read and explicit refresh only request the thread snapshot and project permission profiles; removed obsolete capability fixture and display assertion."
+  ],
+  "files": [
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "596cb73cc6b72f2c0c10b6e01801c03deb12365b3c9b3061f96230be3c9ae1d6",
+      "bytes": 17197
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "cd0aeec134237ffa4b9458270671ff51418713067b493d74ab922cfd4c6982ee",
+      "bytes": 15731
+    }
+  ],
+  "consumerReview": {
+    "scope": [
+      "web/Workspace.tsx",
+      "web/components/ThreadExecutionSettings.tsx",
+      "web/tests/execution-settings.test.tsx",
+      "src/core/feature-methods.ts",
+      "src/runtime/workflows.ts"
+    ],
+    "result": "Workspace is the only component consumer; props unchanged. No other web capability callers remain. Supported server capability route and native passthrough remain unchanged.",
+    "whyOnlyTargetedModule": "The component interface and mutation logic are unchanged. Its existing direct test exercises real Api fetch calls, snapshot refresh, permission profiles, stale identity, turn scope, and unknown receipt recovery."
+  },
+  "validation": {
+    "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/execution-settings.test.tsx",
+    "exitCode": 0,
+    "files": 1,
+    "cases": 15,
+    "passed": 15,
+    "failed": 0,
+    "success": true,
+    "evidence": {
+      "path": ".work/test-results/run-nwCKum/vitest.json",
+      "sha256": "d148cf91ad18d8ca7a851eb62851e992e7a22cfad5579bfda0ee808fa2f7df05",
+      "bytes": 5573
+    },
+    "log": {
+      "path": ".work/thread-settings-capabilities-cleanup-tests.log",
+      "sha256": "182283a676bbbffcc653f275cd01f9690ff9967f359416b80a484a2e47398b56",
+      "bytes": 4603
+    },
+    "diffCheck": {
+      "exitCode": 0,
+      "scope": [
+        "web/components/ThreadExecutionSettings.tsx",
+        "web/tests/execution-settings.test.tsx"
+      ]
+    },
+    "lfOnly": true
+  },
+  "priorEvidence": [
+    {
+      "path": ".work/chatgpt-image-generation-capability-review.json",
+      "sha256": "8e58a85a82abf50a5f7bfb7a1ffed5dbddd4eec47995268b46243ed64328498b",
+      "bytes": 35044
+    },
+    {
+      "path": ".work/ui-image-generation-official-contract.json",
+      "sha256": "1c877685b2910d29e4a74f7bf1f055d4453aaa330122cbceea899ed1b1bb9e02",
+      "bytes": 12094
+    }
+  ],
+  "limits": [
+    "Targeted UI repair, not a full repository audit or full test run.",
+    "No production access, network/model/MCP call, account capability replacement, or changes to media/operation history files.",
+    "No separate build/browser/typecheck was run for this removal-only component change."
+  ]
+}

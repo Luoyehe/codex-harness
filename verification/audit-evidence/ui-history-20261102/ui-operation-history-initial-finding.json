@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-operation-history-review-checkpoint",
+  "createdAt": "2026-11-01T16:39:24.261346+00:00",
+  "complete": false,
+  "clean": false,
+  "base": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "findings": [
+    {
+      "id": "operation-history-uncollectible-accepted",
+      "severity": "P2",
+      "title": "Queried accepted non-thread operations lose their last active-budget release path",
+      "evidence": [
+        "Recovery read invokes reconcileOperation; accepted reconciliation invokes updateOperation, without acknowledgement.",
+        "Api normal successful non-thread writes invoke acknowledgeOperation, but receipt-query completion is a separate path.",
+        "Capacity GC collects not_sent or accepted consumed nonlegacy records. consumeThreadOperations only consumes input/fork/convert/review thread records.",
+        "OperationHistory no longer offers manual completed-record cleanup. Thus accepted provider/configuration operations confirmed after unknown can accumulate to the active cap with no matching thread to open.",
+        "Migrated accepted legacy thread records cannot be marked consumed by the current consumer, so removal of manual closure also needs a safe retention exit for those records."
+      ],
+      "suggestedBoundary": "Add safe automatic collection eligibility for accepted receipts that require no further owner handoff; keep terminal/recovery owner payload and unseen thread destinations until consumed. Do not immediately erase the proof before useWorkflow observers can read it; do not clear legacy/unsent/newer drafts.",
+      "validation": "Static end-to-end caller proof only; no new test or runtime reproduction performed by this reviewer.",
+      "status": "reported-to-root-and-author"
+    }
+  ],
+  "files": [
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "8d576b5cea06e3dc2d3b5118d69b1bfd4f672b33144e8c99c4456913900ebc54"
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45"
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "5625bccfb6d09cc6d01333d9f66f7f94a308bd58884843e3988a95906d889c14"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "8fa9ebaef01b146037449c86be034d78e6f14d30503d847ba248096dc5a99de2"
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "sha256": "21032f15b1e8d60ec8bb529d52de904f25df2d903214494e6d691967394f424c"
+    },
+    {
+      "path": "web/hooks/useWorkflow.ts",
+      "sha256": "18053ab9fad25b79eeb048449c8805447a3b15e2c72417dba012cd8d17ac7030"
+    },
+    {
+      "path": "web/components/ExtensionControls.tsx",
+      "sha256": "9bffd195afa540308d09af1c86875697aae765f62ee274739baa619b201f6c9a"
+    }
+  ]
+}

@@ -1,0 +1,876 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v230_audit_runtime",
+  "kind": "chatgpt-native-image-generation-capability-review",
+  "completedAt": "2026-11-01T16:27:15.628051+00:00",
+  "head": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "codexVersion": "0.164.0",
+  "complete": true,
+  "scope": "当前重写仓库固定原生CLI、配置/供应商、turn、通知/历史、生成图片预览下载及相关静态测试覆盖；不是全仓新审计。",
+  "conclusion": {
+    "status": "default-inline-path-supported-with-known-display-and-size-limits",
+    "answer": "ChatGPT 供应商的原生生图调用和正常 Base64 成功结果的网页预览/下载链路已接通。没有发现标准 app-server 默认成功路径必然无法显示图片的阻断。不能承诺任意图片大小/存储分支或当前账号均成功。",
+    "businessAcceptance": "not-performed",
+    "boundary": "静态/离线证据 ≠ 真实业务验收。没有生图请求、商业模型调用、登录、真实账号/配额验证。"
+  },
+  "method": [
+    "先读本地当前HEAD、固定生成协议和实现；再按 openai-docs 技能打开官方文档核对产品层说明。",
+    "对关键函数/协议逐段读取，记录逐文件实际深度；不把搜索命中、哈希或已有测试定义称为新测试通过。",
+    "协助代理读取 rust-v0.164.0 官方源码并固定 Git tree/blob；本人再次核关键调用、输出、保存路径和全局能力处理，重新验证全部下载文件 SHA256/Git blob。",
+    "当前另有并行UI工作区修改；本报告33个项目证据文件逐字节均等于HEAD，未读取个人CODEX_HOME/真实凭据，未改产品源。"
+  ],
+  "supportedChain": [
+    {
+      "stage": "fixed engine / native availability",
+      "claim": "固定0.164.0包含稳定默认开启的image_generation特性；实际image extension按线程provider is_openai/requires_openai_auth/actor auth暴露工具。托管ChatGPT渲染requires_openai_auth=true，满足该原生条件；不是仅根据GPT模型名称推断。",
+      "evidence": [
+        {
+          "path": "package.json",
+          "line": 10,
+          "detail": "fixed version"
+        },
+        {
+          "path": "deploy/provider_registry.py",
+          "line": 163,
+          "detail": "ChatGPT Responses definition and auth requirement"
+        },
+        {
+          "path": ".work/v232-fork-official-0164/codex-rs__features__src__lib.rs",
+          "line": 1789,
+          "detail": "ImageGeneration stable/default_enabled true"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__extension.rs",
+          "line": 40,
+          "detail": "per-thread availability, start/config lifecycle and tool exposure"
+        }
+      ]
+    },
+    {
+      "stage": "request and configuration",
+      "claim": "网页普通文本请求被组织成原生turn/start input；由原生工具调度决定是否调用image_gen，不需要Harness另造Responses tools请求。项目没有专用生图参数面板；自然语言提示可经现有turn通路传入。配置features可编辑，实际部署有效开关/账号能力本次未读取。",
+      "evidence": [
+        {
+          "path": "src/runtime/service.ts",
+          "line": 743,
+          "detail": "validated turn input and native call"
+        },
+        {
+          "path": "src/runtime/validation.ts",
+          "line": 35,
+          "detail": "model/effort/options allowed; no forced image tool field"
+        },
+        {
+          "path": "src/runtime/extensions.ts",
+          "line": 37,
+          "detail": "features configuration editable"
+        },
+        {
+          "path": "deploy/native_launcher.py",
+          "line": 368,
+          "detail": "standard app-server invocation"
+        }
+      ]
+    },
+    {
+      "stage": "normal successful output",
+      "claim": "标准app-server显式使用passthrough_image_store -> InlineAttachmentStore；真实成功图片字节作为imageGeneration.result Base64输出。通用File store的fileId分支真实存在，但不是本项目标准app-server默认。不能仅由schema含fileId就断定常规功能坏。若上游提供空/无效b64_json，工具未保证其非空；这里的正常成功指上游返回有效图片。",
+      "evidence": [
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__message_processor.rs",
+          "line": 374,
+          "detail": "explicit default inline store"
+        },
+        {
+          "path": ".work/v232-fork-official-0164/codex-rs__core__src__thread_manager.rs",
+          "line": 549,
+          "detail": "passthrough_image_store returns InlineAttachmentStore"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__attachment-store__src__lib.rs",
+          "line": 169,
+          "detail": "upload returns original bytes inline"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs",
+          "line": 261,
+          "detail": "File/Inline/fallback branch and completed item"
+        }
+      ]
+    },
+    {
+      "stage": "native file and history",
+      "claim": "实际app-server注册Some(CODEX_HOME)为save_root；默认保存为CODEX_HOME/generated_images/<thread>/<call>.png。cwd/generated_images仅未提供save_root的其他宿主fallback，不能混作本项目默认。item序列化保留result/fileId/savedPath，项目完整历史和事件合并不按类型丢弃imageGeneration。",
+      "evidence": [
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__extensions.rs",
+          "line": 112,
+          "detail": "CODEX_HOME save root"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__artifact.rs",
+          "line": 31,
+          "detail": "generated_images/thread/call.png"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 265,
+          "detail": "forward normal item notifications"
+        },
+        {
+          "path": "src/runtime/history.ts",
+          "line": 95,
+          "detail": "full native turn items"
+        },
+        {
+          "path": "web/lib/history.ts",
+          "line": 200,
+          "detail": "completed item fields retained"
+        }
+      ]
+    },
+    {
+      "stage": "web preview/download",
+      "claim": "imageGeneration.result优先作为内联图片；用户展开工具卡并点击预览，前端验证格式/尺寸/字节后用Blob显示，提供下载。PNG/JPEG/GIF/WebP可读；透明PNG可自然显示。failure/status保留在工具卡。历史再次返回合法同类条目仍走同一媒体组件，未进行真实生图后重开验收。",
+      "evidence": [
+        {
+          "path": "web/components/MessageItem.tsx",
+          "line": 208,
+          "detail": "image failure and tool/media rendering"
+        },
+        {
+          "path": "web/lib/media.ts",
+          "line": 52,
+          "detail": "result/savedPath source selection"
+        },
+        {
+          "path": "web/components/MessageMedia.tsx",
+          "line": 99,
+          "detail": "validated Blob preview"
+        },
+        {
+          "path": "web/components/MessageMedia.tsx",
+          "line": 165,
+          "detail": "img and download link"
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "image-state-empty-result-label",
+      "priority": "P3",
+      "classification": "confirmed presentation defect",
+      "path": "web/lib/media.ts",
+      "line": 62,
+      "trigger": "原生正常item/started产生status=in_progress/result空串/no fileId；原生失败项也可能空result/no fileId。",
+      "impact": "UI却显示“原生只提供文件 ID，没有可读取的图片内容”，错误描述生成中或失败状态；不阻断后续正常成功图片。",
+      "evidence": [
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs",
+          "line": 163,
+          "detail": "in-progress item empty result without fileId"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs",
+          "line": 225,
+          "detail": "failed item empty result without fileId"
+        },
+        {
+          "path": "web/lib/media.ts",
+          "line": 52,
+          "detail": "unconditional missing-source message"
+        }
+      ],
+      "suggestion": "如另行授权，按status/failure与实际fileId区分等待、失败和缺内容文案；无需为此新建下载架构。"
+    },
+    {
+      "id": "provider-capabilities-scope-label",
+      "priority": "P2",
+      "classification": "confirmed scope mismatch under mixed providers",
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "line": 165,
+      "trigger": "当前线程使用ChatGPT，原生全局默认仍为其它供应商，或相反。",
+      "impact": "“当前模型提供方报告”来自空参全局配置查询，可能显示另一供应商的图像生成/搜索能力；不是当前会话或认证账号的生图可用性。",
+      "evidence": [
+        {
+          "path": "web/components/ThreadExecutionSettings.tsx",
+          "line": 101,
+          "detail": "empty request keyed only by epoch"
+        },
+        {
+          "path": "src/runtime/workflows.ts",
+          "line": 61,
+          "detail": "no thread/provider passed"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__request_processors__config_processor.rs",
+          "line": 212,
+          "detail": "loads latest global config, fallback_cwd None, no auth_manager"
+        }
+      ],
+      "suggestion": "最小修正是明确标注全局默认提供方能力与此限制；真正逐线程能力查询需另行设计，不在本只读任务改动。"
+    }
+  ],
+  "conditionalLimits": [
+    {
+      "id": "large-inline-image",
+      "claim": "媒体解码预算4MiB，但实时WS单消息预算也是4MiB，整段网页历史仅4,000,000字符；Base64约膨胀4/3，因此较大的合法图片可先触发断线重同步或history容量错误，而不只是预览按钮拒绝。多张小图累计也受整历史预算。没有账户实际图片尺寸分布证据，不能声称常态失败。",
+      "evidence": [
+        {
+          "path": "src/core/contracts.ts",
+          "line": 25,
+          "detail": "socketBufferedBytes=4MiB"
+        },
+        {
+          "path": "src/gateway/server.ts",
+          "line": 134,
+          "detail": "payload plus buffered bytes closes 1013"
+        },
+        {
+          "path": "web/lib/history.ts",
+          "line": 3,
+          "detail": "4,000,000-character total history budget"
+        },
+        {
+          "path": "web/lib/media.ts",
+          "line": 4,
+          "detail": "4MiB decoded preview limit"
+        },
+        {
+          "path": "src/runtime/types.ts",
+          "line": 9,
+          "detail": "12MiB native frame / 8MiB history"
+        }
+      ]
+    },
+    {
+      "id": "file-reference-and-saved-path",
+      "claim": "没有fileId到下载内容的实现；fileId无可读savedPath时明确不可预览。savedPath只有已保留上传附件或注册项目内部路径可读，默认CODEX_HOME生成目录通常不属于二者。因此缺少原生文件备用取回通道；正常默认Inline路径无需依赖它。现有路径限制防止任意服务器文件读取，不建议简单放宽任意path。",
+      "evidence": [
+        {
+          "path": "web/lib/media.ts",
+          "line": 56,
+          "detail": "result preferred, no fileId resolver"
+        },
+        {
+          "path": "web/components/MessageMedia.tsx",
+          "line": 52,
+          "detail": "retained attachment then project-only fallback"
+        },
+        {
+          "path": "src/runtime/attachments.ts",
+          "line": 140,
+          "detail": "only own retained upload index"
+        },
+        {
+          "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__extensions.rs",
+          "line": 112,
+          "detail": "CODEX_HOME output root"
+        }
+      ]
+    },
+    {
+      "id": "real-account-and-model-selection",
+      "claim": "工具暴露不保证选定模型实际调用、账号额度/区域/组织策略/网络可用。没有为本项目新增强制tool_choice或独立尺寸/质量等参数面板；也没有读取live有效配置。官方当前网页说明不替代0.164固定源行为或用户账号实测。"
+    }
+  ],
+  "testEvidence": {
+    "executedThisReview": false,
+    "existingCoverageRead": [
+      {
+        "path": "tests/runtime/workflows-native.test.ts",
+        "line": 48,
+        "scope": "本地Responses fixture只断言能力值是boolean，不是ChatGPT生图执行验证。"
+      },
+      {
+        "path": "web/tests/message-media.test.tsx",
+        "line": 30,
+        "scope": "覆盖上传附件懒读、project路径版本绑定、外链/不安全图片拒绝、切会话迟到读取隔离；未包含imageGeneration专用fixture。"
+      },
+      {
+        "path": "web/tests/execution-settings.test.tsx",
+        "line": 50,
+        "scope": "mock imageGeneration=false/webSearch=true；不验证当前线程与全局provider差异。"
+      }
+    ],
+    "searchScope": "tests/** 与 web/tests/** 的 imageGeneration/fileId/savedPath/image_generation 定向检索；未发现专用原生生图端到端成功/历史下载fixture。",
+    "notClaimed": "不把读取既有测试源解释成已执行通过，更不代表真实生图/付费业务验收。"
+  },
+  "officialDocs": [
+    {
+      "url": "https://learn.chatgpt.com/docs/image-generation",
+      "accessedAt": "2026-11-01T16:27:15.628051+00:00",
+      "readSections": [
+        "Generate or edit an image",
+        "Review and edit generated images"
+      ],
+      "supports": "当前官方说明自然语言/图像参考可触发生图，且生图受使用额度与计划/工作区条件影响。",
+      "limit": "活文档已从旧Codex入口重定向；不作为0.164文件存储默认行为证明，也不推断本项目真实账号权限。"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/tools-image-generation",
+      "accessedAt": "2026-11-01T16:27:15.628051+00:00",
+      "readSections": [
+        "tool_choice",
+        "result/revised_prompt",
+        "tool options"
+      ],
+      "supports": "官方Responses API存在image_generation及Base64结果；与native image_gen实现分开说明。",
+      "limit": "Harness调用原生app-server而非直接构造此API工具；当前API模型名单不自动适用于固定CLI。"
+    }
+  ],
+  "officialSourceEvidence": {
+    "ref": "rust-v0.164.0",
+    "tree": "6aaac694803004a63c6f393d153c96d22521a6b9",
+    "provenance": {
+      "path": ".work/ui-image-generation-official-0164/provenance.json",
+      "sha256": "78165f7abb076c5cf4fbf0a2e2a1a0326c5dd91d72a1a4f3653052658cbca73f"
+    },
+    "collaboratorReport": {
+      "path": ".work/ui-image-generation-official-contract.json",
+      "sha256": "1c877685b2910d29e4a74f7bf1f055d4453aaa330122cbceea899ed1b1bb9e02"
+    },
+    "downloadedFiles": [
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/items/src/image_generation.rs",
+        "upstreamPath": "codex-rs/ext/items/src/image_generation.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__items__src__image_generation.rs",
+        "gitBlob": "59d4ece0b7fc92e33117bac5709cdf91c0859a1e",
+        "sha256": "58bc3f9b59132595e2fb0043561838c6ad5ef5fcad762b8255b762c66434c1fa",
+        "bytes": 3163
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/model-provider-info/src/capabilities.rs",
+        "upstreamPath": "codex-rs/model-provider-info/src/capabilities.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__model-provider-info__src__capabilities.rs",
+        "gitBlob": "18db46cf6649173f3f665ee742a35b31e3d1f850",
+        "sha256": "ca6207cd2adbc699a5a274fbf3d2c02899ffe56383a311649fc71ed55459d422",
+        "bytes": 1187
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/model-provider/src/capabilities.rs",
+        "upstreamPath": "codex-rs/model-provider/src/capabilities.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__model-provider__src__capabilities.rs",
+        "gitBlob": "f8e8891fb048278e9d890cff7124910cb9be0e32",
+        "sha256": "dbfa922c61a2445082842c60a61599a7d14cda7068e9e9de3fe20ae5520181ac",
+        "bytes": 1850
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/tests/suite/v2/model_provider_capabilities_read.rs",
+        "upstreamPath": "codex-rs/app-server/tests/suite/v2/model_provider_capabilities_read.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__tests__suite__v2__model_provider_capabilities_read.rs",
+        "gitBlob": "9d38c891787023af437bd01a6b280ca5f66ccb49",
+        "sha256": "a87f55fba053e20410a8a5e06c10abff403848111df265529445d77a437ffb47",
+        "bytes": 2866
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/protocol/src/capabilities.rs",
+        "upstreamPath": "codex-rs/protocol/src/capabilities.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__protocol__src__capabilities.rs",
+        "gitBlob": "651861e45d4cbb82cc4e761047cb4f8f169cbdb9",
+        "sha256": "e8db4d7af702a090fb098bd936c01244ead129d05e37fe804a48177a894239ea",
+        "bytes": 3288
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/image-generation/src/artifact.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/artifact.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__artifact.rs",
+        "gitBlob": "6c6fce0f9812d88daf5a53880a77485c6eea6cb3",
+        "sha256": "a5e6477035945eeeb4128f122ca382b8c3a11e55e9f599bb55136fbc685ad0de",
+        "bytes": 1725
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/image-generation/src/backend.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/backend.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__backend.rs",
+        "gitBlob": "cc18531775c3fc20846e11d72fc4fdb8d5583cb1",
+        "sha256": "56fef77c240c3dec1263ca053e8ff2a839136a2385725db7d47891a46ceec833",
+        "bytes": 4778
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/image-generation/src/extension.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/extension.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__extension.rs",
+        "gitBlob": "d36a14cf655b6f54ede1f3ca3a5f25e5c33a2b26",
+        "sha256": "18d276854dc851daffeaf6e33374997675c27bcb78f9b8765c5c3b01f5f480c9",
+        "bytes": 4391
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/image-generation/src/tool.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/tool.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tool.rs",
+        "gitBlob": "fb154371f777a7d9d2d67c7c721b119c34db2a9d",
+        "sha256": "fd509b6d5cb6d36e54fa05e5b1f5e746a8bd9c49fda9c3addf77dd112bb7f5b2",
+        "bytes": 29297
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/ext/image-generation/src/tests.rs",
+        "upstreamPath": "codex-rs/ext/image-generation/src/tests.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__ext__image-generation__src__tests.rs",
+        "gitBlob": "8adc858b5d3a19ac9ad1b284ebdc16c30a6e74fe",
+        "sha256": "0e29258be9b6a3a568c1f2b5ee8c03dbc2fb43154458cdda13f454eb8b0d5570",
+        "bytes": 20675
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/extensions.rs",
+        "upstreamPath": "codex-rs/app-server/src/extensions.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__extensions.rs",
+        "gitBlob": "e4f43ca88d1f5ebf1170550d6f0eda7e437c8363",
+        "sha256": "5c09b6461a84326d44a90f5eded64c3dba767d24fd82159d48a9d9f7dc862e91",
+        "bytes": 25128
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/attachment-store/src/lib.rs",
+        "upstreamPath": "codex-rs/attachment-store/src/lib.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__attachment-store__src__lib.rs",
+        "gitBlob": "4c45e792b598e5b5d56a4f16d78c6232145b107f",
+        "sha256": "13ad0b28f00b09ff94f6a9f0ff13f6a027176a9acdbdb282eb66c39c17acb85f",
+        "bytes": 8491
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/message_processor.rs",
+        "upstreamPath": "codex-rs/app-server/src/message_processor.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__message_processor.rs",
+        "gitBlob": "e1e5a7a9482ecc40ec3c0240042fa738f277a8a7",
+        "sha256": "e8e5fcccc04e699c0f9394d4586e25e9560b3f1a4a1ee066692adf93139443c2",
+        "bytes": 83440
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/lib.rs",
+        "upstreamPath": "codex-rs/app-server/src/lib.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__lib.rs",
+        "gitBlob": "ed787e10f9711d09ec697b2b57baa727c319ae44",
+        "sha256": "b5f2f688187126d642789f77f9d8fd2e6e0763fe59befba23e13bf91f80ac1ae",
+        "bytes": 67644
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors.rs",
+        "upstreamPath": "codex-rs/app-server/src/request_processors.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__request_processors.rs",
+        "gitBlob": "f76e655805210a92d932617a69144f918b9c9438",
+        "sha256": "8281529988e610fe799dcbe394d36fe8770517aa3e3f4aaf75a3508e3b80bea5",
+        "bytes": 35258
+      },
+      {
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/app-server/src/request_processors/config_processor.rs",
+        "upstreamPath": "codex-rs/app-server/src/request_processors/config_processor.rs",
+        "path": ".work/ui-image-generation-official-0164/codex-rs__app-server__src__request_processors__config_processor.rs",
+        "gitBlob": "1500cd82a25d518ca90ea777c0b144d01eefafef",
+        "sha256": "5791853ba32b88967f0d5f43d24cabbf34b1876ffd9ccf4967fd28018b244170",
+        "bytes": 53907
+      }
+    ],
+    "reusedFixedSources": [
+      {
+        "path": ".work/v232-fork-official-0164/codex-rs__features__src__lib.rs",
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/features/src/lib.rs",
+        "gitBlob": "c9d074ac3d275639e666efc7b910f92c946a7609",
+        "sha256": "53c99aa1176c0f4f8763cbf960f11eb574f63fb33214f2bcd3bf699ebb361337",
+        "bytes": 76503
+      },
+      {
+        "path": ".work/v232-fork-official-0164/codex-rs__core__src__thread_manager.rs",
+        "source": "https://raw.githubusercontent.com/openai/codex/rust-v0.164.0/codex-rs/core/src/thread_manager.rs",
+        "gitBlob": "b2d22649a62334dd5dee40f4c0c9288e94dbcc5c",
+        "sha256": "a54d4e76595401b0b6bf5673f11ef8428807cfcf72a6ed6041c33caeec8717c3",
+        "bytes": 114171
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "sha256": "a87422cbbfd0e5b3382fe436c53d1fc75d99d6936444e1afe2a3ee7e3970cae6",
+      "bytes": 1619,
+      "matchesHeadBlob": true,
+      "depth": "version pin",
+      "lineAnchors": [
+        10
+      ]
+    },
+    {
+      "path": "reference/PROTOCOL-CONTRACT.md",
+      "sha256": "2b9c14c78bf03bc8df2cd15029b6ab8e99112d323d05f4521c8cc31e153304d1",
+      "bytes": 13044,
+      "matchesHeadBlob": true,
+      "depth": "fixed protocol provenance and input contract",
+      "lineAnchors": [
+        3,
+        8,
+        12,
+        59
+      ]
+    },
+    {
+      "path": "protocol/ts/ImageGenerationItem.ts",
+      "sha256": "2a4e3ea74d2c69af68e0327962782568f4a4a4a1943caf21a3e4fb1717314215",
+      "bytes": 738,
+      "matchesHeadBlob": true,
+      "depth": "complete generated item type",
+      "lineAnchors": [
+        8,
+        12
+      ]
+    },
+    {
+      "path": "protocol/ts/ImageGenerationFailure.ts",
+      "sha256": "55c9800942e70ba048a32073a79f56e66723ebe67141f0ab2ecc94f62bb3ab3e",
+      "bytes": 267,
+      "matchesHeadBlob": true,
+      "depth": "complete generated failure type",
+      "lineAnchors": [
+        5
+      ]
+    },
+    {
+      "path": "protocol/ts/v2/ThreadItem.ts",
+      "sha256": "9eec6b2ee0ce090fa0c8976e0afa5eca07cc3b529bbbe75ead5520291ec9f7f0",
+      "bytes": 6406,
+      "matchesHeadBlob": true,
+      "depth": "imageGeneration union member",
+      "lineAnchors": [
+        133
+      ]
+    },
+    {
+      "path": "protocol/ts/v2/ModelProviderCapabilitiesReadParams.ts",
+      "sha256": "2c71c33298ea8efdf12e2f5bb84592261e5c0efa85b50e5603a7b413417a17bc",
+      "bytes": 226,
+      "matchesHeadBlob": true,
+      "depth": "empty capabilities request",
+      "lineAnchors": [
+        5
+      ]
+    },
+    {
+      "path": "protocol/ts/v2/ModelProviderCapabilitiesReadResponse.ts",
+      "sha256": "97df748b62de7fb7c34190c2647a252756051f34428a158487d93b50c5266555",
+      "bytes": 256,
+      "matchesHeadBlob": true,
+      "depth": "coarse booleans",
+      "lineAnchors": [
+        5
+      ]
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "bd13c48a5271b36cb72f384d4c9dfc5cf83e276c39b7f51a025c49561c8bbe45",
+      "bytes": 10956,
+      "matchesHeadBlob": true,
+      "depth": "ChatGPT definition and selected provider rendering",
+      "lineAnchors": [
+        150,
+        192
+      ]
+    },
+    {
+      "path": "deploy/provider_layers.py",
+      "sha256": "fce3bfc2f5b308d92fd56acb1b7b684317af52a53ed53757307924be6da193c5",
+      "bytes": 16009,
+      "matchesHeadBlob": true,
+      "depth": "managed config/requirements composition",
+      "lineAnchors": [
+        24,
+        54
+      ]
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "30f0b5b7546f791c2151326b90bb0126f31ef9f5ab0978c81f6d47f0fbb45126",
+      "bytes": 23445,
+      "matchesHeadBlob": true,
+      "depth": "fixed app-server invocation",
+      "lineAnchors": [
+        368,
+        383
+      ]
+    },
+    {
+      "path": "src/runtime/native-launch.ts",
+      "sha256": "45c633db0f02bcabba09363661f6c14bca7a601a7e90085e3a451c6eabd0cf16",
+      "bytes": 6792,
+      "matchesHeadBlob": true,
+      "depth": "dev and managed app-server launch",
+      "lineAnchors": [
+        18,
+        24
+      ]
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "6f551a5e545f8e5a0e80ec51dfc4dd5400d888509df631f776966ae5ba017e5a",
+      "bytes": 10633,
+      "matchesHeadBlob": true,
+      "depth": "selection, aliases, catalogs and ChatGPT identity",
+      "lineAnchors": [
+        12,
+        14,
+        32,
+        52,
+        69,
+        84,
+        96,
+        115
+      ]
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "sha256": "8c8670e9871a13a93a73654c114cff7f8982916a9bbb72141e19420a3f64d246",
+      "bytes": 9999,
+      "matchesHeadBlob": true,
+      "depth": "official schema and turn options",
+      "lineAnchors": [
+        9,
+        61
+      ]
+    },
+    {
+      "path": "src/runtime/extensions.ts",
+      "sha256": "ced7c804ccb2f9061d1d2fa34bfcb605a4f5b50d422f0187d90359da4a5ce3c5",
+      "bytes": 25998,
+      "matchesHeadBlob": true,
+      "depth": "settings and feature controls",
+      "lineAnchors": [
+        37,
+        43,
+        154,
+        159,
+        245,
+        267
+      ]
+    },
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "9c036beb134834e9c0a6f9c23ae250f0778a2eee299e107b06dd5c63e75f9cf2",
+      "bytes": 95749,
+      "matchesHeadBlob": true,
+      "depth": "notification forwarding, history and turn dispatch",
+      "lineAnchors": [
+        149,
+        156,
+        215,
+        265,
+        340,
+        523,
+        532,
+        742,
+        778
+      ]
+    },
+    {
+      "path": "src/runtime/native.ts",
+      "sha256": "126bb295aebc9174cf48503e37af6c22180b58092c9a7813f3cd4e41b7244a37",
+      "bytes": 14570,
+      "matchesHeadBlob": true,
+      "depth": "native protocol frame and event handling",
+      "lineAnchors": [
+        112,
+        145
+      ]
+    },
+    {
+      "path": "src/runtime/workflows.ts",
+      "sha256": "40fe15d7d5b2c368110945663c7b58a3c58e7bb463214376cab6c65df6cf13bf",
+      "bytes": 22192,
+      "matchesHeadBlob": true,
+      "depth": "capabilities passthrough",
+      "lineAnchors": [
+        56,
+        65
+      ]
+    },
+    {
+      "path": "src/runtime/history.ts",
+      "sha256": "48c57ac313c4b7c5d060c1f76c45f5a5bbac844954a1cc7ed166fe744e419c44",
+      "bytes": 10377,
+      "matchesHeadBlob": true,
+      "depth": "complete combined history implementation",
+      "lineAnchors": [
+        1,
+        113
+      ]
+    },
+    {
+      "path": "src/runtime/types.ts",
+      "sha256": "49857eb65c1b1d025ae2185a56a39c6997171acb153de48e5a028cf24bde7de0",
+      "bytes": 3544,
+      "matchesHeadBlob": true,
+      "depth": "runtime size limits",
+      "lineAnchors": [
+        9,
+        22
+      ]
+    },
+    {
+      "path": "src/runtime/attachments.ts",
+      "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3",
+      "bytes": 21475,
+      "matchesHeadBlob": true,
+      "depth": "owned uploads and history lookup",
+      "lineAnchors": [
+        23,
+        45,
+        120,
+        145
+      ]
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "7e8374b948410c661de71febb19f20bffae9e87e74e3c1d8dfc68bdf4bf472df",
+      "bytes": 5245,
+      "matchesHeadBlob": true,
+      "depth": "capability/attachment read routes",
+      "lineAnchors": [
+        26,
+        30
+      ]
+    },
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "c6be027af0e67d34813c6567fe89566ff2966f9e2b58cd39d438ced46a2bfeb5",
+      "bytes": 1712,
+      "matchesHeadBlob": true,
+      "depth": "HTTP/event/buffer limits",
+      "lineAnchors": [
+        20,
+        25
+      ]
+    },
+    {
+      "path": "src/gateway/worker-client.ts",
+      "sha256": "2fea3c97b97d0ebe39328d340658d0b1f88b0986673f08fde6956c0c0f32cb2d",
+      "bytes": 10952,
+      "matchesHeadBlob": true,
+      "depth": "event/result transport",
+      "lineAnchors": [
+        20,
+        49,
+        110,
+        125
+      ]
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360",
+      "bytes": 24279,
+      "matchesHeadBlob": true,
+      "depth": "media CSP and event/response budgets",
+      "lineAnchors": [
+        28,
+        130,
+        147,
+        308,
+        309
+      ]
+    },
+    {
+      "path": "web/lib/history.ts",
+      "sha256": "963d9b6162bf54d76ae524763b0fe0e722ea543fa2b32628d48f0d0d23a8c6a6",
+      "bytes": 9791,
+      "matchesHeadBlob": true,
+      "depth": "complete generic timeline item validation/merge/events",
+      "lineAnchors": [
+        1,
+        259
+      ]
+    },
+    {
+      "path": "web/lib/events.ts",
+      "sha256": "387fc1c1e000376d0cd58ebe9c996118b3a596d1b3e77dbf36e31cd1160e4429",
+      "bytes": 582,
+      "matchesHeadBlob": true,
+      "depth": "complete subscriber forwarding",
+      "lineAnchors": [
+        1,
+        20
+      ]
+    },
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "08a6206948c9120eaa4a37478cb6fb6a3f1c6426b366ab20147bfca991718c6a",
+      "bytes": 6879,
+      "matchesHeadBlob": true,
+      "depth": "complete source extraction and media validation",
+      "lineAnchors": [
+        1,
+        163
+      ]
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "7cabe11c8f1683dec4110807f617911d1a3084c61b886a37cf89098c4e4ee679",
+      "bytes": 11546,
+      "matchesHeadBlob": true,
+      "depth": "message/media/tool rendering",
+      "lineAnchors": [
+        187,
+        245
+      ]
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "sha256": "4e14e590d9b38e645d9eeee3f59b543f999a83f62bfcc00fe60e767328aab40e",
+      "bytes": 7169,
+      "matchesHeadBlob": true,
+      "depth": "complete lazy preview/download behavior",
+      "lineAnchors": [
+        1,
+        220
+      ]
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "8e0e046c958cfc66ed6f5a588bb886f7cf623baa564ada2f6928dc8c23e52b4e",
+      "bytes": 17984,
+      "matchesHeadBlob": true,
+      "depth": "session snapshot vs global capabilities label",
+      "lineAnchors": [
+        85,
+        106,
+        118,
+        167
+      ]
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "sha256": "806bff39c18db5ef1e5d8c9af035f4fc615a7e21a02330897558fa8b0b1679d9",
+      "bytes": 7296,
+      "matchesHeadBlob": true,
+      "depth": "complete static test coverage inspection; not executed",
+      "lineAnchors": [
+        1,
+        189
+      ]
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "a789be6326a11915c1cf32e396c6b5acc2e1edb95c4e175da273a16a3570aef6",
+      "bytes": 15443,
+      "matchesHeadBlob": true,
+      "depth": "fake provider capability response; not executed",
+      "lineAnchors": [
+        45,
+        52
+      ]
+    },
+    {
+      "path": "tests/runtime/workflows-native.test.ts",
+      "sha256": "55930c78e0760dc4d5e1d0e16172791a12e3ed78f324173dababe7feb16046ed",
+      "bytes": 19076,
+      "matchesHeadBlob": true,
+      "depth": "isolated non-ChatGPT fixture only asserts capability booleans; not executed",
+      "lineAnchors": [
+        25,
+        48
+      ]
+    }
+  ],
+  "limits": [
+    "本次没有真实生成图片、登录、个人HOME/凭据读取、生产连接/配置修改、商业模型或MCP调用。",
+    "没有执行CLI任务、单元测试或全量测试；未修改任何产品源码。",
+    "只对上述链路做静态审阅；未证明当前线上账号权益、实际模型决策、图片大小或历史重新加载业务成功。",
+    "图片大容量和fileId支线列为条件限制，不将其泛化为标准Inline成功路径不可用。",
+    "并行UI改动存在，但报告绑定的项目证据文件全部与所述HEAD相同。"
+  ]
+}

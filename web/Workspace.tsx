@@ -855,13 +855,13 @@ export function Workspace({
             >
               <Icon name="menu" />
             </button>
-            <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
-              onSettings={() => setModal('settings-admin')} />
             <div className="breadcrumb">
               <span>{project?.name ?? '工作台'}</span>
               <span className="crumb-divider">/</span>
               <strong>{title}</strong>
             </div>
+            <RootExecutionNotice identity={runtimeNetwork.executionMode} confirmed={runtimeNetwork.executionModeConfirmed}
+              onSettings={() => setModal('settings-admin')} />
             <div
               className={`connection ${network.connection}`}
               title={network.connection === 'connected' ? '实时连接正常' : '正在恢复连接'}

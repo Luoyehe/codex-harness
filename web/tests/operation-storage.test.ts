@@ -3,8 +3,8 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { Api } from '../lib/api';
 import {
-  acknowledgeOperation, consumeThreadOperations, createOperation, initializeOperations, listOperations, operationStorageWarning,
-  stopUnknownRecovery, updateOperation, type Operation,
+  acknowledgeOperation, consumeThreadOperations, createOperation, initializeOperations, listOperations, listOperationHistory, operationStorageWarning,
+  stopUnknownRecovery, updateOperation, reconcileOperation, type Operation,
 } from '../lib/operations';
 import { operationTransaction, stored } from '../lib/operation-store';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
@@ -19,15 +19,127 @@ function freshLegacy(records: Operation[]) {
 }
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
-it('handles sustained completed operations with constant recovery metadata and no tombstones', async () => {
+it('handles sustained completed operations with bounded display history and no per-ID tombstones', async () => {
+  const identities: string[] = [];
   for (let i = 0; i < 1200; i++) {
     const operation = await createOperation('project/add', {});
+    identities.push(operation.id);
     await updateOperation(operation.id, 'accepted');
     await acknowledgeOperation(operation.id);
   }
   expect(await listOperations()).toEqual([]);
   expect(Object.keys(localStorage).filter((key) => key.startsWith(ack))).toEqual([]);
-  expect(await operationTransaction(async (records, metadata) => [await stored(records.count()), await stored(metadata.count())])).toEqual([0, 1]);
+  expect(await operationTransaction(async (records, metadata) => [await stored(records.count()), await stored(metadata.count())])).toEqual([0, 2]);
+  const snapshot = await listOperationHistory();
+  expect(snapshot.operations).toEqual([]);
+  expect(snapshot.history).toHaveLength(500);
+  expect(snapshot.history.every(row => row.state === 'accepted' && row.closed === 'completed')).toBe(true);
+  expect(snapshot.history.some(row => row.id === identities[0])).toBe(false);
+  expect(snapshot.history.some(row => row.id === identities.at(-1))).toBe(true);
+});
+
+it('archives capacity-collected failures without clearing drafts or losing unresolved and unseen receipts', async () => {
+  const draft = { ...emptyDraft('failed'), text: 'retain after failure' }; writeDraft(draft);
+  const failed = await createOperation('turn/start', { threadId: 'failed', draftKey: draft.key, draftRevision: draft.revision });
+  await updateOperation(failed.id, 'not_sent');
+  const unknown = await createOperation('turn/start', { threadId: 'unresolved' });
+  await updateOperation(unknown.id, 'unknown');
+  const unseen = await createOperation('conversation/start', { projectId: 'unseen' });
+  await updateOperation(unseen.id, 'accepted', 'unseen-thread');
+  for (let i = 0; i < 158; i++) {
+    const row = await createOperation('project/add', {}); await updateOperation(row.id, 'not_sent');
+  }
+  const snapshot = await listOperationHistory();
+  expect(snapshot.history.find(row => row.id === failed.id)).toMatchObject({ state: 'not_sent', closed: 'collected' });
+  expect(snapshot.operations.some(row => row.id === failed.id)).toBe(false);
+  expect(snapshot.operations.find(row => row.id === unknown.id)?.state).toBe('unknown');
+  expect(snapshot.operations.find(row => row.id === unseen.id)).toMatchObject({ state: 'accepted', resolvedThreadId: 'unseen-thread' });
+  expect(readDraft(draft.key)).toEqual(draft);
+  expect(snapshot.operations.length + snapshot.history.length).toBe(161);
+});
+
+it.each(['quota', 'abort'] as const)('retains the recovery row and draft when history archival fails with %s', async failure => {
+  const draft = { ...emptyDraft('failed'), text: 'keep' }; writeDraft(draft);
+  const record = await createOperation('turn/start', { threadId: 'failed', draftKey: draft.key, draftRevision: draft.revision });
+  await updateOperation(record.id, 'not_sent');
+  const original = IDBObjectStore.prototype.put;
+  vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, value, key) {
+    if (this.name === 'meta' && key === 'history-v1') {
+      if (failure === 'quota') throw new DOMException('history full', 'QuotaExceededError');
+      const request = original.call(this, value, key); this.transaction.abort(); return request;
+    }
+    return original.call(this, value, key);
+  });
+  await expect(acknowledgeOperation(record.id)).rejects.toThrow();
+  vi.restoreAllMocks();
+  expect((await listOperationHistory()).history).toEqual([]);
+  expect(await listOperations()).toEqual([expect.objectContaining({ id: record.id, state: 'not_sent' })]);
+  expect(readDraft(draft.key)).toEqual(draft);
+});
+
+it('keeps closed unknown history display-only under late acceptance and strips recovery-only metadata', async () => {
+  const draft = { ...emptyDraft('thread'), text: 'private draft' }; writeDraft(draft);
+  const record = await createOperation('turn/start', { threadId: 'thread', projectId: 'project', resourceId: 'private/path',
+    draftKey: draft.key, draftRevision: draft.revision, terminalOwner: { clientId: 'private-client', connectionId: 'private-lease' } });
+  await updateOperation(record.id, 'unknown', 'partial-thread');
+  await Promise.all([stopUnknownRecovery(record.id, { operationId: record.id, state: 'unknown' }), updateOperation(record.id, 'accepted')]);
+  await updateOperation(record.id, 'unknown');
+  const snapshot = await listOperationHistory();
+  expect(snapshot.operations).toEqual([]);
+  expect(snapshot.history).toEqual([{ id: record.id, method: 'turn/start', threadId: 'thread', projectId: 'project',
+    resolvedThreadId: 'partial-thread', createdAt: record.createdAt, state: 'unknown', closed: 'recovery_stopped' }]);
+  expect(readDraft(draft.key)).toEqual(draft);
+  await expect(createOperation('turn/start', { threadId: 'thread', projectId: 'project', resourceId: 'private/path' })).resolves.toBeDefined();
+});
+
+it('keeps history independently bounded while retaining old active evidence and deterministic timestamp ties', async () => {
+  await operationTransaction(async (records, meta) => {
+    const history = Array.from({ length: 500 }, (_, i) => ({ id: `old-${String(i).padStart(3, '0')}`, method: 'project/add',
+      createdAt: i, state: 'accepted', closed: 'completed' }));
+    await stored(meta.put(history, 'history-v1'));
+    for (const state of ['unknown', 'pending', 'accepted'] as const)
+      await stored(records.add({ id: `active-${state}`, method: 'conversation/start', createdAt: -1, state }));
+  });
+  const a = await createOperation('project/add', { projectId: 'a' }, 0, 'same-time-a');
+  const b = await createOperation('project/add', { projectId: 'b' }, 0, 'same-time-b');
+  await operationTransaction(async records => {
+    for (const row of [a, b]) await stored(records.put({ ...row, createdAt: 1000, state: 'accepted' }));
+  });
+  await Promise.all([acknowledgeOperation(b.id), acknowledgeOperation(a.id)]);
+  const snapshot = await listOperationHistory();
+  expect(snapshot.history).toHaveLength(500);
+  expect(snapshot.history.slice(0, 2).map(row => row.id)).toEqual([a.id, b.id]);
+  expect(snapshot.history.some(row => row.id === 'old-000' || row.id === 'old-001')).toBe(false);
+  expect(snapshot.operations.map(row => row.id).sort()).toEqual(['active-accepted', 'active-pending', 'active-unknown']);
+});
+
+it('does not allocate an archived ID again or resurrect it through a late receipt', async () => {
+  const record = await createOperation('project/add', {});
+  await updateOperation(record.id, 'not_sent'); await acknowledgeOperation(record.id);
+  await expect(createOperation('project/add', {}, 0, record.id)).rejects.toThrow('已关闭');
+  await updateOperation(record.id, 'accepted');
+  expect(await listOperations()).toEqual([]);
+  expect((await listOperationHistory()).history).toEqual([expect.objectContaining({ id: record.id, state: 'not_sent' })]);
+  await expect(createOperation('project/add', {})).resolves.toBeDefined();
+});
+
+it.each(['container', 'row'] as const)('ignores corrupt history %s without blocking unknown closure or accepted archival', async failure => {
+  const record = await createOperation('turn/start', { threadId: 'active' });
+  await updateOperation(record.id, 'unknown');
+  const valid = { id: 'valid-history', method: 'project/add', state: 'not_sent', createdAt: 1, closed: 'dismissed' };
+  await operationTransaction(async (_records, meta) => { await stored(meta.put(failure === 'container' ? { damaged: true } : [valid, { damaged: true }], 'history-v1')); });
+  expect(await listOperationHistory()).toMatchObject({ operations: [expect.objectContaining({ id: record.id, state: 'unknown' })],
+    history: failure === 'container' ? [] : [valid], historyWarning: expect.stringContaining('活动恢复记录不受影响') });
+  await stopUnknownRecovery(record.id, { operationId: record.id, state: 'unknown' });
+  const accepted = await createOperation('project/add', {});
+  await updateOperation(accepted.id, 'accepted'); await acknowledgeOperation(accepted.id);
+  expect(await listOperations()).toEqual([]);
+  const snapshot = await listOperationHistory();
+  expect(snapshot.history).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: record.id, state: 'unknown', closed: 'recovery_stopped' }),
+    expect.objectContaining({ id: accepted.id, state: 'accepted', closed: 'completed' }),
+  ]));
+  if (failure === 'row') expect(snapshot.history).toContainEqual(valid);
 });
 
 it('reserves one recovery slot at capacity and durably captures only prior unresolved operations', async () => {
@@ -70,6 +182,9 @@ it('keeps more than 200 real API chat submissions usable while preserving unseen
   expect(records.find(row => row.id === unseen.id)?.consumed).toBeUndefined();
   expect(records.find(row => row.id === unresolved.id)?.state).toBe('unknown');
   expect(records.filter(row => row.method === 'turn/start' && row.threadId === 'current-thread').every(row => row.consumed)).toBe(true);
+  const history = (await listOperationHistory()).history;
+  expect(history.length).toBeGreaterThan(0);
+  expect(history.every(row => row.state === 'accepted' && row.closed === 'collected' && row.threadId === 'current-thread')).toBe(true);
 });
 
 it('consumption matches the destination, retains fresh receipts and never clears a newer draft', async () => {
@@ -90,20 +205,77 @@ it('consumption matches the destination, retains fresh receipts and never clears
   expect((await listOperations()).find(row => row.id === input.id)).toMatchObject({ consumed: true, state: 'accepted' });
 });
 
-it('never marks unknown, legacy or terminal ownership records as consumed', async () => {
+it('never consumes unknown or terminal ownership while loaded legacy receipts retain their draft', async () => {
   const unknown = await createOperation('turn/start', { threadId: 'pending-thread' });
   await updateOperation(unknown.id, 'unknown');
   const terminal = await createOperation('terminal/open', { projectId: 'project', threadId: 'pending-thread' });
   await updateOperation(terminal.id, 'accepted', undefined, { terminalId: 'owned-terminal' });
-  const migrated = await createOperation('turn/start', { threadId: 'legacy-thread' });
-  await updateOperation(migrated.id, 'accepted');
+  const legacyDraft = { ...emptyDraft('legacy-thread'), text: 'legacy unsent draft' }; writeDraft(legacyDraft);
+  const migrated = await createOperation('turn/start', { threadId: 'legacy-thread', draftKey: legacyDraft.key, draftRevision: legacyDraft.revision });
+  // The imported receipt, unlike a fresh HTTP acceptance, must not clear an old page's draft.
   await operationTransaction(async records => {
     const record = await stored(records.get(migrated.id)) as Operation;
     await stored(records.put({ ...record, legacy: true }));
   });
+  await updateOperation(migrated.id, 'accepted');
   await consumeThreadOperations('pending-thread', [unknown.id, terminal.id]);
   await consumeThreadOperations('legacy-thread', [migrated.id]);
-  expect((await listOperations()).every(row => row.consumed === undefined)).toBe(true);
+  const records = await listOperations();
+  expect(records.find(row => row.id === unknown.id)?.consumed).toBeUndefined();
+  expect(records.find(row => row.id === terminal.id)?.consumed).toBeUndefined();
+  expect(records.find(row => row.id === migrated.id)?.consumed).toBe(true);
+  expect(readDraft(legacyDraft.key)).toEqual(legacyDraft);
+});
+
+it.each(['queried', 'legacy'] as const)('automatically archives 200-plus ordinary accepted %s receipts without immediate proof loss', async source => {
+  const identities: string[] = [];
+  if (source === 'legacy') {
+    const originals = Array.from({ length: 200 }, () => ({ ...legacy('accepted'), method: 'system/provider/write' }));
+    freshLegacy(originals); await initializeOperations(2); identities.push(...originals.map(row => row.id));
+  }
+  for (let i = 0; i < (source === 'legacy' ? 40 : 240); i++) {
+    const record = await createOperation('system/provider/write', {}); identities.push(record.id);
+    await updateOperation(record.id, 'unknown');
+    await reconcileOperation(record.id, { operationId: record.id, state: 'accepted', result: {} });
+    expect((await listOperations()).find(row => row.id === record.id)?.state).toBe('accepted');
+  }
+  const snapshot = await listOperationHistory();
+  expect(snapshot.operations.length).toBeLessThanOrEqual(160);
+  expect(snapshot.history.length).toBeGreaterThan(0);
+  expect(new Set([...snapshot.operations, ...snapshot.history].map(row => row.id))).toEqual(new Set(identities));
+  expect(snapshot.history.every(row => row.state === 'accepted' && row.closed === 'collected')).toBe(true);
+});
+
+it('collects a migrated target receipt only after that destination loads, preserving its old draft and history', async () => {
+  const draft = { ...emptyDraft('parent'), text: 'old-page draft' };
+  const record = { ...legacy('accepted'), method: 'thread/fork', threadId: 'parent', resolvedThreadId: 'child',
+    draftKey: draft.key, draftRevision: draft.revision };
+  freshLegacy([record]); writeDraft(draft); await initializeOperations(2);
+  await consumeThreadOperations('parent', [record.id]);
+  expect((await listOperations())[0]?.consumed).toBeUndefined();
+  await consumeThreadOperations('child', [record.id]);
+  for (let i = 0; i < 160; i++) await createOperation('turn/start', { threadId: `active-${i}` });
+  expect((await listOperations()).some(row => row.id === record.id)).toBe(false);
+  expect((await listOperationHistory()).history).toContainEqual(expect.objectContaining({ id: record.id,
+    state: 'accepted', resolvedThreadId: 'child', closed: 'collected' }));
+  expect(readDraft(draft.key)).toEqual(draft);
+});
+
+it('keeps accepted terminal and emergency owner proofs during ordinary receipt collection', async () => {
+  const unresolved = await createOperation('turn/start', { threadId: 'unknown' });
+  await updateOperation(unresolved.id, 'unknown');
+  const owner = { clientId: 'owner', connectionId: 'lease' };
+  const terminal = await createOperation('terminal/open', { projectId: 'project', terminalOwner: owner });
+  await updateOperation(terminal.id, 'accepted', undefined, { terminalId: 'terminal' });
+  const recovery = await createOperation('system/recover', {}); await updateOperation(recovery.id, 'accepted');
+  for (let i = 0; i < 158; i++) {
+    const row = await createOperation('project/add', {}); await updateOperation(row.id, 'accepted');
+  }
+  const records = await listOperations();
+  expect(records.find(row => row.id === terminal.id)).toMatchObject({ state: 'accepted', terminalOwner: owner, terminalResult: { terminalId: 'terminal' } });
+  expect(records.find(row => row.id === recovery.id)).toMatchObject({ state: 'accepted', recoveryOperations: [{ id: unresolved.id, method: unresolved.method }] });
+  expect(records.find(row => row.id === unresolved.id)?.state).toBe('unknown');
+  expect((await listOperationHistory()).history.every(row => row.method === 'project/add')).toBe(true);
 });
 
 it('capacity protection retains all unconsumed creations and gives an actionable settings path', async () => {
@@ -128,8 +300,19 @@ it('migrates a full localStorage without allocating there before the durable cop
   await initializeOperations(2);
   expect((await listOperations()).map((record) => record.id).sort()).toEqual([pending.id, unknown.id].sort());
   expect((await listOperations()).every((record) => record.legacy)).toBe(true);
+  expect((await listOperationHistory()).history).toEqual([expect.objectContaining({ id: completed.id, state: 'accepted', closed: 'legacy_closed' })]);
   expect(Object.keys(localStorage)).toEqual([primary + 'client-update-required']);
   expect(await createOperation('project/add', {})).toMatchObject({ state: 'pending' });
+});
+it.each(['record', 'proof', 'mismatched-proof'] as const)('does not block migration for an already closed legacy %s that cannot be saved as history', async failure => {
+  const closed = legacy('accepted'), active = legacy(); freshLegacy([closed, active]);
+  localStorage.setItem(ack + closed.id, '1');
+  if (failure === 'record') localStorage.setItem(primary + closed.id, '{');
+  else localStorage.setItem('harness.accepted.v1.' + closed.id, failure === 'proof' ? '{' : JSON.stringify({ ...closed, threadId: 'different' }));
+  await initializeOperations(2);
+  expect(await listOperations()).toEqual([{ ...active, legacy: true }]);
+  expect(await listOperationHistory()).toMatchObject({ history: [], historyWarning: expect.stringContaining('历史损坏') });
+  await expect(createOperation('project/add', {})).resolves.toBeDefined();
 });
 it('does not migrate or dispatch until the authenticated server capability confirms the legacy fence', async () => {
   const record = legacy(); freshLegacy([record]);
@@ -189,6 +372,7 @@ it('consumes legacy closure after seal before updating and conservatively retain
   await updateOperation(record.id, 'unknown');
   expect(await listOperations()).toEqual([]);
   expect(localStorage.getItem(ack + record.id)).toBeNull();
+  expect((await listOperationHistory()).history).toEqual([expect.objectContaining({ id: record.id, state: 'accepted', closed: 'legacy_closed' })]);
 });
 it('keeps an acknowledged v1 key disappearing during the snapshot from aborting unrelated migration', async () => {
   const closed = legacy('accepted'), unknown = legacy(); freshLegacy([closed, unknown]);

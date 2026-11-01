@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "ui-operation-history-implementation",
+  "authorId": "/root/v230_audit_gateway_tooling",
+  "baseHead": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "completedAt": "2026-11-01T16:43:21.740997+00:00",
+  "complete": true,
+  "status": "passed",
+  "files": [
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "9ea9097fa006631c6e12389aaeaa68a7d949a0c534a2c7293515ab7e20e458b9",
+      "beforeSha256": "8435069050b87577433ed225432a049cc53a5ebefedab2b43d198eaf143837ab"
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "sha256": "98ac1bfbde9610815bae4e157d7fd6520e9668bf77c7f5173e4d9e13c5fe7de4",
+      "beforeSha256": "e42b5b8610f244234df4fa0a464f55e237fe18b095dca1b88d92c7ddc71b811f"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "8fa9ebaef01b146037449c86be034d78e6f14d30503d847ba248096dc5a99de2",
+      "beforeSha256": "dc1c74be4fc580e5bfecb48f15ae70601b20173577a988c7a0678385cb759a7f"
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "sha256": "33156b01691d509b181f679bbf52c756887715d8893f19f855d44aebcce3d242",
+      "beforeSha256": "e8ff8144b268b660e2bc12dbf969b530f78a4fbb395efc28a5be20761d3c36a8"
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "sha256": "81583f863874c93ebd959c6af52fa0d2571c96d3dde15bafbb69f85f671404cb",
+      "beforeSha256": "f2626a0f732cfe035f731d58027b2084ff87ada271c24199c035cdc4bc0f8c14"
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "sha256": "fc697853c87597eb53d4aa8834612b3745fee8737004049226dca97e38100e15",
+      "beforeSha256": "1181e838b3631d2c2cbeb42b016703e78d2c0d5baac5d9132feb758d003fc06c"
+    }
+  ],
+  "changes": [
+    "Keep listOperations active-only. Store at most 500 display-only closed snapshots in existing IndexedDB meta; archive and active deletion commit in the same transaction for acknowledgement, explicit unknown closure, legacy closure and capacity collection. No schema migration or operation-store change.",
+    "Display active plus closed rows by createdAt descending with deterministic ID tie-break and complete local date/time. Keep open links and unresolved active queries; no acknowledgement/bulk-clear controls or state. Closed unknown rows never query or restart recovery.",
+    "History snapshots contain only operation ID/method/state/time/thread/project/destination IDs and closure reason. No request/result/error bodies, draft identities, resource paths, terminal ownership/results or emergency snapshots.",
+    "History damage preserves valid bounded rows and emits a separate history warning without blocking active recovery or archival. True IndexedDB write/commit failures still roll back archive and deletion. Already-acknowledged malformed legacy records are best-effort history only; unacknowledged legacy identity/proof validation stays strict.",
+    "At active pressure (160), archive oldest eligible records toward 128: not_sent, consumed accepted, or ordinary accepted without thread/typed-owner handoff. Keep ordinary limit 200 and reserved emergency slot 201. Preserve unresolved and unconsumed target receipts; history budget does not consume active capacity.",
+    "Loaded matching legacy target receipts can become consumed while preserving legacy drafts; ordinary queried/migrated acceptance can age out under pressure. Terminal/open and system/recover retain owner-specific proof until explicit owner handling."
+  ],
+  "consumerReview": {
+    "unchangedActiveContract": [
+      "Api normal acceptance/terminal acceptance",
+      "Workspace recovery scan and consumeThreadOperations",
+      "useWorkflow delayed accepted proof and ExtensionStatus",
+      "EmergencyRecovery and closeEmergencyOperations",
+      "McpAuthorization independent attempt/operation IDs",
+      "AccountSettings device login owner state",
+      "PredictionPanel owner state",
+      "TerminalPanel typed identity and lease"
+    ],
+    "dynamicFixtures": [
+      "automations.test.tsx delayed accepted listOperations alias",
+      "app-lifecycle.test.tsx authentication and conversion pending barriers",
+      "workspace-handoff.test.tsx accepted/HTTP handoff and automatic archive acknowledgement",
+      "session.test.ts initialization identity fence"
+    ],
+    "cleanup": "Removed OperationHistory completion selection/confirmation/busy/error/bulk-clear state. Kept acknowledgement and explicit unknown closure functions as active-consumer lifecycle operations; they now archive metadata."
+  },
+  "failureHistory": [
+    {
+      "stage": "First 21-file target run",
+      "report": {
+        "path": ".work/test-results/run-sJsDww/vitest.json",
+        "sha256": "3a9117cb9a8cea0a8177e7a6b39ed9dc8fa7d88f9dd01199465185b4db66d808"
+      },
+      "log": {
+        "path": ".work/ui-operation-history-tests.log",
+        "sha256": "d7f6999616449f5ce38886b56dcc8776941641486b11acad060e3ad56dec72ad"
+      },
+      "result": {
+        "total": 424,
+        "passed": 423,
+        "failed": 1
+      },
+      "classification": "new-test-fixture",
+      "assertion": "Stable timestamp-order fixture attempted two concurrent pending project/add operations in the same empty scope; existing deduplication correctly refused the second.",
+      "repair": "Give the two independent ordering samples different project IDs; preserve deduplication.",
+      "closure": {
+        "report": {
+          "path": ".work/test-results/run-ZAbGuc/vitest.json",
+          "sha256": "a3385417cf363d59e4fe8ebbd80fbd4553828f374b29f0435ab693ee3c02949b"
+        },
+        "log": {
+          "path": ".work/ui-operation-history-storage-tests.log",
+          "sha256": "a9eca3040c7ec9002b59f53cd6eb8500b01ce42c68a83ccc228263bfafc4d6ac"
+        },
+        "passed": 48,
+        "failed": 0
+      },
+      "prevention": "Sorting fixtures must use semantically independent scopes rather than accidentally exercising same-intent admission."
+    },
+    {
+      "stage": "Independent review before final freeze",
+      "classification": "product P2 in new history behavior",
+      "reviewerId": "/root/v220_final_deploy",
+      "finding": "Deleting manual cleanup left reconciled ordinary accepted operations, and old target receipts, with no capacity exit; they are not automatically acknowledged like direct HTTP successes.",
+      "repair": "Add pressure-only ordinary accepted collection with protected thread/terminal/emergency classes; allow loaded legacy target consumption without legacy draft cleanup. Do not immediately acknowledge reconciliation or change its returned proof boundary.",
+      "regressions": [
+        "240 queried ordinary accepted receipts",
+        "200 migrated ordinary accepted plus 40 new receipts",
+        "matching legacy target load, capacity archival and exact draft retained",
+        "terminal result/lease and emergency recovery snapshot retained under capacity pressure"
+      ],
+      "closure": "Final 21-consumer run below covers the changed production code; initial 424-case run is not treated as final validation."
+    }
+  ],
+  "validation": {
+    "targeted": {
+      "files": 21,
+      "cases": 428,
+      "passed": 428,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "report": {
+        "path": ".work/test-results/run-wqvMUk/vitest.json",
+        "sha256": "55e0b0817fe668506bf7b6d0ddf9a5172ba0bfd036438be279675dd0826d5708"
+      },
+      "log": {
+        "path": ".work/ui-operation-history-final-tests.log",
+        "sha256": "c958314a18d56febd32c42b15149178cae070603ed2d376fe7fd6f481aa3da49"
+      },
+      "scope": [
+        "web/tests/app-lifecycle.test.tsx",
+        "web/tests/automations.test.tsx",
+        "web/tests/conversation-recovery.test.tsx",
+        "web/tests/device-login.test.tsx",
+        "web/tests/drafts.test.tsx",
+        "web/tests/emergency-recovery.test.ts",
+        "web/tests/emergency-recovery.test.tsx",
+        "web/tests/extension-mcp-drafts.test.tsx",
+        "web/tests/mcp-oauth.test.tsx",
+        "web/tests/mcp-ui.test.tsx",
+        "web/tests/operation-generation.test.ts",
+        "web/tests/operation-history.test.tsx",
+        "web/tests/operation-storage.test.ts",
+        "web/tests/operations.test.ts",
+        "web/tests/prediction.test.tsx",
+        "web/tests/realtime.test.tsx",
+        "web/tests/recovery.test.tsx",
+        "web/tests/session.test.ts",
+        "web/tests/terminal.test.tsx",
+        "web/tests/workflows.test.tsx",
+        "web/tests/workspace-handoff.test.tsx"
+      ]
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "log": {
+        "path": ".work/ui-operation-history-final-typecheck.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "diffCheck": {
+      "scope": [
+        "web/lib/operations.ts",
+        "web/components/OperationHistory.tsx",
+        "web/components/Recovery.tsx",
+        "web/tests/operation-storage.test.ts",
+        "web/tests/operation-history.test.tsx",
+        "web/tests/recovery.test.tsx"
+      ],
+      "exitCode": 0
+    }
+  },
+  "earlierNarrowImplementation": {
+    "path": ".work/ui-simplification-operations.json",
+    "sha256": "ff8b250fe69b9ed32b6bbdcc7af87081faf9cf4d4387f4760ebdfec2512193b1"
+  },
+  "limits": [
+    "Author report; independent review is separate. No full suite, commit, deployment, real account, inference or external MCP invocation.",
+    "JSDOM/fake IndexedDB test interactions, transactions and concurrent callbacks; this author did not perform real-browser multi-tab or pixel validation. Root owns desktop/mobile browser acceptance.",
+    "Records deleted by previous application versions cannot be reconstructed. Closed history is capped at newest 500 by creation time; active unresolved and unconsumed target records are independently retained.",
+    "No inferred link between separate retry IDs: an earlier not_sent warning remains until explicit dismissal or pressure collection, while both original and retry appear in history.",
+    "Other agents own layout/media/docs; no whole-repository frozen digest claimed by this report."
+  ]
+}

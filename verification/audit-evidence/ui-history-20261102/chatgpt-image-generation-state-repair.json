@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "image-generation-empty-state-repair",
+  "author": "v230_audit_runtime",
+  "completedAt": "2026-11-01T16:29:36.036493+00:00",
+  "baseHead": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "complete": true,
+  "files": [
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "74aca2bb3d44054d1eeb5cf7b84456cafaf997427e274eeb56e4a5533ac7d0b2"
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "sha256": "b278a7aadf4e8cff2fecfe93018efc70f2d805fcb9d69c88b9879d251696426a"
+    }
+  ],
+  "problem": "Native 0.164 begins image generation with empty result and no fileId; failed items can have the same missing image fields. The UI incorrectly described every such item as fileId-only.",
+  "change": "Only missing-media wording changes: waiting, failed, actual nonempty fileId, and generic missing output are distinct. Existing readable result/savedPath priority, lazy preview/download, source authorization and budgets are unchanged.",
+  "validation": {
+    "runner": "pinned Node 24.22.1 scripts/run-tests.mjs --targeted web/tests/message-media.test.tsx",
+    "status": "passed",
+    "exitCode": 0,
+    "files": 1,
+    "uniqueCases": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "report": {
+      "path": ".work/test-results/run-CUmLDq/vitest.json",
+      "sha256": "68743baf4312a8eca2a2266fc0043abccef07060ede68143a1109809785e42d5"
+    },
+    "log": {
+      "path": ".work/chatgpt-image-media-state-tests-2.txt",
+      "sha256": "7458489f9fa6935382b0b9175cd24cbccdd85df14391c402d980cccf91525054"
+    },
+    "coverage": [
+      "native-shaped in_progress without fileId",
+      "failed empty result without fileId",
+      "actual fileId-only",
+      "completed missing output",
+      "in_progress to completed Base64 rerender, image+download, no native savedPath read",
+      "existing upload/project path isolation, signature limits, external URLs and late-read isolation"
+    ],
+    "diffCheck": "passed for the two owned files",
+    "lineEndings": "LF"
+  },
+  "earlierAttempt": {
+    "status": "failed",
+    "runnerExitCode": 1,
+    "assertionsPassed": 12,
+    "assertionsFailed": 0,
+    "reason": "Two parameterized completed scenarios initially shared the same full test name; existing runner rejected duplicate per-case identities as missing-or-invalid-test-evidence.",
+    "repair": "Add unique semantic scenario names; preserve all assertions and runner rules.",
+    "report": {
+      "path": ".work/test-results/run-PI4v3F/vitest.json",
+      "sha256": "9bbe27749302b9d921a2b2baaa8f9cfb886b8c969796fbc02be3eccba31bffe5"
+    },
+    "log": {
+      "path": ".work/chatgpt-image-media-state-tests.txt",
+      "sha256": "cfe7738b19af9ab152adf91b6442fddc495a7bf8626cadb4f4ca672ee02463c9"
+    }
+  },
+  "capabilityReview": {
+    "path": ".work/chatgpt-image-generation-capability-review.json",
+    "sha256": "8e58a85a82abf50a5f7bfb7a1ffed5dbddd4eec47995268b46243ed64328498b"
+  },
+  "limits": [
+    "No real image generation, paid model, external MCP, live account or credential access.",
+    "Static normal Inline support and conditional large-image/fileId/native-home limits remain as documented in the preceding review.",
+    "No full suite, browser acceptance or deployment. This patch does not resolve global-provider capability scope wording; parent owns any separate followup."
+  ]
+}

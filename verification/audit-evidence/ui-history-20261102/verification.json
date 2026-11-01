@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "kind": "targeted-ui-and-operation-history-verification",
+  "completedAt": "2026-11-01T16:45:44.765Z",
+  "baseline": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "source": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "7ee3304affc69188f10b53bd17ca4585e5f440be44cb99212d6253c997fa5a30"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "b124c576d795518b7a5c0d6e9fedfc0fe8ab2189c1747aa24fe766f3cd860296"
+    },
+    {
+      "path": "README.md",
+      "sha256": "d8ee2203df9981699dbeb8e271f179c30d8bc2281e84cc6440139dee31cd2d95"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "af48fdaa4cf26bbbc4921ed76f12744ab8725d9628971859111619efbc21be92"
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "df096bb7077722a038efe3046bd0110bafa155714c6f7d6cd65dbb62a859ae4a"
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "sha256": "98ac1bfbde9610815bae4e157d7fd6520e9668bf77c7f5173e4d9e13c5fe7de4"
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "8fa9ebaef01b146037449c86be034d78e6f14d30503d847ba248096dc5a99de2"
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "93da1470ac053dc8973ae58e1a8993b317c417af386dac01be2bd1898ce2b804"
+    },
+    {
+      "path": "web/components/SidebarManagementDialog.tsx",
+      "sha256": "aab18cf9ba954e9f07c2138df7cea89a0e65fbfb086fba29e91833848341454f"
+    },
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "596cb73cc6b72f2c0c10b6e01801c03deb12365b3c9b3061f96230be3c9ae1d6"
+    },
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "74aca2bb3d44054d1eeb5cf7b84456cafaf997427e274eeb56e4a5533ac7d0b2"
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "9ea9097fa006631c6e12389aaeaa68a7d949a0c534a2c7293515ab7e20e458b9"
+    },
+    {
+      "path": "web/styles-extensions.css",
+      "sha256": "2cc63cb027bff3ecb876a08b3cd009b6afd445dee848ce897441112b9a6c5143"
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "1b284e23d1a0e95213f5042e51f06d36ac510db846a9f0c01e39eb52919acfe4"
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "cd0aeec134237ffa4b9458270671ff51418713067b493d74ab922cfd4c6982ee"
+    },
+    {
+      "path": "web/tests/message-media.test.tsx",
+      "sha256": "b278a7aadf4e8cff2fecfe93018efc70f2d805fcb9d69c88b9879d251696426a"
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "sha256": "81583f863874c93ebd959c6af52fa0d2571c96d3dde15bafbb69f85f671404cb"
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "sha256": "33156b01691d509b181f679bbf52c756887715d8893f19f855d44aebcce3d242"
+    },
+    {
+      "path": "web/tests/recovery.test.tsx",
+      "sha256": "fc697853c87597eb53d4aa8834612b3745fee8737004049226dca97e38100e15"
+    }
+  ],
+  "reports": [
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/ui-simplification-layout.json",
+      "sha256": "310924a55b1fb18f0036af5fa4f82e4a3af9082347af8d80dc27c192109dde3b"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/ui-simplification-layout-independent.json",
+      "sha256": "e673cf9174fe332b256774dabbb1134a0e603308570f5c779bd83248de4cc37a"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/ui-operation-history-implementation.json",
+      "sha256": "74e586c5f962c9c2c928e8ba417c1a8221a6c0945b5e42d5967f91a4ee34a459"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/ui-operation-history-independent.json",
+      "sha256": "b62e1e559e2bb69bf7742f3071b768a528b755f16ad48d8b7741c8f39be53256"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/ui-operation-history-initial-finding.json",
+      "sha256": "469e0c866ba384d8cc75185f110eb63ad81b9b5caeb951571ffe5c493aeb7d23"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/chatgpt-image-generation-capability-review.json",
+      "sha256": "8e58a85a82abf50a5f7bfb7a1ffed5dbddd4eec47995268b46243ed64328498b"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/chatgpt-image-generation-state-repair.json",
+      "sha256": "2cecd2e6ae460a45e4153afed646e3ad2d90fb48e99bae81c35e0811a7a56517"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/thread-settings-capabilities-cleanup.json",
+      "sha256": "05cdbe3d2f720baaa79736a70ad865a0228e1335a8f060a5a21feda10113ab11"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/thread-settings-capabilities-independent.json",
+      "sha256": "a46ba6b9fa5548b0945f82054f4b0c5528817a0a934cce02680b20d5d0d4d419"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/failed-media-duplicate-case-name.json",
+      "sha256": "9bbe27749302b9d921a2b2baaa8f9cfb886b8c969796fbc02be3eccba31bffe5"
+    },
+    {
+      "path": "verification/audit-evidence/ui-history-20261102/failed-history-fixture-scope.json",
+      "sha256": "3a9117cb9a8cea0a8177e7a6b39ed9dc8fa7d88f9dd01199465185b4db66d808"
+    }
+  ],
+  "tests": [
+    {
+      "scope": "layout",
+      "path": "verification/audit-evidence/ui-history-20261102/targeted-layout.json",
+      "sha256": "42db2cd6d3ad68dd1596afa56d4bc7b60aa725488544027687feb2fa929b9897",
+      "files": 4,
+      "cases": 33,
+      "failed": 0
+    },
+    {
+      "scope": "operations",
+      "path": "verification/audit-evidence/ui-history-20261102/targeted-operations.json",
+      "sha256": "55e0b0817fe668506bf7b6d0ddf9a5172ba0bfd036438be279675dd0826d5708",
+      "files": 21,
+      "cases": 428,
+      "failed": 0
+    },
+    {
+      "scope": "media",
+      "path": "verification/audit-evidence/ui-history-20261102/targeted-media.json",
+      "sha256": "68743baf4312a8eca2a2266fc0043abccef07060ede68143a1109809785e42d5",
+      "files": 1,
+      "cases": 12,
+      "failed": 0
+    },
+    {
+      "scope": "settings",
+      "path": "verification/audit-evidence/ui-history-20261102/targeted-settings.json",
+      "sha256": "d148cf91ad18d8ca7a851eb62851e992e7a22cfad5579bfda0ee808fa2f7df05",
+      "files": 1,
+      "cases": 15,
+      "failed": 0
+    }
+  ],
+  "uniqueFiles": 27,
+  "uniqueCases": 488,
+  "build": {
+    "command": "node node_modules/vite/bin/vite.js build --config web/vite.config.ts",
+    "exitCode": 0,
+    "existingAdvisory": "Main JS chunk exceeds 500 kB; no chunk threshold changed.",
+    "artifacts": [
+      {
+        "path": "web/dist/index.html",
+        "sha256": "f37f56e8dd742ff68b5568a7c9828e15d6feee149766a6bd66e272624806bce9"
+      },
+      {
+        "path": "web/dist/assets/index-BC3Trruw.css",
+        "sha256": "4039a9fc8b493bf13ba7622294a641b67a36b2e33680c7209c8460adb4e63389"
+      },
+      {
+        "path": "web/dist/assets/index-Iae9jg1c.js",
+        "sha256": "4cca8ed828a7e4f7421fa3fd43a8e1859c9e1a4c09ad2f2a706cc420097e8a06"
+      }
+    ]
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+    "exitCode": 0
+  },
+  "browser": {
+    "environment": "Local bounded synthetic API/WS fixture; actual built web UI and IndexedDB. No worker/model/real filesystem operations.",
+    "fixture": {
+      "path": ".work/ui-simplification-preview.mjs",
+      "sha256": "2a31bbe31cb79b6fc29401969329b7fbb48ee7444a583a0dc9843618315fec55"
+    },
+    "checks": [
+      "Desktop ROOT beside connection and sort/refresh row",
+      "390 and 320 pixel mobile layout without horizontal overflow",
+      "Synthetic project success automatically retained without acknowledgement",
+      "Synthetic failure reminder dismissed while history remains",
+      "Reload final build and reopen settings retains both rows in newest-first order",
+      "390 pixel final history via mobile navigation/settings without acknowledgement or bulk-clear buttons"
+    ],
+    "screenshots": [
+      {
+        "path": ".work/ui-simplification-desktop.png",
+        "sha256": "1a3e0b89a59b5cf38997d731a116b8e823f932cbdc9dff6f1b247f95651be289"
+      },
+      {
+        "path": ".work/ui-simplification-mobile.png",
+        "sha256": "c88d82d7e502e39d4c9ff325ac14b2689377f273dc6ec8ae3545004ff97e1d22"
+      },
+      {
+        "path": ".work/ui-operation-history-desktop.png",
+        "sha256": "6b41254b1dc2785e819ad7ae74ca9c62351aed0455f1e5e2d2ff61edb56ce72b"
+      },
+      {
+        "path": ".work/ui-operation-history-mobile.png",
+        "sha256": "204548b668505a5fb13c87ef2a90618f1723bba21a98380deba1829b6189b17e"
+      }
+    ],
+    "temporaryViewportReset": true,
+    "temporaryTabsClosed": true
+  },
+  "limits": [
+    "Targeted modules run at their respective unchanged scoped snapshots; not a whole repository audit or full matrix.",
+    "No paid image generation, real account quota check, external MCP invocation or 120 deployment.",
+    "Historical rows already deleted by an old version cannot be reconstructed.",
+    "Image native default inline path is supported, but existing large-image/history budgets and non-inline file retrieval limits remain."
+  ]
+}

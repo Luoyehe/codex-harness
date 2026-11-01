@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "thread-settings-capabilities-cleanup-independent-review",
+  "reviewerId": "v230_audit_runtime",
+  "baseHead": "bce674a35010bf2a2d9243f9501874c3e581e92a",
+  "completedAt": "2026-11-01T16:32:23.574620+00:00",
+  "complete": true,
+  "findings": [],
+  "files": [
+    {
+      "path": "web/components/ThreadExecutionSettings.tsx",
+      "sha256": "596cb73cc6b72f2c0c10b6e01801c03deb12365b3c9b3061f96230be3c9ae1d6",
+      "bytes": 17197
+    },
+    {
+      "path": "web/tests/execution-settings.test.tsx",
+      "sha256": "cd0aeec134237ffa4b9458270671ff51418713067b493d74ab922cfd4c6982ee",
+      "bytes": 15731
+    }
+  ],
+  "authorReport": {
+    "path": ".work/thread-settings-capabilities-cleanup.json",
+    "sha256": "05cdbe3d2f720baaa79736a70ad865a0228e1335a8f060a5a21feda10113ab11"
+  },
+  "method": [
+    "Read the complete changed component flow and exact two-file diff, the changed request-level test and existing test result.",
+    "Verified ExecutionForm body is byte-identical to HEAD after removing the independent global capabilities resource; component API and mutation path unchanged.",
+    "Verified current file hashes and prior 15/15 test evidence; did not execute tests."
+  ],
+  "checks": [
+    {
+      "result": "passed",
+      "detail": "thread/session remains keyed by epoch/thread/revision, validates loaded snapshot identity/provider, and retains native event-triggered refresh."
+    },
+    {
+      "result": "passed",
+      "detail": "permissionProfile/list remains project-scoped and paginated; explicit refresh still refreshes both session and profiles."
+    },
+    {
+      "result": "passed",
+      "detail": "Form gating, provider/model matching, scope selection, selected-only fields, explicit confirmation and receipt recovery are unchanged."
+    },
+    {
+      "result": "passed",
+      "detail": "Global capabilities request, validation, loading state, refresh reference, UI statement and test fixture were removed together; useResource/ReadState imports remain used by real session/profile resources."
+    },
+    {
+      "result": "passed",
+      "detail": "Changed test verifies exact read methods/params and refresh, forbidden profile disabled, no resume/mutation; prior native capability route is intentionally retained outside this surface."
+    }
+  ],
+  "testEvidence": {
+    "path": ".work/test-results/run-nwCKum/vitest.json",
+    "sha256": "d148cf91ad18d8ca7a851eb62851e992e7a22cfad5579bfda0ee808fa2f7df05",
+    "bytes": 5573
+  },
+  "testsReexecuted": false,
+  "limits": [
+    "Narrow independent read-only review; no full repository audit, new tests, browser/production/network/model calls.",
+    "Uses author-targeted 15/15 result bound to the exact two file hashes; does not imply unrelated operation-history changes passed."
+  ]
+}

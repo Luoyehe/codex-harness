@@ -17,6 +17,48 @@ export type Operation = {
   /** Legacy JavaScript cannot join our transactions; retain its draft conservatively. */
   legacy?: true;
 };
+export type OperationHistoryEntry = Pick<Operation,
+  'id' | 'method' | 'threadId' | 'projectId' | 'resolvedThreadId' | 'createdAt' | 'state'> & {
+  closed: 'completed' | 'dismissed' | 'recovery_stopped' | 'legacy_closed' | 'collected';
+};
+const historyKey = 'history-v1';
+let historyWarning = '';
+function warnDamagedHistory() {
+  historyWarning = '部分本地操作历史损坏，已忽略无法读取的历史；活动恢复记录不受影响。';
+}
+export const operationHistoryLimit = 500;
+export const newestOperationFirst = (a: Pick<Operation, 'createdAt' | 'id'>, b: Pick<Operation, 'createdAt' | 'id'>) =>
+  b.createdAt - a.createdAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+function historyEntry(record: Operation, closed: OperationHistoryEntry['closed']): OperationHistoryEntry {
+  // Deliberately omit draft identities, terminal leases/results, recovery lists,
+  // resource paths and all request/result/error bodies from display-only history.
+  return { id: record.id, method: record.method, createdAt: record.createdAt, state: record.state, closed,
+    ...(record.threadId ? { threadId: record.threadId } : {}),
+    ...(record.projectId ? { projectId: record.projectId } : {}),
+    ...(record.resolvedThreadId ? { resolvedThreadId: record.resolvedThreadId } : {}) };
+}
+async function readHistory(metadata: IDBObjectStore): Promise<OperationHistoryEntry[]> {
+  const value: unknown = await stored(metadata.get(historyKey));
+  if (value === undefined) return [];
+  const rows: OperationHistoryEntry[] = [], ids = new Set<string>();
+  let damaged = !Array.isArray(value) || value.length > operationHistoryLimit;
+  for (const row of Array.isArray(value) ? value.slice(0, operationHistoryLimit) : []) {
+    try {
+      const record = checkedOperation(row);
+      if (ids.has(record.id) || !['completed', 'dismissed', 'recovery_stopped', 'legacy_closed', 'collected'].includes(row.closed))
+        throw new Error('Invalid display history');
+      rows.push(historyEntry(record, row.closed)); ids.add(record.id);
+    } catch { damaged = true; }
+  }
+  if (damaged) warnDamagedHistory();
+  return rows;
+}
+async function archiveOperations(metadata: IDBObjectStore, additions: OperationHistoryEntry[]) {
+  if (!additions.length) return;
+  const history = new Map((await readHistory(metadata)).map(row => [row.id, row]));
+  for (const row of additions) history.set(row.id, row);
+  await stored(metadata.put([...history.values()].sort(newestOperationFirst).slice(0, operationHistoryLimit), historyKey));
+}
 type Scope = Pick<Operation, 'threadId' | 'projectId' | 'resourceId' | 'draftKey' | 'draftRevision' | 'terminalOwner'>;
 export function isArchivedReceipt(receipt: Record<string, unknown>): boolean {
   const error = receipt.error as Record<string, unknown> | undefined;
@@ -92,21 +134,25 @@ function legacyKeys(storage: Storage): string[] {
   return Object.keys(storage).filter((key) => key !== sentinel &&
     [legacyPrefix, acceptedPrefix, notSentPrefix, acknowledgedPrefix].some((prefix) => key.startsWith(prefix)));
 }
-async function consumeLegacyClosures(records: IDBObjectStore, storage: Storage) {
+async function consumeLegacyClosures(records: IDBObjectStore, metadata: IDBObjectStore, storage: Storage) {
   const consumed: string[] = [];
+  const history: OperationHistoryEntry[] = [];
   for (const value of await stored(records.getAll()) as unknown[]) {
     const record = checkedOperation(value);
     if (record.legacy && storage.getItem(acknowledgedPrefix + record.id) === '1') {
+      history.push(historyEntry(record, 'legacy_closed'));
       await stored(records.delete(record.id));
       consumed.push(acknowledgedPrefix + record.id);
     }
   }
+  await archiveOperations(metadata, history);
   return consumed;
 }
 /** Only an authenticated gateway capability confirms the legacy admission fence. */
 export async function initializeOperations(protocol: unknown, retry = false): Promise<void> {
   if (initializedFactory !== globalThis.indexedDB) {
     initialization = undefined;
+    historyWarning = '';
     initializedFactory = globalThis.indexedDB;
   }
   authorized = protocol === 2;
@@ -125,25 +171,34 @@ export async function initializeOperations(protocol: unknown, retry = false): Pr
         if (alreadySealed !== undefined) throw new Error('操作恢复迁移标记损坏。');
         for (const key of keys.filter((item) => item.startsWith(legacyPrefix))) {
           const id = key.slice(legacyPrefix.length);
-          if (storage.getItem(acknowledgedPrefix + id) === '1') continue;
           const raw = storage.getItem(key);
           if (raw === null) continue; // A legacy acknowledgement removed it after the name snapshot.
-          const record = checkedOperation(JSON.parse(raw), id);
-          const accepted = storage.getItem(acceptedPrefix + id);
-          const proof = accepted ?? storage.getItem(notSentPrefix + id);
-          const latest = proof === null ? record : checkedOperation(JSON.parse(proof), id);
-          if (proof !== null && latest.state !== (accepted !== null ? 'accepted' : 'not_sent'))
-            throw new Error('操作的证明记录损坏。');
-          if (proof !== null && (['id', 'method', 'threadId', 'projectId', 'resourceId', 'draftKey', 'draftRevision', 'createdAt']
-            .some((field) => record[field as keyof Operation] !== latest[field as keyof Operation]) ||
-            record.terminalOwner?.clientId !== latest.terminalOwner?.clientId ||
-            record.terminalOwner?.connectionId !== latest.terminalOwner?.connectionId))
-            throw new Error('操作证明与原请求身份不一致，已保留原记录。');
-          await stored(records.add({ ...latest, legacy: true }));
+          let latest: Operation;
+          try {
+            const record = checkedOperation(JSON.parse(raw), id);
+            const accepted = storage.getItem(acceptedPrefix + id);
+            const proof = accepted ?? storage.getItem(notSentPrefix + id);
+            latest = proof === null ? record : checkedOperation(JSON.parse(proof), id);
+            if (proof !== null && latest.state !== (accepted !== null ? 'accepted' : 'not_sent'))
+              throw new Error('操作的证明记录损坏。');
+            if (proof !== null && (['id', 'method', 'threadId', 'projectId', 'resourceId', 'draftKey', 'draftRevision', 'createdAt']
+              .some((field) => record[field as keyof Operation] !== latest[field as keyof Operation]) ||
+              record.terminalOwner?.clientId !== latest.terminalOwner?.clientId ||
+              record.terminalOwner?.connectionId !== latest.terminalOwner?.connectionId))
+              throw new Error('操作证明与原请求身份不一致，已保留原记录。');
+          } catch (error) {
+            // Old closed records were previously skipped entirely. Best-effort
+            // display history must not introduce a new migration admission gate.
+            if (storage.getItem(acknowledgedPrefix + id) !== '1') throw error;
+            warnDamagedHistory(); continue;
+          }
+          if (storage.getItem(acknowledgedPrefix + id) === '1')
+            await archiveOperations(metadata, [historyEntry(latest, 'legacy_closed')]);
+          else await stored(records.add({ ...latest, legacy: true }));
         }
         await stored(metadata.put(true, seal));
       }
-      await consumeLegacyClosures(records, storage);
+      await consumeLegacyClosures(records, metadata, storage);
       return keys;
     });
     // Source removal follows the committed identities + seal, never request success alone.
@@ -167,12 +222,12 @@ async function ready() {
   if (!authorized) throw new Error('操作恢复尚未完成安全初始化，请重新检查登录状态。');
   await initializeOperations(2);
 }
-async function transact<T>(run: (records: IDBObjectStore) => Promise<T>): Promise<T> {
+async function transact<T>(run: (records: IDBObjectStore, metadata: IDBObjectStore) => Promise<T>): Promise<T> {
   await ready();
   const storage = localStorage;
-  const result = await operationTransaction(async (records) => {
-    const consumed = await consumeLegacyClosures(records, storage);
-    return { value: await run(records), consumed };
+  const result = await operationTransaction(async (records, metadata) => {
+    const consumed = await consumeLegacyClosures(records, metadata, storage);
+    return { value: await run(records, metadata), consumed };
   });
   try { for (const key of result.consumed) storage.removeItem(key); }
   catch (error) { reportOperationStorageError(error); }
@@ -181,6 +236,15 @@ async function transact<T>(run: (records: IDBObjectStore) => Promise<T>): Promis
 export async function listOperations(): Promise<Operation[]> {
   return transact(async (records) => (await stored(records.getAll()) as unknown[])
     .map((record) => checkedOperation(record)).sort((a, b) => a.createdAt - b.createdAt));
+}
+/** A single snapshot for display only. Archived rows never re-enter recovery consumers. */
+export async function listOperationHistory(): Promise<{ operations: Operation[]; history: OperationHistoryEntry[]; historyWarning: string }> {
+  return transact(async (records, metadata) => {
+    const operations = (await stored(records.getAll()) as unknown[]).map(row => checkedOperation(row));
+    const ids = new Set(operations.map(row => row.id));
+    const history = (await readHistory(metadata)).filter(row => !ids.has(row.id));
+    return { operations, history, historyWarning };
+  });
 }
 const threadReceiptMethods = new Set([...INPUT_METHODS, 'thread/fork', 'thread/convert', 'review/startNew']);
 /** Keep fresh receipts available to settings refresh and new-thread handoff.
@@ -193,12 +257,12 @@ export async function consumeThreadOperations(threadId: string, ids: string[]): 
       const value: unknown = await stored(records.get(id));
       if (value === undefined) continue;
       const record = checkedOperation(value, id);
-      if (record.state !== 'accepted' || record.legacy || record.consumed ||
+      if (record.state !== 'accepted' || record.consumed ||
           !threadReceiptMethods.has(record.method) ||
           (record.resolvedThreadId ?? record.threadId) !== threadId) continue;
       // Retry any interrupted draft cleanup before allowing the receipt to be
       // collected. A newer revision remains untouched by clearDraftSnapshot.
-      if (record.draftKey && record.draftRevision) clearDraftSnapshot(record.draftKey, record.draftRevision);
+      if (!record.legacy && record.draftKey && record.draftRevision) clearDraftSnapshot(record.draftKey, record.draftRevision);
       await stored(records.put({ ...record, consumed: true }));
       changed = true;
     }
@@ -212,17 +276,25 @@ export async function createOperation(
   method: string, scope: Scope, generation = 0, id = operationId(generation),
 ): Promise<Operation> {
   const record: Operation = structuredClone({ id, method, ...scope, createdAt: Date.now(), state: 'pending' });
-  await transact(async (store) => {
+  await transact(async (store, metadata) => {
+    if ((await readHistory(metadata)).some(row => row.id === id))
+      throw new Error('这个操作编号已关闭，不能重新发送；新尝试需要新的操作编号。');
     let records = (await stored(store.getAll()) as unknown[]).map((value) => checkedOperation(value));
     if (records.length >= 160) {
-      const collectible = records.filter((row) => row.state === 'accepted' && row.consumed && !row.legacy)
-        .sort((a, b) => a.createdAt - b.createdAt).slice(0, Math.max(0, records.length - 128));
+      // Ordinary API successes are already auto-acknowledged. Reconciled successes
+      // stay available to the immediate proof reader, then can age out under pressure.
+      // Thread handoffs and typed owner receipts still need their explicit consumer.
+      const collectible = records.filter((row) => row.state === 'not_sent' ||
+        row.state === 'accepted' && (row.consumed ||
+          !threadReceiptMethods.has(row.method) && !['terminal/open', 'system/recover'].includes(row.method)))
+        .sort((a, b) => -newestOperationFirst(a, b)).slice(0, Math.max(0, records.length - 128));
+      await archiveOperations(metadata, collectible.map(row => historyEntry(row, 'collected')));
       for (const row of collectible) await stored(store.delete(row.id));
       const removed = new Set(collectible.map((row) => row.id));
       records = records.filter((row) => !removed.has(row.id));
     }
     // One reserved slot lets an explicit emergency recovery operate at the ordinary budget.
-    if (records.length >= (method === 'system/recover' ? 201 : 200)) throw new Error('恢复记录已达到 200 条上限。请在设置 → 操作记录中处理待确认或已完成的记录。');
+    if (records.length >= (method === 'system/recover' ? 201 : 200)) throw new Error('恢复记录已达到 200 条上限。请在设置 → 操作记录中查询待确认结果，或打开尚未加载的已受理会话。');
     if (records.some((r) => ['pending', 'unknown'].includes(r.state) &&
       (r.method === method || (INPUT_METHODS.includes(r.method) && INPUT_METHODS.includes(method))) &&
       r.threadId === scope.threadId && r.projectId === scope.projectId && r.resourceId === scope.resourceId &&
@@ -264,11 +336,12 @@ export async function updateOperation(
   } finally { changed(); }
 }
 export async function acknowledgeOperation(id: string) {
-  const removed = await transact(async (records) => {
+  const removed = await transact(async (records, metadata) => {
     const value: unknown = await stored(records.get(id));
     if (value === undefined) return;
     const record = checkedOperation(value, id);
     if (!['accepted', 'not_sent'].includes(record.state)) throw new Error('未知操作仍需保留，不能据此重复发送。');
+    await archiveOperations(metadata, [historyEntry(record, record.state === 'accepted' ? 'completed' : 'dismissed')]);
     await stored(records.delete(id));
     return record;
   });
@@ -279,11 +352,12 @@ export async function acknowledgeOperation(id: string) {
 }
 /** Local closure only. It never changes the server receipt or clears an unsent draft. */
 export async function stopUnknownRecovery(id: string, proof: Record<string, unknown>) {
-  await transact(async (records) => {
+  await transact(async (records, metadata) => {
     const value: unknown = await stored(records.get(id));
     if (proof.operationId !== id || proof.state !== 'unknown' || value === undefined ||
         checkedOperation(value, id).state !== 'unknown')
       throw new Error('需要当前操作的明确未知回执，不能根据暂未登记或处理中停止恢复。');
+    await archiveOperations(metadata, [historyEntry(checkedOperation(value, id), 'recovery_stopped')]);
     await stored(records.delete(id));
   });
   changed();
