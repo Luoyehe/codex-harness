@@ -480,7 +480,7 @@ describe('RuntimeService admission and recovery', () => {
   test('old voice-only history must finish its own cursor chain before granting a thread proof', async () => {
     const { service, native } = setup(); const item = { id: 'voice', realtimeSessionId: 'session', type: 'transcriptSegment', role: 'user', text: 'older voice context' };
     native.timeline = { data: [{ type: 'realtime', position: 1, item }], nextCursor: 'native-voice-cursor', activeRealtimeSessionAtPageStart: 'session' };
-    const first = object(await service.call('thread/history', { threadId: 't' }, context)); expect(first).toMatchObject({ complete: false, turnsComplete: true, timelineComplete: false, timeline: [{ item }] });
+    const first = object(await service.call('thread/history', { threadId: 't', limit: 1 }, context)); expect(first).toMatchObject({ complete: false, turnsComplete: true, timelineComplete: false, timeline: [{ item }] });
     await expect(service.call('turn/start', { threadId: 't', text: 'blocked' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
     native.timeline = { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
     expect(await service.call('thread/history', { threadId: 't', cursor: first.nextCursor! }, context)).toMatchObject({ turns: [], complete: true, turnsComplete: true, timelineComplete: true });
@@ -495,7 +495,7 @@ describe('RuntimeService admission and recovery', () => {
   });
   test('combined history byte accounting never grants completeness after oversized voice pages', async () => {
     const { service, native } = setup(); const voice = { type: 'realtime', position: 1, item: { id: 'voice', realtimeSessionId: 'session', type: 'transcriptSegment', role: 'user', text: 'x'.repeat(4 * 1024 * 1024) } };
-    native.timeline = { data: [voice], nextCursor: 'more', activeRealtimeSessionAtPageStart: null }; const first = object(await service.call('thread/history', { threadId: 't' }, context));
+    native.timeline = { data: [voice], nextCursor: 'more', activeRealtimeSessionAtPageStart: null }; const first = object(await service.call('thread/history', { threadId: 't', limit: 1 }, context));
     native.timeline = { data: [{ ...voice, position: 2 }], nextCursor: null, activeRealtimeSessionAtPageStart: null };
     await expect(service.call('thread/history', { threadId: 't', cursor: first.nextCursor! }, context)).rejects.toMatchObject({ code: 'capacity' });
     await expect(service.call('turn/start', { threadId: 't', text: 'blocked' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });

@@ -7,6 +7,7 @@ import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 const MAX_GENERATION = 0xffffffffffff;
 const MAX_EXPORT_BYTES = 80 * 1024 * 1024;
 const KEY = 'operationGeneration';
+export const EMERGENCY_RECOVERY_KEY = 'emergencyRecoveryOperation';
 const SNAPSHOT_TTL = 10 * 60 * 1000;
 const scoped = /^([a-f0-9]{8})-([a-f0-9]{4})-8[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 
@@ -112,6 +113,7 @@ export class OperationRetention {
       throw new HarnessError('journal_changed', '必须导出并确认当前完整回执后才能轮换。');
     this.db.prepare('DELETE FROM receipts').run();
     this.db.prepare('DELETE FROM retired_operations').run();
+    this.db.prepare('DELETE FROM metadata WHERE key=?').run(EMERGENCY_RECOVERY_KEY);
     this.db.prepare('INSERT INTO metadata(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(KEY, String(next));
     const result = { rotated: true, generation: next, archivedDigest: archive.digest, receipts: archive.receipts, retirements: archive.retirements, rotatedAt: this.now() };
     this.db.prepare('INSERT INTO metadata(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('lastOperationRotation', JSON.stringify(result));

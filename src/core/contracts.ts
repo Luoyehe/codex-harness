@@ -19,6 +19,7 @@ export interface Receipt {
 export const LIMITS = Object.freeze({
   requestBytes: 8 * 1024 * 1024, responseBytes: 12 * 1024 * 1024,
   promptBytes: 1024 * 1024, receiptBytes: 2 * 1024 * 1024,
+  recoveryReceiptBytes: 8192,
   receiptCount: 10000, receiptStorageBytes: 64 * 1024 * 1024,
   concurrentRequests: 48, retainedRequestBytes: 24 * 1024 * 1024,
   httpConnections: 96, retainedResponseBytes: 32 * 1024 * 1024, responseWriteTimeoutMs: 15000,

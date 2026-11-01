@@ -62,7 +62,6 @@ export class ManagedProviders {
       throw new DeliveryError('provider_unavailable', '所选模型供应商不存在或已停用，请重新选择。');
     const selected = this.selection(value, false)!;
     string(selected.model, 'model', 256);
-    if (selected.effort === undefined) selected.effort = null;
     return selected;
   }
   accountProvider(): string | undefined {

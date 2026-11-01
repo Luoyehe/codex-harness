@@ -31,6 +31,101 @@ it('changes provider and model together, clearing a previous incompatible effort
   fireEvent.change(effort, { target: { value: 'max' } });
   expect(current.effort).toBe('max');
 });
+it('explicitly sends the selected model default instead of silently inheriting the previous effort', () => {
+  const catalog: Model[] = [
+    { ...models[0]!, id: 'first', model: 'first', defaultReasoningEffort: 'high' },
+    { ...models[0]!, id: 'second', model: 'second', defaultReasoningEffort: 'medium' },
+  ];
+  const defaults = { model: 'first', modelProvider: 'openai', reasoningEffort: 'high' };
+  let current: Options = {};
+  function Harness() {
+    const [options, setOptions] = useState<Options>({}); current = options;
+    return <ModelPicker models={catalog} options={options} onOptions={setOptions} defaults={defaults} existingThread />;
+  }
+  render(<Harness />); open();
+  expect(screen.getByRole('option', { name: '沿用会话强度（高）' })).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(catalog[1]!) } });
+  expect(current.effort).toBe('medium');
+  expect(executionOptions(current, defaults, [])).toMatchObject({ model: 'second', effort: 'medium' });
+  const picker = screen.getByRole('combobox', { name: '思考强度' }) as HTMLSelectElement;
+  expect(picker.selectedOptions[0]?.textContent).toBe('模型默认（中）');
+  fireEvent.change(picker, { target: { value: 'high' } });
+  fireEvent.change(picker, { target: { value: 'medium' } });
+  expect(current.effort).toBe('medium');
+  expect(executionOptions({ ...current, mode: 'plan' }, defaults, [{ name: '计划', mode: 'plan', model: 'first', reasoning_effort: 'high' }])).toMatchObject({ collaborationMode: { settings: { reasoning_effort: 'medium' } } });
+  fireEvent.change(picker, { target: { value: '' } });
+  expect(current.effort).toBeUndefined();
+  expect(picker.selectedOptions[0]?.textContent).toBe('沿用会话强度（高）');
+  expect(executionOptions({ ...current, mode: 'plan' }, defaults, [{ name: '计划', mode: 'plan', model: 'first', reasoning_effort: 'medium' }])).toMatchObject({ collaborationMode: { settings: { model: 'second', reasoning_effort: 'high' } } });
+});
+it('does not invent a target default when the model directory does not provide one', () => {
+  const next = { ...models[0]!, id: 'unknown-default', model: 'unknown-default' };
+  let current: Options = {};
+  function Harness() {
+    const [options, setOptions] = useState<Options>({}); current = options;
+    return <ModelPicker models={[models[0]!, next]} options={options} onOptions={setOptions}
+      defaults={{ model: 'shared', modelProvider: 'openai', reasoningEffort: 'high' }} existingThread />;
+  }
+  render(<Harness />); open();
+  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(next) } });
+  expect(current.effort).toBeUndefined();
+  expect(screen.queryByRole('option', { name: /模型默认/ })).toBeNull();
+  expect(screen.getByRole('option', { name: '沿用会话强度（高）' })).toBeTruthy();
+});
+it('does not confuse a mode preset with a known thread effort when native settings omit it', () => {
+  const mode = [{ name: '计划', mode: 'plan' as const, model: 'shared', reasoning_effort: 'high' as const }];
+  const defaults = { model: 'shared', modelProvider: 'openai' };
+  render(<ModelPicker models={models} options={{ mode: 'plan' }} onOptions={vi.fn()} defaults={defaults} existingThread />); open();
+  expect(screen.getByRole('option', { name: '使用模型默认' })).toBeTruthy();
+  expect(executionOptions({ mode: 'plan' }, defaults, mode)).toMatchObject({ collaborationMode: { settings: { reasoning_effort: null } } });
+});
+it('preserves native effort when the selected provider is a verified alias of the current provider', () => {
+  const catalog: Model[] = [{ ...models[0]!, modelProvider: 'harness_chatgpt', providerAliases: ['openai'] }];
+  const options: Options = { model: 'shared', modelProvider: 'harness_chatgpt', mode: 'plan' };
+  const defaults = { model: 'other', modelProvider: 'openai', reasoningEffort: 'high' };
+  expect(executionOptions(options, defaults, [{ name: '计划', mode: 'plan', model: 'shared', reasoning_effort: 'medium' }], catalog)).toMatchObject({ collaborationMode: { settings: { reasoning_effort: 'high' } } });
+});
+it('shows a new conversation using project effort when the same provider supplies no model default', () => {
+  const options: Options = { model: 'shared', modelProvider: 'openai', mode: 'plan' };
+  const defaults = { model: 'other', modelProvider: 'openai', reasoningEffort: 'high' };
+  render(<ModelPicker models={models} options={options} onOptions={vi.fn()} defaults={defaults} existingThread={false} />); open();
+  expect(screen.getByRole('option', { name: '沿用默认设置（高）' })).toBeTruthy();
+  expect(executionOptions(options, defaults, [{ name: '计划', mode: 'plan', model: 'other', reasoning_effort: 'medium' }])).toMatchObject({ collaborationMode: { settings: { reasoning_effort: 'high' } } });
+});
+it.each(['inherit', 'default', 'plan'] as const)('selects the exact fixed native default instead of old session effort in %s mode', mode => {
+  const fixed: Model = { id: 'glm-5-turbo', modelProvider: 'coding', defaultReasoningEffort: 'max', supportedReasoningEfforts: [] };
+  const defaults = { model: 'glm-5.3', modelProvider: 'coding', reasoningEffort: 'high' };
+  const modes = [{ name: '执行', mode: 'default' as const, model: null, reasoning_effort: null },
+    { name: '计划', mode: 'plan' as const, model: null, reasoning_effort: null }];
+  let current: Options = {};
+  function Harness() {
+    const [options, setOptions] = useState<Options>(mode === 'inherit' ? {} : { mode }); current = options;
+    return <ModelPicker models={[fixed]} options={options} onOptions={setOptions} defaults={defaults} existingThread />;
+  }
+  render(<Harness />); open();
+  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: modelSelection(fixed) } });
+  expect(current.effort).toBe('max');
+  expect((screen.getByRole('combobox', { name: '思考强度' }) as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('模型固定强度（最高）');
+  expect(screen.queryByRole('option', { name: '高' })).toBeNull();
+  expect(screen.queryByRole('option', { name: '原强度已不可用' })).toBeNull();
+  expect(screen.getByRole('combobox', { name: '思考强度' }).hasAttribute('disabled')).toBe(true);
+  expect(modelSettingsIssue({ options: current, defaults, defaultsLoading: false, models: [fixed], modelsLoading: false, modes })).toBe('');
+  const sent = executionOptions(current, defaults, modes, [fixed]);
+  expect(sent).toMatchObject({ model: 'glm-5-turbo', modelProvider: 'coding', effort: 'max' });
+  if (mode === 'inherit') expect(sent).not.toHaveProperty('collaborationMode');
+  else expect(sent).toMatchObject({ collaborationMode: { mode, settings: { model: 'glm-5-turbo', reasoning_effort: 'max' } } });
+});
+it('accepts only the uniquely identified fixed model default and keeps other reasoning values invalid', () => {
+  const fixed: Model = { id: 'fixed', modelProvider: 'coding', providerAliases: ['native-coding'], defaultReasoningEffort: 'max', supportedReasoningEfforts: [] };
+  const defaults = { model: 'fixed', modelProvider: 'native-coding', reasoningEffort: 'high' };
+  const state = { options: { model: 'fixed', modelProvider: 'coding', effort: 'max' }, defaults, defaultsLoading: false, models: [fixed], modelsLoading: false, modes: [] };
+  expect(modelSettingsIssue(state)).toBe('');
+  expect(modelSettingsIssue({ ...state, options: { ...state.options, effort: 'high' } })).toContain('已不适用于');
+  expect(modelSettingsIssue({ ...state, models: [{ ...fixed, defaultReasoningEffort: undefined }] })).toContain('已不适用于');
+  expect(modelSettingsIssue({ ...state, models: [{ ...fixed, supportedReasoningEfforts: undefined }] })).toContain('已不适用于');
+  expect(modelSettingsIssue({ ...state, models: [fixed, fixed] })).toContain('尚未确认');
+  expect(modelSettingsIssue({ ...state, options: { ...state.options, modelProvider: 'other' } })).toContain('尚未确认');
+});
 it('does not present a bundled or inherited default as an available model with an empty catalog', () => {
   const providers = vi.fn();
   render(<ModelPicker models={[]} options={{}} onOptions={vi.fn()} defaults={{ model: 'bundled-model' }} existingThread={false} onProviders={providers} />);
@@ -74,7 +169,7 @@ it('blocks a stale reasoning override after the default model changes and lets i
   open();
   const picker = screen.getByRole('combobox', { name: '思考强度' });
   expect(picker.matches(':disabled')).toBe(false);
-  expect(screen.getByRole('option', { name: '恢复模型默认强度' })).toBeTruthy();
+  expect(screen.getByRole('option', { name: '清除本次强度设置' })).toBeTruthy();
   fireEvent.change(picker, { target: { value: '' } });
   expect(screen.queryByRole('option', { name: '原强度已不可用' })).toBeNull();
   expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(false);

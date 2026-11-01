@@ -208,6 +208,29 @@ it('selects same-named models by provider and saves its reasoning effort and col
       collaborationMode: { mode: 'plan', settings: { model: 'shared', reasoning_effort: 'max' } } },
   });
 });
+it.each(['select', 'reopen'] as const)('saves the exact fixed model effort without making it adjustable when %s', async scenario => {
+  const fixed = { ...providerModels[1]!, defaultReasoningEffort: 'max', supportedReasoningEfforts: [] };
+  const record = { ...job, options: { model: 'shared', modelProvider: 'beta', effort: 'max',
+    collaborationMode: { mode: 'plan', settings: { model: 'shared', reasoning_effort: 'max', developer_instructions: null } } } };
+  const { api, calls } = setup(call => call.method === 'automation/update' ? { id: job.id, revision: 5 } : providerDefaults(call));
+  const props = formProps(api);
+  render(<AutomationForm {...props} {...(scenario === 'reopen' ? { record } : {})} models={[providerModels[0]!, fixed]}
+    modes={[{ name: 'Plan', mode: 'plan', model: 'shared', reasoning_effort: 'high' }]} />);
+  await prepareForm(); openModelSettings();
+  if (scenario === 'select') {
+    chooseProvider('Beta');
+    fireEvent.change(screen.getByRole('combobox', { name: '自动化协作模式' }), { target: { value: 'plan' } });
+  }
+  const effort = screen.getByRole('combobox', { name: '自动化推理强度' }) as HTMLSelectElement;
+  expect(effort.value).toBe('max');
+  expect(effort.selectedOptions[0]?.textContent).toBe('模型固定强度（最高）');
+  expect(effort.disabled).toBe(true);
+  expect(within(effort).queryByRole('option', { name: /原强度已不可用/ })).toBeNull();
+  await savePlan(scenario === 'reopen'); await waitFor(() => expect(props.onSaved).toHaveBeenCalled());
+  expect(calls.find(call => call.method === (scenario === 'reopen' ? 'automation/update' : 'automation/create'))?.params.spec).toMatchObject({
+    options: { model: 'shared', modelProvider: 'beta', effort: 'max', collaborationMode: { mode: 'plan', settings: { reasoning_effort: 'max' } } },
+  });
+});
 it.each(['unchanged', 'alpha', 'default'])(
   'preserves an existing provider and unrelated native settings until explicitly changed (%s)', async (choice) => {
     const record = { ...job, options: { model: 'shared', modelProvider: 'beta', effort: 'max', serviceTier: 'flex',

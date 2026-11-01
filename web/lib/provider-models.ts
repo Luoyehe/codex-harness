@@ -1,5 +1,17 @@
 import type { Model } from './types';
 
+/** A fixed native default is still an explicit transport value, not an adjustable range. */
+export function modelDefaultEffort(model?: Model): string | undefined {
+  const value = model?.defaultReasoningEffort;
+  return typeof value === 'string' && value &&
+    (model?.supportedReasoningEfforts?.length === 0 ||
+      model?.supportedReasoningEfforts?.some(row => row.reasoningEffort === value)) ? value : undefined;
+}
+export function modelSupportsEffort(model: Model | undefined, value: string): boolean {
+  return Boolean(model?.supportedReasoningEfforts?.some(row => row.reasoningEffort === value) ||
+    model?.supportedReasoningEfforts?.length === 0 && modelDefaultEffort(model) === value);
+}
+
 /** Unlabelled rows are safe only in a complete, entirely legacy directory. */
 export function providerModels(models: Model[], provider: string, complete: boolean): Model[] {
   const legacy = complete && models.every(row => !row.modelProvider && !row.providerId);

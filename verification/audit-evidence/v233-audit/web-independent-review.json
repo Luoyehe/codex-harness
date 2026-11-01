@@ -1,0 +1,333 @@
+{
+  "roundId": "v233-final-independent-web",
+  "scope": "web final repairs and critical integrations",
+  "reviewer": "v233_full_gateway (independent of web implementation)",
+  "complete": true,
+  "clean": true,
+  "sourceDigest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2",
+  "sourceFiles": 2013,
+  "manifest": ".work/v233-final-clean-3/manifest.json",
+  "reviewMethod": "Independent complete read of critical implementations and regression fixtures; every changed web file cross-checked against first-round complete partition inventory. Large unchanged source files use explicit integration-slice depth. This is not a second claim of full line-by-line review of all 241 web files.",
+  "coverage": {
+    "priorCompletePartitionFiles": 239,
+    "currentWebFiles": 241,
+    "currentDeltaFiles": 20,
+    "allCurrentDeltaCovered": true,
+    "missingDelta": [],
+    "newFilesSinceInitial": [
+      "web/lib/generated-media.ts",
+      "web/tests/generated-media.test.tsx"
+    ]
+  },
+  "priorPartitionEvidence": {
+    "path": ".work/v233-audit-1/web-review.json",
+    "sha256": "fee6319f2e256f9a397b1e6075c604e87f5a9e4ac1c383a834a266017337b2e8",
+    "depth": "Fresh control/data flow review of every web application source, hook, helper, stylesheet and test/config support file. Test suites received explicit structural/import/case/key-assertion inspection plus implementation cross-reference; selected media/session/conversion/history suites and new operation-history assertions received deeper fixture review. This does not claim line-by-line semantic review of every test fixture."
+  },
+  "files": [
+    {
+      "path": "web/lib/generated-media.ts",
+      "sha256": "cb81ac2ebfb98804a1a33b7e48fdd54bd4340df3e96df7c618acdea1a99135bb",
+      "bytes": 3437,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/media.ts",
+      "sha256": "72fd44af92b3718e24b61dc3a1ba880f04b9f7b57a63c3934e0b34244e2b4720",
+      "bytes": 9049,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/provider-models.ts",
+      "sha256": "0267c3635c495246989d4280b6f44bc6619317a6a50e199083447775e8825f5f",
+      "bytes": 1853,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "1b826496d9ca0055f5a22324320ee94ca8960811396ef2933cd9e3b73034de45",
+      "bytes": 6120,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/input-modalities.ts",
+      "sha256": "4b3a9eacf2f6f64579b760b9c348e2e40bb15a9ce9eb07a0efe351689c0ba98d",
+      "bytes": 3164,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/operation-store.ts",
+      "sha256": "84471c85a2af28b1ae571fe5c4a1d2ca02d03c5206137e98aa58f6ecaf576e45",
+      "bytes": 3026,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "9ea9097fa006631c6e12389aaeaa68a7d949a0c534a2c7293515ab7e20e458b9",
+      "bytes": 22270,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/lib/emergency-recovery.ts",
+      "sha256": "226c23b6081bc7202602bcf33684b3f5edd8054675b22e15a7cff1c7d7768fa9",
+      "bytes": 4430,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/MessageMedia.tsx",
+      "sha256": "77fbd1fe08708eb70c717c8b2f93157263deb46408042879a380f9c8e8cb8959",
+      "bytes": 8524,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/MessageItem.tsx",
+      "sha256": "cb13357349b0ea9f65b4997f9ac61aa9e24093b3caf537be8daf5b4ff3f5b0bc",
+      "bytes": 11642,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/Messages.tsx",
+      "sha256": "2f52a16e7d0eb53b4970adc5bf47b0c309193ccd023067bef6ecbd137cc3436f",
+      "bytes": 8721,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "4bb5f5b76a46d8653a433cb335082e647981ef477bef1ca9136efbc87d86224d",
+      "bytes": 8068,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/HistoryTools.tsx",
+      "sha256": "81aa53f589cdebd0ae21aafddc59ef2e5ad81e61a4d9f3aceb2fc77b27ebbe72",
+      "bytes": 21020,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/OperationHistory.tsx",
+      "sha256": "98ac1bfbde9610815bae4e157d7fd6520e9668bf77c7f5173e4d9e13c5fe7de4",
+      "bytes": 1353,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "8fa9ebaef01b146037449c86be034d78e6f14d30503d847ba248096dc5a99de2",
+      "bytes": 14168,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/EmergencyRecovery.tsx",
+      "sha256": "8a9d52dc6383fb335f96cbcc634139b4f474737c34900af6720a77f1dcab8c8f",
+      "bytes": 7799,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/components/Sidebar.tsx",
+      "sha256": "93da1470ac053dc8973ae58e1a8993b317c417af386dac01be2bd1898ce2b804",
+      "bytes": 12585,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/styles-responsive.css",
+      "sha256": "67e5886d0eed5dc9011edf904d4832824ec4a722566657bfc04431d3e1ee3331",
+      "bytes": 7760,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/styles-usability.css",
+      "sha256": "1cf3ecb88fb1a7890af5c00eaa633115149c1f956ee369c238404124e5ef5f9c",
+      "bytes": 5821,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/main.tsx",
+      "sha256": "a19b6395e30927be8069dba1baaef0c6ee203a4ca30e76649eca988483178a54",
+      "bytes": 306,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "e87a9b75a52a29b482759e8f03be846b573901d5aeeefa9977ab6cc735aa3d3d",
+      "bytes": 306,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/tests/generated-media.test.tsx",
+      "sha256": "804f0e10406315bef1eb0bf8c73ff5bc7743b660a925c079e709e21bd84cdea6",
+      "bytes": 11936,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/tests/model-picker.test.tsx",
+      "sha256": "b4c5784b71bbc8178c555b746aef445a4023ada7e6bfc041c3af69edb7ec2473",
+      "bytes": 19171,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/tests/operation-history.test.tsx",
+      "sha256": "81583f863874c93ebd959c6af52fa0d2571c96d3dde15bafbb69f85f671404cb",
+      "bytes": 7266,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/tests/emergency-recovery.test.tsx",
+      "sha256": "ec41075b2aa4a80a51485e22d518aa2a9d6eacafaf0c88c673b85dceb847a3db",
+      "bytes": 8436,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "a80064a35e9e460dd17758a7ab44f418ed5a1e25fb5b1830346b6c60d718a910",
+      "bytes": 20375,
+      "inspectionDepth": "full-semantic-read",
+      "evidence": "Independent source/control-flow or fixture/assertion review in this final cross-partition pass."
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "3eeae2d77b40f484d8274578eca9a35e73b795a219029ec2d0b8d03105a69cfb",
+      "bytes": 83231,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "All final delta; executionOptions call sites, keyed history/media resource ownership, operation guards, right-side root header and settings placement, model catalog consumers."
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "f859f97a3ebcdc5117cc92a234bd418ef4ed7f84bf04c51af88acbb48e6dc228",
+      "bytes": 31616,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "All final executionOptions and fixed-effort deltas; model/provider/effort selection, defaults readiness, buildOptions and persisted collaboration-settings update paths (approximately lines 275-385 and 650-710). Full large component not re-read independently."
+    },
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "8fb6adb5ba478971ec23a6ee2a13c7cc46059fe57037fd1a9a532b5be9d45880",
+      "bytes": 22375,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Both final guidance deltas checked against provider-lock and independent conversion behavior; unchanged large editor not re-read independently."
+    },
+    {
+      "path": "web/components/Composer.tsx",
+      "sha256": "b7fcb7499852f9dd2edb8310358ae43ed61569505590f887fdae205fb7278a82",
+      "bytes": 18760,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Input admission and model settings integration, first 150 lines plus changed consumer call chain; no claim of entire component review."
+    },
+    {
+      "path": "web/components/ExecutionModeSettings.tsx",
+      "sha256": "c2af340235cc4d1db2b6ea235f69c51077bb2820574e0fe8e1e43e0d394a28b3",
+      "bytes": 7782,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "RootExecutionNotice and entry into execution settings; remaining switch transaction covered by initial partition audit, not independently re-read here."
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "b89b895502067172a95042bc43e61301b75ed55be3cc647bd7484d0d2d760306",
+      "bytes": 20124,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Final recover routing delta; call request/authentication/timeout contract, mutation durable admission, monotone resolution and no-replay flow (approximately lines 210 through end)."
+    },
+    {
+      "path": "web/lib/types.ts",
+      "sha256": "089540295b6086fe3e01746245ab73ae1cb1a114e0b604a90596a8435d7bf70d",
+      "bytes": 2598,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Model.defaultReasoningEffort type delta and related Model/Options contracts."
+    },
+    {
+      "path": "web/styles-workspace.css",
+      "sha256": "d042265ab8c584580115b5f2ba233aa95cce53f5d81b6389f6855e4749b75939",
+      "bytes": 6544,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Root badge and narrow-header responsive rules, approximately lines 310-355; CSS cascade cross-reference."
+    },
+    {
+      "path": "src/runtime/providers.ts",
+      "sha256": "5884b6f3ad1b5400dce3f1d7da4ceedad2274f65749dc420738cad03f965c2dc",
+      "bytes": 10570,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Provider catalog model/default/supported-effort projection and alias contracts (approximately lines 85-140)."
+    },
+    {
+      "path": "src/runtime/validation.ts",
+      "sha256": "cfdda041f1cab2ef16be5d3ef011dba7105852758abf7b888ddc0b4e36226164",
+      "bytes": 10163,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Native options projection (first 100 lines), distinguishing omitted top-level effort and collaboration-mode null."
+    },
+    {
+      "path": "tests/runtime/input-native.test.ts",
+      "sha256": "018d18032e4cd316aa3df92c3d20c5a4e438ed33f296592b055df6e5ebe71c8a",
+      "bytes": 15169,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Real CLI local Responses fixture setup and all 13 outbound reasoning-effort assertions in first test (approximately lines 1-48); no live paid provider call."
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "3ea6a013e64b584aae695bab6564faf5d05ca2b103fb2bd795b6332bdccf9de2",
+      "bytes": 43122,
+      "inspectionDepth": "targeted-semantic-integration-and-complete-delta",
+      "evidence": "Setup, provider fixtures, native option persistence helpers and complete final fixed-default create/reopen regression delta (approximately lines 1-232). No claim of entire unrelated automation suite line-by-line review."
+    }
+  ],
+  "findings": [],
+  "resolvedFindings": [
+    {
+      "id": "WEB-INDEPENDENT-233-01",
+      "priority": "P2",
+      "title": "Selecting a fixed-effort model omitted its known default and retained the previous model effort",
+      "trigger": "Existing same-provider conversation default high; select a fixed-effort model whose configurable effort list is empty and native default is max. Both inherited mode and explicit collaboration mode preserved high. Real CLI fixture confirms omission and top-level null both retain high; explicit max resets it.",
+      "resolution": "Shared modelDefaultEffort/modelSupportsEffort helpers admit only a unique model exact declared default when the adjustable list is explicitly empty. ModelPicker selects that exact default and displays it as fixed, preserving unsupported/stale values as actionable errors. Automation selector/save/reopen uses the same contract. Arbitrary strengths or an absent catalog do not gain authorization."
+    }
+  ],
+  "validatedFlows": [
+    "Generated image read uses exact thread/turn/item/hash, bounded chunks, byte and offset checks, canonical base64, SHA256 and raster dimensions before object URL publication.",
+    "Image abort, identity switch, unmount, decode error and explicit collapse release references and reservations; search windows receive the same API and ownership inputs; exports retain media references and clearly require separate image download.",
+    "Active operation receipts are separate from bounded 500-row display history; archive-before-delete transaction and accepted/not-sent/unknown monotonicity are retained; retries use distinct identities; no acknowledgement UI for processed history.",
+    "Emergency recovery is explicitly confirmed, durable before dispatch, uses /api/recover while receipt reads use /api/rpc, and never automatically resends an unknown request.",
+    "Model display and selected catalog defaults match actual options; fixed native defaults are sent exactly without inventing an adjustable range; verified provider aliases and queued input semantics remain intact.",
+    "Root badge is a single inline sibling on the right of breadcrumb, sidebar refresh shares the sort row, mobile composer wraps controls without clipping, touch form controls retain 16px text without disabling pinch zoom."
+  ],
+  "verification": {
+    "targetedTestEvidence": ".work/test-results/run-403J09/vitest.json",
+    "testFilesPassed": 4,
+    "casesPassed": 50,
+    "finalRepairEvidence": ".work/test-results/run-corbMF/vitest.json",
+    "finalRepairFilesPassed": 2,
+    "finalRepairCasesPassed": 51,
+    "consumerRegressionEvidence": ".work/test-results/run-r0GW1M/vitest.json",
+    "consumerRegressionFilesPassed": 11,
+    "consumerRegressionCasesPassed": 147,
+    "nativeEvidence": ".work/v233-final-clean-2/fixed-effort-native.json",
+    "authorRepairReport": ".work/v233-fixed-effort-repair.json",
+    "note": "First run was independently executed before the last model-effort repair. Final repair and consumer runs were executed by the web implementer and their JSON results independently checked: 51 and 147 passed, zero failed. The author confirms these latter runs contain 198 unique cases. The first 50 overlaps and is not additive. No full test suite was run by this reviewer."
+  },
+  "limitations": [
+    "No new real-browser visual acceptance or physical iPhone test by this reviewer.",
+    "No paid inference, real external MCP call or production mutation by this reviewer.",
+    "Source review does not prove the absence of every latent defect.",
+    "Parent aggregates repository-wide audit, final source immutability, full tests, release and deployment."
+  ]
+}

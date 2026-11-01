@@ -10,6 +10,7 @@ import { Dispatcher } from '../../src/gateway/dispatch.js';
 import type { ManagerPort } from '../../src/gateway/manager-client.js';
 import { GatewayServer } from '../../src/gateway/server.js';
 import type { WorkerClient } from '../../src/gateway/worker-client.js';
+import { requireRecoveryProtocol } from '../../src/gateway/recovery-protocol.js';
 
 function gate() {
   let release!: () => void;
@@ -150,5 +151,21 @@ it('authorizes local retirement and project removal without requiring a browser 
     f.revoke(); const rejectedId = randomUUID();
     expect((await f.call({ method: 'operation/retire', params: { operationId: rejectedId } })).status).toBe(401);
     expect(f.ledger.projects()).toEqual([]); expect(f.ledger.read(removeId)?.state).toBe('accepted'); expect(f.ledger.read(rejectedId)).toBeNull();
+  } finally { await f.close(); }
+});
+
+it('reads generated media without loading a thread or creating execution receipts, while retaining browser authorization', async () => {
+  const f = await fixture(), params = { threadId: 'saved-thread', turnId: 'saved-turn', itemId: 'saved-image', mediaId: 'a'.repeat(64), offset: 0 };
+  let reads = 0;
+  f.backend.call = async (method, received, context) => {
+    context.beforeWrite?.(); expect(method).toBe('thread/media/read'); expect(received).toEqual(params); reads++;
+    return { mediaId: params.mediaId, mimeType: 'image/png', size: 3, offset: 0, base64: 'YWJj', nextOffset: null };
+  };
+  try {
+    f.dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: true } } });
+    expect(() => requireRecoveryProtocol('thread/media/read', undefined)).not.toThrow();
+    expect(await (await f.call({ method: 'thread/media/read', params })).json()).toMatchObject({ ok: true, result: { base64: 'YWJj' } });
+    expect(f.ledger.usage()).toMatchObject({ receipts: 0 });
+    f.revoke(); expect((await f.call({ method: 'thread/media/read', params })).status).toBe(401); expect(reads).toBe(1);
   } finally { await f.close(); }
 });

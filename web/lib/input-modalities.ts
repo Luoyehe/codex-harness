@@ -42,7 +42,7 @@ export function mediaAdmission({
   let id: unknown = defaults?.model;
   if (intent === 'send') {
     try {
-      const prepared = object(executionOptions(options, defaults, modes));
+      const prepared = object(executionOptions(options, defaults, modes, models));
       id =
         object(object(prepared.collaborationMode).settings).model ??
         prepared.model ??

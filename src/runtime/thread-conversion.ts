@@ -104,7 +104,10 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     if (object(verified.thread).id !== targetId || !sameLocation(object(verified.thread))) throw new Error('Converted persisted identity mismatch');
     const expectedSettings: JsonObject = { ...snapshot, modelProvider: targetProvider, model: selection.model!, reasoningEffort: effort, collaborationMode: desired.collaborationMode! };
     for (const key of ['model', 'modelProvider', 'cwd', 'approvalPolicy', 'approvalsReviewer', 'sandbox', 'activePermissionProfile', 'collaborationMode', 'disabledPluginIds', 'reasoningEffort', 'runtimeWorkspaceRoots']) if (canonical(verified[key] ?? null) !== canonical(expectedSettings[key] ?? null)) throw new Error('Converted persisted settings mismatch: ' + key);
-    const page = await native.call('thread/turns/list', { threadId: targetId, limit: 1, itemsView: 'full' }); validateOfficial('ThreadTurnsListResponse', page);
+    // The independent copy and its bytes were already verified above. Check
+    // native indexing without collecting a multi-image turn into one frame.
+    const page = object(await native.call('thread/turns/list', { threadId: targetId, limit: 1, itemsView: 'notLoaded' })); validateOfficial('ThreadTurnsListResponse', page);
+    if ((page.data as JsonValue[]).length > 1 || (page.data as JsonValue[]).some(value => object(value).itemsView !== 'notLoaded' || (object(value).items as JsonValue[]).length !== 0)) throw new Error('Converted history metadata view mismatch');
     const name = `[已转换至 ${Array.from(targetName).slice(0, 32).join('')}] ${title} · ${new Date().toISOString()}`;
     await write('thread/name/set', { threadId: targetId, name }, 'ThreadSetNameResponse');
     const result = { ...verified, thread: { ...object(verified.thread), name } }; host.publish(result, name);

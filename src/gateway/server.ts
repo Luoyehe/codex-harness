@@ -50,6 +50,12 @@ export class GatewayServer {
   readonly #disconnecting = new Map<string, Promise<void>>();
   readonly #budget = new Budget(LIMITS.concurrentRequests, LIMITS.retainedRequestBytes);
   readonly #responses = new Budget(LIMITS.httpConnections, LIMITS.retainedResponseBytes);
+  // Recovery must remain reachable when ordinary backend work or slow response
+  // consumers exhaust their budgets. Only this authenticated, fixed route owns
+  // the extra bounded slot; it is never an arbitrary priority RPC channel.
+  readonly #recoveryRequests = new Budget(1, 8192);
+  readonly #recoveryResponses = new Budget(1, 8192);
+  readonly #recoveryOutput = new WeakSet<ServerResponse>();
   readonly #transportWaiters = new Map<Socket, { callbacks: Set<() => void>; close: () => void }>();
   readonly #responseRelease = new WeakMap<ServerResponse, () => void>();
   readonly #heartbeat: NodeJS.Timeout;
@@ -185,10 +191,16 @@ export class GatewayServer {
     // Own its transport explicitly, while keeping pending backend work charged.
     unwatch = this.onTransportClose(req.socket, () => { res.destroy(); responseDone(); });
     try {
-      const reservation = this.#budget.reserve(); release = reservation.release;
       this.auth.checkHost(header(req, 'host'));
       if (!req.url || req.url.length > 2048 || this.#closing) throw new HarnessError('unavailable', '服务暂不可用。');
       const url = new URL(req.url, this.auth.origin);
+      const recoveryRequest = url.pathname === '/api/recover' && req.method === 'POST';
+      if (recoveryRequest) {
+        this.auth.checkOrigin(header(req, 'origin'));
+        this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
+        this.#recoveryOutput.add(res);
+      }
+      const reservation = (recoveryRequest ? this.#recoveryRequests : this.#budget).reserve(); release = reservation.release;
       if (url.pathname === '/health' && req.method === 'GET') {
         const state = this.dispatcher.status(); object(state); object(state.activity);
         const ready = state.connected === true && state.activity.unknown === false;
@@ -256,12 +268,13 @@ export class GatewayServer {
         if (url.pathname === '/api/account/totp/recovery') { const recoveryCodes = await this.auth.replaceRecovery(session, value, peer); authenticationMutationCompleted = true; this.json(res, { recoveryCodes }); return; }
         throw new HarnessError('not_found', '接口不存在。');
       }
-      if (url.pathname === '/api/rpc' && req.method === 'POST') {
+      if ((url.pathname === '/api/rpc' || recoveryRequest) && req.method === 'POST') {
         this.auth.checkOrigin(header(req, 'origin'));
         const session = this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
         const clientId = this.auth.client(session, header(req, 'x-harness-client'));
         // Keep admission until both backend work and the HTTP response settle.
-        const call = rpcCall(await body(req, LIMITS.requestBytes, reservation.add));
+        const call = rpcCall(await body(req, recoveryRequest ? 8192 : LIMITS.requestBytes, reservation.add));
+        if (recoveryRequest && call.method !== 'system/recover') throw new HarnessError('invalid', '恢复入口仅接受强制停止并恢复服务操作。');
         const requireAuthorization = () => { this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? ''); };
         requireAuthorization();
         requireRecoveryProtocol(call.method, header(req, 'x-harness-recovery'));
@@ -290,7 +303,7 @@ export class GatewayServer {
     } finally { backendSettled = true; if (res.destroyed || res.writableFinished || req.socket.destroyed) responseDone(); else releaseWhenSettled(); }
   }
   private retainResponse(res: ServerResponse, bytes: number, reserved?: () => void): () => void {
-    const release = reserved ?? this.#responses.acquire(bytes);
+    const release = reserved ?? (this.#recoveryOutput.has(res) ? this.#recoveryResponses : this.#responses).acquire(bytes);
     const transport = res.req.socket;
     const timer = setTimeout(() => { res.destroy(); transport.destroy(); done(); }, LIMITS.responseWriteTimeoutMs); timer.unref();
     let settled = false;

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "real-browser-isolated-ui-media-acceptance",
+  "complete": true,
+  "recordedAt": "2026-11-01T17:35:21.601Z",
+  "fixture": {
+    "path": ".work/v233-audit-1/media-browser-server.mjs",
+    "sha256": "a1d7392b6ee9ccda1ca926175aa19b07ccfce8acde0dbf23af6741442bd4b21c",
+    "scope": "Existing complete App and exact generated-media RPC contract; no actual runtime, model or production account."
+  },
+  "build": {
+    "path": "web/dist/assets/index-GqVtSv88.js",
+    "sha256": "896515cb80a4c41056b70d82a740e1f93728a4c32913c470f93d0204c0dbc906"
+  },
+  "image": {
+    "bytes": 4541540,
+    "sha256": "28cc67a26035e2f9f063e0e168a781757a49f832f9bda793a84ff1b111ef76ad",
+    "naturalWidth": 1152,
+    "naturalHeight": 1152,
+    "decoded": true,
+    "downloadBytesIdentical": true
+  },
+  "preview": {
+    "manualLoads": 2,
+    "chunksPerLoad": 24,
+    "historyReloadCausedNoImageReads": true,
+    "collapseRestoredPreviewControl": true,
+    "browserErrors": []
+  },
+  "layouts": [
+    {
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "imageWidth": 560
+    },
+    {
+      "viewport": [
+        390,
+        680
+      ],
+      "scrollWidth": 390,
+      "imageWidth": 279
+    },
+    {
+      "viewport": [
+        320,
+        480
+      ],
+      "scrollWidth": 320,
+      "imageWidth": 209
+    }
+  ],
+  "screenshots": [
+    {
+      "path": ".work/v233-audit-1/media-desktop-final.jpg",
+      "sha256": "5c19e81f26b5d9e7441a65aebf536dc5826bb47ad29389c593ffec7472d09382"
+    },
+    {
+      "path": ".work/v233-audit-1/media-390-final.jpg",
+      "sha256": "188dac2f1f51c06f187714067c340c7252e3ced00f46a6fa8a049fa8b885c6b6"
+    },
+    {
+      "path": ".work/v233-audit-1/media-320-final.jpg",
+      "sha256": "e7b22fdd8e1e24b8d576b21033702ebbe31b833d528893731f6efe539e943067"
+    }
+  ],
+  "limitations": [
+    "Browser resize verifies responsive layout, not physical iOS or Android devices.",
+    "Image-generation provider entitlement and live commercial success were not tested.",
+    "Runtime-native media identity/history checks have separate targeted evidence."
+  ]
+}

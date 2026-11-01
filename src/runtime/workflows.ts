@@ -200,8 +200,11 @@ export class Workflows {
     // Markdown retains every structured item as JSON, including tool results and
     // approval records; exporting only assistant prose would lose the transcript.
     timeline.sort((a, b) => Number(object(a).position) - Number(object(b).position));
-    const content = params.format === 'json' ? JSON.stringify({ thread: { ...thread, turns }, timeline }, null, 2) : `# ${typeof thread.name === 'string' ? thread.name : 'Conversation'}\n\n` + turns.map(turn => `## Turn ${string(object(turn).id, 'turn id')}\n\n\`\`\`json\n${JSON.stringify(turn, null, 2)}\n\`\`\`\n`).join('\n') + `\n## Canonical timeline (including voice)\n\n\`\`\`json\n${JSON.stringify(timeline, null, 2)}\n\`\`\`\n`;
+    const generated = (value: JsonValue): boolean => { const item = object(value); return item.type === 'imageGeneration' && (item.generatedMedia !== undefined || item.generatedMediaError !== undefined); };
+    const hasGenerated = turns.some(turn => (object(turn).items as JsonValue[]).some(generated)) || timeline.some(value => { const entry = object(value); return entry.type === 'item' && generated(entry.item!); });
+    const note = '生成图片以当前会话中的引用保留，导出文件不包含图片字节；需要保留图片时，请在会话中单独下载。';
+    const content = params.format === 'json' ? JSON.stringify({ thread: { ...thread, turns }, timeline, ...(hasGenerated ? { media: { generatedImages: 'references-only', note } } : {}) }, null, 2) : `# ${typeof thread.name === 'string' ? thread.name : 'Conversation'}\n\n` + (hasGenerated ? `${note}\n\n` : '') + turns.map(turn => `## Turn ${string(object(turn).id, 'turn id')}\n\n\`\`\`json\n${JSON.stringify(turn, null, 2)}\n\`\`\`\n`).join('\n') + `\n## Canonical timeline (including voice)\n\n\`\`\`json\n${JSON.stringify(timeline, null, 2)}\n\`\`\`\n`;
     jsonBytes(content, LIMITS.historyBytes);
-    return { filename: `conversation-${threadId.replace(/[^a-zA-Z0-9_-]/g, '_')}.${params.format === 'json' ? 'json' : 'md'}`, mimeType: params.format === 'json' ? 'application/json' : 'text/markdown', content };
+    return { filename: `conversation-${threadId.replace(/[^a-zA-Z0-9_-]/g, '_')}.${params.format === 'json' ? 'json' : 'md'}`, mimeType: params.format === 'json' ? 'application/json' : 'text/markdown', content, ...(hasGenerated ? { warnings: [note] } : {}) };
   }
 }

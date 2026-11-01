@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { RpcError, type Api } from '../lib/api';
 import { message, type Item, type Project } from '../lib/types';
 import { checkedSnapshot } from '../lib/workspace';
+import { readGeneratedMedia, reserveGeneratedMedia } from '../lib/generated-media';
 import {
   externalMediaUrl,
   MEDIA_BYTES,
@@ -16,18 +17,29 @@ function Preview({
   source,
   api,
   threadId,
+  turnId,
+  itemId,
   project,
 }: {
   source: MediaSource;
   api?: Api;
   threadId?: string;
+  turnId?: string;
+  itemId: string;
   project?: Project;
 }) {
   const [loaded, setLoaded] = useState<{ url: string; name: string }>(),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const pending = useRef<AbortController | null>(null),
-    heldUrl = useRef('');
+    heldUrl = useRef(''),
+    heldReservation = useRef<ReturnType<typeof reserveGeneratedMedia> | undefined>(undefined);
+  const release = () => {
+    if (heldUrl.current) URL.revokeObjectURL(heldUrl.current);
+    heldUrl.current = '';
+    heldReservation.current?.release();
+    heldReservation.current = undefined;
+  };
   useEffect(() => {
     setLoaded(undefined);
     setError('');
@@ -35,21 +47,27 @@ function Preview({
     return () => {
       pending.current?.abort();
       pending.current = null;
-      if (heldUrl.current) URL.revokeObjectURL(heldUrl.current);
-      heldUrl.current = '';
+      release();
     };
-  }, [api, threadId, project?.id, project?.cwd, source.path, source.inline, source.url]);
+  }, [api, threadId, turnId, itemId, project?.id, project?.cwd, source.path, source.inline, source.url,
+    source.unavailable, source.generated?.mediaId, source.generated?.mimeType, source.generated?.size]);
   const load = async () => {
     if (pending.current || source.unavailable) return;
     const controller = new AbortController();
     pending.current = controller;
     setBusy(true);
     setError('');
+    let reservation: ReturnType<typeof reserveGeneratedMedia> | undefined;
     try {
       let encoded = source.inline,
         name = source.label,
-        expectedBytes: unknown;
-      if (!encoded) {
+        expectedBytes: unknown,
+        bytes: Uint8Array<ArrayBuffer> | undefined;
+      if (source.generated) {
+        if (!api || !threadId || !turnId) throw new Error('缺少可核对的会话图片来源，请重新读取会话。');
+        reservation = reserveGeneratedMedia(source.generated.size);
+        bytes = await readGeneratedMedia(api, { threadId, turnId, itemId }, source.generated, controller.signal);
+      } else if (!encoded) {
         if (!api || !threadId || !source.path) throw new Error('缺少可核对的会话媒体来源。');
         let data;
         try {
@@ -96,14 +114,16 @@ function Preview({
         encoded = data.base64;
         if (typeof data.name === 'string') name = data.name;
       }
-      const bytes = mediaBytes(encoded, source.kind === 'file'),
-        mime = mediaMime(bytes, source.kind);
+      bytes ??= mediaBytes(encoded!, source.kind === 'file') as Uint8Array<ArrayBuffer>;
+      const mime = reservation ? reservation.decoded(bytes) : mediaMime(bytes, source.kind);
       if (expectedBytes !== undefined && expectedBytes !== bytes.length)
         throw new Error('媒体响应的字节数不匹配。');
       if (controller.signal.aborted || pending.current !== controller) return;
       const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: mime }));
-      if (heldUrl.current) URL.revokeObjectURL(heldUrl.current);
+      release();
       heldUrl.current = url;
+      heldReservation.current = reservation;
+      reservation = undefined;
       const extension = (
         {
           'image/jpeg': 'jpg',
@@ -124,6 +144,7 @@ function Preview({
     } catch (e) {
       if (!controller.signal.aborted) setError(message(e));
     } finally {
+      reservation?.release();
       if (pending.current === controller) {
         pending.current = null;
         setBusy(false);
@@ -164,7 +185,10 @@ function Preview({
           )}
           {loaded && (
             <>
-              {source.kind === 'image' && <img src={loaded.url} alt={source.label} />}{' '}
+              {source.kind === 'image' && <img src={loaded.url} alt={source.label} onError={() => {
+                if (heldUrl.current !== loaded.url) return;
+                release(); setLoaded(undefined); setError('图片无法解码，请重新读取或检查生成结果。');
+              }} />}{' '}
               {source.kind === 'audio' && <audio src={loaded.url} controls preload="none" />}
               <a href={loaded.url} download={loaded.name}>
                 下载 {loaded.name}
@@ -172,8 +196,7 @@ function Preview({
               <button
                 className="button small"
                 onClick={() => {
-                  if (heldUrl.current) URL.revokeObjectURL(heldUrl.current);
-                  heldUrl.current = '';
+                  release();
                   setLoaded(undefined);
                 }}
               >
@@ -195,21 +218,25 @@ export function MessageMedia({
   item,
   api,
   threadId,
+  turnId,
   project,
 }: {
   item: Item;
   api?: Api;
   threadId?: string;
+  turnId?: string;
   project?: Project;
 }) {
   return (
     <>
       {mediaSources(item).map((source, index) => (
         <Preview
-          key={`${item.id}:${index}:${source.path ?? source.url ?? source.label}`}
+          key={`${threadId ?? ''}:${turnId ?? ''}:${item.id}:${index}:${source.generated?.mediaId ?? source.path ?? source.url ?? source.label}`}
           source={source}
           api={api}
           threadId={threadId}
+          turnId={turnId}
+          itemId={item.id}
           project={project}
         />
       ))}

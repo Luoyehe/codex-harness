@@ -620,7 +620,7 @@ export function Workspace({
           ...context,
           attachmentIds: attachments.map((a) => a.attachmentId),
           options: {
-            ...executionOptions(options, defaults.data, modes.data?.data ?? []),
+            ...executionOptions(options, defaults.data, modes.data?.data ?? [], models.items),
             ...structured,
           },
         });
@@ -657,7 +657,7 @@ export function Workspace({
           ...context,
           attachmentIds: attachments.map((a) => a.attachmentId),
           options: {
-            ...executionOptions(options, threadDefaults, modes.data?.data ?? []),
+            ...executionOptions(options, threadDefaults, modes.data?.data ?? [], models.items),
             ...structured,
           },
         });
@@ -697,7 +697,7 @@ export function Workspace({
         const selected = models.items.find(row => (row.model ?? row.id) === options.model && row.modelProvider === options.modelProvider);
         if (!selected || models.loading) throw new Error('请从当前模型目录选择可用模型，再加载会话。');
         if (options.effort && !selected.supportedReasoningEfforts?.some(row => row.reasoningEffort === options.effort))
-          throw new Error('所选思考强度已不适用于当前模型，请重新选择或恢复模型默认强度。');
+          throw new Error('所选思考强度已不适用于当前模型，请重新选择或清除本次强度设置。');
         modelOptions = { modelProvider: options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
       await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) }, draftMode);

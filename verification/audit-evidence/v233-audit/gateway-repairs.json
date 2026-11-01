@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "agent": "v233_full_gateway",
+  "reviewedAt": "2026-11-01T17:11:07.702Z",
+  "scope": "gateway/core fixes",
+  "initialFullAudit": ".work/v233-audit-1/gateway-review.json",
+  "status": "targeted-fixes-verified",
+  "fixes": [
+    {
+      "id": "V233-GATEWAY-1",
+      "status": "fixed",
+      "detail": "Dedicated authenticated /api/recover with one bounded request and response slot. One 8 KiB emergency ledger receipt beyond the ordinary count/byte quota survives restart and replay until explicit archive rotation. Ordinary and emergency evidence is retained; no automatic replay."
+    },
+    {
+      "id": "V233-GATEWAY-2",
+      "status": "gateway-route-complete-runtime-web-in-progress",
+      "detail": "Registers authenticated readonly thread/media/read under existing worker connection and execution identity context. Runtime and web own bounded media extraction/chunk retrieval."
+    }
+  ],
+  "verification": [
+    {
+      "evidence": ".work/test-results/run-5IZDM7/vitest.json",
+      "files": 9,
+      "passed": 115,
+      "failed": 0
+    },
+    {
+      "evidence": ".work/test-results/run-InNGBk/vitest.json",
+      "files": 1,
+      "passed": 14,
+      "failed": 0,
+      "note": "13 overlap previous run plus new generated-media route regression"
+    },
+    {
+      "check": "tsc -p tsconfig.server.json --noEmit",
+      "status": "passed"
+    }
+  ],
+  "failedEvidence": [
+    {
+      "evidence": ".work/test-results/run-i708IA/vitest.json",
+      "cause": "New test modeled uncertain activity with dispatcher.disconnected(), which intentionally closes the WebSocket lease. Replaced fixture stimulus with connected=true and activity.unknown=true; product and target assertions unchanged."
+    }
+  ],
+  "inspectedFiles": [
+    {
+      "path": "src/core/contracts.ts",
+      "sha256": "2fcaaf590fc693819046c38c8bd0dc5d32cd14e671af5ffbb803e65c98e2df4c",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "src/core/feature-methods.ts",
+      "sha256": "f5b984580ea99e98c0fee246d8c74c613c9e95a9747c29abf6e3895e3f90b5de",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "src/core/ledger.ts",
+      "sha256": "4a4e16cd1f872bc1934927e7d1f26b06485db3c8a9b8d66b44b96b8225254845",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "src/core/operation-retention.ts",
+      "sha256": "3409eed74406350c9eca9d47bc59982679d7a40418333d6a042f4dd769d1f80f",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "99df38e589089119de7bca99747666917e91df9f4e138d5aa44ac75bcf544c27",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "tests/core/emergency-ledger.test.ts",
+      "sha256": "77376dab8cfbbd3f1dd718e0d8d20082921b7f4d59e767495c9390f957fe3147",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "tests/gateway/emergency-http.test.ts",
+      "sha256": "ac412e2ce95204dc7bd7de61c721253bc375fd44c0fe9f6c4fdf742d415bad89",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5a09665e020e75721871f02bcb13b61e1368941c65bed163dff826715b0f2faf",
+      "inspectionDepth": "complete-semantic-read-after-edit-and-test-contract-review"
+    }
+  ],
+  "skipped": [],
+  "limitations": [
+    "No full suite, production access, paid provider inference or real MCP invocation.",
+    "Bounded emergency reservation is intentionally one beyond capacity, not unlimited storage. Explicit archival rotation remains required to reclaim a permanently full journal."
+  ]
+}

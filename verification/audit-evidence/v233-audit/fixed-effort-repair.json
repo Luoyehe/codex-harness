@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-11-01T17:53:41.523Z",
+  "snapshot": {
+    "files": 2013,
+    "digest": "dc98c07b563ab1d4afe342bf29cc4aa8f5cde26186ef30c598e8275afb2224b2"
+  },
+  "finding": "Selecting a fixed model with a known native default and no adjustable efforts preserved the old thread effort, including ordinary non-collaboration turns.",
+  "evidence": {
+    "path": ".work/v233-final-clean-2/fixed-effort-native.json",
+    "sha256": "fe94de633664603bf6b4fdd9bbffa7f2ccb8d9d0b3db7528697d659214ebb55b",
+    "note": "Sibling runtime captured actual CLI 0.164 local-loopback outbound requests: old high inherited; explicit fixed default max sends max. No paid model call."
+  },
+  "repair": [
+    "Selected fixed target carries the exact directory default explicitly in options.effort. No arbitrary adjustable effort is introduced.",
+    "Only an unambiguous provider/model match with an explicit empty supported-efforts array may accept its exact nonempty native default; stale other values and unknown defaults remain invalid.",
+    "Model picker keeps the fixed value visible but disabled. Automation uses the same predicate for selecting, preserving, saving and reopening the fixed value.",
+    "executionOptions synthesis stays unchanged: explicit values win and existing same-provider/alias/unknown-default inheritance remains intact."
+  ],
+  "files": [
+    {
+      "path": "web/lib/provider-models.ts",
+      "sha256": "0267c3635c495246989d4280b6f44bc6619317a6a50e199083447775e8825f5f"
+    },
+    {
+      "path": "web/components/ModelPicker.tsx",
+      "sha256": "4bb5f5b76a46d8653a433cb335082e647981ef477bef1ca9136efbc87d86224d"
+    },
+    {
+      "path": "web/lib/workflows.ts",
+      "sha256": "1b826496d9ca0055f5a22324320ee94ca8960811396ef2933cd9e3b73034de45"
+    },
+    {
+      "path": "web/components/AutomationForm.tsx",
+      "sha256": "f859f97a3ebcdc5117cc92a234bd418ef4ed7f84bf04c51af88acbb48e6dc228"
+    },
+    {
+      "path": "web/tests/model-picker.test.tsx",
+      "sha256": "b4c5784b71bbc8178c555b746aef445a4023ada7e6bfc041c3af69edb7ec2473"
+    },
+    {
+      "path": "web/tests/automations.test.tsx",
+      "sha256": "3ea6a013e64b584aae695bab6564faf5d05ca2b103fb2bd795b6332bdccf9de2"
+    }
+  ],
+  "targeted": [
+    {
+      "path": ".work/test-results/run-corbMF/vitest.json",
+      "sha256": "d5db5b434e319388de69d41ca2fb6ce6d08e9f36d8039b095c4cad3dd3609a54",
+      "passed": 51
+    },
+    {
+      "path": ".work/test-results/run-r0GW1M/vitest.json",
+      "sha256": "a6b0bd92b36a95c529d86ac5b543bbbdbc504c3cd9726253ae9d8d212487429c",
+      "passed": 147
+    }
+  ],
+  "uniquePassedCases": 198,
+  "consumers": [
+    "Composer and Workspace sending/default refresh",
+    "ModelPicker",
+    "AutomationForm creation and reopen",
+    "ThreadExecutionSettings independent advanced selector checked unchanged",
+    "ThreadConversionDialog creates a new provider-default context, unchanged",
+    "input-modalities",
+    "provider catalog",
+    "app lifecycle"
+  ],
+  "validation": {
+    "webTypes": "passed",
+    "webBuild": "passed",
+    "buildAsset": "index-DlqSh9bh.js",
+    "fullTestsExecuted": false,
+    "productionOrPaidCalls": false
+  },
+  "limits": [
+    "Local browser image QA predated this model-only increment; no CSS or media rendering changed.",
+    "Existing Vite chunk-size advisory remains; build completed successfully.",
+    "This author repair record is not the independent final audit result."
+  ]
+}
