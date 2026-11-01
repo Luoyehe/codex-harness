@@ -1,0 +1,55 @@
+{
+  "files": {
+    "started.json": {
+      "exists": true,
+      "bytes": 187,
+      "record": {
+        "phase": "proxy-configure",
+        "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+        "runId": "4a53e6eb95084f628791b16a21ca5c50",
+        "startedAt": "2026-11-01T06:48:16.514080+00:00"
+      }
+    },
+    "result.json": {
+      "exists": true,
+      "bytes": 270,
+      "record": {
+        "phase": "proxy-configure",
+        "exitCode": 1,
+        "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+        "runId": "4a53e6eb95084f628791b16a21ca5c50",
+        "completedAt": "2026-11-01T06:48:19.833796+00:00",
+        "privateOutputRetained": true,
+        "credentialsEmitted": false
+      }
+    },
+    "stdout": {
+      "exists": true,
+      "bytes": 0
+    },
+    "stderr": {
+      "exists": true,
+      "bytes": 96,
+      "errorCode": "download_failed",
+      "message": "Official Xray download failed"
+    }
+  },
+  "proxySelection": {
+    "configuration": "265642680a67393034f36695e29aa835ff69be43a39ff6fa650a2e7f6db97d77",
+    "core": "8a5f3e6a1057e4bd0f8a7c57c9d91204b4be0b74222a6e210d070603101163c2",
+    "enabled": true,
+    "port": 18793
+  },
+  "policy": {
+    "executionMode": null,
+    "rootAllowed": null,
+    "workerUid": 990
+  },
+  "transactions": [],
+  "services": {
+    "worker": "MainPID=4159256\nActiveState=active\nSubState=running\n",
+    "gateway": "MainPID=4159287\nActiveState=active\nSubState=running\n",
+    "proxy": "MainPID=4159223\nActiveState=active\nSubState=running\n",
+    "proxy-routes": "MainPID=0\nActiveState=active\nSubState=exited\n"
+  }
+}

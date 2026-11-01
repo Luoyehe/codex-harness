@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v230-round12",
+  "complete": false,
+  "clean": false,
+  "sourceDigest": "06fd0a80f51799ce10a40e4318cb87f177565418a833721c470ecb343c9cb540",
+  "sourceFiles": 1984,
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "src/gateway/server.ts",
+      "line": 281,
+      "issue": "Post-acceptance response failure may report not_sent and invite duplicate mutation.",
+      "evidence": "Static examination of Dispatcher success then json writer and catch delivery defaults.",
+      "resolvedBy": {
+        "path": ".work/v230-post-acceptance-response-author.json",
+        "sha256": "c85d1345e9d988df67bcb2f1658767ffe459bbacab2fe6a22aab0a3a34183264"
+      }
+    }
+  ],
+  "snapshot": {
+    "path": ".work/v230-round12-snapshot.json",
+    "sha256": "20d0f597c917a5ab45e615963f1ee7a06abdf16927b74b18e5fb2b4b189bea90"
+  },
+  "note": "Preserves original round12 nonclean status. No whole-repository pass or pressure reproduction claimed."
+}

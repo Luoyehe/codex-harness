@@ -503,10 +503,17 @@ class ControlUpdater:
         require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
         from .execution_identity import require_control
         require_control(capabilities, self.config)
-        if proxy_selection(self.config) is not None:
+        selected_proxy = proxy_selection(self.config)
+        if selected_proxy is not None:
             require(capabilities.get("serviceProxy") == 1,
                     "Rollback target lacks service proxy support; select a compatible control generation",
                     "proxy_unsupported")
+            from .service_proxy import configured_direct_domains
+            if configured_direct_domains(self.layout, selected_proxy):
+                require(type(capabilities.get("serviceProxyDirectDomains")) is int and
+                        capabilities["serviceProxyDirectDomains"] == 1,
+                        "Control target lacks exact direct-host support; clear the extra list first or select a compatible control generation",
+                        "proxy_unsupported")
         from .dns_providers import PROVIDERS
         supported = set()
         if capabilities.get("dnsChallenge") == "caddy-dns-v1":
@@ -604,6 +611,8 @@ class ControlUpdater:
             write_control_launchers(self.layout, candidate)
         self.preserve_edge(candidate, path, old_manifest)
         candidate_manifest = tree_manifest(candidate)
+        capability_file = candidate / "capabilities.json"
+        self.require_dns_guard(read_json(capability_file, 4096) if capability_file.exists() else {})
         # Only trusted Python is imported. -B avoids changing the sealed manifest.
         run(["/usr/bin/python3", "-I", "-B", "-c", "import sys; sys.path.insert(0, " + repr(str(candidate)) +
              "); import deploy.cli; import deploy.native_launcher"], timeout=30)

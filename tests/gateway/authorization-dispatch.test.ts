@@ -78,21 +78,22 @@ it.each(['authorized', 'revoked before write', 'revoked after write'] as const)(
   } finally { send.release(); acknowledge.release(); await f.close(); }
 });
 
-it.each(['system/restart', 'system/status', 'system/logs', 'system/provider/read'])('allows %s without a browser connection but rejects a revoked queued send', async method => {
+it.each(['system/restart', 'system/recover', 'system/status', 'system/logs', 'system/provider/read'])('allows %s without a browser connection but rejects a revoked queued send', async method => {
   for (const revoke of [false, true]) {
     const f = await fixture(false), entered = gate(), send = gate(); let writes = 0;
-    const operationId = randomUUID(), result = method === 'system/restart' ? { restarted: true, release: 'a'.repeat(64) } : { healthy: true };
+    const mutation = method === 'system/restart' || method === 'system/recover';
+    const operationId = randomUUID(), result = mutation ? { restarted: true, release: 'a'.repeat(64) } : { healthy: true };
     f.manager.call = async (_method, _params, _operationId, beforeWrite) => { entered.release(); await send.promise; beforeWrite?.(); writes++; return result; };
     try {
-      const pending = f.call({ method, params: {}, ...(method === 'system/restart' ? { operationId } : {}) });
+      const pending = f.call({ method, params: method === 'system/recover' ? { confirmStop: true } : {}, ...(mutation ? { operationId } : {}) });
       await entered.promise; if (revoke) f.revoke(); send.release(); const response = await pending;
       if (revoke) {
         expect(response.status).toBe(401); expect(await response.json()).toMatchObject({ ok: false, error: { code: 'unauthorized', delivery: 'not_sent' } });
         expect(writes).toBe(0);
-        if (method === 'system/restart') expect(f.ledger.read(operationId)).toMatchObject({ state: 'not_sent', error: { delivery: 'not_sent' } });
+        if (mutation) expect(f.ledger.read(operationId)).toMatchObject({ state: 'not_sent', error: { delivery: 'not_sent' } });
       } else {
         expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ ok: true, result }); expect(writes).toBe(1);
-        if (method === 'system/restart') expect(f.ledger.read(operationId)?.state).toBe('accepted');
+        if (mutation) expect(f.ledger.read(operationId)?.state).toBe('accepted');
       }
     } finally { send.release(); await f.close(); }
   }

@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "reviewerId": "v220-final-deploy",
+  "complete": true,
+  "findings": [],
+  "completedAt": "2026-11-01T07:35:53.167524+00:00",
+  "kind": "independent-direct-domains-control-compatibility-review",
+  "authorReport": {
+    "path": ".work/v230-direct-domains-control-compat-repair.json",
+    "sha256": "fa7e7240187fd6094620768e1dc19d242970c7b14f5013ff7f7b35ac39777215"
+  },
+  "reviewedFileHashes": [
+    {
+      "path": "deploy/control_update.py",
+      "sha256": "ec53d9ef6bc19ebdb344f2ff4af1230370756dda03fd8554bf790ed7bb704a81"
+    },
+    {
+      "path": "deploy/install.py",
+      "sha256": "f6236061edbc81cf56a5e31a91903ee92f3ea02d89d58e86b7fe1cb3513de248"
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "f5fdb0e63454d35c381dc3cf8d644ad6aa1d542b7ffda04acb125da789b66815"
+    },
+    {
+      "path": "tests/deploy/test_control_update.py",
+      "sha256": "2a33115e851e649c8c84e540f0bf45d4a46c77437ffe289e0d148b64529d9fb9"
+    },
+    {
+      "path": "tests/deploy/root/test_control_update.py",
+      "sha256": "9be3390770927674accd80be57aad118a01d3a2b23f5bc32a1840798892e7c1d"
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "ad9d466752b675ec48eda253d521fb0780256fd3e4b690c52f68829df9def841"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "e41fbd20276b53661e1cff48b01941b31f895efdef3a38bcee5218b751b1d19b"
+    }
+  ],
+  "method": [
+    "Read all three changed production diffs and traced surrounding control update/rollback/recover and proxy change/recover functions, with selection/config canonical validation and exact capability source.",
+    "Read changed portable/root assertions and fixture substitutions across the four test files; parsed every scoped Python file and freshly matched all seven SHA256 values.",
+    "Independently read and hashed original finding, final Windows/Linux targeted JSON and retained failed fixture run; counted actual per-case statuses. No tests or network/service operations executed by this reviewer."
+  ],
+  "checks": [
+    {
+      "boundary": "stage capability",
+      "conclusion": "control_material emits integer serviceProxyDirectDomains:1 into root-owned sealed control content."
+    },
+    {
+      "boundary": "control update/rollback",
+      "conclusion": "require_dns_guard derives nonempty direct-host list only after full verified saved config. Existing retained rollback and newly staged candidate gates run before prepared journal/guard/stop; nonempty enabled and disabled selections require exact integer 1, missing/bool/string/other versions fail proxy_unsupported."
+    },
+    {
+      "boundary": "control old/candidate recovery",
+      "conclusion": "Each target tree is manifest-verified then capability-checked before service guard/stop or selection. Existing journal/ownership/role validation and fail-closed corrupt-tree behavior remain intact."
+    },
+    {
+      "boundary": "proxy configure/direct list",
+      "conclusion": "Current-list preserve and explicit replace require installed helper support before configuration preparation/download for nonempty lists. Explicit empty clear remains available with serviceProxy:1 and keeps prior enabled/core/port selection for direct-domains action."
+    },
+    {
+      "boundary": "proxy core-update/disable/rollback",
+      "conclusion": "Final desired configuration is read and verified and its nonempty list requires installed helper capability before no-op return, core config check, journal, stop or selection. Core preparation may precede this final capability check for core-update; it does not activate or stop anything."
+    },
+    {
+      "boundary": "proxy old/candidate recovery",
+      "conclusion": "The selected recovery target, not merely current selection, controls the capability check. Exact old/candidate materials and unrelated instance fields remain journal-bound; target guard precedes stop/publication. Empty old recovery remains legal while unsupported nonempty candidate is rejected."
+    },
+    {
+      "boundary": "legacy",
+      "conclusion": "No selection or canonical empty list remains compatible with older serviceProxy:1. New boolean/loosely typed capability does not satisfy direct-host support. Old routing compatibility is still constrained to its exact generated policy; no arbitrary direct rule or capability injection admitted."
+    }
+  ],
+  "validationEvidence": [
+    {
+      "name": "windowsFinal",
+      "evidence": {
+        "path": ".work/v230-direct-domains-control-proxy-windows-tests.json",
+        "sha256": "a7a7c9520ce5401d8df6c38243b05f110709cde89cfe205b50c1c6904bbdb828"
+      },
+      "caseCounts": {
+        "passed": 50
+      },
+      "exitCode": 0,
+      "uid": null
+    },
+    {
+      "name": "linuxControl",
+      "evidence": {
+        "path": ".work/v230-direct-domains-control-linux-tests.json",
+        "sha256": "b2f5e12bb0b2749e0fda91dbced1052df673c4a2ad8af7a51c42445670f784f4"
+      },
+      "caseCounts": {
+        "passed": 76
+      },
+      "exitCode": 0,
+      "uid": 0
+    },
+    {
+      "name": "linuxProxy",
+      "evidence": {
+        "path": ".work/v230-direct-domains-proxy-capability-linux-tests.json",
+        "sha256": "452e38f57b339cd4fa340791597004b1d97ae424ea88dd646e6b9cb553b7f450"
+      },
+      "caseCounts": {
+        "passed": 19
+      },
+      "exitCode": 0,
+      "uid": 0
+    },
+    {
+      "name": "retainedFailedAttempt",
+      "evidence": {
+        "path": ".work/v230-direct-domains-control-proxy-windows-attempt1.json",
+        "sha256": "49fcfe44c1afc654638e4ff40c9ca62129dd9b0cca3f16a6991eceea737117d3"
+      },
+      "caseCounts": {
+        "passed": 49,
+        "failed": 1
+      },
+      "exitCode": 1,
+      "uid": null
+    }
+  ],
+  "originalFinding": {
+    "path": ".work/v230-direct-domains-control-compat-repro.json",
+    "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a"
+  },
+  "retainedRoutingEvidence": {
+    "path": ".work/v230-xray-direct-hosts-regression-result.json",
+    "sha256": "afa949ed60dd5a658ed49ec269c27a2be6721de1d6ea49fdded84e1ef7bd5c9b"
+  },
+  "evidencePrecision": [
+    "Linux control76 preceded final proxy entry gate; its four actual control scope hashes still match, as disclosed by author. Final Linux proxy19 artifact records all seven current hashes.",
+    "Windows final50 are actual pass records; original49pass/1fail fixture attempt remains intact. A fake nonexistent configuration in the fixture was replaced with a real canonical file, while idle/stop/no-journal assertions stayed unchanged.",
+    "Real Xray18 routing cases are earlier unchanged service_proxy evidence, not new systemd/control runtime tests and not rebound to a later whole-source snapshot."
+  ],
+  "limits": [
+    "Incremental independent review, not a complete repository audit. Builtin-MCP freshness full-audit step is not claimed performed here.",
+    "Root tests exercise real filesystem ownership and transaction bytes, substituting systemd/nft/download/health; reviewer did not rerun tests or perform real control switching.",
+    "No production source edits, online changes, model/MCP calls, full tests or deployment by this review."
+  ],
+  "sourceUnchangedDuringReview": true
+}

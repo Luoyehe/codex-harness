@@ -295,3 +295,10 @@ The second full-platform run is pending. Online upgrade, fresh public/browser ac
 CI2 run 41147896211 passed for 13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1: 247 files, 2789 distinct cases, no gaps. Its successful deployment and partial live browser acceptance are retained separately; they do not verify the repaired source. CI1 remains failed in history. Independent defaults and proxy repair reviews bind the final files; v230-round10 covers 1975 files at 045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717. Round8 and round9 were not completed as clean repository audits and is not retrospectively marked passed.
 
 Only CI3 is newly authorized under the existing one-clean-round user instruction. Updated deployment, browser acceptance and publication remain pending. No paid inference or external MCP task was performed; production ROOT remained disabled. CodeQL has 15 open reviewed/inventoried alerts, not zero alerts; retained records describe current versus legacy review limits.
+
+
+## 2026-11-01 — v2.3.0 CI4 source-bound verification
+
+CI3 run 41281281789 passed for 6279cda9568d7d7b6afc61d7d85e951f4061bc52/045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717: 247 files, 2801 cases, coverageGaps=[]. Applicable-platform skips remain recorded. Its deployment/public acceptance succeeded after external core26.10.31 replaced withdrawn26.10.29; the first download failure and later real MCP OAuth unknown are preserved. Browser acceptance stayed partial; publication was not completed. CI1 failed and CI2 passed/partial histories remain untouched.
+
+v230-round13 covers 1984 files at c0ea20705603907dc6bdc459b6e0b137725650ab05a5eda9f6bda8b1fdd9bf70, with explicit unchanged-evidence inheritance and current independent repair review. Round11 scanner-fixture finding and Round12 HTTP response classification concern are retained as historical nonclean evidence, not renamed clean. Only new-source CI4 full tests are authorized. Deployment, browser/public acceptance and publication remain pending.

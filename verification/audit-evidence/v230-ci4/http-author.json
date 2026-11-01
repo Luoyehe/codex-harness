@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-acceptance-response-classification-repair",
+  "complete": true,
+  "authorId": "root",
+  "completedAt": "2026-11-01T08:02:10.783Z",
+  "files": [
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877"
+    }
+  ],
+  "findings": [],
+  "issue": "A response write failure after Dispatcher success could incorrectly return not_sent. Retain original accepted receipt and report unknown so client queries original identity.",
+  "repair": "Per-request rpcCompleted flag set after successful dispatcher resolution; response failures then unknown. Pre-dispatch rejection remains not_sent. No changes to output capacity or transport budgets.",
+  "validation": {
+    "targeted": {
+      "passed": 81,
+      "failed": 0,
+      "skipped": 0,
+      "files": 3,
+      "evidence": {
+        "path": ".work/test-results/run-TaTVyx/vitest.json",
+        "sha256": "b6b20a64a59db70383a721a1792fa94b13ea4a03a97b24dbf25e5dc3327a9268"
+      },
+      "raw": {
+        "path": ".work/v230-post-acceptance-response-tests.txt",
+        "sha256": "3ca52e0f2d1f1b6039d7a328ac9c70881fc472f53c198a59681a5f4c37c94af2"
+      },
+      "newCases": [
+        "real HTTP and WebSocket authorization boundary keeps a committed RPC recoverable when response capacity fails after acceptance",
+        "real HTTP and WebSocket authorization boundary keeps a committed RPC recoverable when response encoding fails after acceptance"
+      ]
+    },
+    "serverTypecheck": {
+      "exitCode": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit"
+    },
+    "diffCheck": 0
+  },
+  "independent": {
+    "path": ".work/v230-post-acceptance-response-review.json",
+    "sha256": "ba021ca6398465353a6434b67f48f89c8243a759efe3351bedafe5a7621b2ab8"
+  },
+  "limits": [
+    "Small response-writer fault injection only; no pressure or memory exhaustion experiment.",
+    "No full suite or deployment asserted."
+  ]
+}

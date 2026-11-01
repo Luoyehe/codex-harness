@@ -611,6 +611,85 @@ class TransactionTests(unittest.TestCase):
             self.manager.dispatch({"method": "restart", "params": {"command": "forbidden"}, "operationId": operation})
         self.assertFalse((self.layout.state / "receipts" / (operation + ".json")).exists())
 
+    def test_force_recovery_requires_exact_confirmation_before_spooling_or_stopping(self):
+        for params in ({}, {"confirmStop": False}, {"confirmStop": 1}, {"confirmStop": True, "command": "other"}):
+            with self.subTest(params=params):
+                operation = str(uuid.uuid4())
+                with self.assertRaises(DeployError):
+                    self.manager.dispatch({"method": "recover", "params": params, "operationId": operation})
+                self.assertFalse((self.layout.state / "receipts" / (operation + ".json")).exists())
+        self.assertEqual(self.system.events, [])
+
+    def test_force_recovery_uses_real_stopped_journal_boundary_and_replays_root_receipt(self):
+        journal = self.layout.state / "gateway/journal.sqlite"
+        mkdir(journal.parent)
+        JournalTests().create(journal)
+        db = sqlite3.connect(journal)
+        db.execute("UPDATE receipts SET method='mcp/oauth',error=?,bytes=? WHERE id='unknown'",
+                   (json.dumps({"code": "mcp_oauth_error", "delivery": "unknown"}), 0))
+        db.commit()
+        original = db.execute("SELECT method,error FROM receipts WHERE id='unknown'").fetchone()
+        db.close()
+        self.manager.recover_control = Manager.recover_control.__get__(self.manager)
+        def recover_as_fixture_owner(path, uid, gid):
+            self.assertEqual(self.system.events, ["stop"])
+            self.assertEqual((uid, gid), (1, 1))
+            self.system.events.append("recover-control")
+            recover_journal(path, services_stopped=True)
+        request = {"method": "recover", "params": {"confirmStop": True}, "operationId": str(uuid.uuid4())}
+        with patch("deploy.manager.recover_as_owner", side_effect=recover_as_fixture_owner):
+            result = self.manager.dispatch(request)
+            self.assertEqual(self.manager.dispatch(request), result)
+        self.assertEqual(result, {"ok": True, "result": {"restarted": True, "release": self.current}})
+        self.assertEqual(self.system.events, ["stop", "recover-control", "start", "health"])
+        db = sqlite3.connect(journal)
+        try:
+            self.assertEqual(dict(db.execute("SELECT id,state FROM receipts")),
+                             {"pending": "not_sent", "dispatching": "unknown", "accepted": "accepted", "unknown": "unknown"})
+            self.assertEqual(db.execute("SELECT method,error FROM receipts WHERE id='unknown'").fetchone(), original)
+            self.assertEqual(db.execute("SELECT value FROM metadata WHERE key='activityUncertain'").fetchone()[0], "false")
+        finally:
+            db.close()
+        receipt = self.manager.dispatch({"method": "operation/read", "params": {"operationId": request["operationId"]}})["result"]
+        self.assertEqual(receipt["method"], "recover")
+        self.assertEqual(receipt["gatewayRequestDigest"], digest({"method": "system/recover", "params": request["params"]}))
+        self.assertEqual(receipt["state"], "completed")
+
+    def test_force_recovery_unconfirmed_stop_keeps_original_activity_and_failed_receipt(self):
+        journal = self.layout.state / "gateway/journal.sqlite"
+        mkdir(journal.parent)
+        JournalTests().create(journal)
+        original = journal.read_bytes()
+        self.system.stop_failure = True
+        request = {"method": "recover", "params": {"confirmStop": True}, "operationId": str(uuid.uuid4())}
+        result = self.manager.dispatch(request)
+        self.assertEqual(result["error"]["code"], "stop_unknown")
+        self.assertEqual(result["error"]["delivery"], "unknown")
+        self.assertEqual(self.manager.dispatch(request), result)
+        self.assertEqual(self.system.events, ["stop"])
+        self.assertEqual(journal.read_bytes(), original)
+
+    def test_force_recovery_rechecks_stopped_state_before_any_journal_mutation(self):
+        self.manager.recover_control = Manager.recover_control.__get__(self.manager)
+        self.system.state = lambda unit: parse_unit_state(state(active="active", sub="running", pid="24"))
+        request = {"method": "recover", "params": {"confirmStop": True}, "operationId": str(uuid.uuid4())}
+        with patch("deploy.manager.recover_as_owner") as recover:
+            result = self.manager.dispatch(request)
+        self.assertEqual(result["error"]["code"], "stop_unknown")
+        self.assertEqual(result["error"]["delivery"], "unknown")
+        recover.assert_not_called()
+        self.assertEqual(self.system.events, ["stop"])
+
+    def test_force_recovery_does_not_bypass_pending_configuration_recovery(self):
+        transaction = self.layout.state / "transactions" / ("b" * 32)
+        mkdir(transaction)
+        write_json(transaction / "state.json", {"kind": "provider", "old": "c" * 32, "candidate": "d" * 32, "phase": "selected"})
+        request = {"method": "recover", "params": {"confirmStop": True}, "operationId": str(uuid.uuid4())}
+        with self.assertRaises(DeployError):
+            self.manager.dispatch(request)
+        self.assertEqual(self.system.events, [])
+        self.assertFalse((self.layout.state / "receipts" / (request["operationId"] + ".json")).exists())
+
 
 class BoundaryTests(unittest.TestCase):
     def test_actual_dependency_command_disables_ancestor_workspace_and_hooks(self):

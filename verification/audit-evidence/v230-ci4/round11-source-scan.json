@@ -1,0 +1,16 @@
+{
+  "mode": "source",
+  "status": "blocked",
+  "scannedFiles": 2729,
+  "scannedBytes": 48698588,
+  "findings": [
+    {
+      "path": "tests/tooling/builtin-mcp.test.ts",
+      "line": 67,
+      "rule": "url-credentials"
+    }
+  ],
+  "artifacts": [],
+  "unreadable": [],
+  "skipped": []
+}

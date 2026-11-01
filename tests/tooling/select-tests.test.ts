@@ -25,6 +25,18 @@ test('the one-stop shell entry retains deployment and operator journey coverage'
   expect(plan.requiresFullAudit).toEqual([]);
 });
 
+test('builtin MCP contract/checker changes retain offline vision and both managed credential render paths', () => {
+  const required = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
+  for (const changed of ['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs']) {
+    const plan = selectTests([changed], [...available, ...required]);
+    expect(plan.status).toBe('selected');
+    expect(plan.groups.unit).toEqual(required.slice(0, 2));
+    expect(plan.groups.deploy).toEqual([required[2]]); expect(plan.groups['deploy-root']).toEqual([required[3]]);
+    for (const missing of required) expect(selectTests([changed], [...available, ...required.filter(name => name !== missing)]).requiresFullAudit)
+      .toContainEqual({ path: missing, reason: 'missing-builtin-mcp-coverage' });
+  }
+});
+
 test.each(['control_update'])('%s root ownership fixtures have a separate impact group and retain their unprivileged companions', (module) => {
   const ordinary = `tests/deploy/test_${module}.py`;
   const privileged = `tests/deploy/root/test_${module}.py`;

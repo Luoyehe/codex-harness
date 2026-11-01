@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-gateway-post-acceptance-response-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "status": "passed",
+  "completedAt": "2026-11-01T07:56:40.133588+00:00",
+  "files": [
+    {
+      "path": "src/gateway/server.ts",
+      "sha256": "45e98c0a8c0b59ea04ecde1d3e5d6c09a800acb601a72db33651d2637a3a4360"
+    },
+    {
+      "path": "tests/gateway/http.test.ts",
+      "sha256": "2a67d6a872b3d56ef34093f5d6cf0859732a3faad6e083fe242c6543ddc6b877"
+    }
+  ],
+  "findings": [],
+  "issue": "After Dispatcher.call resolves successfully, response JSON encoding, per-response limit or shared retained-output admission can still throw. A response failure must not label the completed request not_sent. The original durable receipt remains authoritative.",
+  "method": [
+    "Static independent review of complete two-file diff and surrounding GatewayServer.handle authentication/RPC/catch/finally flow, JSON writer, retained-response budget and release paths; existing Dispatcher acceptance/receipt boundary and errorBody defaults checked. No independent execution or resource exhaustion attempted.",
+    "Reviewed both new parameterized test bodies and real HTTP fixture. A real in-memory Ledger and actual Dispatcher rename commit precede one bounded injected writer error. Each test queries the original operation and confirms accepted/Saved; missing-project validation then proves true not_sent remains unchanged."
+  ],
+  "conclusions": [
+    "rpcCompleted is initialized per request and set immediately after await Dispatcher.call succeeds, before JSON serialization/admission. Subsequent HarnessError and generic failures are forced unknown regardless of their default delivery.",
+    "Authorization, recovery-protocol, body parsing and actual Dispatcher rejection occur before the flag; existing explicit rejection/unknown semantics remain unchanged. Authentication-completion protection is preserved.",
+    "If headers are already sent or the error response also cannot acquire capacity, existing close/destroy path remains; no additional unbounded error body or false not_sent reply is introduced. Budget releases and backend/response settlement ordering are unchanged.",
+    "No receipt state is changed by the HTTP repair. Accepted operation remains recoverable by original identity rather than inviting a new mutation."
+  ],
+  "validation": {
+    "authorTargeted": {
+      "passed": 81,
+      "failed": 0,
+      "skipped": 0,
+      "files": 3,
+      "evidence": {
+        "path": ".work/test-results/run-TaTVyx/vitest.json",
+        "sha256": "b6b20a64a59db70383a721a1792fa94b13ea4a03a97b24dbf25e5dc3327a9268"
+      },
+      "raw": {
+        "path": ".work/v230-post-acceptance-response-tests.txt",
+        "sha256": "3ca52e0f2d1f1b6039d7a328ac9c70881fc472f53c198a59681a5f4c37c94af2"
+      },
+      "newCases": [
+        "real HTTP and WebSocket authorization boundary keeps a committed RPC recoverable when response capacity fails after acceptance",
+        "real HTTP and WebSocket authorization boundary keeps a committed RPC recoverable when response encoding fails after acceptance"
+      ]
+    },
+    "reviewerTestsRun": 0,
+    "reviewerNetworkRequests": 0,
+    "resourceExhaustionReproduction": false,
+    "typecheck": "Not asserted from the provided test log."
+  },
+  "contextFiles": [
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "e1a069e97a908bfb81882c55118cd58a32f2c78885dcc34cfd2f65e8915d762a"
+    },
+    {
+      "path": "src/core/errors.ts",
+      "sha256": "cfccd9a4f9e86cacd3390ccac73ec5117ec0dea5e7232187bc36fe608740494a"
+    },
+    {
+      "path": "src/core/budget.ts",
+      "sha256": "f180d8f99fd3dc37996f4d86fa7bb17d503b5dc2daf2a659e7fe880a0e21c79b"
+    }
+  ],
+  "limits": [
+    "Tests inject one small response-writer failure. They prove post-acceptance classification and real receipt persistence; they do not measure actual memory exhaustion or natural serialization-failure frequency.",
+    "Existing HTTP test file contains bounded transport/budget cases executed by author; reviewer only read their reported results and did not repeat them or add pressure.",
+    "Narrow repair review only. Round12 reports remain historical and cannot authorize a clean whole-repository gate after this source change; later snapshot must explicitly bind these exact two repaired hashes.",
+    "No product/test source modification, full suite, browser, deployment, secrets or external model/MCP calls."
+  ]
+}

@@ -4,7 +4,7 @@ import json
 import os
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,6 +15,109 @@ from deploy.operator import Cancelled, Console, installed_instances, manage
 
 
 class OperatorTests(unittest.TestCase):
+    def test_direct_domain_cli_distinguishes_preserve_replace_clear_and_rejects_ambiguous_input(self):
+        configure = ["proxy-configure", "--config-file", "/private/node.json", "--version", "26.10.31"]
+        preserved = parser().parse_args(configure)
+        self.assertIsNone(preserved.direct_domain)
+        self.assertFalse(preserved.clear_direct_domains)
+        replaced = parser().parse_args(configure + ["--direct-domain", "API.Example.CN.", "--direct-domain", "second.example.cn"])
+        self.assertEqual(replaced.direct_domain, ["api.example.cn", "second.example.cn"])
+        self.assertTrue(parser().parse_args(configure + ["--clear-direct-domains"]).clear_direct_domains)
+        for arguments in (["proxy-direct-domains"],
+                          ["proxy-direct-domains", "--clear-direct-domains", "--direct-domain", "api.example.cn"],
+                          ["proxy-direct-domains", "--clear-direct-domains", "--version", "26.10.31"],
+                          configure + ["--direct-domain", "api.example.cn", "--clear-direct-domains"]):
+            with self.subTest(arguments=arguments), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                parser().parse_args(arguments)
+        for value in ("https://api.example.cn/v1", "api.example.cn:443", "user@api.example.cn", "*.example.cn", "192.168.1.2"):
+            with self.subTest(value=value), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                parser().parse_args(["proxy-direct-domains", "--direct-domain", value])
+
+    def test_direct_domain_cli_dispatches_through_the_existing_transaction(self):
+        configure = ["proxy-configure", "--config-file", "/private/node.json", "--version", "26.10.31"]
+        examples = [(configure, "configure", None),
+                    (configure + ["--clear-direct-domains"], "configure", []),
+                    (configure + ["--direct-domain", "API.Example.CN."], "configure", ["api.example.cn"]),
+                    (["proxy-direct-domains", "--direct-domain", "api.example.cn"], "direct-domains", ["api.example.cn"]),
+                    (["proxy-direct-domains", "--clear-direct-domains"], "direct-domains", [])]
+        with patch("deploy.cli.require_linux"), patch("deploy.transactions.require_initialization_complete"), \
+             patch("deploy.cli.exclusive", return_value=nullcontext()), patch("deploy.control_update.require_no_pending_control"), \
+             patch("deploy.cli.Manager") as manager, patch("deploy.proxy_transaction.change", return_value={"changed": True}) as change:
+            for arguments, action, domains in examples:
+                with self.subTest(arguments=arguments):
+                    result = execute(parser().parse_args(arguments + ["--confirm-restart"]))
+                    self.assertEqual(result, {"changed": True})
+                    self.assertEqual(change.call_args.args, (manager.return_value,))
+                    self.assertEqual(change.call_args.kwargs["action"], action)
+                    self.assertEqual(change.call_args.kwargs["direct_domains"], domains)
+                    self.assertTrue(change.call_args.kwargs["confirm_restart"])
+                    if action == "direct-domains":
+                        for key in ("input_file", "version", "download_proxy"):
+                            self.assertIsNone(change.call_args.kwargs[key])
+
+    def test_direct_domain_menu_reuses_disabled_proxy_without_import_or_download(self):
+        current = {"configured": True, "enabled": False, "coreVersion": "26.10.31", "directDomains": ["old.example.cn"]}
+        menu = self.console(["6", "1", "SECOND.example.cn, API.Example.CN. api.example.cn", "y"],
+                            lambda args: current if args.command == "proxy-status" else {})
+        with patch("deploy.proxy_core.latest_version") as latest:
+            menu.service_proxy()
+        latest.assert_not_called()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-direct-domains"])
+        args = self.calls[-1]
+        self.assertEqual(args.direct_domain, ["api.example.cn", "second.example.cn"])
+        self.assertTrue(args.confirm_restart)
+        self.assertFalse(args.clear_direct_domains)
+        self.assertFalse(any(hasattr(args, key) for key in ("config_file", "version", "download_proxy")))
+        text = "\n".join(self.output)
+        for message in ("old.example.cn", "全部端口", "不自动包含子域名", "保持代理启用或关闭状态"):
+            self.assertIn(message, text)
+
+    def test_direct_domain_menu_clear_and_decline_preserve_explicit_intent(self):
+        current = {"configured": True, "enabled": True, "coreVersion": "26.10.31", "directDomains": ["api.example.cn"]}
+        self.console(["6", "2", "y"], lambda args: current if args.command == "proxy-status" else {}).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-direct-domains"])
+        self.assertTrue(self.calls[-1].clear_direct_domains)
+        self.assertIsNone(self.calls[-1].direct_domain)
+        self.calls.clear()
+        self.console(["6", "2", "n"], lambda _: current).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+
+    def test_direct_domain_menu_noop_cancel_and_unconfigured_never_mutate(self):
+        current = {"configured": True, "enabled": False, "directDomains": ["api.example.cn"]}
+        self.console(["6", "1", "API.Example.CN."], lambda _: current).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+        self.assertIn("自定义直连名单未变化。", self.output)
+        self.calls.clear()
+        with self.assertRaises(Cancelled):
+            self.console(["6", "1", "q"], lambda _: current).service_proxy()
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+        self.calls.clear()
+        with self.assertRaises(DeployError) as raised:
+            self.console(["6"], lambda _: {"configured": False, "directDomains": []}).service_proxy()
+        self.assertEqual(raised.exception.code, "not_installed")
+        self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+
+    def test_direct_domain_menu_rejects_invalid_or_unbounded_lists_before_confirmation(self):
+        current = {"configured": True, "enabled": True, "directDomains": []}
+        for value in ("https://api.example.cn/v1?token=fixture", "api.example.cn:443", "*.example.cn", "",
+                      " ".join(f"host{number}.example.cn" for number in range(65)), "a" * (64 * 256 + 1)):
+            with self.subTest(value=value[:80]):
+                self.calls.clear()
+                with self.assertRaises(DeployError):
+                    self.console(["6", "1", value], lambda _: current).service_proxy()
+                self.assertEqual([args.command for args in self.calls], ["proxy-status"])
+
+    def test_direct_domain_menu_unknown_result_is_not_replayed_or_reported_successful(self):
+        def run(args):
+            if args.command == "proxy-status":
+                return {"configured": True, "enabled": True, "directDomains": []}
+            raise DeployError("unknown", "Fixture uncertain direct-list switch")
+        with self.assertRaises(DeployError) as raised:
+            self.console(["6", "1", "api.example.cn", "y"], run).service_proxy()
+        self.assertEqual(raised.exception.code, "unknown")
+        self.assertEqual([args.command for args in self.calls], ["proxy-status", "proxy-direct-domains"])
+        self.assertNotIn("直连名单已更新", "\n".join(self.output))
+
     def test_service_proxy_configures_private_file_with_exact_core_and_confirmation(self):
         path = str(Path(self.temp.name).resolve() / "node.json")
         menu = self.console(["1", path, "18793", "26.10.29", "", "y"])

@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "completedAt": "2026-11-01T07:29:56.639304+00:00",
+  "kind": "explicit-stop-confirmed-emergency-recovery",
+  "productionFiles": [
+    "src/gateway/dispatch.ts",
+    "src/gateway/receipt-result.ts",
+    "src/gateway/manager-client.ts",
+    "deploy/manager.py"
+  ],
+  "fileHashes": [
+    {
+      "path": "src/gateway/dispatch.ts",
+      "sha256": "e1a069e97a908bfb81882c55118cd58a32f2c78885dcc34cfd2f65e8915d762a"
+    },
+    {
+      "path": "src/gateway/receipt-result.ts",
+      "sha256": "9d04abb5b764a4cfa334630487974ae45dc718809ffa46117a98fc851599b072"
+    },
+    {
+      "path": "src/gateway/manager-client.ts",
+      "sha256": "51a745fb58ce61d601c0d4f6adfe85275b21bfd475f4aca73fc52503d3e738f7"
+    },
+    {
+      "path": "deploy/manager.py",
+      "sha256": "f91161cb2c032b3faeada5071748a2cf9157d24e73a6a1d89a12a9ad9edb2fe2"
+    },
+    {
+      "path": "tests/gateway/emergency-recovery.test.ts",
+      "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b"
+    },
+    {
+      "path": "tests/gateway/authorization-dispatch.test.ts",
+      "sha256": "5469b1d08c582d51e29cca45ad5d19e34fe10bf6d4a8fbc93508ed905a8785e4"
+    },
+    {
+      "path": "tests/gateway/manager-client.test.ts",
+      "sha256": "ba103513f0d2d1b7480adda03b555da7bbf2f9c797192281f8bce1145c8d8091"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "9bd073adf4e12cc3c440788e4005a6814076df86aff29a5ec542c9b8dd484932"
+    }
+  ],
+  "contract": {
+    "method": "system/recover",
+    "params": {
+      "confirmStop": true
+    },
+    "result": {
+      "restarted": true,
+      "release": "64 lowercase hex"
+    },
+    "authorization": "Existing administrator session/CSRF/current recovery protocol; exact confirmation checked at gateway and fixed root manager.",
+    "recoveryEvidence": "Durable root receipt under original operationId; operation/read checks matching method, request digest and completed result. No browser or gateway generic flag clearing."
+  },
+  "changes": [
+    "Explicit recovery bypasses uncertain/activity/pending-work admission and preempts worker configuration, but cannot enter a concurrent root configuration transaction or receipt rotation.",
+    "Recovery generation increments on emergency admission and is checked at every old non-root beforeWrite boundary, including after maintenance clears.",
+    "ManagerClient reserves one bounded independent emergency helper slot; ordinary queued helpers do not start while it lives. Ordinary in-flight helper and real root management lock are retained.",
+    "Every helper slot remains occupied until actual close, including reply-before-exit, rejection and timeout. No retries, no deleting flock and no root configuration preemption.",
+    "Manager recover reuses existing restart: stop both cgroups with existing 25-second SIGTERM/SIGKILL policy; confirm empty; owner-bound journal recovery preserves unknown receipts; start and health check.",
+    "The root helper remains in its existing independently owned systemd management unit, outside the gateway/worker cgroups being stopped.",
+    "Independent review found the original shared maintenance boolean also blocked recovery during worker configuration. The final implementation uses unique root/worker/receipt maintenance owners: recovery may replace only a worker owner; obsolete finally blocks cannot release the new owner. Root configuration and receipt rotation remain non-preemptible."
+  ],
+  "validation": {
+    "gateway": {
+      "files": 4,
+      "passed": 74,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/run-zFrls7/vitest.json",
+        "sha256": "55f6b499249e11d1d493cc5449e06209c9cc058449260a6b7d69ec15fb7a77d5"
+      },
+      "scope": "Dispatcher, HTTP authorization, new emergency admission/fence/receipt proof, existing receipt projection. Before the subsequently isolated ManagerClient emergency-slot change; these fixtures use injected ManagerPort. This initial 74-case result predates the subsequently fixed mixed-maintenance finding; it is retained as historical validation, not the final Dispatcher result."
+    },
+    "managerClient": {
+      "files": 1,
+      "passed": 18,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/run-BhBkcc/vitest.json",
+        "sha256": "966f1436116964dac365be7b6c70f88c93606cf9f1c96d7df009d43400864155"
+      },
+      "raw": {
+        "path": ".work/v230-force-recovery-manager-tests.log",
+        "sha256": "9b38fbb5ed9c678de11b48d959b5306443ae895231b7323495bd068a186d91eb"
+      },
+      "realSubprocessFixture": true
+    },
+    "windowsPython": {
+      "testsRun": 61,
+      "passed": 54,
+      "skipped": 7,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/python-hJ3ijH/cases.json",
+        "sha256": "3a9939a3d3ff1e7879329df573f948fc6ac343d1cf47ef04361a014175911a99"
+      },
+      "limitation": "Seven existing Linux-only archive, descriptor, subreaper and permission cases skipped on Windows; not reported as all-pass."
+    },
+    "linuxOrdinary": {
+      "testsRun": 61,
+      "passed": 61,
+      "skipped": 0,
+      "failed": 0,
+      "uid": 65534,
+      "evidence": {
+        "path": ".work/v230-force-recovery-linux-1e25c59df1bc.json",
+        "sha256": "125cf743ae66bfa55aa89b5c3602cbf057d5ecc5c78e49ffdad9b7d20ea95bb5"
+      }
+    },
+    "realSystemd": {
+      "passed": true,
+      "elapsedSeconds": 25.263603595085442,
+      "mainStatesPreserved": true,
+      "evidence": {
+        "path": ".work/v230-force-recovery-linux-1e25c59df1bc.json",
+        "sha256": "125cf743ae66bfa55aa89b5c3602cbf057d5ecc5c78e49ffdad9b7d20ea95bb5"
+      },
+      "cleanupClosure": {
+        "path": ".work/v230-force-recovery-linux-cleanup.json",
+        "sha256": "af38627541380526287e089c8ec34fb046a6a40f8e995096a28bfea5804fb964"
+      },
+      "details": "Two disposable nobody units, each parent and setsid child ignore SIGTERM. Exact rendered stop policy; real System.stop and Manager.restart/recover_control/recover_as_owner/recover_journal. Old processes gone, new fixture processes started, old OAuth unknown receipt unchanged, activity barrier reset only after stop."
+    },
+    "serverTypecheck": {
+      "passed": true,
+      "command": "pinned Node node_modules/typescript/bin/tsc -p tsconfig.server.json --noEmit",
+      "phase": "Repeated after final maintenance-owner change; passed."
+    },
+    "diffCheckPassed": true,
+    "sourceScan": {
+      "path": ".work/v230-force-recovery-source-scan.json",
+      "sha256": "89faea3c199686422c107c3dfb5ec931b7ae6d64c18bf267f6fa9f83e35a86b4"
+    },
+    "gatewayFinal": {
+      "files": 4,
+      "passed": 67,
+      "failed": 0,
+      "evidence": {
+        "path": ".work/test-results/run-pZRiLO/vitest.json",
+        "sha256": "94c3d42c220cfafc54909b6edf251a94e131b2b3dc4c0dd8668408ff8af64800"
+      },
+      "raw": {
+        "path": ".work/v230-force-recovery-maintenance-tests.log",
+        "sha256": "beea68342cb013d8ffea11ab2237d88c21d0a7183625d9ad3e38d3e73e7bce3b"
+      },
+      "scope": "13 emergency recovery, 38 existing dispatch, 13 actual HTTP authorization, 3 receipt rotation cases; final Dispatcher bytes."
+    },
+    "incrementalSourceScan": {
+      "path": ".work/v230-force-recovery-maintenance-source-scan.json",
+      "sha256": "0fbcd7fc71d64707c2c46db155bc604ea0802a5a3bf0bf35ef2279667395f14d"
+    },
+    "unchangedEvidenceRetained": "ManagerClient/receipt projection/Manager/System/journal source and test bytes remained unchanged by the maintenance fix. Their successful 18 manager-client, 16 receipt projection, Linux61 and real systemd proof were retained without repetition."
+  },
+  "preservedInitialIssues": [
+    {
+      "kind": "test-prerequisite",
+      "detail": "First local targeted invocation set PYTHON instead of HARNESS_TEST_PYTHON and did not execute tests. Corrected explicit interpreter env; tool history preserved."
+    },
+    {
+      "kind": "fixture-cleanup",
+      "detail": "First Linux report complete=false after successful tests because removing own unit files left not-found/failed tombstones. Both had PID0 and empty cgroup. Separate exact fixture reset-failed cleanup passed; original result untouched."
+    }
+  ],
+  "harnesses": [
+    {
+      "path": ".work/v230-force-recovery-linux.py",
+      "sha256": "1f800d684a6adb9d5b1908aaa2054229a6c2a209d1b273f8d877821bb03203b5"
+    },
+    {
+      "path": ".work/v230-force-recovery-linux-remote.py",
+      "sha256": "929ef632baa50d2c376e601f3cff444b58f9dad8102be592d5a1e4857a2fa42a"
+    }
+  ],
+  "limits": [
+    "No production instance restart, configuration change, deployment, model inference or external MCP call performed.",
+    "Systemd probe substitutes isolated sleeping programs for application/native/MCP bodies and isolates ownership/release checks/unit refresh/application health. Actual process stop, cgroup emptiness, privilege drop and SQLite recovery are exercised.",
+    "A real pending root configuration transaction still owns management.lock; recovery reports bounded busy/recovery-required rather than deleting locks or cancelling uncertain writes.",
+    "A dead gateway/blocked HTTP event loop requires independent server-console/SSH operations. Kernel uninterruptible tasks, unavailable systemd or failed empty-cgroup proof cannot be truthfully declared stopped.",
+    "Unknown external side effects are not reversed; stopped task/OAuth receipts stay unknown and are never automatically replayed.",
+    "Windows subprocess proves transport scheduling, not Linux flock; real Linux cgroup stop is separately evidenced."
+  ],
+  "fullSuiteRun": false,
+  "onlineMutation": false,
+  "independentReview": "Gateway/tooling reviewer holds original confirmed finding and is reviewing final ownership repair; no author claim of independent pass.",
+  "initialImplementationReport": {
+    "path": ".work/v230-force-recovery-fix.json",
+    "sha256": "6bb71d1cbf0be32234b2304f0df24362d9f1b2844136e3f7a5651b652a5c32aa"
+  },
+  "independentFindingClosed": {
+    "issue": "Hung worker configuration mcp/reload prevented emergency manager dispatch.",
+    "reproduction": {
+      "path": ".work/v230-emergency-worker-maintenance-repro.json",
+      "sha256": "ff505163f7afa122c5054b5be964c5e72d5d498b82bde56f621778665a5117a6"
+    },
+    "resolution": "Explicit maintenance ownership and generation fence; four real public worker-configuration method admissions, late beforeWrite, stale finally and receipt rotation covered.",
+    "source": [
+      {
+        "path": "src/gateway/dispatch.ts",
+        "sha256": "e1a069e97a908bfb81882c55118cd58a32f2c78885dcc34cfd2f65e8915d762a"
+      },
+      {
+        "path": "tests/gateway/emergency-recovery.test.ts",
+        "sha256": "11548db3f22905b81e7bccd5b13dd9f2d62d8a13253f0fe0e5af8de5e6e5286b"
+      }
+    ]
+  }
+}

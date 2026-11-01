@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+  "sourceFiles": 1975,
+  "baseCommit": "13cef300c9b0b51a3d2ac0d7e3f0fda079b238a1",
+  "version": "2.3.0",
+  "approvedAt": "2026-11-01T06:31:46.078Z",
+  "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
+  "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v230-round10",
+      "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+      "completedAt": "2026-11-01T06:31:46.078Z",
+      "files": 1975,
+      "reviewers": [
+        {
+          "id": "v230-round10-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-round10/team.json",
+          "sha256": "4a0dd1c84a7905a2c21fc857e505b7a3940f0e0c00acccee6f3e23e8b5c95afa"
+        }
+      ]
+    }
+  ],
+  "note": "Explicit one-clean-round user gate for CI3 after reviewed defaults and proxy repairs. Round8 and round9 were not completed as clean repository rounds. Final deployment, browser acceptance and publication remain pending.",
+  "priorFailedCiAuthorization": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
+    "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
+  },
+  "repairReviews": [
+    {
+      "kind": "edge",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair.json",
+        "sha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair-review.json",
+        "sha256": "93d077690fb6a02f63015bb593cf322c6ca3c8087ae31218f2fd9e7daabb2713"
+      }
+    },
+    {
+      "kind": "workspace",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair.json",
+        "sha256": "6783e39ac4c2e14bc420f5231464cd4ca4a3503af64dbff29d7bd6379d7dcc6a"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair-review.json",
+        "sha256": "6a886e6d3a8f1522f41a31c24c6ffcbf74ba685f98ee7d0fa607e3a649d631a2"
+      }
+    },
+    {
+      "kind": "web",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair.json",
+        "sha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair-review.json",
+        "sha256": "406f65e4c96728747d9f30e4968ce16f158544b8ebe540b014188014d06cf8cd"
+      }
+    },
+    {
+      "kind": "ci-diagnostics",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair.json",
+        "sha256": "cfbbe212f841fd2509bb0c739a7e22e2613f9823c61b64d87235a554311e89e0"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair-review.json",
+        "sha256": "48ddbbf9a5b077adf3aece052a3f76b5d69c4031cc8eb9df7bdaa80e64f605d2"
+      }
+    },
+    {
+      "kind": "defaults",
+      "author": {
+        "path": "verification/audit-evidence/v230-live-repair/defaults-author.json",
+        "sha256": "a359135e7c201478f231109653cfa7629e833a8b45dc14cfca31a126aedf3bf1"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-live-repair/defaults-review.json",
+        "sha256": "74b4c16dfd363fff36678ce16c1dc75dabc5a57f9bc244534480f5592f5429c1",
+        "originalBytes": {
+          "path": "verification/audit-evidence/v230-live-repair/defaults-review-original-bytes.json",
+          "sha256": "6dd936805b5755cb0a2f20b646c65c3a7a7333622e13955036db887438f0f630"
+        }
+      }
+    },
+    {
+      "kind": "proxy",
+      "author": {
+        "path": "verification/audit-evidence/v230-live-repair/proxy-author.json",
+        "sha256": "bf6e1787d2ac7053b19cd62576c2f460ec8fa8de07fa4a44ce657fa04d26f675"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-live-repair/proxy-review.json",
+        "sha256": "a41ea4ae91f51e2c1cb337c9de4d9fe72f8eb094939dd552ee8bc07ba1543633"
+      }
+    }
+  ],
+  "firstCiFailure": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+    "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+  },
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v230-live-repair/ci2-authorization.json",
+    "sha256": "a9645df4c854f65cdd47557b323adfc33173aa0a3c4985c3b523eac5adbf4456"
+  }
+}

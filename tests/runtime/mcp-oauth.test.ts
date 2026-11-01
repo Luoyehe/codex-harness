@@ -1,21 +1,86 @@
 import { afterEach, expect, test, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { mkdirSync, mkdtempSync } from 'node:fs';
+import path from 'node:path';
 import { McpOauth } from '../../src/runtime/mcp-oauth.js';
 import { DiagnosticRedactor } from '../../src/runtime/redaction.js';
+import { RuntimeService } from '../../src/runtime/service.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-import type { NativeOptions } from '../../src/runtime/native.js';
+import type { NativeOptions, NativeRpc } from '../../src/runtime/native.js';
 
 const owner = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => {} };
 const url = 'https://oauth.example/authorize?state=PRIVATE-STATE&code_challenge=PRIVATE-CHALLENGE';
 const instances: McpOauth[] = [];
-afterEach(() => { instances.splice(0).forEach(login => login.close()); vi.useRealTimers(); });
+const runtimes: RuntimeService[] = [];
+afterEach(async () => { instances.splice(0).forEach(login => login.close()); await Promise.all(runtimes.splice(0).map(runtime => runtime.close())); vi.useRealTimers(); });
+const statusPage = (name: JsonValue = 'server', authStatus: JsonValue = 'notLoggedIn'): JsonObject => ({ data: [{ name, authStatus,
+  runtimeStatus: null, pluginId: null, httpOrigin: 'https://mcp.example', serverInfo: null, serverCapabilities: null,
+  toolListMeta: null, tools: {}, toolsError: null, resources: [], resourceTemplates: [] }], nextCursor: null });
 function fixture() {
   const redactor = new DiagnosticRedactor({}), events: { params: JsonObject; channel: string }[] = [], calls: string[] = [];
-  const login = new McpOauth({ epoch: 'epoch', redactor, notify: (params, channel) => events.push({ params, channel }) }); instances.push(login);
+  const serverStatus = vi.fn(async (params: JsonObject): Promise<JsonValue> => statusPage(params.serverName));
+  const login = new McpOauth({ epoch: 'epoch', redactor, serverStatus, notify: (params, channel) => events.push({ params, channel }) }); instances.push(login);
   const native = async (method: string, _params: JsonValue, options?: NativeOptions): Promise<JsonValue> => { options?.beforeWrite?.(); calls.push(method); return { authorizationUrl: url, loginId: 'native-login' }; };
   const read = (identity: JsonObject, context = owner) => object(login.read({ handoffId: identity.handoffId!, epoch: identity.epoch! }, context));
   const complete = (params: JsonObject = {}) => login.notification('mcpServer/oauthLogin/completed', { name: 'server', threadId: null, loginId: 'native-login', success: true, ...params });
-  return { login, redactor, events, native, read, complete, calls };
+  return { login, redactor, events, native, read, complete, calls, serverStatus };
 }
+test.each(['bearerToken', 'unsupported', 'unknown', 'apiKey'])('fresh %s status blocks OAuth before dispatch without retaining an uncertain login', async status => {
+  const f = fixture(); f.serverStatus.mockResolvedValue(statusPage('server', status));
+  for (let attempt = 0; attempt < 2; attempt++) await expect(f.login.start({ name: 'server' }, f.native, owner)).rejects.toMatchObject({ delivery: 'not_sent' });
+  expect(f.calls).toEqual([]); expect(f.serverStatus).toHaveBeenCalledTimes(2);
+  f.serverStatus.mockResolvedValue(statusPage('server', 'notLoggedIn'));
+  await f.login.start({ name: 'server' }, f.native, owner); expect(f.calls).toEqual(['mcpServer/oauth/login']);
+});
+test.each(['notLoggedIn', 'oAuth'])('fresh %s permits OAuth and binds discovery to the exact thread and server', async status => {
+  const f = fixture(); f.serverStatus.mockResolvedValue(statusPage('server', status));
+  await f.login.start({ name: 'server', threadId: 'thread' }, f.native, owner);
+  expect(f.serverStatus).toHaveBeenCalledWith({ serverName: 'server', threadId: 'thread', detail: 'toolsAndAuthOnly', limit: 100 });
+  expect(f.calls).toEqual(['mcpServer/oauth/login']);
+});
+test('failed, missing or ambiguous status never becomes a login unknown or sends authorization', async () => {
+  const f = fixture();
+  f.serverStatus.mockRejectedValueOnce(new DeliveryError('timeout', 'private server detail', 'unknown'));
+  await expect(f.login.start({ name: 'server' }, f.native, owner)).rejects.toMatchObject({ code: 'mcp_auth_unavailable', delivery: 'not_sent' });
+  for (const page of [{ data: [], nextCursor: null }, statusPage('different'), { ...statusPage(), nextCursor: 'another-page' },
+    { ...statusPage(), data: [...statusPage().data as JsonValue[], ...statusPage().data as JsonValue[]] }]) {
+    f.serverStatus.mockResolvedValue(page);
+    await expect(f.login.start({ name: 'server' }, f.native, owner)).rejects.toMatchObject({ code: 'mcp_auth_unavailable', delivery: 'not_sent' });
+  }
+  expect(f.calls).toEqual([]);
+});
+test('the discovery reservation excludes concurrent login and disconnect prevents delayed discovery dispatch', async () => {
+  const f = fixture(); let release!: (value: JsonValue) => void;
+  f.serverStatus.mockReturnValueOnce(new Promise(resolve => { release = resolve; }));
+  const pending = f.login.start({ name: 'server' }, f.native, owner);
+  const failed = expect(pending).rejects.toMatchObject({ delivery: 'not_sent' });
+  await expect(f.login.start({ name: 'server' }, f.native, owner)).rejects.toMatchObject({ code: 'login_pending', delivery: 'not_sent' });
+  f.login.disconnect(owner.clientId, owner.eventChannelId); release(statusPage()); await failed;
+  expect(f.calls).toEqual([]);
+  await f.login.start({ name: 'server' }, f.native, owner); expect(f.calls).toHaveLength(1);
+});
+test('RuntimeService rejects non-OAuth before its mutation gate and still retains genuine dispatched unknown activity', async () => {
+  const parent = path.resolve('.work/mcp-oauth-runtime'); mkdirSync(parent, { recursive: true });
+  const home = mkdtempSync(path.join(parent, 'home-')); let authStatus = 'bearerToken'; const calls: string[] = [];
+  const native = Object.assign(new EventEmitter(), { connected: true, budget: { pending: 0, retainedBytes: 0 },
+    call: async (method: string, params: JsonValue, options: NativeOptions = {}): Promise<JsonValue> => {
+      options.beforeWrite?.(); calls.push(method);
+      if (method === 'mcpServerStatus/list') return statusPage(object(params).serverName, authStatus);
+      if (method === 'mcpServer/oauth/login') throw new DeliveryError('timeout', 'Fixture dispatched OAuth unknown', 'unknown');
+      return {};
+    }, close: async () => { native.connected = false; } });
+  const runtime = new RuntimeService({ bin: process.execPath, home, workerHome: home, cwd: home, env: {} }, native as unknown as NativeRpc); runtimes.push(runtime);
+  for (const value of ['bearerToken', 'unsupported', 'unknown', 'apiKey']) {
+    authStatus = value;
+    await expect(runtime.call('mcp/oauth', { name: 'server' }, owner)).rejects.toMatchObject({ delivery: 'not_sent' });
+    expect(object(runtime.status()).activity).toMatchObject({ unknown: false, pendingStarts: 0 });
+  }
+  expect(calls).toEqual(Array(4).fill('mcpServerStatus/list'));
+  authStatus = 'notLoggedIn';
+  await expect(runtime.call('mcp/oauth', { name: 'server' }, owner)).rejects.toMatchObject({ delivery: 'unknown' });
+  expect(object(runtime.status()).activity).toMatchObject({ unknown: true, pendingStarts: 0 });
+  expect(calls.filter(method => method === 'mcpServer/oauth/login')).toHaveLength(1);
+});
 test('identity-only receipts and owner/channel/epoch-bound handoffs with correlated private completion', async () => {
   const f = fixture(), identity = object(await f.login.start({ name: 'server' }, f.native, owner));
   expect(identity).toEqual({ handoffId: expect.any(String), epoch: 'epoch', name: 'server', threadId: null });
@@ -35,6 +100,7 @@ test.each(['complete', 'disconnect', 'gateway', 'close'] as const)('%s before a 
   const f = fixture(); let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
   const task = f.login.start({ name: 'server' }, async (method, params, options) => { const response = await f.native(method, params, options); await gate; return response; }, owner);
+  await vi.waitFor(() => expect(f.calls).toHaveLength(1));
   if (action === 'complete') f.complete();
   if (action === 'disconnect') f.login.disconnect(owner.clientId, owner.eventChannelId);
   if (action === 'gateway') f.login.disconnect(undefined, owner.eventChannelId);

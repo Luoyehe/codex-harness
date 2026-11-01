@@ -11,6 +11,7 @@ import { Dispatcher } from '../../src/gateway/dispatch.js';
 import { Ledger } from '../../src/core/ledger.js';
 import type { CallContext, JsonObject, JsonValue } from '../../src/core/contracts.js';
 import { LIMITS } from '../../src/core/contracts.js';
+import { HarnessError } from '../../src/core/errors.js';
 import type { WorkerClient } from '../../src/gateway/worker-client.js';
 
 async function fixture(now: () => number = Date.now, openBrowser = true, staticDir?: string) {
@@ -35,6 +36,32 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   return { token, auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); auth.close(); } };
 }
 describe('real HTTP and WebSocket authorization boundary', () => {
+  it.each(['capacity', 'encoding'] as const)('keeps a committed RPC recoverable when response %s fails after acceptance', async cause => {
+    const f = await fixture(Date.now, false);
+    try {
+      const project = f.ledger.addProject('/fixture/committed-response', 'Original');
+      const request = { method: 'project/rename', operationId: randomUUID(), params: { id: project.id, name: 'Saved' } };
+      // A bounded fault at the response writer models either failure without
+      // allocating large responses or opening extra sockets.
+      const writer = f.server as unknown as { json: (res: ServerResponse, value: JsonValue, status?: number) => void };
+      const original = writer.json.bind(f.server); let fail = true;
+      writer.json = (res, value, status) => {
+        if (fail && value && typeof value === 'object' && !Array.isArray(value) && value.ok === true) {
+          fail = false;
+          throw cause === 'capacity' ? new HarnessError('capacity', 'Fixture response unavailable') : new Error('Fixture encoding failure');
+        }
+        original(res, value, status);
+      };
+      const response = await f.post('/api/rpc', request, f.headers);
+      expect(await response.json()).toMatchObject({ ok: false, error: { delivery: 'unknown' } });
+      expect(f.ledger.read(request.operationId)).toMatchObject({ state: 'accepted', result: { id: project.id, name: 'Saved' } });
+      expect(await (await f.post('/api/rpc', { method: 'operation/read', params: { operationId: request.operationId } }, f.headers)).json())
+        .toMatchObject({ ok: true, result: { state: 'accepted', result: { id: project.id, name: 'Saved' } } });
+      expect(f.ledger.projects()).toEqual([{ ...project, name: 'Saved' }]);
+      const rejected = await f.post('/api/rpc', { method: 'project/rename', operationId: randomUUID(), params: { id: 'missing', name: 'Unused' } }, f.headers);
+      expect(await rejected.json()).toMatchObject({ ok: false, error: { delivery: 'not_sent' } });
+    } finally { await f.close(); }
+  });
   it('advertises recovery v2 and fences legacy writes before dispatcher side effects while retaining authenticated reads', async () => {
     const f = await fixture();
     try {

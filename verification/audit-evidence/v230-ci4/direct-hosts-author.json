@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "kind": "optional-exact-proxy-direct-hosts-implementation",
+  "createdAt": "2026-11-01T07:13:16.619070+00:00",
+  "complete": true,
+  "status": "implemented-targeted-tests-passed-independent-review-pending",
+  "files": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a",
+      "bytes": 26563
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "1e4bbf817096cf7b2fcbcf1fea7883f82b3e911b0f7261f6d2bb84838587dce0",
+      "bytes": 15362
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995",
+      "bytes": 24949
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "d4b16a8eddb8111546569d13bacfcb0877cfae0d1d85a827fbae5920c2d7b26a",
+      "bytes": 24648
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "453afc2a2ab0cfda5a5621ec96d096291234ac9e307c97ed8e84042e6146994b",
+      "bytes": 16520
+    }
+  ],
+  "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "sourceSnapshot": {
+    "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+    "files": 1975,
+    "digest": "a1f0f0dcc49a7352b467c2aca1fb4c3d3bd5b1824f18fe1649854ba8949fa457"
+  },
+  "contract": {
+    "policy": "Preserve routeOnly=false and AsIs. Optional leading exact full: hostname rule precedes unchanged localhost/bigmodel.cn, geosite:cn and literal geoip private/CN rules. No automatic all-custom-provider exemption.",
+    "input": "List of at most64 ASCII DNS hostnames; lower-case and one trailing-dot normalization, sorted unique. Reject URLs, userinfo, ports, wildcards, IP/ranges, empty/invalid labels and Unicode; explicit ASCII punycode labels supported without implicit IDNA conversion. Exact hostname covers all ports, not implicit subdomains.",
+    "configure": "direct_domains=None preserves currently verified list; [] explicitly clears; nonempty list replaces. Importing outbound config never imports external routing.",
+    "listOnly": "action=direct-domains requires configured proxy and explicit list; reuses verified retained outbound/core/port and enabled value, no download/reimport or implicit enable. Same canonical selection is no-op.",
+    "status": "directDomains contains only verified explicit hosts (unconfigured=[]); legacy directDomain=bigmodel.cn retained.",
+    "immutableRecovery": "Full canonical bytes and selection SHA checked before saved list use. Accept existing legacy routeOnly=true+IPIfNonMatch only without new list, existing corrected empty-list config byte-for-byte, or exact corrected generated config with normalized bounded list. Reject mixed/arbitrary extra routing/listeners. Core updates/disable retain config SHA; rollback and old/candidate recovery validate both immutable generations."
+  },
+  "validation": [
+    {
+      "kind": "windows-ordinary",
+      "command": "python -B -m unittest tests.deploy.test_service_proxy tests.deploy.test_proxy_transaction -v",
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "Tool output in this implementation turn; no separate archived per-case file for this preliminary run."
+    },
+    {
+      "path": ".work/v230-direct-domains-linux-tests.json",
+      "sha256": "681ea6eddc4623831c7da02e6e9116738d56d669fa847ca725ebf89e726fa6ec",
+      "bytes": 38512,
+      "kind": "linux-ordinary-and-root",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0,
+      "uid": 0,
+      "ordinary": 35,
+      "root": 17,
+      "sourceHashesMatch": true,
+      "scope": "Real isolated root ownership/files/Manager.verify/transactions; service manager, nft, download/core execution substituted. Existing TLS deadline case uses only local peer."
+    },
+    {
+      "path": ".work/v230-xray-direct-hosts-regression-result.json",
+      "sha256": "afa949ed60dd5a658ed49ec269c27a2be6721de1d6ea49fdded84e1ef7bd5c9b",
+      "bytes": 17909,
+      "kind": "real-xray-26.10.31",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "retainedCases": 12,
+      "addedCases": 6,
+      "added": "HTTP and TLS exact custom hostname direct; child subdomain and unrelated hostname remain VLESS with domain destination despite synthetic CN DNS.",
+      "mechanics": "Copied official exact-hash public core/data; unshare --net lo only; real Xray routing/VLESS header receiver and forced-local freedom sink; no real upstream or host nft.",
+      "sixServicesUnchanged": true,
+      "fixtureProcessesExited": true,
+      "sourceBeforeAfterMatch": true
+    },
+    {
+      "kind": "git-diff-check",
+      "exitCode": 0
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v230-direct-domains-linux-tests.py",
+      "sha256": "92f2be45d476aaf81052f70d3a3a60a416e64783122eb74d883ae9cc25948ca9",
+      "bytes": 4417
+    },
+    {
+      "path": ".work/v230-xray-direct-hosts-regression.py",
+      "sha256": "4d0e34d36917aa002899b8d5fc359413e0abd2654b6161a48474ee2cb0ce1d70",
+      "bytes": 17428
+    },
+    {
+      "path": ".work/v230-run-xray-direct-hosts-regression.py",
+      "sha256": "ca6d99331ccb5ab3d4d5da1b9ba9986949c2e96bba3c927f8d1e8969ed63afc4",
+      "bytes": 3686
+    },
+    {
+      "path": ".work/v230-ci3-core-2631-prepare.json",
+      "sha256": "c43d099a6947cc203ecef135df8dd3bd6505f371acdd799f8589fa2c8d56370e",
+      "bytes": 4974
+    }
+  ],
+  "realCore": {
+    "version": "26.10.31",
+    "directory": "/opt/codex-harness-proxy/crtest-rw-20261025/cores/e4bd9119f50ae7c41658b1abd0679ae06f98bd864a2907ff33f2f2cf7081b214",
+    "manifestSha256": "326d0a1c7b12e32f98bba21cc369e77b15a12e34373c3aa40f6c79f7925b7e5d",
+    "files": {
+      "xray": "cc4b84d3069569f297a61f04b914f2bb37e9d202fd7b84cb50def1fc30fd40e1",
+      "geoip.dat": "ce90dc02a81528109c99d769e1f8fe3071ded6b02a574f31e62d8f4eee312563",
+      "geosite.dat": "9ee94acb06e2f795831fb1589c0dc7af9242b0fb8d9196afd981b915b1097ed3"
+    }
+  },
+  "limitations": [
+    "No full suite, deployment/control update, active instance configuration, model inference, account request or external MCP in this change.",
+    "Ordinary Windows preliminary run is recorded by tool output; archived per-case52 result is Linux root context and must not be described as Windows evidence.",
+    "Real core fixture supplies dokodemo original destination instead of live host nft interception, TLS ClientHello only, and direct socket is redirected to local sink. It proves routing choice, not an external endpoint connection.",
+    "No claim that all domestic/custom hostnames occur in geosite:cn; explicit operator list handles known direct endpoints, and overall proxy remains optional.",
+    "Private-IP nft bypass precedes sniffing and remains existing policy; unmatched opaque/non-HTTP/TLS traffic has no hostname to match.",
+    "Changing explicit list uses existing stopped-idle transaction/restart gate and requires new control tools; no user or session-level dynamic routing added.",
+    "Operator CLI/menu and documentation are separately authored/reviewed; these five files are the implementation ownership scope."
+  ],
+  "remainingFindings": []
+}

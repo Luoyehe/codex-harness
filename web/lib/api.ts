@@ -459,7 +459,7 @@ export class Api {
       const thread = object(object(result).thread);
       try {
         await updateOperation(id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined);
-        if (![...INPUT_METHODS, 'thread/fork', 'review/startNew'].includes(method))
+        if (![...INPUT_METHODS, 'thread/fork', 'review/startNew', 'system/recover'].includes(method))
           await acknowledgeOperation(id);
       } catch (error) {
         // HTTP acceptance is a fact even if local proof/cleanup failed. The durable identity remains queryable.

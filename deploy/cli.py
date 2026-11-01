@@ -32,6 +32,14 @@ def error_result(exc: Exception, delivery: str = "not_sent") -> dict:
                                    "delivery": delivery}}
 
 
+def direct_domain(value: str) -> str:
+    from .service_proxy import normalize_direct_domains
+    try:
+        return normalize_direct_domains([value])[0]
+    except DeployError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def helper_main(instance: str) -> None:
     """Installed wrapper binds the instance. sudoers permits ONLY the rpc argv."""
     dispatched = False
@@ -124,15 +132,20 @@ def parser() -> argparse.ArgumentParser:
     root.add_argument("--instance", default="main")
     subs = root.add_subparsers(dest="command", required=True)
     subs.add_parser("proxy-status", help="Server-only: inspect this instance's optional service proxy")
-    for command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback"):
+    for command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
         proxy = subs.add_parser(command, help="Server-only, journaled service proxy operation")
         proxy.add_argument("--confirm-restart", action="store_true")
         if command in ("proxy-configure", "proxy-core-update"):
-            proxy.add_argument("--version", required=True, help="Exact official Xray release, for example 26.10.29")
+            proxy.add_argument("--version", required=True, help="Exact official Xray release, for example 26.10.31")
             proxy.add_argument("--download-proxy", help="Explicit credential-free loopback HTTP proxy for official preparation only")
         if command == "proxy-configure":
             proxy.add_argument("--config-file", type=Path, required=True, help="Root-owned mode0600 JSON containing one VLESS outbound")
             proxy.add_argument("--port", type=int, default=18793, help="Loopback transparent TCP port; HTTP listener uses port+1")
+        if command in ("proxy-configure", "proxy-direct-domains"):
+            domains = proxy.add_mutually_exclusive_group(required=command == "proxy-direct-domains")
+            domains.add_argument("--direct-domain", action="append", type=direct_domain,
+                                 help="Exact ASCII hostname to send directly on all ports; repeat to replace the custom list, no implicit subdomains")
+            domains.add_argument("--clear-direct-domains", action="store_true", help="Clear only the custom direct-host list; built-in rules remain")
     proxy_recover = subs.add_parser("proxy-recover", help="Recover the sole unfinished service proxy transaction")
     proxy_recover.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("manage", help="Interactive installation, upgrades, HTTPS, diagnostics and account recovery")
@@ -289,11 +302,12 @@ def execute(args: argparse.Namespace) -> dict:
             elif args.command == "proxy-status":
                 from .service_proxy import status
                 result = status(manager)
-            elif args.command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback"):
+            elif args.command in ("proxy-configure", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
                 from .proxy_transaction import change
                 result = change(manager, action=args.command.removeprefix("proxy-"), confirm_restart=args.confirm_restart,
                                 input_file=getattr(args, "config_file", None), version=getattr(args, "version", None),
-                                port=getattr(args, "port", 18793), download_proxy=getattr(args, "download_proxy", None))
+                                port=getattr(args, "port", 18793), download_proxy=getattr(args, "download_proxy", None),
+                                direct_domains=[] if getattr(args, "clear_direct_domains", False) else getattr(args, "direct_domain", None))
             elif args.command == "proxy-recover":
                 from .proxy_transaction import recover
                 pending = [(path, read_json(path)) for path in (layout.state / "transactions").glob("*/state.json")]

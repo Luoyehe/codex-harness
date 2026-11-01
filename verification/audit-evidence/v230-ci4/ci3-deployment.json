@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "mode": "after",
+  "observedAt": "2026-11-01T07:01:21.486629+00:00",
+  "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+  "currentRelease": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+  "previousRelease": "884a0dc8d5d5bab378d9990cda89c8827630e8a8cf215f5363f543f65ffe4d9d",
+  "applicationVersion": "2.3.0",
+  "executionMode": {
+    "mode": "native",
+    "rootAllowed": false,
+    "revision": "113103dc9b52fac46f97b41ccedafb346d69e6005d844f337c173b1f33c2d3de",
+    "effectiveUid": 990,
+    "requiresRestart": true
+  },
+  "verification": {
+    "release": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+    "integrity": true,
+    "permissions": true,
+    "managedUnits": true,
+    "unitPolicy": "current",
+    "sudoPolicy": "current",
+    "https": {
+      "configured": true,
+      "ready": true,
+      "tlsVerified": true,
+      "instanceVerified": true,
+      "certificate": {
+        "notAfter": "2027-01-27T19:27:54+00:00",
+        "notBefore": "2026-10-29T19:27:55+00:00",
+        "daysRemaining": 87.52,
+        "issuer": [
+          {
+            "name": "countryName",
+            "value": "US"
+          },
+          {
+            "name": "organizationName",
+            "value": "Let's Encrypt"
+          },
+          {
+            "name": "commonName",
+            "value": "YE1"
+          }
+        ],
+        "subjectAlternativeNames": [
+          {
+            "type": "DNS",
+            "value": "cloudark.org.cn"
+          }
+        ]
+      },
+      "failure": null,
+      "vantage": {
+        "source": "deployment-host",
+        "independentPublicAcceptance": false,
+        "route": "fixed-address"
+      },
+      "origin": "https://cloudark.org.cn:10000",
+      "tlsMode": "acme",
+      "connectionPort": 10000,
+      "validation": {
+        "challenge": "dns-01",
+        "dnsProvider": "alidns",
+        "publicRoutes": [],
+        "requiredPublicRoutes": "none",
+        "requirements": "The authoritative DNS zone must be managed by the selected Alibaba Cloud DNS (AliDNS) account. Caddy creates and removes temporary _acme-challenge TXT records through its retained DNS API credentials. Public inbound 80/443 are not required for validation; outbound DNS, the provider API and CA HTTPS access are required.",
+        "publicReachabilityVerified": false,
+        "dnsApiAccessVerified": false,
+        "provider": {
+          "name": "alidns",
+          "label": "Alibaba Cloud DNS (AliDNS)",
+          "credentialFields": [
+            "accessKeyId",
+            "accessKeySecret"
+          ],
+          "credentials": "A dedicated RAM AccessKey with DNS discovery and challenge record permissions.",
+          "documentation": "https://help.aliyun.com/zh/dns/alibaba-cloud-dns-custom-permission-policy-reference-dns",
+          "credentialFile": "Absolute UTF-8 JSON file, root-owned mode 0600; never put values in argv or logs."
+        }
+      },
+      "renewal": {
+        "manager": "caddy",
+        "automatic": true,
+        "challenge": "dns-01",
+        "dnsProvider": "alidns",
+        "mechanism": "acme",
+        "futureSuccessVerified": false,
+        "evidence": "configuration-only",
+        "requirements": [
+          "Keep the selected DNS API credentials active with the required zone permissions.",
+          "Keep Caddy running, its data directory persistent and writable, and outbound DNS/HTTPS available.",
+          "A working cached certificate does not validate a new DNS key; confirm API permissions and later issuance/renewal logs."
+        ]
+      },
+      "trust": "system-ca",
+      "diagnostics": []
+    },
+    "serviceProxy": {
+      "configured": true,
+      "enabled": true,
+      "ready": true,
+      "cgroupScoped": true,
+      "upstreamTlsVerified": false
+    }
+  },
+  "services": {
+    "worker": {
+      "MainPID": "4179926",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "gateway": {
+      "MainPID": "4179939",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "caddy": {
+      "MainPID": "4176648",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled"
+    },
+    "proxy": {
+      "MainPID": "4176580",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "static"
+    },
+    "proxy-routes": {
+      "MainPID": "0",
+      "ActiveState": "active",
+      "SubState": "exited",
+      "UnitFileState": "static"
+    }
+  },
+  "legacy": {
+    "MainPID": "0",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "UnitFileState": "disabled"
+  },
+  "unrelatedProxy": {
+    "MainPID": "1910300",
+    "ActiveState": "active",
+    "SubState": "running",
+    "UnitFileState": "enabled"
+  },
+  "serviceProxy": {
+    "configured": true,
+    "enabled": true,
+    "coreVersion": "26.10.31",
+    "core": "e4bd9119f50ae7c41658b1abd0679ae06f98bd864a2907ff33f2f2cf7081b214",
+    "configuration": "bf140d4d962045e8c0dd528919069d3c8239755ebfc1b301b547f2f4c777c634",
+    "port": 18793,
+    "transport": "tcp",
+    "scope": "instance-worker-gateway-management-cgroups",
+    "directDomain": "bigmodel.cn",
+    "services": {
+      "proxy": {
+        "MainPID": "4176580",
+        "ControlPID": "0",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "stopped": false
+      },
+      "proxy-routes": {
+        "MainPID": "0",
+        "ControlPID": "0",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "stopped": false
+      }
+    }
+  },
+  "runtime": {
+    "connected": true,
+    "restarting": false,
+    "activeThreadCount": 0,
+    "unknown": false,
+    "pendingStarts": 0,
+    "terminals": 0,
+    "subscriptions": 0,
+    "processes": 0
+  },
+  "noPending": true,
+  "noPendingProof": "Manager.require_update_ready(persist=False)",
+  "candidateInventory": {
+    "candidates": [
+      {
+        "id": "12b9a23eff114bd6953316ad0aa1df20",
+        "eligible": false,
+        "reason": "Candidate has incomplete successful probe evidence"
+      },
+      {
+        "id": "49e2fcce4f194ce1b36d6d598bc7f7d2",
+        "release": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+        "eligible": true
+      },
+      {
+        "id": "51a2819732764d1bbfd79eca99f261a3",
+        "release": "4ea12107e774e9c5a4f525d73b9a23ad56dc2782e39f1de438909d2e128e3a7b",
+        "eligible": true
+      },
+      {
+        "id": "5f747aa705b64fccb2f9a4fd1ce5fbfb",
+        "eligible": false,
+        "reason": "Candidate has no successful preparation record"
+      },
+      {
+        "id": "6ee3836355574446a02948823de995ae",
+        "eligible": false,
+        "reason": "Candidate has incomplete successful probe evidence"
+      },
+      {
+        "id": "7df85175de844f75956b33ca1bc1ad3b",
+        "eligible": false,
+        "reason": "Candidate has incomplete successful probe evidence"
+      },
+      {
+        "id": "b4236e33ec664e0caeb475ed0f90c02c",
+        "release": "884a0dc8d5d5bab378d9990cda89c8827630e8a8cf215f5363f543f65ffe4d9d",
+        "eligible": true
+      },
+      {
+        "id": "c0f6b34a0a5f4533850c60ed2314d605",
+        "eligible": false,
+        "reason": "Candidate has incomplete successful probe evidence"
+      }
+    ],
+    "count": 8,
+    "limit": 8,
+    "archiveDirectory": "/var/cache/codex-harness/operator-archives/crtest-rw-20261025"
+  },
+  "protectedMetadata": [
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/gateway-token",
+      "device": 64512,
+      "inode": 6970520,
+      "mode": "0o640",
+      "uid": 0,
+      "gid": 985,
+      "size": 65,
+      "mtimeNs": 1792864040798310856
+    },
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/auth-bootstrap.json",
+      "device": 64512,
+      "inode": 6981496,
+      "mode": "0o640",
+      "uid": 0,
+      "gid": 985,
+      "size": 361,
+      "mtimeNs": 1793327578225259581
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/gateway",
+      "device": 64512,
+      "inode": 6970514,
+      "mode": "0o700",
+      "uid": 993,
+      "gid": 985,
+      "size": 4096,
+      "mtimeNs": 1793516428288610267
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker",
+      "device": 64512,
+      "inode": 6970515,
+      "mode": "0o750",
+      "uid": 990,
+      "gid": 984,
+      "size": 4096,
+      "mtimeNs": 1793380168785377071
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker/codex",
+      "device": 64512,
+      "inode": 6970516,
+      "mode": "0o750",
+      "uid": 990,
+      "gid": 984,
+      "size": 4096,
+      "mtimeNs": 1793516431180604416
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker/projects",
+      "device": 64512,
+      "inode": 7739198,
+      "mode": "0o700",
+      "uid": 990,
+      "gid": 984,
+      "size": 4096,
+      "mtimeNs": 1793406662511373038
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/caddy",
+      "device": 64512,
+      "inode": 7349627,
+      "mode": "0o700",
+      "uid": 985,
+      "gid": 979,
+      "size": 4096,
+      "mtimeNs": 1792868566793980298
+    },
+    {
+      "path": "/etc/codex-harness/crtest-rw-20261025/management.lock",
+      "device": 64512,
+      "inode": 6970557,
+      "mode": "0o644",
+      "uid": 0,
+      "gid": 0,
+      "size": 0,
+      "mtimeNs": 1792864041021309819
+    },
+    {
+      "path": "/etc/codex-harness/.crtest-rw-20261025-initialize.lock",
+      "device": 64512,
+      "inode": 1179685,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0,
+      "size": 0,
+      "mtimeNs": 1793305335253832870
+    },
+    {
+      "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/worker/codex/auth.json",
+      "device": 64512,
+      "inode": 6982021,
+      "mode": "0o600",
+      "uid": 990,
+      "gid": 984,
+      "size": 4092,
+      "mtimeNs": 1793382750140941477
+    }
+  ],
+  "retainedData": {
+    "account": {
+      "count": 1,
+      "recordFingerprint": "3b4964f8f80e96ad9016276e0c909f2699a65a0de03ac6971b777c8585bf5765",
+      "database": {
+        "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/gateway/auth.sqlite",
+        "device": 64512,
+        "inode": 6981491,
+        "mode": "0o600",
+        "uid": 993,
+        "gid": 985,
+        "size": 45056,
+        "mtimeNs": 1793516427474611909
+      },
+      "rawRecordsEmitted": false
+    },
+    "projects": {
+      "count": 2,
+      "recordFingerprint": "30db65e75c8b2fdcf5d449e5d0ff1147a73665ad3121d859b4de2349f5bf0141",
+      "database": {
+        "path": "/var/lib/codex-harness-instances/crtest-rw-20261025/gateway/journal.sqlite",
+        "device": 64512,
+        "inode": 6981487,
+        "mode": "0o600",
+        "uid": 993,
+        "gid": 985,
+        "size": 131072,
+        "mtimeNs": 1793515678756965728
+      },
+      "rawRecordsEmitted": false
+    }
+  },
+  "publicAssets": {
+    "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+    "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+    "release": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+    "files": [
+      {
+        "path": "/index.html",
+        "sha256": "70f5da3a45f687b8544ad89660c5e62c44966a8395b76d1416cf5dabc912f8e8",
+        "bytes": 409
+      },
+      {
+        "path": "/assets/index-BEJz1bbD.css",
+        "sha256": "3f3825f59657a6569e7e595292d2d1c3eddf9aa7b2236bda3410ba9efc988d02",
+        "bytes": 54551
+      },
+      {
+        "path": "/assets/index-Dpoe3KMs.js",
+        "sha256": "452b3012f2b6451bdcdffdb5ffe2f4758a850385e44ea7b7376e775411ec21c6",
+        "bytes": 1358503
+      }
+    ]
+  },
+  "phaseReceipts": {
+    "control-update": {
+      "phase": "control-update",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T06:48:02.215505+00:00"
+    },
+    "proxy-configure-core-2631": {
+      "phase": "proxy-configure-core-2631",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T06:58:12.115568+00:00"
+    },
+    "candidate-archive": {
+      "phase": "candidate-archive",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T06:58:47.897631+00:00"
+    },
+    "application-update": {
+      "phase": "application-update",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T07:00:30.239784+00:00"
+    },
+    "verify": {
+      "phase": "verify",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T07:00:43.293275+00:00"
+    },
+    "status": {
+      "phase": "status",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T07:00:49.289337+00:00"
+    },
+    "proxy-status": {
+      "phase": "proxy-status",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T07:00:54.285409+00:00"
+    },
+    "candidate-list": {
+      "phase": "candidate-list",
+      "exitCode": 0,
+      "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+      "runId": "4a53e6eb95084f628791b16a21ca5c50",
+      "completedAt": "2026-11-01T07:01:04.477378+00:00"
+    }
+  },
+  "mainMutation": false,
+  "lockAcquired": false,
+  "credentialValuesEmitted": false,
+  "nativeAuthFileContentsRead": false,
+  "nativeAccountRpc": false,
+  "modelCalls": false,
+  "sshExitCode": 0,
+  "preservation": {
+    "baseline": ".work/v230-ci3-acceptance-baseline.json",
+    "baselineSha256": "486622ca2ea67c01181d16c40025ec2d25a7936d0409d837ce8b7b52006db7f0",
+    "matched": true,
+    "differences": [],
+    "limits": "Account version/bootstrap metadata and registered project fingerprints plus protected inode/mode/owner only. Password/token values and project contents are not read. Legitimate user activity may change metadata; differences require review, never automatic repair."
+  },
+  "publicAssetEvidence": {
+    "path": ".work/v230-ci3-core2631-public-assets.json",
+    "sha256": "34524e2e68e220906499b3f5baaf0b5ff229ea715ed637b60838971612095585"
+  },
+  "acceptancePassed": true
+}

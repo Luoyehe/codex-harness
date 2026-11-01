@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "post-upgrade-anonymous-public-https-verification",
+  "commit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+  "origin": "https://cloudark.org.cn:10000",
+  "startedAt": "2026-11-01T07:01:29.299Z",
+  "complete": true,
+  "status": "passed",
+  "route": "Explicit loopback HTTP CONNECT proxy at127.0.0.1:10808; external egress location is not independently proven",
+  "trust": "Explicit Node bundled public root certificates; rejectUnauthorized=true; TLS>=1.2; fixed SNI and hostname",
+  "expectedBuildAssets": {
+    "path": ".work/v230-ci3-core2631-public-assets.json",
+    "sha256": "34524e2e68e220906499b3f5baaf0b5ff229ea715ed637b60838971612095585",
+    "release": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad"
+  },
+  "certificates": [
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    },
+    {
+      "authorized": true,
+      "servername": "cloudark.org.cn",
+      "protocol": "TLSv1.3",
+      "fingerprint256": "41:E5:D9:B7:88:EE:2D:C8:3B:5E:AE:29:01:9D:FC:C1:0C:32:45:18:D2:23:33:19:4E:D9:9C:3E:A2:6A:32:76",
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YE1"
+      },
+      "subjectaltname": "DNS:cloudark.org.cn",
+      "validFrom": "Oct 29 19:27:55 2026 GMT",
+      "validTo": "Jan 27 19:27:54 2027 GMT"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/health",
+      "status": 200,
+      "bytes": 11,
+      "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+      "contentType": "application/json; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/",
+      "status": 200,
+      "bytes": 409,
+      "sha256": "70f5da3a45f687b8544ad89660c5e62c44966a8395b76d1416cf5dabc912f8e8",
+      "contentType": "text/html; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/assets/index-Dpoe3KMs.js",
+      "status": 200,
+      "bytes": 1358503,
+      "sha256": "452b3012f2b6451bdcdffdb5ffe2f4758a850385e44ea7b7376e775411ec21c6",
+      "contentType": "text/javascript; charset=utf-8",
+      "contentEncoding": "identity"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/assets/index-BEJz1bbD.css",
+      "status": 200,
+      "bytes": 54551,
+      "sha256": "3f3825f59657a6569e7e595292d2d1c3eddf9aa7b2236bda3410ba9efc988d02",
+      "contentType": "text/css; charset=utf-8",
+      "contentEncoding": "identity"
+    }
+  ],
+  "checks": {
+    "localProxyListenerReachable": true,
+    "health": {
+      "status": 200,
+      "ok": true
+    },
+    "home": {
+      "status": 200,
+      "utf8Html": true,
+      "directAssetsFetched": 2
+    },
+    "currentBuildAssetHashes": {
+      "matched": true,
+      "index": true,
+      "directAssets": 2
+    },
+    "publicCAHostnameAndValidity": true
+  },
+  "error": null,
+  "limits": [
+    "Anonymous public GET only; authentication, WS and interactive UI are separate operator acceptance.",
+    "No direct-route availability or model/provider connectivity claim.",
+    "No credential or browser cookie read, session operation, RPC, external MCP or model call."
+  ],
+  "completedAt": "2026-11-01T07:01:29.444Z",
+  "helper": {
+    "path": ".work/v230-public-readonly-6279cda9568d.mjs",
+    "sha256": "0cbd70c3a8e5ed1993963e558df833d64496efdbc48c517232614ba47eacc9a7"
+  },
+  "transportHelper": {
+    "path": ".work/public-live-acceptance-10000-v2.mjs",
+    "sha256": "17f96877b44ac357db3c9400cd3bf54e754fe23727d7a6a9b9a3de72a3682a4e"
+  }
+}

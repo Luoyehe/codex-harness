@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "mcp-emergency-web-implementation",
+  "author": "/root",
+  "recordedAt": "2026-11-01T07:41:31.772910+00:00",
+  "complete": true,
+  "status": "targeted-passed-independent-review-pending",
+  "files": [
+    {
+      "path": "web/components/EmergencyRecovery.tsx",
+      "sha256": "8a9d52dc6383fb335f96cbcc634139b4f474737c34900af6720a77f1dcab8c8f",
+      "bytes": 7799
+    },
+    {
+      "path": "web/lib/emergency-recovery.ts",
+      "sha256": "226c23b6081bc7202602bcf33684b3f5edd8054675b22e15a7cff1c7d7768fa9",
+      "bytes": 4430
+    },
+    {
+      "path": "web/lib/operations.ts",
+      "sha256": "2afbaf26262736c8c2dcb82f3f7e150cb15f51d875b03e292ecb4c60715dbf40",
+      "bytes": 17456
+    },
+    {
+      "path": "web/lib/api.ts",
+      "sha256": "c4a3e73a7f327ac71d54d88594c60f521bc53da22c0d5c100933b58b2d73ed3c",
+      "bytes": 19856
+    },
+    {
+      "path": "web/Workspace.tsx",
+      "sha256": "fdd259d8ba68b48eeff12c29d19ef51e1e9590664b4ccca273a611d56d1faf83",
+      "bytes": 75833
+    },
+    {
+      "path": "web/components/Settings.tsx",
+      "sha256": "4500fd0f7dd55fd3c3004e1919087aada4853353aede1381d3b254b729c804d1",
+      "bytes": 8943
+    },
+    {
+      "path": "web/components/AdminSettings.tsx",
+      "sha256": "25436ea7a17b6f4d29525d3b4a4ed8fd47a8383bf9dacb60e2a612937b8982d7",
+      "bytes": 7434
+    },
+    {
+      "path": "web/components/Recovery.tsx",
+      "sha256": "9b013a2ea0c8c5cbed9e2803f5a91bc5207096d55ec2076220543416df56c2e8",
+      "bytes": 12963
+    },
+    {
+      "path": "web/tests/emergency-recovery.test.ts",
+      "sha256": "7682a5e4f2b72e6ef3a26c224362f8eed95c3b8c97d3667ac0604a5296e45f28",
+      "bytes": 7696
+    },
+    {
+      "path": "web/tests/emergency-recovery.test.tsx",
+      "sha256": "0073b9e1a6a3bc44e27d1bc98237d4b3db47916e28bc61727ddefcf88bbcd7ff",
+      "bytes": 8204
+    },
+    {
+      "path": "web/tests/operation-storage.test.ts",
+      "sha256": "e8ff8144b268b660e2bc12dbf969b530f78a4fbb395efc28a5be20761d3c36a8",
+      "bytes": 18688
+    },
+    {
+      "path": "web/components/McpPanel.tsx",
+      "sha256": "c2519817fe6580fe98a5e8353621a45df11775c06a65a781b22fe47885d3ff1f",
+      "bytes": 32970
+    },
+    {
+      "path": "web/components/McpAuthorization.tsx",
+      "sha256": "501526b8dc0c68b9bcb2f830498585bde85c3341c4f765443680d81e0d57b356",
+      "bytes": 11572
+    },
+    {
+      "path": "web/tests/mcp-oauth.test.tsx",
+      "sha256": "f6c7258d197aa7b50269b66423245fd76a9bd19082bc1b9770dbfec4015bc48b",
+      "bytes": 10599
+    },
+    {
+      "path": "web/tests/mcp-ui.test.tsx",
+      "sha256": "fc431838e12add2fddca58b8d344d5c5eca8c6b93fc6573d7d1cf60666667e2e",
+      "bytes": 41036
+    },
+    {
+      "path": "web/tests/extension-mcp-drafts.test.tsx",
+      "sha256": "178e1509059d15fed4c715b0438d3a5566d6f37450fe85debba63e2e16f909be",
+      "bytes": 19499
+    },
+    {
+      "path": "README.md",
+      "sha256": "47c72e6ec95a2fd94fd09ee645435e91f58237ad0a822ed375974412b1ba7437",
+      "bytes": 12603
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "43e672073444eabde4bab0d19959ca3281832bf0e87fb18f70131395f07d62d9",
+      "bytes": 109080
+    }
+  ],
+  "changes": [
+    "OAuth UI gates by current auth status, rechecks in prepare, keeps previous uncertain identities; Chinese connection/auth labels distinguish unloaded threads.",
+    "Emergency access remains available on disconnected/blocked workspace and in service settings. Only explicit confirmation dispatches recovery; uncertain results use their original ID.",
+    "Dedicated 201st journal slot and atomic original-operation ID/method snapshot; recover acceptance remains until UI reconciliation. Proven unknown local reminders can close after successful stop proof without modifying server receipts or drafts.",
+    "Page reload recovers the exact persisted snapshot. Explicit not_sent responses/receipts release their slot only after acknowledgement succeeds; pre-dispatch local not_sent can be acknowledged without a server receipt.",
+    "Existing shared Dialog/buttons, scroll sizing and mobile form styles retained. User and technical documentation updated."
+  ],
+  "tests": [
+    {
+      "path": ".work/test-results/run-nEoTn7/vitest.json",
+      "sha256": "ed78681e29594713e110ed5f2a3b2c5d02f509f1de008c3b8e3206adaad6d994",
+      "bytes": 25613
+    },
+    {
+      "path": ".work/test-results/run-oMGeAN/vitest.json",
+      "sha256": "53e45ba6b6ce442ac94f197a8df7854b7f7a2fdd591ffc0f6301bd113f3590d9",
+      "bytes": 36699
+    },
+    {
+      "path": ".work/test-results/run-58iMW6/vitest.json",
+      "sha256": "3390232eea1f3f8006be0137ffbd88a04c2ba37031bd90ffcc04e26f4ade3324",
+      "bytes": 25555
+    }
+  ],
+  "counts": {
+    "finalEmergencyAndStorage": 72,
+    "settingsWorkspaceDialogAndMcp": 111,
+    "earlierMcpUi": 78
+  },
+  "history": [
+    "Initial capacity test incorrectly assumed IndexedDB insertion order; changed to set equality after all record identities matched.",
+    "Subsequent 69 assertions passed but reporter encountered ENOSPC; not counted as a successful run. After restoring space the complete run passed and emitted its report.",
+    "Independent review reproduced not_sent slot leak and pre-dispatch reopen variant; both fixed with actual Api/IndexedDB regression tests. Prior finding/repro artifacts retained."
+  ],
+  "provenance": {
+    "emergencyHelper": "Initial helper and six tests authored by gateway-tooling agent; root independently read complete source/tests and integrated durable snapshots, reserved-slot bound.",
+    "testFailure": {
+      "path": ".work/test-results/run-nS6sGw/vitest.json",
+      "sha256": "f65d8602786488bea4d2dc3f65a33f03987c37a83682d4b74b42b9c1b2ad5920",
+      "bytes": 24983
+    }
+  },
+  "limits": [
+    "Not a full repository clean audit or full test result.",
+    "Mobile browser rendering and final live deployment/publication still pending.",
+    "No commercial inference or external MCP tool call."
+  ]
+}

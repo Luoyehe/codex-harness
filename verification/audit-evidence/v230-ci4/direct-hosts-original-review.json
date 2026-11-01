@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-direct-domains-backend-review",
+  "reviewerId": "v230_audit_runtime",
+  "complete": true,
+  "clean": false,
+  "completedAt": "2026-11-01T07:16:10.398279+00:00",
+  "authorReport": {
+    "path": ".work/v230-direct-domains-backend-implementation.json",
+    "sha256": "b7d2901786103b19b0d8fe21d14ca356f6bd44ed64a063f557a61d83ed649248"
+  },
+  "sourceSnapshot": {
+    "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+    "files": 1975,
+    "digest": "a1f0f0dcc49a7352b467c2aca1fb4c3d3bd5b1824f18fe1649854ba8949fa457"
+  },
+  "files": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a"
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "1e4bbf817096cf7b2fcbcf1fea7883f82b3e911b0f7261f6d2bb84838587dce0"
+    },
+    {
+      "path": "tests/deploy/test_service_proxy.py",
+      "sha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995"
+    },
+    {
+      "path": "tests/deploy/root/test_proxy_transaction.py",
+      "sha256": "d4b16a8eddb8111546569d13bacfcb0877cfae0d1d85a827fbae5920c2d7b26a"
+    },
+    {
+      "path": "tests/deploy/test_proxy_transaction.py",
+      "sha256": "453afc2a2ab0cfda5a5621ec96d096291234ac9e307c97ed8e84042e6146994b"
+    }
+  ],
+  "method": [
+    "Fresh complete reading of both backend production modules and changed test bodies, including full root transaction fixture; unchanged ordinary tests receive structural and relevant boundary review, not a new all-line claim.",
+    "Independently traced CLI->transaction admission, Manager verification, fixed management-RPC allowlist, immutable config extraction/regeneration, exact digest binding, disabled/noop behavior, old/candidate journal recovery, and control-update generation selection.",
+    "Actual52 Linux case outcomes and18 real-core outcomes/hash bindings checked; no successful test suite rerun. Real-core harness delta against previously reviewed core2631 fixture inspected: six HTTP/TLS exact/subdomain/unlisted cases.",
+    "Whole current1975-file inventory/hash comparison to round10 establishes unchanged byte evidence only; it is not a fresh manual review of unchanged bodies. This report is a backend review, not a clean whole-repository round."
+  ],
+  "inventoryObservation": {
+    "sourceDigest": "e6a15a426de4078f5e24c95d2bd4739f5ba27b2a903f92ea9b6ca01aaac65fb1",
+    "files": 1975,
+    "priorSnapshot": {
+      "path": ".work/v230-round10-snapshot.json",
+      "sha256": "de93928e7cedcdf9c2a7e0e298322b74a278380a5b8b8b659d36b94180c1716d"
+    },
+    "unchangedFiles": 1958,
+    "changedFiles": [
+      {
+        "path": "README.md",
+        "priorSha256": "986877013b936c7303f5abe69a4e7f6502585580818d5d14577e27f831c93204",
+        "currentSha256": "a1959b3e17bcc4f679f7a36bb2be330e379e6ab29c2d28d2d96a87434addd08a"
+      },
+      {
+        "path": "deploy/README.md",
+        "priorSha256": "2e7d06f4a23e60e17612fe59bd2b62a18d9c804d5485a8851c5ce436e3ee46c1",
+        "currentSha256": "861fbea5b65a378352b6ed759c8c9f546070a0619d0965562e31f0d0c76bd618"
+      },
+      {
+        "path": "deploy/cli.py",
+        "priorSha256": "c5a79bbf1ed394a8d4cee07b60423b016919cd0eccc2715053ad53291d2df867",
+        "currentSha256": "f7876c45107c9808194527b940fbb36c8fe9fc345085953a805eba7905ddda34"
+      },
+      {
+        "path": "deploy/control_update.py",
+        "priorSha256": "8d9348b65ee63059159e59345c2000bd1db8d6b696a7c1c2a8f117bc8c6ae9d6",
+        "currentSha256": "ec53d9ef6bc19ebdb344f2ff4af1230370756dda03fd8554bf790ed7bb704a81"
+      },
+      {
+        "path": "deploy/install.py",
+        "priorSha256": "132fdd76323a8735dc24d4bd66a9b3d340812e09d1b3d3a6efc585e497a50bfc",
+        "currentSha256": "f6236061edbc81cf56a5e31a91903ee92f3ea02d89d58e86b7fe1cb3513de248"
+      },
+      {
+        "path": "deploy/manager.py",
+        "priorSha256": "8bae128462d88e79fee30bc0a06b14766d823890038396d4d2e47755b0c9eaa9",
+        "currentSha256": "f91161cb2c032b3faeada5071748a2cf9157d24e73a6a1d89a12a9ad9edb2fe2"
+      },
+      {
+        "path": "deploy/operator.py",
+        "priorSha256": "44dc1fd8c047cb4e841df0f96a52e92f2487776d7722218556678cecedb780e8",
+        "currentSha256": "0d50b6f6c8a0372fd38a5253638a2f2ead973e924b3ccd64bb65b7d568843dc9"
+      },
+      {
+        "path": "deploy/proxy_transaction.py",
+        "priorSha256": "a1f4f95717e9c3aa976deffa0e260e60461106e460be59718917900491fdcc28",
+        "currentSha256": "1e4bbf817096cf7b2fcbcf1fea7883f82b3e911b0f7261f6d2bb84838587dce0"
+      },
+      {
+        "path": "deploy/service_proxy.py",
+        "priorSha256": "acb97c3ddcc453f1f43cabf810f48495a3834a3fde9164b9d180599ed52a9883",
+        "currentSha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a"
+      },
+      {
+        "path": "src/gateway/dispatch.ts",
+        "priorSha256": "4745155b1119931665dc76fe9e4cbe744bd86797a05b86f57c2e725583dcd79a",
+        "currentSha256": "c3a881cb6b7134e1f15153a90647c59e795d7de0373f1cedd0739181ebcffe77"
+      },
+      {
+        "path": "src/gateway/receipt-result.ts",
+        "priorSha256": "022519e8a63879ea32b9e04a2283ac93b423a4bf24b028fd1c3fdada9566d39d",
+        "currentSha256": "9d04abb5b764a4cfa334630487974ae45dc718809ffa46117a98fc851599b072"
+      },
+      {
+        "path": "tests/deploy/root/test_control_update.py",
+        "priorSha256": "f1400157007314730ce1b0ee1784d3df78ce9e36e59d2e6d31c9937317369f58",
+        "currentSha256": "9be3390770927674accd80be57aad118a01d3a2b23f5bc32a1840798892e7c1d"
+      },
+      {
+        "path": "tests/deploy/root/test_proxy_transaction.py",
+        "priorSha256": "f882078959549485217825f0f74d643275a7db52a988563a06eb1558e04bede0",
+        "currentSha256": "d4b16a8eddb8111546569d13bacfcb0877cfae0d1d85a827fbae5920c2d7b26a"
+      },
+      {
+        "path": "tests/deploy/test_control_update.py",
+        "priorSha256": "0be25f150dbf24e9d2f4f7b48207358e75212b590d1dae566902c86f23b8c9e4",
+        "currentSha256": "2a33115e851e649c8c84e540f0bf45d4a46c77437ffe289e0d148b64529d9fb9"
+      },
+      {
+        "path": "tests/deploy/test_operator.py",
+        "priorSha256": "861f93f4701d2213e1b3a9d1e3d7fd49c2934978c97a1a3b4f82686d1280938b",
+        "currentSha256": "dfff4fa9dd6db30073e0ea1f294f8d55065d2492f014767b421902cfd04e21cf"
+      },
+      {
+        "path": "tests/deploy/test_proxy_transaction.py",
+        "priorSha256": "f43cf9105c9f375bf44b6289512e08f641e427a95404809ba1471307553e7ac5",
+        "currentSha256": "453afc2a2ab0cfda5a5621ec96d096291234ac9e307c97ed8e84042e6146994b"
+      },
+      {
+        "path": "tests/deploy/test_service_proxy.py",
+        "priorSha256": "09c2eacb5939e6ce5d4ff78034d15599c5ba716224437c6f569fc06775d219f9",
+        "currentSha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995"
+      }
+    ],
+    "removedFiles": [],
+    "note": "Author snapshot remains the original a1f0 binding; concurrent follow-up changes do not silently rebind this review."
+  },
+  "validatedBoundaries": [
+    "None preserves verified list; explicit[] clears; sorted normalized exact-host generation preserves old empty-list bytes.",
+    "Only canonical leading full: rule is extracted, then entire regenerated document must match; legacy routeOnly/IPIfNonMatch accepted without new list only.",
+    "Invalid list rejected by transaction before capability/config/readiness/download/write; no new user web API.",
+    "List-only operation retains selected core/port/enabled and verifies retained outbound; no core preparation or reimport.",
+    "Same normalized selection returns before journal/stop; recover/rollback validate exact old/candidate configs and preserve private generation files."
+  ],
+  "evidence": {
+    "linux": {
+      "path": ".work/v230-direct-domains-linux-tests.json",
+      "sha256": "681ea6eddc4623831c7da02e6e9116738d56d669fa847ca725ebf89e726fa6ec"
+    },
+    "realCore": {
+      "path": ".work/v230-xray-direct-hosts-regression-result.json",
+      "sha256": "afa949ed60dd5a658ed49ec269c27a2be6721de1d6ea49fdded84e1ef7bd5c9b"
+    },
+    "linuxCases": 52,
+    "linuxFailures": 0,
+    "linuxSkips": 0,
+    "realCoreCases": 18,
+    "realCoreFailures": 0,
+    "reproduction": {
+      "path": ".work/v230-direct-domains-control-compat-repro.json",
+      "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a"
+    }
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "deploy/control_update.py",
+      "line": 506,
+      "title": "Reject control generations that cannot read retained direct-domain policy before selecting them",
+      "trigger": "A nonempty exact direct-host list is retained, enabled or disabled, then control-rollback or control recovery selects prior tested6279 tools advertising serviceProxy:1.",
+      "impact": "The capability guard accepts the old generation although its fixed-policy verifier rejects the retained configuration. Enabled rollback reaches stop/selection before the old proxy helper rejects startup; disabled rollback can select tools unable to manage the retained configuration.",
+      "evidence": {
+        "reproduction": {
+          "path": ".work/v230-direct-domains-control-compat-repro.json",
+          "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a"
+        },
+        "script": {
+          "path": ".work/v230-direct-domains-control-compat-repro.py",
+          "sha256": "5a84687ad897e6b5f6f38b3f0cde78121b0e2242d3b92e52d74d870c87eb65cb"
+        },
+        "observed": "Current guard accepts prior capabilities for both enabled states; prior6279 verifier returns integrity for same valid current canonical bytes.",
+        "callChain": [
+          "update:566 validates using current code",
+          "update:582 checks only serviceProxy:1",
+          "update:616-630 journals/stops/selects/restores",
+          "recover_transaction:370 and recover_candidate:435 reuse same capability guard",
+          "restore_services:300 uses current parent module; proxy-core-check uses selected installed helper"
+        ],
+        "limit": "No actual rollback/service stop was executed by reviewer."
+      },
+      "suggestedFix": "Declare separate direct-host capability in stage_control and require it for every nonempty retained list before update/recovery/rollback selection, including disabled proxies; retain old empty-list compatibility."
+    }
+  ],
+  "remainingFindings": [
+    {
+      "priority": "P2",
+      "path": "deploy/control_update.py",
+      "line": 506,
+      "title": "Reject control generations that cannot read retained direct-domain policy before selecting them",
+      "trigger": "A nonempty exact direct-host list is retained, enabled or disabled, then control-rollback or control recovery selects prior tested6279 tools advertising serviceProxy:1.",
+      "impact": "The capability guard accepts the old generation although its fixed-policy verifier rejects the retained configuration. Enabled rollback reaches stop/selection before the old proxy helper rejects startup; disabled rollback can select tools unable to manage the retained configuration.",
+      "evidence": {
+        "reproduction": {
+          "path": ".work/v230-direct-domains-control-compat-repro.json",
+          "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a"
+        },
+        "script": {
+          "path": ".work/v230-direct-domains-control-compat-repro.py",
+          "sha256": "5a84687ad897e6b5f6f38b3f0cde78121b0e2242d3b92e52d74d870c87eb65cb"
+        },
+        "observed": "Current guard accepts prior capabilities for both enabled states; prior6279 verifier returns integrity for same valid current canonical bytes.",
+        "callChain": [
+          "update:566 validates using current code",
+          "update:582 checks only serviceProxy:1",
+          "update:616-630 journals/stops/selects/restores",
+          "recover_transaction:370 and recover_candidate:435 reuse same capability guard",
+          "restore_services:300 uses current parent module; proxy-core-check uses selected installed helper"
+        ],
+        "limit": "No actual rollback/service stop was executed by reviewer."
+      },
+      "suggestedFix": "Declare separate direct-host capability in stage_control and require it for every nonempty retained list before update/recovery/rollback selection, including disabled proxies; retain old empty-list compatibility."
+    }
+  ],
+  "limits": [
+    "Reviewer executed one offline synthetic compatibility reproduction, no service/network/remote mutation/full suite.",
+    "52-case Linux fixture substitutes service/nft/download operations;18-case real Xray uses loopback namespace and local VLESS/freedom peers. Neither establishes actual public provider/API connectivity.",
+    "CLI/menu and documentation authored by this reviewer/root are excluded from this independent backend signoff; root reviews them.",
+    "Follow-up capability fix and new MCP requirements require a new current freeze/independent closure. No CI4 or publication authorization is asserted."
+  ]
+}

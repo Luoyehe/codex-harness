@@ -394,10 +394,15 @@ class Console:
         current = self.command("proxy-status")
         self.output("服务专属代理：" + ("已启用" if current.get("enabled") else "已关闭 / 未配置") +
                     "；Xray " + str(current.get("coreVersion") or "未安装"))
-        self.output("仅代理本实例 Agent、终端、网关和管理目录请求的 TCP；普通与 root 身份均适用，不包含其它系统服务或 root 进程。智谱 bigmodel.cn、中国及私有地址直连，不代理 UDP。")
+        self.output("仅代理本实例 Agent、终端、网关和管理目录请求的 TCP；普通与 root 身份均适用，不包含其它系统服务或 root 进程。常见国内域名及自定义名单直连；中国 IP 和私有地址直连，未收录域名默认代理，不代理 UDP。")
+        self.output("自定义精确直连域名：" + ("、".join(current.get("directDomains", [])) or "无"))
         self.output("启用需 systemd 255+、nftables、cgroup v2。输入只接受服务器 root:0600 的 VLESS outbound JSON；不在网页、命令行参数或日志输入节点密钥。")
         choice = self.choice("服务专属代理", {"1": "配置 / 启用 VLESS", "2": "关闭代理（保留配置和核心）",
-                             "3": "更新 Xray 核心", "4": "回滚上一项代理配置 / 核心", "5": "恢复中断的代理事务"})
+                             "3": "更新 Xray 核心", "4": "回滚上一项代理配置 / 核心", "5": "恢复中断的代理事务",
+                             "6": "直连域名"})
+        if choice == "6":
+            self.proxy_direct_domains(current)
+            return
         arguments = []
         version = None
         download_proxy = ""
@@ -428,6 +433,32 @@ class Console:
             arguments.append("--confirm-restart")
         self.command({"1": "proxy-configure", "2": "proxy-disable", "3": "proxy-core-update", "4": "proxy-rollback", "5": "proxy-recover"}[choice], *arguments)
         self.output("代理操作完成；旧核心和恢复材料已保留。请检查状态，失败或未知时不要重复提交。")
+
+    def proxy_direct_domains(self, current: dict) -> None:
+        from .service_proxy import normalize_direct_domains
+        require(current.get("configured") is True, "请先配置服务专属代理；直连名单不会自动配置或启用代理。", "not_installed")
+        self.output("名单可选，仅填写完整 ASCII 主机名，例如 api.example.cn；不接受 URL、路径、端口、凭据或通配符。")
+        self.output("每项精确匹配该主机名的全部端口，不自动包含子域名；子域名需另列。内置直连规则保持不变。")
+        choice = self.choice("直连域名", {"1": "替换自定义名单", "2": "清空自定义名单", "0": "返回"}, "0")
+        if choice == "0":
+            return
+        domains = []
+        if choice == "1":
+            value = self.prompt("完整域名，用空格或英文逗号分隔（最多 64 项）")
+            require(len(value) <= 64 * 256, "直连域名输入过长。", "budget")
+            values = value.replace(",", " ").split()
+            require(values, "名单不能为空；如需清空，请选择清空自定义名单。")
+            domains = normalize_direct_domains(values)
+        if domains == current.get("directDomains", []):
+            self.output("自定义直连名单未变化。")
+            return
+        self.output("将保存精确直连域名：" + ("、".join(domains) or "无（仅保留内置规则）"))
+        self.output("复用当前节点和 Xray 核心，保持代理启用或关闭状态；不下载核心或重新导入节点。")
+        if not self.confirm("任务空闲且终端关闭，确认更新名单并短暂停启服务"):
+            return
+        arguments = [item for domain in domains for item in ("--direct-domain", domain)] if domains else ["--clear-direct-domains"]
+        self.command("proxy-direct-domains", *arguments, "--confirm-restart")
+        self.output("直连名单已更新；旧配置和恢复材料已保留。")
 
     def select_instance(self, *, prefer_current: bool = False) -> None:
         known = installed_instances()

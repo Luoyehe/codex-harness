@@ -18,6 +18,7 @@ export class ManagerClient implements ManagerPort {
   // Serialize our own helpers without retrying a dispatched management request.
   private queue: Pending[] = [];
   private active: Pending | undefined;
+  private recovery: Pending | undefined;
   private retainedBytes = 0;
   constructor(readonly command: string | undefined) {
     if (!command) return;
@@ -31,21 +32,30 @@ export class ManagerClient implements ManagerPort {
   }
   call(method: string, params: JsonObject, operationId?: string, beforeWrite?: () => void): Promise<JsonValue> {
     if (!this.command) return Promise.reject(new HarnessError('not_installed', '服务器管理仅在安装后的 Linux 服务中可用。'));
+    const urgent = method === 'recover';
+    if (urgent && (Object.keys(params).length !== 1 || params.confirmStop !== true ||
+        !operationId || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(operationId)))
+      return Promise.reject(new HarnessError('invalid', '强制恢复需要明确确认和固定操作编号。'));
+    if (urgent && this.recovery) return Promise.reject(new HarnessError('recovery_pending', '已有强制恢复请求尚未退出，请查询原操作记录。'));
     const payload = JSON.stringify({ method, params, ...(operationId ? { operationId } : {}) });
     const bytes = Buffer.byteLength(payload);
     if (bytes > 1024 * 1024) return Promise.reject(new HarnessError('capacity', '管理参数过大。'));
-    if (this.queue.length + Number(!!this.active) >= MAX_PENDING || this.retainedBytes + bytes > MAX_RETAINED_BYTES)
+    if (!urgent && (this.queue.length + Number(!!this.active) >= MAX_PENDING || this.retainedBytes + bytes > MAX_RETAINED_BYTES))
       return Promise.reject(new HarnessError('capacity', '管理请求正在等待处理，请稍后重试。'));
     return new Promise((resolve, reject) => {
       const entry: Pending = { payload, bytes, beforeWrite, deadline: performance.now() + DEADLINE_MS, wrote: false, settled: false, released: false, resolve, reject };
-      this.retainedBytes += bytes; this.queue.push(entry);
+      this.retainedBytes += bytes;
+      if (urgent) this.recovery = entry; else this.queue.push(entry);
       entry.timer = setTimeout(() => {
         this.settle(entry, new HarnessError('manager_timeout', entry.wrote
           ? '管理操作未得到完整确认，请查询操作记录与服务状态。' : '管理请求等待超时，本次请求尚未发送。', entry.wrote ? 'unknown' : 'not_sent'));
-        if (this.active === entry) this.terminate(entry);
+        if (this.active === entry || this.recovery === entry) this.terminate(entry);
         else { this.queue = this.queue.filter(value => value !== entry); this.release(entry); }
       }, DEADLINE_MS);
-      this.pump();
+      // A stuck ordinary helper must not starve the sole emergency request.
+      // The root helper still takes the real nonblocking management lock: an
+      // existing configuration transaction is never cancelled or overwritten.
+      if (urgent) this.launch(entry); else this.pump();
     });
   }
   private settle(entry: Pending, error?: unknown, value?: JsonValue): void {
@@ -60,12 +70,16 @@ export class ManagerClient implements ManagerPort {
     if (entry.released) return;
     entry.released = true; this.retainedBytes -= entry.bytes;
     if (this.active === entry) this.active = undefined;
+    if (this.recovery === entry) this.recovery = undefined;
     this.pump();
   }
   private pump(): void {
-    if (this.active) return;
+    if (this.active || this.recovery) return;
     const entry = this.queue.shift(); if (!entry) return;
     this.active = entry;
+    this.launch(entry);
+  }
+  private launch(entry: Pending): void {
     let child: ChildProcessByStdio<Writable, Readable, null>;
     try {
       child = spawn('/usr/bin/sudo', ['-n', this.command!, 'rpc'], {

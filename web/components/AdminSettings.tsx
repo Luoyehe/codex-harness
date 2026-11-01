@@ -31,7 +31,7 @@ function readManager(
   return pending;
 }
 
-export function AdminSettings({ api, epoch, configurationReady = true }: { api: Api; epoch: string; configurationReady?: boolean }) {
+export function AdminSettings({ api, epoch, configurationReady = true, onRecover }: { api: Api; epoch: string; configurationReady?: boolean; onRecover?: () => void }) {
   const [logService, setLogService] = useState('gateway');
   const status = useResource(epoch, (signal) => readManager(api, 'system/status', {}, signal));
   const logs = useResource(`${epoch}:${logService}`, (signal) =>
@@ -46,6 +46,11 @@ export function AdminSettings({ api, epoch, configurationReady = true }: { api: 
     [restart, setRestart] = useState(false);
   return (
     <section className="stack">
+      {onRecover && <div className="info-card stack">
+        <h3>任务卡住或状态未知</h3>
+        <p className="muted">强制停止本实例后台执行并恢复连接。保留草稿与未知回执，不重放任务；可在后台未就绪时使用。</p>
+        <div><button className="button danger" onClick={onRecover}>强制停止并恢复</button></div>
+      </div>}
       <div className="section-heading">
         <h3>服务状态</h3>
         <button className="button" disabled={status.loading} onClick={status.refresh}>

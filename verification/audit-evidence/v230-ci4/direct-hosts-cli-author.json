@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "direct-domains-operator-implementation",
+  "reviewerId": "v230_audit_runtime",
+  "complete": true,
+  "completedAt": "2026-11-01T07:10:20.940168+00:00",
+  "baseCommit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "sourceFreeze": "Not frozen; concurrent backend/docs owners are completing their authorized changes. Prior6279/045d full-CI does not cover these new source bytes.",
+  "files": [
+    {
+      "path": "deploy/cli.py",
+      "sha256": "f7876c45107c9808194527b940fbb36c8fe9fc345085953a805eba7905ddda34"
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "0d50b6f6c8a0372fd38a5253638a2f2ead973e924b3ccd64bb65b7d568843dc9"
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "dfff4fa9dd6db30073e0ea1f294f8d55065d2492f014767b421902cfd04e21cf"
+    }
+  ],
+  "backendDependenciesAtCompletion": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "b6433c9b7575e4c3eb113e2507f2c2c639cee396fd8eb027d80bdce1d8132d7a"
+    },
+    {
+      "path": "deploy/proxy_transaction.py",
+      "sha256": "1e4bbf817096cf7b2fcbcf1fea7883f82b3e911b0f7261f6d2bb84838587dce0"
+    }
+  ],
+  "implementation": [
+    "proxy-configure has mutually exclusive repeatable --direct-domain or --clear-direct-domains; omitted value stays None, clear becomes[], explicit names replace.",
+    "Dedicated server-only proxy-direct-domains requires explicit replacement or clear and dispatches action direct-domains to the existing journaled transaction. It exposes no core download or node import arguments.",
+    "CLI and menu share normalize_direct_domains: bounded exact ASCII hostnames, lowercase and one trailing-dot normalization; no URL/credentials/port/wildcard parsing.",
+    "Server menu displays the current list, offers replace/clear/back, previews normalized names and confirms restart; no-op, cancel, invalid or unconfigured input do not dispatch mutation.",
+    "Menu explains optional exact names/all ports/no implicit subdomains, built-in common-domestic/private routing, default proxy for unlisted hosts and preserving current core/node/enabled state.",
+    "CLI version example updated from withdrawn26.10.29 to26.10.31. No application/web/package files modified."
+  ],
+  "tests": {
+    "evidence": {
+      "path": ".work/v230-direct-domains-operator-tests.json",
+      "sha256": "59a3e3dd71923ae96f6d7bf8ea3470d44231a688a48b94518d564d2af1f9e818"
+    },
+    "platform": "win32",
+    "selectedFiles": [
+      "tests/deploy/test_operator.py"
+    ],
+    "cases": 40,
+    "passed": 40,
+    "failed": 0,
+    "skipped": 0,
+    "not-run": 0,
+    "exitCode": 0,
+    "command": "python -B -X utf8 scripts/python-tests.py .work/v230-direct-domains-operator-tests.json tests/deploy/test_operator.py",
+    "runs": 1,
+    "failedAttempts": [],
+    "method": "Real parser and menu journeys with local fake operation dispatch; real execute routing with host admission and transaction call substituted. Shared backend hostname validator is real."
+  },
+  "checks": {
+    "ownedPythonAst": "passed",
+    "ownedGitDiffCheck": "passed"
+  },
+  "limits": [
+    "Author implementation report, not independent audit.",
+    "No full suite, remote service mutation, paid inference, personal credentials, publication or closeout draft generation.",
+    "Host service start/stop, config generations, recovery and real Xray matching are backend/independent test responsibilities, not established by these40 operator tests.",
+    "No claim of automatically identifying every domestic/no-proxy-needed domain."
+  ]
+}

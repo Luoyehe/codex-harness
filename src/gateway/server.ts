@@ -169,7 +169,7 @@ export class GatewayServer {
   }
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     security(res); let release: (() => void) | undefined;
-    let authenticationMutationStarted = false, authenticationMutationCompleted = false;
+    let authenticationMutationStarted = false, authenticationMutationCompleted = false, rpcCompleted = false;
     let backendSettled = false, responseSettled = false;
     let unwatch = () => {};
     const releaseWhenSettled = () => { if (backendSettled && responseSettled) release?.(); };
@@ -271,14 +271,18 @@ export class GatewayServer {
           if (!connection || this.#browsers.get(clientId) !== connection || connection.socket.readyState !== WebSocket.OPEN || this.#connecting.has(clientId) || this.#disconnecting.has(clientId))
             throw new HarnessError('connection_required', '此操作需要已就绪的实时连接，请稍后重试。');
         };
-        const result = await this.dispatcher.call(call, { clientId: connection?.workerClientId ?? clientId, requireAuthorization, requireConnection }); this.json(res, { ok: true, result }); return;
+        const result = await this.dispatcher.call(call, { clientId: connection?.workerClientId ?? clientId, requireAuthorization, requireConnection });
+        rpcCompleted = true;
+        this.json(res, { ok: true, result }); return;
       }
       if (url.pathname.startsWith('/api/')) throw new HarnessError('not_found', '接口不存在。');
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HarnessError('method_not_allowed', '不支持此请求方法。');
       await this.serveStatic(url.pathname, req, res);
     } catch (error) {
       const failure = errorBody(error, authenticationMutationStarted ? 'unknown' : 'not_sent');
-      if (authenticationMutationCompleted) failure.delivery = 'unknown';
+      // Response encoding/admission can fail after the operation committed. Its
+      // original receipt remains authoritative; never invite a fresh retry.
+      if (authenticationMutationCompleted || rpcCompleted) failure.delivery = 'unknown';
       const status = ['unauthorized', 'mfa_required'].includes(failure.code) ? 401 : ['csrf', 'host', 'origin'].includes(failure.code) ? 403 : failure.code === 'not_found' ? 404 : failure.code === 'rate_limited' ? 429 : 400;
       try { if (!res.headersSent) this.json(res, { ok: false, error: { ...failure } }, status); else { res.destroy(); req.socket.destroy(); } }
       catch { res.destroy(); req.socket.destroy(); } // An exhausted output budget cannot allocate an unbounded error response.

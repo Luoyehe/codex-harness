@@ -11,12 +11,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.cli import parser
-from deploy.common import DeployError, Layout, atomic_write, digest, mkdir, read_json, write_json
+from deploy.common import DeployError, Layout, atomic_write, canonical, digest, mkdir, read_json, write_json
 from deploy.control_update import BLOCKER, ControlSystem, ControlUpdater, ROLES, require_no_pending_control, tree_manifest
 from deploy.install import stage_control, write_control_launchers
 from deploy.safe_fs import inspect_tree
 from deploy.units import render_units, render_edge_units, sudo_rule
-from deploy.service_proxy import PROXY_ROLES
+from deploy.service_proxy import PROXY_ROLES, configuration, config_path
 from tests.deploy.test_control_update import previous_sudo_policy
 
 
@@ -134,17 +134,25 @@ class ControlUpdateTests(unittest.TestCase):
         for name in ("manage", "native-launch", "deploy/cli.py", "deploy/native_launcher.py"):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
-                                                      "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1}, mode=0o644)
+                                                      "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1,
+                                                      "serviceProxyDirectDomains": 1}, mode=0o644)
 
-    def configure_proxy(self):
-        self.updater.config["serviceProxy"] = {"enabled": True, "port": 18793,
-                                                "core": "a" * 64, "configuration": "b" * 64}
+    def configure_proxy(self, direct_domains=None, enabled=True):
+        document = configuration({"protocol": "vless", "settings": {}}, 18793, direct_domains)
+        identity = hashlib.sha256(canonical(document) + b"\n").hexdigest()
+        target = config_path(self.layout, identity); mkdir(target.parent, 0o700)
+        write_json(target, document)
+        self.updater.config["serviceProxy"] = {"enabled": enabled, "port": 18793,
+                                                "core": "a" * 64, "configuration": identity}
         write_json(self.layout.config / "instance.json", self.updater.config)
         for name, content in render_units(self.layout, self.updater.config, self.updater.config["codexRelative"]).items():
             atomic_write(self.layout.units / name, content.encode(), 0o644)
         capabilities = read_json(self.layout.control / "capabilities.json")
         write_json(self.layout.control / "capabilities.json", {**capabilities, "serviceProxy": 1}, mode=0o644)
-        self.system.active.update(PROXY_ROLES)
+        if enabled:
+            self.system.active.update(PROXY_ROLES)
+        else:
+            self.system.active.difference_update(PROXY_ROLES)
         self.system.enabled.update({role: "static" for role in PROXY_ROLES})
         # This fixture checks lifecycle/real file snapshots. Proxy-specific root
         # tests independently exercise executable and configuration ownership.
@@ -207,6 +215,82 @@ class ControlUpdateTests(unittest.TestCase):
                 with self.subTest(target=target), self.assertRaisesRegex(DeployError, "corrupt proxy bytes"):
                     self.updater.recover(target=target)
             self.assertEqual(self.system.events, events)
+
+    def test_direct_hosts_reject_old_control_rollback_before_any_service_change(self):
+        for enabled in (False, True):
+            with self.subTest(enabled=enabled):
+                self.configure_proxy(["api.example"], enabled=enabled)
+                updated = self.updater.update()
+                events, active = list(self.system.events), set(self.system.active)
+                before = (self.layout.control / "manage").read_bytes()
+                with self.assertRaisesRegex(DeployError, "exact direct-host") as error:
+                    self.updater.update(updated["transaction"])
+                self.assertEqual(error.exception.code, "proxy_unsupported")
+                self.assertEqual(self.system.events, events); self.assertEqual(self.system.active, active)
+                self.assertEqual((self.layout.control / "manage").read_bytes(), before)
+                self.assertFalse(self.updater.pending())
+                # Model an older retained control capability for the next loop.
+                path = self.layout.control / "capabilities.json"
+                capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains", None)
+                write_json(path, capabilities, mode=0o644)
+
+    def test_direct_hosts_reject_newly_staged_old_control_before_journal_and_stop(self):
+        self.configure_proxy(["api.example"])
+        def old_candidate(layout, destination):
+            self.make_candidate(layout, destination)
+            path = destination / "capabilities.json"
+            capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains")
+            write_json(path, capabilities, mode=0o644)
+        before = (self.layout.control / "manage").read_bytes()
+        with patch("deploy.control_update.stage_control", side_effect=old_candidate), self.assertRaisesRegex(DeployError, "exact direct-host"):
+            self.updater.update()
+        self.assertEqual(self.system.events, [])
+        self.assertEqual((self.layout.control / "manage").read_bytes(), before)
+        self.assertFalse(self.updater.pending())
+
+    def test_direct_hosts_old_recovery_rejects_before_guard_then_capable_candidate_recovers(self):
+        self.configure_proxy(["api.example"], enabled=False)
+        save = self.updater.save
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        events = list(self.system.events)
+        before = (self.layout.control / "manage").read_bytes()
+        with self.assertRaises(DeployError) as error:
+            self.updater.recover(target="old")
+        self.assertEqual(error.exception.code, "proxy_unsupported")
+        self.assertIn("candidate", str(error.exception))
+        self.assertEqual(self.system.events, events)
+        self.assertEqual((self.layout.control / "manage").read_bytes(), before)
+        self.assertTrue(self.updater.pending())
+        self.assertEqual(self.updater.recover(target="candidate")["target"], "candidate")
+        self.assertFalse(self.updater.pending())
+        self.assertFalse(self.updater.config["serviceProxy"]["enabled"])
+
+    def test_direct_hosts_candidate_recovery_rejects_bound_old_capabilities_before_stop(self):
+        self.configure_proxy()
+        save = self.updater.save
+        def old_candidate(layout, destination):
+            self.make_candidate(layout, destination)
+            path = destination / "capabilities.json"
+            capabilities = read_json(path); capabilities.pop("serviceProxyDirectDomains")
+            write_json(path, capabilities, mode=0o644)
+        def crash(directory, state, phase):
+            save(directory, state, phase)
+            if phase == "installed": raise PowerLoss()
+        with patch("deploy.control_update.stage_control", side_effect=old_candidate), patch.object(self.updater, "save", side_effect=crash), self.assertRaises(PowerLoss):
+            self.updater.update()
+        # Model a retained list restored while this control transaction was pending.
+        self.configure_proxy(["api.example"])
+        events = list(self.system.events)
+        before = (self.layout.control / "manage").read_bytes()
+        with self.assertRaisesRegex(DeployError, "exact direct-host"):
+            self.updater.recover(target="candidate")
+        self.assertEqual(self.system.events, events)
+        self.assertEqual((self.layout.control / "manage").read_bytes(), before)
+        self.assertTrue(self.updater.pending())
 
     def current(self):
         return (self.layout.control / "manage").read_bytes()

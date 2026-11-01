@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-direct-hosts-cli-menu-docs-review",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "createdAt": "2026-11-01T07:19:59.242682+00:00",
+  "files": [
+    {
+      "path": "deploy/cli.py",
+      "sha256": "f7876c45107c9808194527b940fbb36c8fe9fc345085953a805eba7905ddda34",
+      "bytes": 31204
+    },
+    {
+      "path": "deploy/operator.py",
+      "sha256": "0d50b6f6c8a0372fd38a5253638a2f2ead973e924b3ccd64bb65b7d568843dc9",
+      "bytes": 30468
+    },
+    {
+      "path": "tests/deploy/test_operator.py",
+      "sha256": "dfff4fa9dd6db30073e0ea1f294f8d55065d2492f014767b421902cfd04e21cf",
+      "bytes": 29383
+    },
+    {
+      "path": "README.md",
+      "sha256": "a1959b3e17bcc4f679f7a36bb2be330e379e6ab29c2d28d2d96a87434addd08a",
+      "bytes": 11809
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "861fbea5b65a378352b6ed759c8c9f546070a0619d0965562e31f0d0c76bd618",
+      "bytes": 107020
+    }
+  ],
+  "findings": [],
+  "depth": {
+    "fresh": "Entire current diff for CLI, operator, operator tests and both READMEs; full proxy command/parser/execute/menu sections and Console prompt/choice/confirm/command error handling; surrounding Linux/root admission, management lock and pending-control guard. Compare concrete docs claims to actual routing and transaction APIs.",
+    "notClaimed": "Not a full-file reread of every unrelated CLI/menu/docs flow; not a whole repository audit or independent review of my own backend/control-compatibility implementation."
+  },
+  "checks": [
+    "CLI mutually exclusive explicit replace/clear; configure omission stays None; direct-only command requires choice and offers no version/input/download fields.",
+    "Menu lists verified current hosts, normalizes and bounds replacement, confirms actual changed list; cancel/noop/invalid input dispatch no mutation. Disabled state is retained by backend; prompt accurately says so.",
+    "Console propagates unknown/error and does not emit success or replay; CLI mutations remain Linux/root operator operations under management lock with pending-control guard.",
+    "README/deployment guide explain proxy off by default, common known-domestic/private/literal-IP direct, no automatic domestic assumption for every custom provider, exact all-port names and separate subdomains/redirect destinations.",
+    "DNS strategy remains AsIs and Host/SNI destination replacement; built-in rules remain; HTTP CONNECT health is explicitly limited and no signed-in provider or transparent-path success is claimed."
+  ],
+  "testEvidence": {
+    "path": ".work/v230-direct-domains-operator-tests.json",
+    "sha256": "59a3e3dd71923ae96f6d7bf8ea3470d44231a688a48b94518d564d2af1f9e818",
+    "bytes": 7431,
+    "counts": {
+      "passed": 40
+    },
+    "method": "Author execution evidence inspected and SHA-verified against unchanged 3files; test bodies independently read. No duplicate execution during this review."
+  },
+  "references": [
+    {
+      "path": ".work/v230-direct-domains-operator-implementation.json",
+      "sha256": "0ea2f3352bdbd6b31803223d1c3bb2b4d820d2273d7deeece6882bf8f1f323e9",
+      "bytes": 3556
+    },
+    {
+      "path": ".work/v230-direct-domains-control-compat-repro.json",
+      "sha256": "effdd93145e1c74c22aac286e247dd63646685ce77f4dd1c7d1e63efae3f0e4a",
+      "bytes": 1001
+    },
+    {
+      "path": ".work/v230-direct-domains-control-compat-repair.json",
+      "sha256": "fa7e7240187fd6094620768e1dc19d242970c7b14f5013ff7f7b35ac39777215",
+      "bytes": 6388
+    }
+  ],
+  "relatedKnownIssue": "Peer control capability gap was outside CLI/menu implementation and subsequently fixed by this reviewer; its closure requires separate independent reviewer. It is not claimed independently clean here.",
+  "limits": [
+    "No full suite, source edits, browser/server operations or external network in this CLI review.",
+    "Source a1f0 routing experiment was an interim targeted snapshot; new force-stop/MCP work means no final whole-repository freeze or release authorization is asserted."
+  ]
+}

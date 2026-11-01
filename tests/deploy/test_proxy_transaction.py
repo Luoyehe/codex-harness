@@ -7,6 +7,7 @@ unit comparisons remain production code. Actual root ownership has separate test
 import base64
 import contextlib
 import copy
+import hashlib
 import io
 import os
 import tempfile
@@ -17,9 +18,9 @@ from unittest.mock import Mock, patch
 
 from deploy import proxy_transaction as transaction
 from deploy.cli import parser
-from deploy.common import DeployError, Layout, write_json
+from deploy.common import DeployError, Layout, canonical, write_json
 from deploy.manager import validate_request
-from deploy.service_proxy import PROXY_ROLES
+from deploy.service_proxy import PROXY_ROLES, configuration, config_path
 from deploy.units import render_units, sudo_rule
 
 
@@ -130,13 +131,17 @@ class ProxyTransactionTests(unittest.TestCase):
         original = (self.layout.config / "instance.json").read_bytes()
         result = transaction.change(self.manager, action="disable", confirm_restart=True)
         self.assertEqual(result, {"configured": False, "enabled": False, "coreVersion": None,
-                                  "changed": False, "servicesRestored": True})
+                                  "directDomains": [], "changed": False, "servicesRestored": True})
         self.assertEqual((self.layout.config / "instance.json").read_bytes(), original)
         self.assertEqual(list((self.layout.state / "transactions").iterdir()), [])
         self.manager.system.stop.assert_not_called(); self.manager.system.start.assert_not_called()
 
     def test_same_core_update_preserves_disabled_selection_without_new_transaction(self):
-        self.write_current({**self.config, "serviceProxy": selection(enabled=False)})
+        document = configuration({"protocol": "vless", "settings": {}}, 18793)
+        identity = hashlib.sha256(canonical(document) + b"\n").hexdigest()
+        target = config_path(self.layout, identity); target.parent.mkdir(parents=True)
+        write_json(target, document)
+        self.write_current({**self.config, "serviceProxy": {**selection(enabled=False), "configuration": identity}})
         original = (self.layout.config / "instance.json").read_bytes()
         with patch("deploy.proxy_core.prepare_core", return_value={"core": "a" * 64}) as prepare, \
              patch.object(transaction, "snapshot") as snapshot:
@@ -149,8 +154,12 @@ class ProxyTransactionTests(unittest.TestCase):
         self.manager.system.stop.assert_not_called()
 
     def test_busy_after_preparation_never_creates_an_intent_or_stops_services(self):
+        document = configuration({"protocol": "vless", "settings": {}}, 18793)
+        identity = hashlib.sha256(canonical(document) + b"\n").hexdigest()
+        target = config_path(self.layout, identity); target.parent.mkdir(parents=True)
+        write_json(target, document)
         with patch("deploy.candidate_archive.require_idle", side_effect=[None, DeployError("busy", "new task")]) as idle, \
-             patch.object(transaction, "prerequisites"), patch.object(transaction, "prepare_configuration", return_value="b" * 64), \
+             patch.object(transaction, "prerequisites"), patch.object(transaction, "prepare_configuration", return_value=identity), \
              patch("deploy.proxy_core.prepare_core", return_value={"core": "a" * 64}) as core, \
              patch.object(transaction, "check_core_config"), patch.object(transaction, "snapshot") as snapshot:
             with self.assertRaises(DeployError) as error:

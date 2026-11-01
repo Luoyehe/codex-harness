@@ -30,6 +30,17 @@ it('handles sustained completed operations with constant recovery metadata and n
   expect(await operationTransaction(async (records, metadata) => [await stored(records.count()), await stored(metadata.count())])).toEqual([0, 1]);
 });
 
+it('reserves one recovery slot at capacity and durably captures only prior unresolved operations', async () => {
+  const before = [];
+  for (let i = 0; i < 200; i++) before.push(await createOperation('turn/start', { threadId: `blocked-${i}` }));
+  await expect(createOperation('project/add', {})).rejects.toThrow('200');
+  const recovery = await createOperation('system/recover', {});
+  expect(new Set(recovery.recoveryOperations)).toEqual(new Set(before.map(({ id, method }) => ({ id, method }))));
+  expect((await listOperations()).find(row => row.id === recovery.id)?.recoveryOperations).toEqual(recovery.recoveryOperations);
+  await expect(createOperation('system/recover', {})).rejects.toThrow();
+  expect(await listOperations()).toHaveLength(201);
+});
+
 it('keeps more than 200 real API chat submissions usable while preserving unseen creates and unknown results', async () => {
   const fetch = vi.fn(async (_url: unknown, init: RequestInit) => {
     const body = JSON.parse(String(init.body));

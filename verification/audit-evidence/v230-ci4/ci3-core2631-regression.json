@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "kind": "real-xray-core2631-targeted-regression",
+  "reviewerId": "v230_audit_gateway_tooling",
+  "complete": true,
+  "passed": true,
+  "completedAt": "2026-11-01T06:58:34.631797+00:00",
+  "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "sourceDigest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717",
+  "sourceFiles": 1975,
+  "sourceBefore": {
+    "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+    "files": 1975,
+    "digest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717"
+  },
+  "sourceAfter": {
+    "head": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+    "files": 1975,
+    "digest": "045dafe5c4ac92de75fe3e01386192f9e8e90ae5c93cea5e9b7f1a694bdd3717"
+  },
+  "sourceHashes": [
+    {
+      "path": "deploy/service_proxy.py",
+      "sha256": "acb97c3ddcc453f1f43cabf810f48495a3834a3fde9164b9d180599ed52a9883"
+    }
+  ],
+  "scope": "One necessary repeat of the original12 synthetic routing cases on newly prepared Xray26.10.31 after the external core version changed. Product source and prior CI3 source remain unchanged.",
+  "core": {
+    "version": "26.10.31",
+    "directory": "/opt/codex-harness-proxy/crtest-rw-20261025/cores/e4bd9119f50ae7c41658b1abd0679ae06f98bd864a2907ff33f2f2cf7081b214",
+    "archiveSha256": "e4bd9119f50ae7c41658b1abd0679ae06f98bd864a2907ff33f2f2cf7081b214",
+    "manifestSha256": "326d0a1c7b12e32f98bba21cc369e77b15a12e34373c3aa40f6c79f7925b7e5d",
+    "assets": {
+      "xray": {
+        "sha256": "cc4b84d3069569f297a61f04b914f2bb37e9d202fd7b84cb50def1fc30fd40e1",
+        "bytes": 35151996,
+        "sourceInode": 7743743,
+        "copyInode": 16913394,
+        "sourceUnchanged": true,
+        "sourceUnchangedAfter": true
+      },
+      "geoip.dat": {
+        "sha256": "ce90dc02a81528109c99d769e1f8fe3071ded6b02a574f31e62d8f4eee312563",
+        "bytes": 3312784,
+        "sourceInode": 7743744,
+        "copyInode": 16913395,
+        "sourceUnchanged": true,
+        "sourceUnchangedAfter": true
+      },
+      "geosite.dat": {
+        "sha256": "9ee94acb06e2f795831fb1589c0dc7af9242b0fb8d9196afd981b915b1097ed3",
+        "bytes": 7554929,
+        "sourceInode": 7743745,
+        "copyInode": 16913396,
+        "sourceUnchanged": true,
+        "sourceUnchangedAfter": true
+      }
+    },
+    "versionOutput": "Xray 26.10.31 (Xray, Penetrates Everything.) a4a3dff (go1.27.3 linux/amd64)\nA unified platform for anti-censorship.",
+    "prepareEvidence": {
+      "path": ".work/v230-ci3-core-2631-prepare.json",
+      "sha256": "c43d099a6947cc203ecef135df8dd3bd6505f371acdd799f8589fa2c8d56370e"
+    }
+  },
+  "execution": {
+    "runs": 1,
+    "cases": 12,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "timedOut": false,
+    "network": {
+      "hostNamespace": "net:[4026531840]",
+      "fixtureNamespace": "net:[4026533811]",
+      "interfaces": [
+        "lo"
+      ],
+      "onlyLoopbackRoutes": true,
+      "publicNetworkAvailable": false
+    },
+    "transport": "Existing SSH alias root-192-168-1-120, BatchMode=yes and StrictHostKeyChecking=yes; Python stdin; no credentials read into evidence.",
+    "sameCaseBodiesAndArguments": true,
+    "sameSixServiceObserver": true,
+    "caseResults": [
+      {
+        "name": "http-old-preserves-wrong-ip",
+        "protocol": "http",
+        "routeOnly": true,
+        "domainStrategy": "IPIfNonMatch",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "a06f9f4e820296cdc2406a7f4552d923b1822c63976ce92cf356c5e0844a773c",
+        "expectedRoute": "proxy",
+        "expectedDestination": "1.1.1.1",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 1,
+          "destination": "1.1.1.1",
+          "port": 80
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "http-rewrite-only-cn-dns-misdirect",
+        "protocol": "http",
+        "routeOnly": false,
+        "domainStrategy": "IPIfNonMatch",
+        "dnsHostAnswer": "114.114.114.114",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "e4c73e85eee2f96a5f9565f009105f7579012d244d7672951692070532290edd",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 85
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 266
+      },
+      {
+        "name": "http-candidate-cn-dns-domain",
+        "protocol": "http",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "114.114.114.114",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "6e035ce71ad1dcae88c81c5e384241b33aa738a84823338e1b8bcb6a06972ef5",
+        "expectedRoute": "proxy",
+        "expectedDestination": "routing-fixture.invalid",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 2,
+          "destination": "routing-fixture.invalid",
+          "port": 80
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "http-candidate-private-dns-domain",
+        "protocol": "http",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "127.0.0.9",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "6c8edc650e64206481b68946370e996ff65e1d05d642b4f5a819a285894d24a7",
+        "expectedRoute": "proxy",
+        "expectedDestination": "routing-fixture.invalid",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 2,
+          "destination": "routing-fixture.invalid",
+          "port": 80
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "tls-old-preserves-wrong-ip",
+        "protocol": "tls",
+        "routeOnly": true,
+        "domainStrategy": "IPIfNonMatch",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "f547214c0744b80ae37be2628276b5a1443a69a3f9836798a5bbbd3847716a68",
+        "expectedRoute": "proxy",
+        "expectedDestination": "1.1.1.1",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 1,
+          "destination": "1.1.1.1",
+          "port": 443
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "tls-rewrite-only-cn-dns-misdirect",
+        "protocol": "tls",
+        "routeOnly": false,
+        "domainStrategy": "IPIfNonMatch",
+        "dnsHostAnswer": "114.114.114.114",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "4d5580d0775424c45c874e716342a04795a88f41f29575015d5eb26b40501bfe",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 517
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 267
+      },
+      {
+        "name": "tls-candidate-cn-dns-domain",
+        "protocol": "tls",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "114.114.114.114",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "de6c9f38290369fa19df6dc5b70e864800d40928fd90de3755e37792fb13ef12",
+        "expectedRoute": "proxy",
+        "expectedDestination": "routing-fixture.invalid",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 2,
+          "destination": "routing-fixture.invalid",
+          "port": 443
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "tls-candidate-private-dns-domain",
+        "protocol": "tls",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "127.0.0.9",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "f8083417bae3621179e01a2021bed6e845cf408a015f53e9f46457b6a6489a46",
+        "expectedRoute": "proxy",
+        "expectedDestination": "routing-fixture.invalid",
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "proxy",
+          "addressType": 2,
+          "destination": "routing-fixture.invalid",
+          "port": 443
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "candidate-cn-geosite-direct",
+        "protocol": "http",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "www.baidu.com",
+        "configurationSha256": "0c2f618db808502513a607f15dd1c93d9926648b19529182ee1c0b95a7d054b7",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 75
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 266
+      },
+      {
+        "name": "candidate-bigmodel-direct",
+        "protocol": "tls",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "1.1.1.1",
+        "sniffedDomain": "open.bigmodel.cn",
+        "configurationSha256": "3059c3e1e21cb680d99a69d6a614088be766c2bfddd52f3475a6a351bf0eaf02",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 517
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 266
+      },
+      {
+        "name": "candidate-literal-cn-direct",
+        "protocol": "opaque",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "114.114.114.114",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "7b39c8a17eb1fced2ba0e8ae09b15304891fd8554be69d5f4e1e3f59c6307429",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 26
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 264
+      },
+      {
+        "name": "candidate-literal-private-direct",
+        "protocol": "opaque",
+        "routeOnly": false,
+        "domainStrategy": "AsIs",
+        "dnsHostAnswer": "8.8.8.8",
+        "originalDestination": "127.0.0.9",
+        "sniffedDomain": "routing-fixture.invalid",
+        "configurationSha256": "94b34ad61e698dbe78581ebe5a1e73993db3f08a09c96ad3b24575650cdd15bb",
+        "expectedRoute": "direct",
+        "expectedDestination": null,
+        "configurationTestExitCode": 0,
+        "observed": {
+          "route": "direct",
+          "payloadBytesObserved": 26
+        },
+        "passed": true,
+        "coreExited": true,
+        "receiversClosed": true,
+        "elapsedMs": 267
+      }
+    ]
+  },
+  "preservation": {
+    "servicesBefore": {
+      "codex-harness-crtest-rw-20261025-worker.service": "MainPID=4159256\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-gateway.service": "MainPID=4159287\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-proxy.service": "MainPID=4159223\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-proxy-routes.service": "MainPID=0\nActiveState=active\nSubState=exited\n",
+      "harness-vless-crtest.service": "MainPID=0\nActiveState=inactive\nSubState=dead\n",
+      "codex-harness-proxy.service": "MainPID=1910300\nActiveState=active\nSubState=running\n"
+    },
+    "servicesAfter": {
+      "codex-harness-crtest-rw-20261025-worker.service": "MainPID=4159256\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-gateway.service": "MainPID=4159287\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-proxy.service": "MainPID=4159223\nActiveState=active\nSubState=running\n",
+      "codex-harness-crtest-rw-20261025-proxy-routes.service": "MainPID=0\nActiveState=active\nSubState=exited\n",
+      "harness-vless-crtest.service": "MainPID=0\nActiveState=inactive\nSubState=dead\n",
+      "codex-harness-proxy.service": "MainPID=1910300\nActiveState=active\nSubState=running\n"
+    },
+    "sixServicePidsAndStatesUnchanged": true,
+    "sourceCoreAssetsAndManifestUnchangedAfter": true,
+    "allCoreProcessesExited": true,
+    "allReceiverThreadsClosed": true,
+    "fixtureProcessGroupGone": true,
+    "nftOperations": [],
+    "hostServiceMutations": [],
+    "originalEvidenceHashesRetained": [
+      {
+        "path": ".work/v230-xray-dns-regression.py",
+        "sha256": "c4d227cc419b705b9c42164c0f3d2d8631ad55b9c6e3d684d6ed6956934ff2dc"
+      },
+      {
+        "path": ".work/v230-run-xray-dns-regression.py",
+        "sha256": "c08125bc8b761a11610376972698baa16e126bd2a153b4d34825184a823d1a87"
+      },
+      {
+        "path": ".work/v230-xray-dns-regression-result.json",
+        "sha256": "f77a572f0ca7b136adb5b07dcd5aaab60dae1aa04911240eddfcb514bd435766"
+      },
+      {
+        "path": ".work/v230-xray-dns-regression-report.json",
+        "sha256": "034d90957b29c1c2e823e98c58aa857404483914cc36b72b14f9cbcfbe712e6b"
+      }
+    ],
+    "retainedFixture": "/var/lib/crtest-v230-proxy-dns-core2631-dbcdc9022ad846e5a9a6f35aed7f9aea",
+    "retentionNote": "Unique private directory contains only public core copies, synthetic configurations and evidence. Process/thread/network-namespace cleanup is verified; filesystem artifacts are deliberately retained, not described as deleted."
+  },
+  "evidence": [
+    {
+      "path": ".work/v230-xray-dns-regression-core2631-result.json",
+      "sha256": "f82364e632aed845b217eafe9a90bfae458cdd30be16eb1fefed0110a424eb78"
+    },
+    {
+      "path": ".work/v230-xray-dns-regression-core2631.py",
+      "sha256": "7fef5ad0b155de4f0cdc1669361356d1361cfbe39a79c74edc633bc2dc97ad1c"
+    },
+    {
+      "path": ".work/v230-run-xray-dns-regression-core2631.py",
+      "sha256": "6aa57fd1ee639ee46199b590fab6b2201df2139618333ff2484bef7792b9a1d0"
+    },
+    {
+      "path": ".work/v230-xray-dns-regression-core2631-baseline.json",
+      "sha256": "16a44064d984802103a0eb8e07acb08dd6e0a5d77b70919bc481585427e8aa93"
+    },
+    {
+      "path": ".work/v230-xray-dns-regression-core2631-run.log",
+      "sha256": "ec0e880bdf2c4680527b6efded1cdfcaacc760611b2b6f7ba91f626eae46dfd7"
+    }
+  ],
+  "separateIndependentReview": {
+    "path": ".work/v230-ci3-core2631-independent-review.json",
+    "sha256": "306661651bff274a792f9d71f2bc3e65311552a6c9bdd7cfe60c7f123fae629e"
+  },
+  "conclusions": [
+    "HTTP and TLS legacy true+IPIfNonMatch controls still emit the wrong original IPv4; replacing only routeOnly still selects direct under a synthetic China DNS answer. These are expected negative controls, not assertions that legacy policy is correct.",
+    "For both HTTP and TLS, false+AsIs emits the sniffed domain in the actual VLESS destination header under synthetic China and private DNS answers.",
+    "The bigmodel/geosite-China and literal China/private-IP direct controls retain their expected routing behavior on the new core."
+  ],
+  "limits": [
+    "Only loopback exists in the new network namespace. The original destination is fixed in the fixture instead of production nft/SO_ORIGINAL_DST; this is not a host transparent-routing or cgroup integration acceptance.",
+    "The VLESS receiver, DNS mappings and freedom sink are controlled local substitutes. TLS uses a ClientHello/SNI only, without an upstream TLS handshake, signed-in account or inference.",
+    "No current service selection, host nft rules, credentials, real external MCP, public DNS or commercial provider was touched by these12 tests. Service preservation applies to this test window; subsequent root-authorized deployment is separate.",
+    "This routing regression does not independently verify every security fix in the new upstream release, including MPTCP behavior. Official download/metadata verification belongs to the separate prepare evidence.",
+    "No full suite was rerun. Original26.10.29 scripts/result/report remain byte-identical and new26.10.31 evidence is separate."
+  ],
+  "findings": []
+}

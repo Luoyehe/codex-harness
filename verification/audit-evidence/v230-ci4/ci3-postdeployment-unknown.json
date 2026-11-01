@@ -1,0 +1,14 @@
+{
+  "receipts": [
+    {
+      "method": "mcp/oauth",
+      "state": "unknown",
+      "createdAt": "2026-11-01T07:06:03.469000+00:00",
+      "updatedAt": "2026-11-01T07:06:03.483000+00:00",
+      "errorCode": "mcp_oauth_error",
+      "delivery": "unknown"
+    }
+  ],
+  "mainMutation": false,
+  "rawErrorOrUrlEmitted": false
+}

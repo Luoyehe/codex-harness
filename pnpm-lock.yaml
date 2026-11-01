@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@z_ai/mcp-server@0.1.5>@modelcontextprotocol/sdk': 1.32.2
+  '@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk': 1.32.2
   zod: 4.6.7
 
 importers:
@@ -19,8 +19,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@z_ai/mcp-server':
-        specifier: 0.1.5
-        version: 0.1.5
+        specifier: 0.1.6
+        version: 0.1.6
       ajv:
         specifier: 8.20.0
         version: 8.20.0
@@ -513,8 +513,8 @@ packages:
   '@xterm/xterm@6.0.0':
     resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
 
-  '@z_ai/mcp-server@0.1.5':
-    resolution: {integrity: sha512-zbZaVIUtsGjlc9oI/E+/gLfhylcZLGUfS356Zte9hdufSqmnIXw9lzhH07fIiHr4t+S3VDnV0A1v0XeRuhuiNA==}
+  '@z_ai/mcp-server@0.1.6':
+    resolution: {integrity: sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -1859,7 +1859,7 @@ snapshots:
 
   '@xterm/xterm@6.0.0': {}
 
-  '@z_ai/mcp-server@0.1.5':
+  '@z_ai/mcp-server@0.1.6':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.2(zod@4.6.7)
       zod: 4.6.7

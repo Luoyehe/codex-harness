@@ -21,7 +21,7 @@ from .units import render_units, sudo_rule
 from .transactions import require_recovered
 from .ownership import require_owned
 
-MUTATIONS = ("restart", "provider/write", "models/refresh", "execution-mode/write")
+MUTATIONS = ("restart", "recover", "provider/write", "models/refresh", "execution-mode/write")
 
 
 def validate_request(request: dict) -> tuple[str, dict]:
@@ -36,6 +36,9 @@ def validate_request(request: dict) -> tuple[str, dict]:
             require(str(uuid.UUID(operation)) == operation, "operationId must be a canonical UUID")
         except (ValueError, TypeError, AttributeError):
             raise DeployError("invalid_input", "operationId must be a canonical UUID")
+    if method == "recover":
+        require(set(params) == {"confirmStop"} and params["confirmStop"] is True,
+                "Force recovery requires explicit confirmation to stop all instance tasks")
     return method, params
 
 
@@ -662,7 +665,7 @@ class Manager:
                 return {"ok": True, "result": saved["result"]}
             return {"ok": False, "error": saved.get("error", {"code": "unknown", "message": "Management outcome needs inspection", "delivery": "unknown"})}
         require(len(list(receipts.glob("*.json"))) < 10000, "Management receipt retention budget reached", "budget")
-        if method in ("restart", "execution-mode/write"):
+        if method in ("restart", "recover", "execution-mode/write"):
             self.require_update_ready(persist=False)
         else:
             self.require_recovered_transactions(None)
@@ -694,7 +697,7 @@ class Manager:
                 validate_catalog({"expectedRevision": target["revision"], "models": params["models"]}, target)
             else:
                 require("confirmCapabilities" not in params, "Confirmation requires a model catalog")
-        else:
+        elif method != "recover":
             require(not params, "restart takes no parameters")
         return None
 
@@ -748,6 +751,10 @@ class Manager:
                 value = self.provider_change(params)
             elif method == "models/refresh":
                 value = self.refresh_models(params)
+            elif method == "recover":
+                # The same stop-confirmed path preserves unknown receipts and
+                # only resets the activity barrier after both cgroups are empty.
+                value = self.restart()
             elif method == "operation/read":
                 require(set(params) == {"operationId"} and isinstance(params["operationId"], str) and
                         bool(re.fullmatch(r"[0-9a-f-]{36}", params["operationId"])), "Invalid operation lookup")

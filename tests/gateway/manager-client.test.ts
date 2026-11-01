@@ -30,6 +30,98 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.mocked(spawn).mockReset(); vi.mocked(lstatSync).mockReset(); });
 
+const recoveryId = '11111111-1111-4111-8111-111111111111';
+it('reserves one emergency slot outside an occupied ordinary queue and blocks ordinary pumping until its close', async () => {
+  const manager = client(), first = manager.call('status', {}), queued = manager.call('provider/read', {});
+  helpers[0]!.start();
+  const before = vi.fn(), recovery = manager.call('recover', { confirmStop: true }, recoveryId, before);
+  expect(helpers).toHaveLength(2); helpers[1]!.start(); expect(before).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(helpers[1]!.stdin.end.mock.calls[0]![0])).toEqual({ method: 'recover', params: { confirmStop: true }, operationId: recoveryId });
+  await expect(manager.call('recover', { confirmStop: true }, recoveryId)).rejects.toMatchObject({ code: 'recovery_pending', delivery: 'not_sent' });
+  helpers[0]!.finish(); await first; expect(helpers).toHaveLength(2);
+  helpers[1]!.stdout.emit('data', Buffer.from(JSON.stringify({ ok: true, result: { restarted: true } })));
+  expect(helpers).toHaveLength(2); // A reply without exit does not release the helper.
+  helpers[1]!.emit('close', 0, null); expect(await recovery).toEqual({ restarted: true });
+  expect(helpers).toHaveLength(3); helpers[2]!.start(); helpers[2]!.finish(); await queued;
+});
+
+it('does not let a timed-out ordinary helper that ignores termination starve recovery', async () => {
+  vi.useFakeTimers(); const manager = client();
+  const first = manager.call('status', {}).catch(error => error); helpers[0]!.start();
+  await vi.advanceTimersByTimeAsync(120000);
+  expect(await first).toMatchObject({ code: 'manager_timeout', delivery: 'unknown' });
+  const recovery = manager.call('recover', { confirmStop: true }, recoveryId);
+  expect(helpers).toHaveLength(2); helpers[1]!.start(); helpers[1]!.finish({ ok: true, result: { restarted: true } });
+  expect(await recovery).toEqual({ restarted: true });
+  expect(helpers[0]!.kill).toHaveBeenCalledTimes(1); helpers[0]!.emit('close', null, 'SIGTERM');
+});
+
+it('keeps rejected and timed-out emergency slots until close, preserving beforeWrite authorization and unknown delivery', async () => {
+  vi.useFakeTimers(); const manager = client();
+  const denied = manager.call('recover', { confirmStop: true }, recoveryId, () => { throw new HarnessError('unauthorized', 'Session revoked'); }).catch(error => error);
+  helpers[0]!.start(); expect(await denied).toMatchObject({ code: 'unauthorized', delivery: 'not_sent' });
+  expect(helpers[0]!.stdin.end).not.toHaveBeenCalled();
+  await expect(manager.call('recover', { confirmStop: true }, recoveryId)).rejects.toMatchObject({ code: 'recovery_pending' });
+  helpers[0]!.emit('close', null, 'SIGTERM');
+  const sent = manager.call('recover', { confirmStop: true }, recoveryId).catch(error => error); helpers[1]!.start();
+  await vi.advanceTimersByTimeAsync(120000);
+  expect(await sent).toMatchObject({ code: 'manager_timeout', delivery: 'unknown' });
+  await expect(manager.call('recover', { confirmStop: true }, recoveryId)).rejects.toMatchObject({ code: 'recovery_pending' });
+  expect(helpers).toHaveLength(2); helpers[1]!.emit('close', null, 'SIGTERM');
+});
+
+it('preserves an explicit root-lock busy response without retrying or killing the ordinary helper', async () => {
+  const manager = client(), first = manager.call('status', {}); helpers[0]!.start();
+  const recovery = manager.call('recover', { confirmStop: true }, recoveryId);
+  helpers[1]!.start(); helpers[1]!.finish({ ok: false, error: { code: 'busy', message: 'Another management transaction is running', delivery: 'not_sent' } });
+  await expect(recovery).rejects.toMatchObject({ code: 'busy', delivery: 'not_sent' });
+  expect(spawn).toHaveBeenCalledTimes(2); expect(helpers[0]!.kill).not.toHaveBeenCalled();
+  helpers[0]!.finish(); await first;
+});
+
+it('requires exact recover parameters and does not grant any other method an emergency slot', async () => {
+  const manager = client(), first = manager.call('status', {}); helpers[0]!.start();
+  for (const params of [{}, { confirmStop: false }, { confirmStop: true, command: 'other' }])
+    await expect(manager.call('recover', params, recoveryId)).rejects.toMatchObject({ code: 'invalid', delivery: 'not_sent' });
+  await expect(manager.call('recover', { confirmStop: true }, 'invalid')).rejects.toMatchObject({ code: 'invalid' });
+  const ordinary = manager.call('restart', { confirmStop: true }, recoveryId);
+  expect(helpers).toHaveLength(1); helpers[0]!.finish(); await first;
+  helpers[1]!.start(); helpers[1]!.finish(); await ordinary;
+});
+
+it('actually dispatches recovery while a separate ordinary subprocess remains hung', async () => {
+  const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process');
+  const parent = path.resolve('.work/manager-client'); mkdirSync(parent, { recursive: true });
+  const directory = mkdtempSync(path.join(parent, 'emergency-')), closed: Promise<void>[] = [];
+  const fixture = `
+    import fs from 'node:fs'; import path from 'node:path';
+    const root=process.argv[1]; let input='';
+    process.stdin.setEncoding('utf8');process.stdin.on('data',part=>input+=part);
+    process.stdin.on('end',()=>{
+      const request=JSON.parse(input);
+      if(request.method==='recover'){process.stdout.write(JSON.stringify({ok:true,result:{restarted:true}}));return;}
+      fs.writeFileSync(path.join(root,'ready'),'ordinary');
+      let done=false;const timer=setTimeout(()=>process.exit(2),10000);
+      const watcher=fs.watch(root,()=>{if(done||!fs.existsSync(path.join(root,'release')))return;done=true;clearTimeout(timer);watcher.close();process.stdout.write(JSON.stringify({ok:true,result:{}}));});
+    });`;
+  vi.mocked(spawn).mockImplementation((_command, _args, options) => {
+    const child = actual.spawn(process.execPath, ['--input-type=module', '-e', fixture, directory], { ...options, cwd: directory,
+      env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) } });
+    closed.push(new Promise(resolve => child.once('close', () => resolve()))); return child;
+  });
+  const manager = client(), calls: Promise<unknown>[] = [];
+  try {
+    calls.push(manager.call('status', {}));
+    await expect.poll(() => existsSync(path.join(directory, 'ready')), { timeout: 5000 }).toBe(true);
+    const recovery = manager.call('recover', { confirmStop: true }, recoveryId); calls.push(recovery);
+    expect(await recovery).toEqual({ restarted: true });
+    expect(existsSync(path.join(directory, 'release'))).toBe(false); expect(spawn).toHaveBeenCalledTimes(2);
+  } finally {
+    writeFileSync(path.join(directory, 'release'), ''); await Promise.allSettled(calls); await Promise.all(closed);
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 it('serializes concurrent reads and writes, freezes queued payloads and checks authorization at the actual stdin boundary', async () => {
   const manager = client(), params = { name: 'captured' }, written = vi.fn();
   const first = manager.call('provider/read', {});
