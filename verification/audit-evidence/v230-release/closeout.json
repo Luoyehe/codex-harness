@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "kind": "v230-final-closeout",
+  "complete": true,
+  "completedAt": "2026-11-01T09:45:44.567Z",
+  "testedCommit": "3335fd44d20b88378683ad5bf774851461d8492f",
+  "tag": "v2.3.0",
+  "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+  "sourceFiles": 1984,
+  "audit": {
+    "round": "v230-round16",
+    "requiredCleanRounds": 1,
+    "complete": true,
+    "clean": true,
+    "method": "Complete partition coverage with explicit unchanged-byte semantic inheritance and independent changed-test review; no new all-lines reading of unchanged generated files claimed.",
+    "evidence": {
+      "path": "verification/audit-evidence/v230-ci7/round16-team.json",
+      "sha256": "321e28d130f7d9d66881a5aa6fbfac1245fa9197806699c9778785e6c028e980"
+    }
+  },
+  "fullTests": {
+    "status": "passed",
+    "attempt": 7,
+    "run": 41292416084,
+    "securityRun": 41292447048,
+    "files": 252,
+    "cases": 2897,
+    "coverageGaps": [],
+    "evidence": {
+      "path": ".work/v230-ci7-monitor-summary.json",
+      "sha256": "961522cc2f76ca5be8571107e42269326331b87c052b19ceeed01293a0f42718"
+    },
+    "limits": "Actual hosted plan, platform raw logs and reconciliation output retained. Individual raw case-report artifacts were not downloaded; applicable-platform skips remain skips, with exact passing matches enforced by hosted reconciliation."
+  },
+  "deployment": {
+    "status": "passed",
+    "target": "120",
+    "version": "2.3.0",
+    "release": "03f23422e93065f22f5a2e51714192a8f2d547774c1446d71579d39bf22ef3ec",
+    "previousRelease": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+    "mode": "native",
+    "effectiveUid": 990,
+    "rootAllowed": false,
+    "servicesLeftRunning": true,
+    "allManagedServicesActive": true,
+    "runtimeIdle": true,
+    "accountAndProjectMetadataPreserved": true,
+    "protectedMetadataDifferences": [],
+    "proxyConfigurationPreserved": true,
+    "proxyCore": "26.10.31",
+    "evidence": {
+      "path": ".work/v230-ci7-final-acceptance.json",
+      "sha256": "a3ccd1aa5b8d4bc831e795e6152db51b0f7437de5c819ffe463fa7db7a2b6a6a"
+    },
+    "recoveryReview": {
+      "path": ".work/v230-ci7-post-recovery-review.json",
+      "sha256": "f57a8afd078c4d4848f53c984ccc2866c267b988288c2f89b564ab5b78be58f6"
+    },
+    "limits": "Account version/bootstrap metadata and registered project fingerprints plus protected inode/mode/owner only. Password/token values and project contents are not read. Legitimate user activity may change metadata; differences require review, never automatic repair."
+  },
+  "browser": {
+    "status": "passed-with-explicit-scope",
+    "connectedAfterReload": true,
+    "sendEnabledAfterDraft": true,
+    "draftRestored": true,
+    "modelMessagesSent": 0,
+    "rootControlDisabledUntilServerGrant": true,
+    "builtinMcpShowsSharedApiKeyWithoutOAuth": true,
+    "sharedCatalogAcrossProjects": true,
+    "manualCatalogRefreshes": 0,
+    "forceRecovery": {
+      "observedAt": "2026-11-01T09:35:17.942Z",
+      "draftPreserved": true,
+      "sendEnabled": true,
+      "recoverySubmittedOnce": true,
+      "originalReceiptQueriedOnce": true,
+      "initialReplyWasUnconfirmed": true,
+      "modelMessagesSent": 0,
+      "gatewayActivityUncertain": false,
+      "unknownReceiptCount": 1,
+      "originalUnknownReceiptPreserved": true
+    },
+    "evidence": [
+      {
+        "path": ".work/v230-ci7-recovery-client.json",
+        "sha256": "d4f7a6a66d4c7ad1d620fe9b0681ca69d864ebcf3b37d0a3860ca49ddc1fdf2a"
+      },
+      {
+        "path": ".work/v230-ci7-recovery-barrier-read.json",
+        "sha256": "71cd20a60f98ec363bc32c935c2004a73161ef7aaed710f3598619b8fb19d4ff"
+      },
+      {
+        "path": ".work/v230-ci7-model-switch-ui.json",
+        "sha256": "ddfbd81ae97bbf772240ec9170d1add8f4ced279a2f8328b1c9539bab2002e88"
+      },
+      {
+        "path": ".work/v230-ci7-mcp-ui.txt",
+        "sha256": "ae7c33d87d0cc5dcf2f9ae8c3fe21861e37e4fc5adf043e9f96c3b942dd540ba"
+      },
+      {
+        "path": ".work/v230-ci7-final-ui.txt",
+        "sha256": "a7a555e037951cd32f34b5c24cb012ac19476f06cb637c0df5be9cf833e61ada"
+      },
+      {
+        "path": ".work/v230-ci7-final-ui.png",
+        "sha256": "cf17f94e050bf4922b4112f223ca0de0494618cd4118f4a1e316127d372f6e02"
+      }
+    ],
+    "limits": [
+      "Live browser viewport override did not apply; reset afterwards. Existing 320/390 layout fixtures and component tests are retained; no physical iOS zoom acceptance claimed.",
+      "Builtin MCP directory/status was read, not a real external tool task. No existing user thread resumed and no model message sent."
+    ]
+  },
+  "publicHttps": {
+    "status": "passed",
+    "strictPublicCaAndHostname": true,
+    "healthAndHome200": true,
+    "directAssetsVerified": 2,
+    "evidence": {
+      "path": ".work/v230-ci7-public-result.json",
+      "sha256": "1af120702a4acb791c60955232be48ed41b245e6ba8e7cb5a086d55d2d8fd33a"
+    },
+    "limits": [
+      "Configured DNS-01 automatic renewal preserved; future renewal and current DNS API authorization not retested.",
+      "Public hostname tested through explicit local CONNECT proxy; independent external egress location not proven."
+    ]
+  },
+  "codeql": {
+    "securityJobsPassed": true,
+    "openAlerts": 19,
+    "closedAlerts": 2,
+    "newAlertIds": [],
+    "reviewedCurrentAlerts": 16,
+    "legacyInventoryOnly": 3,
+    "evidence": {
+      "path": ".work/v230-ci7-codeql-review.json",
+      "sha256": "d91b764818eb3c6a003d38ebc1ba8b51c891943883bd72fdca467611c6222dac"
+    },
+    "limits": "Existing dispositions inherited only for identical paths and source bytes; no alert dismissed or suppressed and no zero-alert claim."
+  },
+  "publication": {
+    "status": "published",
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.0",
+    "latest": true,
+    "tagCommit": "3335fd44d20b88378683ad5bf774851461d8492f",
+    "ui": {
+      "path": ".work/v230-release-published-ui.txt",
+      "sha256": "77f0ef100c34e38062fca784ddf01b4d1d7fef68e20fd0a2e4c358411d3fdaa9"
+    },
+    "screenshot": {
+      "path": ".work/v230-release-published.png",
+      "sha256": "bc676e1d22cc412619de0073ab59e1924a01aa2424e78c20eb163a71e3942d8a"
+    },
+    "defaultBranchCloseout": "Only declared non-executable verification evidence is updated after the tested tag; source digest must remain unchanged."
+  },
+  "operationalNotes": {
+    "postRecoveryWrongObserver": "A pre-deployment observer fixed to the old release was mistakenly used after upgrade and returned RuntimeError. That failed evidence is retained. The correct after observer passed; no deployment/recovery was repeated.",
+    "failedObserver": {
+      "path": ".work/v230-ci7-post-recovery.json",
+      "sha256": "b1ae51fbc73ef02f9e14f402c75bac2591a69ce2bb571deb13afb155788eb8bd"
+    },
+    "cache": "Nine temporary files restored from C to D and hash checked; no files remain in that C task cache. Empty directories remain.",
+    "cacheEvidence": {
+      "path": ".work/v230-cache-restoration.json",
+      "sha256": "6b8fef57ee874819b00aa24a4c2f808166c7eda0f8879fcf3754e168b1bca506"
+    }
+  },
+  "limits": [
+    "No new commercial model inference or real external MCP task.",
+    "Earlier CI failures and historical audit findings remain intact. This closeout is not another audit or another full-test run."
+  ]
+}

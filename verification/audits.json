@@ -7739,7 +7739,7 @@
     "userOverride": true
   },
   "v230FullTests": {
-    "status": "pending",
+    "status": "passed",
     "attempt": 7,
     "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
     "sourceFiles": 1984,
@@ -7750,10 +7750,26 @@
         "path": ".work/v230-ci6-monitor-summary.json",
         "sha256": "e9b546304bcde430a9c07ffb8fd7b42acf6317639aa89d9f2bf88558280a4b50"
       }
+    },
+    "run": 41292416084,
+    "securityRun": 41292447048,
+    "files": 252,
+    "cases": 2897,
+    "coverageGaps": [],
+    "evidence": {
+      "path": ".work/v230-ci7-monitor-summary.json",
+      "sha256": "961522cc2f76ca5be8571107e42269326331b87c052b19ceeed01293a0f42718"
+    },
+    "limits": "Actual hosted plan, platform raw logs and reconciliation output retained. Individual raw case-report artifacts were not downloaded; applicable-platform skips remain skips, with exact passing matches enforced by hosted reconciliation.",
+    "head": "3335fd44d20b88378683ad5bf774851461d8492f",
+    "sourceDigestAfter": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+    "closeout": {
+      "path": "verification/audit-evidence/v230-release/closeout.json",
+      "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
     }
   },
   "v230ReleaseDeployment": {
-    "status": "pending",
+    "status": "passed",
     "target": "120",
     "version": "2.3.0",
     "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
@@ -7764,6 +7780,31 @@
         "path": ".work/v230-ci3-core2631-acceptance-after.json",
         "sha256": "499b9b37a0b4d97a8e439a94fce4b94520059b4e2654b7d644e78add514f9483"
       }
+    },
+    "release": "03f23422e93065f22f5a2e51714192a8f2d547774c1446d71579d39bf22ef3ec",
+    "previousRelease": "22ef220ddac21c05f9bba678c798208f2edd2942af718f62f3f83e59cd44c2ad",
+    "mode": "native",
+    "effectiveUid": 990,
+    "rootAllowed": false,
+    "servicesLeftRunning": true,
+    "allManagedServicesActive": true,
+    "runtimeIdle": true,
+    "accountAndProjectMetadataPreserved": true,
+    "protectedMetadataDifferences": [],
+    "proxyConfigurationPreserved": true,
+    "proxyCore": "26.10.31",
+    "evidence": {
+      "path": ".work/v230-ci7-final-acceptance.json",
+      "sha256": "a3ccd1aa5b8d4bc831e795e6152db51b0f7437de5c819ffe463fa7db7a2b6a6a"
+    },
+    "recoveryReview": {
+      "path": ".work/v230-ci7-post-recovery-review.json",
+      "sha256": "f57a8afd078c4d4848f53c984ccc2866c267b988288c2f89b564ab5b78be58f6"
+    },
+    "limits": "Account version/bootstrap metadata and registered project fingerprints plus protected inode/mode/owner only. Password/token values and project contents are not read. Legitimate user activity may change metadata; differences require review, never automatic repair.",
+    "closeout": {
+      "path": "verification/audit-evidence/v230-release/closeout.json",
+      "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
     }
   },
   "v230FullTestHistory": [
@@ -7889,6 +7930,36 @@
         }
       },
       "note": "Linux defaults-retry UI assertion failed. Windows, Root and security passed; coverage correctly refused Linux. The fixture did not bind its failure message to the final options request; exact historical scheduling is unavailable. No deployment."
+    },
+    {
+      "status": "passed",
+      "attempt": 7,
+      "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+      "sourceFiles": 1984,
+      "previousFailure": {
+        "path": "verification/audit-evidence/v230-ci7/ci6-failure.json",
+        "sha256": "e9b546304bcde430a9c07ffb8fd7b42acf6317639aa89d9f2bf88558280a4b50",
+        "original": {
+          "path": ".work/v230-ci6-monitor-summary.json",
+          "sha256": "e9b546304bcde430a9c07ffb8fd7b42acf6317639aa89d9f2bf88558280a4b50"
+        }
+      },
+      "run": 41292416084,
+      "securityRun": 41292447048,
+      "files": 252,
+      "cases": 2897,
+      "coverageGaps": [],
+      "evidence": {
+        "path": ".work/v230-ci7-monitor-summary.json",
+        "sha256": "961522cc2f76ca5be8571107e42269326331b87c052b19ceeed01293a0f42718"
+      },
+      "limits": "Actual hosted plan, platform raw logs and reconciliation output retained. Individual raw case-report artifacts were not downloaded; applicable-platform skips remain skips, with exact passing matches enforced by hosted reconciliation.",
+      "head": "3335fd44d20b88378683ad5bf774851461d8492f",
+      "sourceDigestAfter": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+      "closeout": {
+        "path": "verification/audit-evidence/v230-release/closeout.json",
+        "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
+      }
     }
   ],
   "v230LiveAcceptanceHistory": [
@@ -8205,7 +8276,7 @@
     }
   ],
   "v230BrowserAcceptance": {
-    "status": "pending",
+    "status": "passed-with-explicit-scope",
     "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
     "previousAcceptance": {
       "path": "verification/audit-evidence/v230-ci4/ci3-postdeployment-unknown.json",
@@ -8214,6 +8285,30 @@
         "path": ".work/v230-ci3-unknown-oauth-metadata.json",
         "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1"
       }
+    },
+    "closeout": {
+      "path": "verification/audit-evidence/v230-release/closeout.json",
+      "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
+    }
+  },
+  "v230Publication": {
+    "status": "published",
+    "url": "https://github.com/Luoyehe/codex-harness/releases/tag/v2.3.0",
+    "latest": true,
+    "tagCommit": "3335fd44d20b88378683ad5bf774851461d8492f",
+    "ui": {
+      "path": ".work/v230-release-published-ui.txt",
+      "sha256": "77f0ef100c34e38062fca784ddf01b4d1d7fef68e20fd0a2e4c358411d3fdaa9"
+    },
+    "screenshot": {
+      "path": ".work/v230-release-published.png",
+      "sha256": "bc676e1d22cc412619de0073ab59e1924a01aa2424e78c20eb163a71e3942d8a"
+    },
+    "defaultBranchCloseout": "Only declared non-executable verification evidence is updated after the tested tag; source digest must remain unchanged.",
+    "sourceDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+    "closeout": {
+      "path": "verification/audit-evidence/v230-release/closeout.json",
+      "sha256": "7c7d86e08daf21aa17cb379a5c3f6392b339a8a26c6a77fd5b35508ac5eaff5c"
     }
   }
 }
