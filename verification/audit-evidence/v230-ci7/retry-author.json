@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "id": "v230-ci6-defaults-retry-repair",
+  "author": "v230_audit_runtime",
+  "complete": true,
+  "completedAt": "2026-11-01T09:07:41.495Z",
+  "source": {
+    "head": "1c45513e677a283f929a6055eec4f3814398ce98",
+    "priorDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+    "currentDigest": "1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081",
+    "files": 1984
+  },
+  "historicalFailure": {
+    "evidence": {
+      "path": ".work/v230-ci6-linux-raw.txt",
+      "sha256": "0315949d31d5504f92f7550c0d366a298938cc43304f55ed93dc701ca92c6945"
+    },
+    "status": "failed",
+    "case": "web/tests/defaults.test.tsx::retries failed defaults directly without refreshing the catalog, changing the draft, or bypassing readiness",
+    "testLine": 351,
+    "observed": "The immediate busy retry button lookup failed; the DOM already exposed the defaults-loading option and disabled send control, with neither retry label present.",
+    "limits": "The historical log has no request-generation trace. Exact historical scheduling and whether a prior passive effect participated cannot be reconstructed."
+  },
+  "diagnosis": {
+    "classification": "Insufficient fixture phase synchronization; no product lifecycle defect established.",
+    "confirmedFixtureGap": "The original fixture immediately returned the same capacity message for every selected-model defaults request. Waiting for that message did not establish that the final model/provider/effort request, rather than a model-only generation, had failed.",
+    "productionContract": [
+      "Workspace debounces options for 400 ms; each resource key includes the debounced options and the runtime/project epoch.",
+      "useResource immediately treats a new request key as loading without prior data/error; old generations cannot publish after cleanup.",
+      "The retry handler synchronously marks its retry state and refreshes the resource; the button is disabled while loading. The reset effect clears retry state on completion.",
+      "Composer also treats non-debounced vs debounced options mismatch as loading and preserves runtime unknown/readiness admission."
+    ],
+    "readScope": "Complete defaults test and useResource hook; App mounting plus Workspace defaults creation/debounce/retry/send admission and ModelPicker/Composer related consumers. This is a focused lifecycle diagnosis, not a new whole-source audit.",
+    "production": [
+      {
+        "path": "web/App.tsx",
+        "sha256": "91a89559632136bd3bfa72cdae87278b43c563bcce97d7edba68b4265a685e9f",
+        "headMatches": true
+      },
+      {
+        "path": "web/Workspace.tsx",
+        "sha256": "fdd259d8ba68b48eeff12c29d19ef51e1e9590664b4ccca273a611d56d1faf83",
+        "headMatches": true
+      },
+      {
+        "path": "web/hooks/useResource.ts",
+        "sha256": "8e8775747613fdfde9b166ff284911702e33154e383f1f4d421c187fb311a882",
+        "headMatches": true
+      },
+      {
+        "path": "web/components/Composer.tsx",
+        "sha256": "e520ceb1ccf5e4c69d7f20686fe6830077a93cb48997df127dd2a7fff77d7a75",
+        "headMatches": true
+      },
+      {
+        "path": "web/components/ModelPicker.tsx",
+        "sha256": "4ed9eb864fab4db2ef056559a79c4e6ff736696e8b22a645b3282ca98724137a",
+        "headMatches": true
+      }
+    ]
+  },
+  "change": {
+    "file": {
+      "path": "web/tests/defaults.test.tsx",
+      "sha256": "72c35cf387e887f2997c2bdd3999b7f0ead74149ded37613c2578d156b287edd"
+    },
+    "beforeGitBlob": "84ddb53e82ea1394fe54a25ee2ac67023ed5eb97",
+    "diff": {
+      "path": ".work/v230-ci6-defaults-retry-repair.diff",
+      "sha256": "2d12bb7dce8c0b12ffe2599cd11ba78df9297b19d1b04c70e914e359eb11183b"
+    },
+    "details": [
+      "Hold selected-model response promises and retain their exact request parameters.",
+      "Establish the model-only failure first, then change effort and observe the exact final high-effort request while its response remains held.",
+      "Verify the new generation detaches the old retry button, clears the previous error and disables send, then explicitly release the final generation failure before retry.",
+      "Keep the immediate busy-button/disabled-double-click assertions, exact two retry requests, no catalog refresh or write, draft/options preservation, retry failure/success and unknown-runtime send gate.",
+      "No sleep, arbitrary delay, increased timeout, assertion deletion or production change."
+    ]
+  },
+  "adjacentCasesReviewed": [
+    {
+      "case": "refreshes inherited thread settings after an accepted override and hides old values during that read",
+      "finding": null,
+      "reason": "Its relevant transition waits for a fresh thread/session request count after accepted turn/start and explicitly holds/release that session response; it does not use a shared defaults error as readiness."
+    },
+    {
+      "case": "labels new-thread fallback as project defaults and hides stale values while loading",
+      "finding": null,
+      "reason": "Synchronous Composer prop contract; no debounce or transport scheduling."
+    },
+    {
+      "case": "waits for fresh defaults after resetting an explicit provider before submitting a collaboration mode",
+      "finding": null,
+      "reason": "Initial default/model readiness precedes holdDefault activation. Only the subsequent no-model defaults request creates releaseDefault, and the test explicitly checks blocked send before and during that held request."
+    }
+  ],
+  "validation": {
+    "platform": "win32",
+    "node": "v24.22.1",
+    "baseline": {
+      "evidence": {
+        "path": ".work/test-results/run-ISOjtk/vitest.json",
+        "sha256": "bf21a7801cfdd321a9932da7bd77d31831a72129fa16b325b1c4ace05231d2d2"
+      },
+      "passed": 4,
+      "failed": 0,
+      "conclusion": "The unchanged file passed once locally. This is not a reproduction of the historical Linux interleaving."
+    },
+    "targeted": {
+      "command": ".work/public-node-v24.22.1-win-x64/runtime/node-v24.22.1-win-x64/node.exe scripts/run-tests.mjs --targeted web/tests/defaults.test.tsx web/tests/resources.test.tsx",
+      "evidence": {
+        "path": ".work/test-results/run-y36sqg/vitest.json",
+        "sha256": "f7246dee7580603ce735a843d94a6edba8114da5c6a1d048dbccdf72626d9a8b"
+      },
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "web/tests/defaults.test.tsx",
+          "cases": 4,
+          "status": "passed"
+        },
+        {
+          "path": "web/tests/resources.test.tsx",
+          "cases": 3,
+          "status": "passed"
+        }
+      ]
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc -p web/tsconfig.json --noEmit",
+      "exitCode": 0,
+      "evidence": {
+        "path": ".work/v230-ci6-defaults-retry-web-tsc.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "diffCheck": "passed"
+  },
+  "limits": [
+    "The controlled sequence verifies real App/useResource generation behavior and repairs an insufficient test precondition; it does not prove the precise historical CI scheduling.",
+    "A single unchanged local baseline and a single repaired affected-test run were performed, on Windows. No Linux replay or repeated stress runs.",
+    "CI6 remains failed in its Linux full result; no new full-suite success is asserted.",
+    "No network, credentials, paid inference, external MCP, CI trigger, commit or deployment."
+  ],
+  "remainingFindings": []
+}

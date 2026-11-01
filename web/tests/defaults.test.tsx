@@ -295,6 +295,7 @@ it('retries failed defaults directly without refreshing the catalog, changing th
     constructor() { socket = this; }
   });
   const requests: { method: string; params: Record<string, unknown>; operationId?: string }[] = [];
+  const failedDefaults: { params: Record<string, unknown>; finish: () => void }[] = [];
   let holdRetry = false;
   let finishRetry: ((succeed: boolean) => void) | undefined;
   vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
@@ -316,7 +317,9 @@ it('retries failed defaults directly without refreshing the catalog, changing th
       case 'collaborationMode/list': return ok({ data: [] });
       case 'defaults/read':
         if (!request.params.options.model) return ok({ model: 'default-model', modelProvider: 'first', reasoningEffort: 'low' });
-        if (!holdRetry) return capacity();
+        if (!holdRetry) return new Promise(resolve => {
+          failedDefaults.push({ params: request.params, finish: () => resolve(capacity()) });
+        });
         return new Promise(resolve => {
           finishRetry = (succeed) => resolve(succeed
             ? ok({ model: 'chosen-model', modelProvider: 'second', reasoningEffort: 'high' })
@@ -338,10 +341,28 @@ it('retries failed defaults directly without refreshing the catalog, changing th
   const model = screen.getByRole('combobox', { name: '模型' }) as HTMLSelectElement;
   const choice = JSON.stringify(['second', 'chosen-model']);
   fireEvent.change(model, { target: { value: choice } });
+  await waitFor(() => expect(failedDefaults.map(request => request.params)).toEqual([
+    { projectId: 'p', options: { model: 'chosen-model', modelProvider: 'second' } },
+  ]));
+  await act(async () => failedDefaults[0]!.finish());
+  await screen.findByText('默认值读取失败：Too many concurrent calls');
+  const oldRetry = screen.getByRole('button', { name: '重新读取模型设置' });
   const effort = screen.getByRole('combobox', { name: '思考强度' }) as HTMLSelectElement;
   fireEvent.change(effort, { target: { value: 'high' } });
   const input = screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: 'keep my unsent draft' } });
+  // The same failure text from model-only settings is not readiness for the
+  // final options. Hold that exact debounced request and verify its new key
+  // retires the old retry button before releasing the failure we will retry.
+  await waitFor(() => expect(failedDefaults.map(request => request.params)).toEqual([
+    { projectId: 'p', options: { model: 'chosen-model', modelProvider: 'second' } },
+    { projectId: 'p', options: { model: 'chosen-model', modelProvider: 'second', effort: 'high' } },
+  ]));
+  expect(oldRetry.isConnected).toBe(false);
+  expect(screen.queryByRole('button', { name: /读取模型设置/ })).toBeNull();
+  expect(screen.queryByText('默认值读取失败：Too many concurrent calls')).toBeNull();
+  expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(true);
+  await act(async () => failedDefaults[1]!.finish());
   await screen.findByText('默认值读取失败：Too many concurrent calls');
   // This error alone does not block ordinary input with explicit valid settings.
   expect(screen.getByRole('button', { name: '发送消息' }).matches(':disabled')).toBe(false);

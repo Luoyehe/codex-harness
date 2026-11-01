@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "kind": "actual-ci6-codeql-inventory-review",
+  "reviewerId": "root",
+  "complete": true,
+  "completedAt": "2026-11-01T08:58:34.221Z",
+  "head": "1c45513e677a283f929a6055eec4f3814398ce98",
+  "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+  "securityRun": 41290784127,
+  "priorActualReview": {
+    "path": ".work/v230-ci5-codeql-review.json",
+    "sha256": "d7732f458f1a182ddfabaf431b0ae75f01c1d982b9396b28bd9f3d8e18df15e2"
+  },
+  "sourceInheritance": {
+    "path": ".work/v230-ci6-codeql-source-inheritance.json",
+    "sha256": "279431beb43737552b34df0b4e5887875d9dae0e93226a3f2f435f98eaf356fd"
+  },
+  "actualUiEvidence": [
+    {
+      "path": ".work/v230-ci6-codeql-list-ui.json",
+      "sha256": "24325017bcd75b7b940e3a54b18f357d25d2450ccc9e4f2184b9eb754e4f93a7"
+    }
+  ],
+  "openAlerts": 19,
+  "closedAlerts": 2,
+  "newAlertIds": [],
+  "automaticallyFixedAlertIds": [],
+  "reviewedCurrentAlerts": 16,
+  "allCurrentAnnotationPathsAndSourceBytesUnchanged": true,
+  "dispositions": [
+    {
+      "id": 5,
+      "source": {
+        "path": "deploy/native_launcher.py",
+        "sha256": "9b30c65bb2e654ff538d5de54e428134927ec22d43325022e9c187aa94f80c06"
+      },
+      "disposition": "Credential-helper stdout is the pinned official consumer protocol, not diagnostic logging. Freshly read the current native launcher identity/grant/credential checks and inspected all five actual UI path steps. Saved official v0.164.0 external bearer consumer uses piped stdout and trims it into a token; this is source evidence, not a fresh network fetch or proof of the live process descriptors. Full authorized host Root intentionally can access host secrets.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 6,
+      "source": {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      "disposition": "Offline deny-network test guard code is generated from a fixed template plus JSON.stringify of the local private attempts path, then passed to Node --require without shell interpolation. The inspected actual sink is test instrumentation, not user-supplied executable text.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 7,
+      "source": {
+        "path": "src/core/validation.ts",
+        "sha256": "28ec736df7c05b93b9695f51a020577ff175ad1ca0778433f537935f0b0f85d9"
+      },
+      "disposition": "The current sink hashes canonical request data for identity, not a human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 8,
+      "source": {
+        "path": "src/runtime/attachments.ts",
+        "sha256": "c58e366cf013440539d520df46ee7620f32431b7c28b04c252621e079bb2c2f3"
+      },
+      "disposition": "The current sink hashes attachment bytes for integrity, not a human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 9,
+      "source": {
+        "path": "src/runtime/imports.ts",
+        "sha256": "5e612b4f5cd9d4fabae1b8eda4ccb0b5fe9094c25479afbe54ced8e2a2696a2f"
+      },
+      "disposition": "The current sink hashes an import preview for identity, not a human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 10,
+      "source": {
+        "path": "src/runtime/input-context.ts",
+        "sha256": "7fbc97c196205402ac8e230a33f049a3770633d5bdd8c563d8aa1c33cac00bf3"
+      },
+      "disposition": "The current sink hashes input context to form a source marker, not a human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 11,
+      "source": {
+        "path": "src/runtime/workspace-witness.ts",
+        "sha256": "d79ea35a1c62adcb14ad1ebe26c42466ce4b41e59ffa023f7dc858d1a941a39d"
+      },
+      "disposition": "The current sink hashes selected Git paths to verify the native witness request identity, not a human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 13,
+      "source": {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      "disposition": "The marked plaintext values are explicit synthetic DNS test credentials in a temporary chmod0600 fixture, not real provider secrets.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 14,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to the local HTTPS health test server. The pinned local Python3.12.14/OpenSSL3.5.8 SSLContext(PROTOCOL_TLS_SERVER) minimum_version was directly observed as TLSv1_2; no product TLS relaxation.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 15,
+      "source": {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      "disposition": "The SHA256 covers creation-plan file bytes for integrity/retained-generation checks. It is not used as the human password verifier.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 16,
+      "source": {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      "disposition": "The sink belongs to a certificate-verification test client. Pinned local Python create_default_context minimum_version was directly observed as TLSv1_2. The expired-certificate case requires verification failure, not an unverified connection.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 17,
+      "source": {
+        "path": "src/runtime/service.ts",
+        "sha256": "d7862191bbac5d524d89aee1f0ad6657f2ee137cf34f7e0120ebe019951f1fef"
+      },
+      "disposition": "At service.ts:723, SHA256 hashes canonical cwd/selected options/current configuration/generation solely into an in-memory cache and in-flight equality key. The cache is capped at16 entries (757), generation invalidation clears it (701), and active key matching only coalesces identical defaults reads (725-740). It is neither a human password verifier nor a persisted authentication hash. The current MCP status callback at144 does not consume this hash.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 18,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 19,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 20,
+      "source": {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      "disposition": "The flagged regex only removes markup for a bounded offline text token/drift comparison of fixed official documentation. The derived text is never evaluated, inserted into HTML, sent as a URL or emitted into a browser; only hashes, bounded statuses and fixed issue reasons are saved. Therefore incomplete stripping cannot produce the reported script/HTML injection. This is deliberately not an HTML sanitizer or semantic HTML parser: token matches alone are not authoritative compatibility proof, and the contract requires separate semantic document and renderer/stdio review. Actual current official docs were checked in round13. No suppression or weakening of sanitization was applied.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    },
+    {
+      "id": 21,
+      "source": {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+      },
+      "disposition": "This is a negative assertion over six fixed URLs observed by an injected in-memory reader. startsWith rejects that entire prefix rather than authorizing a destination; the fixture Map also rejects all unexpected sources. Production validateContract requires exact four document URLs before I/O, fixed npm URLs are constructed internally, redirects are rejected and no MCP endpoint is called. No production host validation or SSRF defense relies on this assertion.",
+      "depth": "Exact source hash and existing semantic disposition inherited from actual CI5 review; CI6 actual main inventory checked after successful scan. No new source/sink review claimed."
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "Security jobs succeeded; actual current inventory remains 19 open and 2 closed, not zero alerts.",
+    "Sixteen current-source dispositions are inherited at identical bytes. Three legacy alerts are inventory-only; no archived source opened.",
+    "No alert suppression/dismissal, code edit, paid model or external MCP call."
+  ]
+}

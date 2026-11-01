@@ -316,3 +316,10 @@ Round14 covers 1984 files at 99b7bc36a5c22f21801c4a072195bc813e49d8ee0113dead920
 CI5 41289149450 failed one Windows lifecycle assertion and its cleanup emitted an unobserved rejection. Bare PID evidence cannot establish whether the old identity survived or the numeric PID was reused. Production cleanup/serialization was independently inspected with no defect found. The test now records Windows creation time, keeps fail-closed query errors and observes the original request promise immediately. Targeted Windows checks passed 24/24, including a live-predecessor negative guard and the original retry scenario. No production logic changed.
 
 Round15 covers 1984 files at 2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74; unchanged semantic evidence is explicitly inherited and the changed test independently reviewed. Builtin MCP official sources were freshly fetched and byte-identical to the reviewed contract. Full CI6, deployment, browser acceptance and publication remain pending.
+
+
+## 2026-11-01 — v2.3.0 CI6 correction and CI7 preparation
+
+CI6 41290757916 failed one Linux defaults-retry UI assertion; Windows, Root and security passed. The test waited for a shared failure message without establishing that the final model/provider/effort request had failed. It now controls both response generations, verifies stale error/button removal and readiness, then releases the exact final failure before retrying. All existing assertions remain. Targeted checks passed 7/7 and Web typechecking passed. The unchanged baseline also passed locally; no precise historical scheduling reproduction or production bug is claimed.
+
+Round16 covers 1984 files at 1a8bcdec8e23935ae3fbf389953201a25f34409888696de59e69feb4563ba081; unchanged semantic evidence is explicitly inherited and the changed test independently reviewed. Official builtin MCP sources were freshly fetched and match the reviewed contract. Full CI7, deployment, browser acceptance and publication remain pending.

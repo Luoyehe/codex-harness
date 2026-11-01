@@ -1,0 +1,558 @@
+{
+  "schemaVersion": 1,
+  "kind": "explicit-user-release-closeout",
+  "auditRoundsWaived": true,
+  "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+  "sourceFiles": 1984,
+  "baseCommit": "6279cda9568d7d7b6afc61d7d85e951f4061bc52",
+  "version": "2.3.0",
+  "approvedAt": "2026-11-01T08:52:46.810Z",
+  "userInstruction": "进行以上全部任务吧，完成后同样一轮审计无问题后进行收尾和部署发布。用户指定发布 v2.3.0，更新 120 并保持服务运行；最终路径规则为 / 开头绝对路径，否则相对路径，普通和 ROOT 模式一致。",
+  "auditWaiverInstruction": "完成后同样一轮审计无问题后进行收尾和部署发布；不要求仓库默认的连续三轮无问题。",
+  "repairsReviewed": true,
+  "unresolvedBlockers": [],
+  "scopes": [
+    "full-tests"
+  ],
+  "requiredCleanAuditRounds": 1,
+  "completedCleanAuditRounds": [
+    {
+      "roundId": "v230-round15",
+      "sourceDigest": "2f692fd5f7286fa179fb98d566efc3acaebf12b93ebc99bea09a93113010ec74",
+      "completedAt": "2026-11-01T08:52:46.810Z",
+      "files": 1984,
+      "reviewers": [
+        {
+          "id": "v230-round15-team",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v230-ci6/round15-team.json",
+          "sha256": "8ac819f9ecaf49b2a87e080772e51face70171232b0f5e10e315613c908d1a9e"
+        }
+      ]
+    }
+  ],
+  "note": "Standing user one-clean-round instruction applies. Round15 may enter full tests; CI5 remains failed. Deployment/publication pending.",
+  "priorFailedCiAuthorization": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/failed-ci1-authorization.json",
+    "sha256": "a3de6c0f61fb18ffcfe9c7c1378dde213dada67febbe52b0a8a9ed08954f5763"
+  },
+  "repairReviews": [
+    {
+      "kind": "edge",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair.json",
+        "sha256": "6201dbd6fc7ba5a3fe099943160a23da65950930ea7a00e813e697ecc619af30"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-edge-repair-review.json",
+        "sha256": "93d077690fb6a02f63015bb593cf322c6ca3c8087ae31218f2fd9e7daabb2713"
+      }
+    },
+    {
+      "kind": "workspace",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair.json",
+        "sha256": "6783e39ac4c2e14bc420f5231464cd4ca4a3503af64dbff29d7bd6379d7dcc6a"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-workspace-repair-review.json",
+        "sha256": "6a886e6d3a8f1522f41a31c24c6ffcbf74ba685f98ee7d0fa607e3a649d631a2"
+      }
+    },
+    {
+      "kind": "web",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair.json",
+        "sha256": "319f4253dff33cfa5e65280bc00e85613d16e12fa479f5d0ade48b2326ec5ff5"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-web-repair-review.json",
+        "sha256": "406f65e4c96728747d9f30e4968ce16f158544b8ebe540b014188014d06cf8cd"
+      }
+    },
+    {
+      "kind": "ci-diagnostics",
+      "author": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair.json",
+        "sha256": "cfbbe212f841fd2509bb0c739a7e22e2613f9823c61b64d87235a554311e89e0"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-ci1-repairs/v230-ci-diagnostics-repair-review.json",
+        "sha256": "48ddbbf9a5b077adf3aece052a3f76b5d69c4031cc8eb9df7bdaa80e64f605d2"
+      }
+    },
+    {
+      "kind": "defaults",
+      "author": {
+        "path": "verification/audit-evidence/v230-live-repair/defaults-author.json",
+        "sha256": "a359135e7c201478f231109653cfa7629e833a8b45dc14cfca31a126aedf3bf1"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-live-repair/defaults-review.json",
+        "sha256": "74b4c16dfd363fff36678ce16c1dc75dabc5a57f9bc244534480f5592f5429c1",
+        "originalBytes": {
+          "path": "verification/audit-evidence/v230-live-repair/defaults-review-original-bytes.json",
+          "sha256": "6dd936805b5755cb0a2f20b646c65c3a7a7333622e13955036db887438f0f630"
+        }
+      }
+    },
+    {
+      "kind": "proxy",
+      "author": {
+        "path": "verification/audit-evidence/v230-live-repair/proxy-author.json",
+        "sha256": "bf6e1787d2ac7053b19cd62576c2f460ec8fa8de07fa4a44ce657fa04d26f675"
+      },
+      "review": {
+        "path": "verification/audit-evidence/v230-live-repair/proxy-review.json",
+        "sha256": "a41ea4ae91f51e2c1cb337c9de4d9fe72f8eb094939dd552ee8bc07ba1543633"
+      }
+    }
+  ],
+  "firstCiFailure": {
+    "path": "verification/audit-evidence/v230-ci1-repairs/ci1-failure.json",
+    "sha256": "4c19d4b274a97235ebfc3ad1402830ae7ae988cca896bc90403afaf6006359ff"
+  },
+  "previousAuthorization": {
+    "path": "verification/audit-evidence/v230-ci6/ci5-authorization.json",
+    "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8",
+    "original": {
+      "path": "verification/audit-evidence/release-closeout/authorization.json",
+      "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8"
+    }
+  },
+  "ci4Evidence": {
+    "direct-hosts-author": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-author.json",
+      "sha256": "b7d2901786103b19b0d8fe21d14ca356f6bd44ed64a063f557a61d83ed649248",
+      "original": {
+        "path": ".work/v230-direct-domains-backend-implementation.json",
+        "sha256": "b7d2901786103b19b0d8fe21d14ca356f6bd44ed64a063f557a61d83ed649248"
+      }
+    },
+    "direct-hosts-original-review": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-original-review.json",
+      "sha256": "30291704681d16b7bd0d117e76e5083dfd6c645a188e5e36de34d1809cd51148",
+      "original": {
+        "path": ".work/v230-direct-domains-backend-review.json",
+        "sha256": "30291704681d16b7bd0d117e76e5083dfd6c645a188e5e36de34d1809cd51148"
+      }
+    },
+    "direct-hosts-control-author": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-control-author.json",
+      "sha256": "fa7e7240187fd6094620768e1dc19d242970c7b14f5013ff7f7b35ac39777215",
+      "original": {
+        "path": ".work/v230-direct-domains-control-compat-repair.json",
+        "sha256": "fa7e7240187fd6094620768e1dc19d242970c7b14f5013ff7f7b35ac39777215"
+      }
+    },
+    "direct-hosts-control-review": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-control-review.json",
+      "sha256": "34ffb8007a3f19ae703b595c6022d25f7faf0b4db81325f4a46557896cfa37a8",
+      "original": {
+        "path": ".work/v230-direct-domains-control-compat-independent-review.json",
+        "sha256": "34ffb8007a3f19ae703b595c6022d25f7faf0b4db81325f4a46557896cfa37a8"
+      }
+    },
+    "direct-hosts-cli-author": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-cli-author.json",
+      "sha256": "0ea2f3352bdbd6b31803223d1c3bb2b4d820d2273d7deeece6882bf8f1f323e9",
+      "original": {
+        "path": ".work/v230-direct-domains-operator-implementation.json",
+        "sha256": "0ea2f3352bdbd6b31803223d1c3bb2b4d820d2273d7deeece6882bf8f1f323e9"
+      }
+    },
+    "direct-hosts-cli-review": {
+      "path": "verification/audit-evidence/v230-ci4/direct-hosts-cli-review.json",
+      "sha256": "9abd60a5bca0419537536db87cfb58eb91c055780c8034efe017451ea534919e",
+      "original": {
+        "path": ".work/v230-direct-domains-cli-menu-docs-independent-review.json",
+        "sha256": "9abd60a5bca0419537536db87cfb58eb91c055780c8034efe017451ea534919e"
+      }
+    },
+    "emergency-author": {
+      "path": "verification/audit-evidence/v230-ci4/emergency-author.json",
+      "sha256": "7aa025b4e18e629d5850cfe5fe92718d4a69a37788a9d28fac44329a3728c1ca",
+      "original": {
+        "path": ".work/v230-force-recovery-final.json",
+        "sha256": "7aa025b4e18e629d5850cfe5fe92718d4a69a37788a9d28fac44329a3728c1ca"
+      }
+    },
+    "emergency-review": {
+      "path": "verification/audit-evidence/v230-ci4/emergency-review.json",
+      "sha256": "53ada4fc47688f0f84b85b2e7a99238b2ef2260ac5e05364ea7ad1b5322bb6fa",
+      "original": {
+        "path": ".work/v230-force-recovery-independent-review.json",
+        "sha256": "53ada4fc47688f0f84b85b2e7a99238b2ef2260ac5e05364ea7ad1b5322bb6fa"
+      }
+    },
+    "emergency-web-author": {
+      "path": "verification/audit-evidence/v230-ci4/emergency-web-author.json",
+      "sha256": "ff2a9cda81da736f6d66b01ce6e94b2fc57780d0e0837e6dc062674043c81079",
+      "originalBytes": {
+        "path": "verification/audit-evidence/v230-ci4/emergency-web-author-original-bytes.json",
+        "sha256": "180ef4f5191d95cf394d962148e4f2561bd98ee4bb33f051437543f565f4da40"
+      },
+      "original": {
+        "path": ".work/v230-emergency-mcp-web-implementation.json",
+        "sha256": "29a076986bf1d8a0d5817b8764ede2baafed76496c8af6f3c70aa71d80834904"
+      }
+    },
+    "emergency-web-review": {
+      "path": "verification/audit-evidence/v230-ci4/emergency-web-review.json",
+      "sha256": "f2f85a1ab0ab4ecf7f47d4469051341198fc77503c2a3a5e2784751a9c34a0f7",
+      "original": {
+        "path": ".work/v230-force-recovery-web-independent-review.json",
+        "sha256": "f2f85a1ab0ab4ecf7f47d4469051341198fc77503c2a3a5e2784751a9c34a0f7"
+      }
+    },
+    "mcp-author": {
+      "path": "verification/audit-evidence/v230-ci4/mcp-author.json",
+      "sha256": "be47d907562d7032bee699b60a08dafabe7adcc2ddd9ae9c56dc9005119e52e6",
+      "original": {
+        "path": ".work/v230-mcp-oauth-builtin-implementation.json",
+        "sha256": "be47d907562d7032bee699b60a08dafabe7adcc2ddd9ae9c56dc9005119e52e6"
+      }
+    },
+    "mcp-oauth-review": {
+      "path": "verification/audit-evidence/v230-ci4/mcp-oauth-review.json",
+      "sha256": "f1a99e743b2237cb9d30f4b652d0a7d0db2ab92a70d39c9f92dedc5b0508fa42",
+      "original": {
+        "path": ".work/v230-mcp-oauth-admission-independent-review.json",
+        "sha256": "f1a99e743b2237cb9d30f4b652d0a7d0db2ab92a70d39c9f92dedc5b0508fa42"
+      }
+    },
+    "mcp-build-review": {
+      "path": "verification/audit-evidence/v230-ci4/mcp-build-review.json",
+      "sha256": "4c21345dc4f5677ba6c7c948a91003001429ad94fd1395892b6caccd9d0d74df",
+      "original": {
+        "path": ".work/v230-mcp-build-independent-review.json",
+        "sha256": "4c21345dc4f5677ba6c7c948a91003001429ad94fd1395892b6caccd9d0d74df"
+      }
+    },
+    "mcp-ui-review": {
+      "path": "verification/audit-evidence/v230-ci4/mcp-ui-review.json",
+      "sha256": "d62451cab760b73fd49f35eb2959c7b09497560ca61dd391d08a3144a69882ca",
+      "originalBytes": {
+        "path": "verification/audit-evidence/v230-ci4/mcp-ui-review-original-bytes.json",
+        "sha256": "8d3999555a0cf499aa0603e6c22aa5c9ac138872b602d9c6058ab9f633fb3861"
+      },
+      "original": {
+        "path": ".work/v230-mcp-ui-independent-review.json",
+        "sha256": "a78502fabb076adf7875590bad49806312ade171bdd0101fed6a30f7ef0c2d48"
+      }
+    },
+    "mcp-fixture-repair": {
+      "path": "verification/audit-evidence/v230-ci4/mcp-fixture-repair.json",
+      "sha256": "77013c53964949b6bf95da718e60844d77ebd9cc27429ad90bfd152377c2b408",
+      "originalBytes": {
+        "path": "verification/audit-evidence/v230-ci4/mcp-fixture-repair-original-bytes.json",
+        "sha256": "8e924d1b7a6d8c3e849f88dad700b4c204808dace4b904fcbc691ff80e6d4a37"
+      },
+      "original": {
+        "path": ".work/v230-builtin-mcp-fixture-repair.json",
+        "sha256": "f49c0f84ca58105190dce64b05649b2f9e754e5b37efe8dcfdcce8edd704c1ed"
+      }
+    },
+    "http-author": {
+      "path": "verification/audit-evidence/v230-ci4/http-author.json",
+      "sha256": "c85d1345e9d988df67bcb2f1658767ffe459bbacab2fe6a22aab0a3a34183264",
+      "original": {
+        "path": ".work/v230-post-acceptance-response-author.json",
+        "sha256": "c85d1345e9d988df67bcb2f1658767ffe459bbacab2fe6a22aab0a3a34183264"
+      }
+    },
+    "http-review": {
+      "path": "verification/audit-evidence/v230-ci4/http-review.json",
+      "sha256": "ba021ca6398465353a6434b67f48f89c8243a759efe3351bedafe5a7621b2ab8",
+      "original": {
+        "path": ".work/v230-post-acceptance-response-review.json",
+        "sha256": "ba021ca6398465353a6434b67f48f89c8243a759efe3351bedafe5a7621b2ab8"
+      }
+    },
+    "round11-nonclean": {
+      "path": "verification/audit-evidence/v230-ci4/round11-nonclean.json",
+      "sha256": "6f044ab291514ed0390d33248ffba1b32e5e65a1d283333cf789fd89246d973d",
+      "originalBytes": {
+        "path": "verification/audit-evidence/v230-ci4/round11-nonclean-original-bytes.json",
+        "sha256": "252f4a7237b0cf4329c5f92f0dc2cf05f2f4ca06819a5228a0aa8f718b11b9ec"
+      },
+      "original": {
+        "path": ".work/v230-round11-runtime-gateway.json",
+        "sha256": "936f4d8c5b9812ef13df0c6da600e61fa5894ee7aa1960ef121cb40901362bcd"
+      }
+    },
+    "round11-source-scan": {
+      "path": "verification/audit-evidence/v230-ci4/round11-source-scan.json",
+      "sha256": "4ee475dde1fc5609a69817f321f6c9981d3225797957909817ae4ace598b44a5",
+      "original": {
+        "path": ".work/v230-round11-source-scan.json",
+        "sha256": "4ee475dde1fc5609a69817f321f6c9981d3225797957909817ae4ace598b44a5"
+      }
+    },
+    "round12-nonclean": {
+      "path": "verification/audit-evidence/v230-ci4/round12-nonclean.json",
+      "sha256": "0ab784fb8597765d7c45d25fd244bb78cc39d2073aa4df2210fe377084ee3dac",
+      "original": {
+        "path": ".work/v230-round12-nonclean.json",
+        "sha256": "0ab784fb8597765d7c45d25fd244bb78cc39d2073aa4df2210fe377084ee3dac"
+      }
+    },
+    "ci3": {
+      "path": "verification/audit-evidence/v230-ci4/ci3.json",
+      "sha256": "82127869270b2d9ae45592637e5cc18ac22d1fd9d1728a1130219e1af5d26f1e",
+      "original": {
+        "path": ".work/v230-ci3-monitor-summary.json",
+        "sha256": "82127869270b2d9ae45592637e5cc18ac22d1fd9d1728a1130219e1af5d26f1e"
+      }
+    },
+    "ci3-codeql": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-codeql.json",
+      "sha256": "0333d6df0c4dfaccb51df8d8b05e6ba2134714158f454e76b0039f38d063d7ec",
+      "original": {
+        "path": ".work/v230-ci3-codeql-review.json",
+        "sha256": "0333d6df0c4dfaccb51df8d8b05e6ba2134714158f454e76b0039f38d063d7ec"
+      }
+    },
+    "ci3-deployment": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-deployment.json",
+      "sha256": "499b9b37a0b4d97a8e439a94fce4b94520059b4e2654b7d644e78add514f9483",
+      "original": {
+        "path": ".work/v230-ci3-core2631-acceptance-after.json",
+        "sha256": "499b9b37a0b4d97a8e439a94fce4b94520059b4e2654b7d644e78add514f9483"
+      }
+    },
+    "ci3-public": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-public.json",
+      "sha256": "575b0f4134a70137c9a8735bb2df26a0274cb2b5f8defa8cc649c66ccaa5da55",
+      "original": {
+        "path": ".work/v230-ci3-core2631-public-result.json",
+        "sha256": "575b0f4134a70137c9a8735bb2df26a0274cb2b5f8defa8cc649c66ccaa5da55"
+      }
+    },
+    "ci3-initial-proxy-failure": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-initial-proxy-failure.json",
+      "sha256": "03eb2f54b3f5d3416fe9ca2505006561a4e8a616e1349feed79f0b3fb32ad7e2",
+      "original": {
+        "path": ".work/v230-ci3-proxy-phase-failure-diagnostic.json",
+        "sha256": "03eb2f54b3f5d3416fe9ca2505006561a4e8a616e1349feed79f0b3fb32ad7e2"
+      }
+    },
+    "ci3-withdrawn-download": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-withdrawn-download.json",
+      "sha256": "0436bb181f8ee3b8e46aefb4b698ea689105af5d749ec15207b470be7d1cb28c",
+      "original": {
+        "path": ".work/v230-ci3-download-readonly-result.json",
+        "sha256": "0436bb181f8ee3b8e46aefb4b698ea689105af5d749ec15207b470be7d1cb28c"
+      }
+    },
+    "ci3-core2631-regression": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-core2631-regression.json",
+      "sha256": "ea98f1ca4f3b8e904fb2449ee4ab777b10b041eab790996f7176c38bf4f6a485",
+      "original": {
+        "path": ".work/v230-xray-dns-regression-core2631-report.json",
+        "sha256": "ea98f1ca4f3b8e904fb2449ee4ab777b10b041eab790996f7176c38bf4f6a485"
+      }
+    },
+    "ci3-postdeployment-unknown": {
+      "path": "verification/audit-evidence/v230-ci4/ci3-postdeployment-unknown.json",
+      "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1",
+      "original": {
+        "path": ".work/v230-ci3-unknown-oauth-metadata.json",
+        "sha256": "86109d659ef6d96f0a22b0e103b9ca7d1a2ab7de62fb03b4bc62dbffb1840cb1"
+      }
+    }
+  },
+  "ci5Evidence": {
+    "scan": {
+      "path": "verification/audit-evidence/v230-ci5/source-scan.json",
+      "sha256": "43d49a435fc7c881031a9e549e9ba6b097c07c642b62bc83db28071ac7ec5eca",
+      "original": {
+        "path": ".work/v230-round14-source-scan.json",
+        "sha256": "43d49a435fc7c881031a9e549e9ba6b097c07c642b62bc83db28071ac7ec5eca"
+      }
+    },
+    "snapshot": {
+      "path": "verification/audit-evidence/v230-ci5/snapshot.json",
+      "sha256": "1f22d244cdd1280d9a1970014186ef48adf5f8a4968e70a0402786cba6465230",
+      "original": {
+        "path": ".work/v230-round14-snapshot.json",
+        "sha256": "1f22d244cdd1280d9a1970014186ef48adf5f8a4968e70a0402786cba6465230"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v230-ci5/builtin-mcp-freshness.json",
+      "sha256": "a97ba329440db11fc9ae8120561b1ddbeac6fbf630da00ad187bb1dc9c3d7302",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-62349b70-1eea-429e-a3e2-c6a3d75d23e4.json",
+        "sha256": "a97ba329440db11fc9ae8120561b1ddbeac6fbf630da00ad187bb1dc9c3d7302"
+      }
+    },
+    "fixtureAuthor": {
+      "path": "verification/audit-evidence/v230-ci5/fixtureAuthor.json",
+      "sha256": "d3852449e1473979c9e63af2e189e87e9c054f13ea9ed98dd420607b6d88d222",
+      "original": {
+        "path": ".work/v230-ci4-mcp-oauth-fixture-repair.json",
+        "sha256": "d3852449e1473979c9e63af2e189e87e9c054f13ea9ed98dd420607b6d88d222"
+      }
+    },
+    "fixtureReview": {
+      "path": "verification/audit-evidence/v230-ci5/fixtureReview.json",
+      "sha256": "cd977a3414634f39b5fdc42d71db189c85e3d0e701875d8b89d60920485260f5",
+      "original": {
+        "path": ".work/v230-ci4-mcp-oauth-fixture-review.json",
+        "sha256": "cd977a3414634f39b5fdc42d71db189c85e3d0e701875d8b89d60920485260f5"
+      }
+    },
+    "selectorAuthor": {
+      "path": "verification/audit-evidence/v230-ci5/selectorAuthor.json",
+      "sha256": "eb3d41202904af2ecc6674a3808ef87a04fb2eb379627019bc06d747fdc19ea5",
+      "original": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-repair.json",
+        "sha256": "eb3d41202904af2ecc6674a3808ef87a04fb2eb379627019bc06d747fdc19ea5"
+      }
+    },
+    "selectorReview": {
+      "path": "verification/audit-evidence/v230-ci5/selectorReview.json",
+      "sha256": "d7f0919b04e7f2972186fe2cdf01e43e779551f28feb03c55538a64cdff7b552",
+      "original": {
+        "path": ".work/v230-ci4-runtime-fixture-selection-review.json",
+        "sha256": "d7f0919b04e7f2972186fe2cdf01e43e779551f28feb03c55538a64cdff7b552"
+      }
+    },
+    "fixtureTests": {
+      "path": "verification/audit-evidence/v230-ci5/fixture-tests.json",
+      "sha256": "20ad870e9f1236edcc64990e68a70215402c5958bb2ee5bbe4852097985f1390",
+      "original": {
+        "path": ".work/test-results/run-2ufNeZ/vitest.json",
+        "sha256": "b0ca84b5a34bdc379b91b8f999eae7bae90933f7f49e0880dddbb1bdbbe41583"
+      }
+    },
+    "selectorTests": {
+      "path": "verification/audit-evidence/v230-ci5/selector-tests.json",
+      "sha256": "9b6c06cfce720fddb7dc3f7c8a348460759ee3c1b53439c1ecb44872dd1ded20",
+      "original": {
+        "path": ".work/test-results/run-7vhtPc/vitest.json",
+        "sha256": "2aa6bf77ae3c8ef0ec5883ce55d9cd9b89b956075be63dcc7d866afc6f6961e5"
+      }
+    },
+    "ci4": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-failure.json",
+      "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce",
+      "original": {
+        "path": ".work/v230-ci4-monitor-summary.json",
+        "sha256": "76e2f46e53e3b8b37c71e1fe9659ebf306a19551fa5d8188176e1105a808ccce"
+      }
+    },
+    "ci4Codeql": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-codeql.json",
+      "sha256": "8bae22540f98210d02f660c5a4013c4d626bbee256fe4e417764e96ca9e61e3d",
+      "original": {
+        "path": ".work/v230-ci4-codeql-review.json",
+        "sha256": "8bae22540f98210d02f660c5a4013c4d626bbee256fe4e417764e96ca9e61e3d"
+      }
+    },
+    "oldLedger": {
+      "path": "verification/audit-evidence/v230-ci5/previous-ledger.json",
+      "sha256": "3768551f053e8f15a7696f4360526a5ebcc6be64624d94f5cb23cfb669fffdc2",
+      "original": {
+        "path": "verification/audits.json",
+        "sha256": "3768551f053e8f15a7696f4360526a5ebcc6be64624d94f5cb23cfb669fffdc2"
+      }
+    },
+    "oldAuth": {
+      "path": "verification/audit-evidence/v230-ci5/ci4-authorization.json",
+      "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "8d50283124a3f1ff3508df867f51b81a2aff1258cfb9f8f1011fb06a3b19b9ba"
+      }
+    }
+  },
+  "ci6Evidence": {
+    "scan": {
+      "path": "verification/audit-evidence/v230-ci6/source-scan.json",
+      "sha256": "2d78d9f92c4c7f89edebc1be223d2d151135f1b5f620eafd4efaadfe0e646417",
+      "original": {
+        "path": ".work/v230-round15-source-scan.json",
+        "sha256": "2d78d9f92c4c7f89edebc1be223d2d151135f1b5f620eafd4efaadfe0e646417"
+      }
+    },
+    "snapshot": {
+      "path": "verification/audit-evidence/v230-ci6/snapshot.json",
+      "sha256": "68fc634917ac02c2e25a3bc682c5db76b6786ab1ec281f35798fa8a2f948690c",
+      "original": {
+        "path": ".work/v230-round15-snapshot.json",
+        "sha256": "68fc634917ac02c2e25a3bc682c5db76b6786ab1ec281f35798fa8a2f948690c"
+      }
+    },
+    "freshness": {
+      "path": "verification/audit-evidence/v230-ci6/builtin-mcp-freshness.json",
+      "sha256": "92efc447068876414b3e5a3f001f505d53d080c200d57542d58e5dfdabfb0f8e",
+      "original": {
+        "path": ".work/builtin-mcp-freshness-2f514aa5-7ea1-482c-9e25-1b29e14b6a71.json",
+        "sha256": "92efc447068876414b3e5a3f001f505d53d080c200d57542d58e5dfdabfb0f8e"
+      }
+    },
+    "author": {
+      "path": "verification/audit-evidence/v230-ci6/identity-author.json",
+      "sha256": "f5c01ce58e30aabad1c74985be3ba822215a89124b3429639d901efcff73a6a0",
+      "original": {
+        "path": ".work/v230-ci5-defaults-identity-repair.json",
+        "sha256": "f5c01ce58e30aabad1c74985be3ba822215a89124b3429639d901efcff73a6a0"
+      }
+    },
+    "review": {
+      "path": "verification/audit-evidence/v230-ci6/identity-review.json",
+      "sha256": "8e95faa2cdb8435d9db8a45099c8bd50bc2f2eebcc71e0675515a1c00bf6b5b5",
+      "original": {
+        "path": ".work/v230-ci5-defaults-identity-review.json",
+        "sha256": "8e95faa2cdb8435d9db8a45099c8bd50bc2f2eebcc71e0675515a1c00bf6b5b5"
+      }
+    },
+    "targeted": {
+      "path": "verification/audit-evidence/v230-ci6/targeted-tests.json",
+      "sha256": "4105fd6e3677357ca28463dde242c1a7da74c82103024365d25dcb0f19bf04e4",
+      "original": {
+        "path": ".work/test-results/run-O9HekY/vitest.json",
+        "sha256": "a43bbe1bb6d4170bfdabbbf52f0e57e3a41f0bda93561f2211f86a636b4a66db"
+      }
+    },
+    "ci5": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-failure.json",
+      "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a",
+      "original": {
+        "path": ".work/v230-ci5-monitor-summary.json",
+        "sha256": "2e1c5556e4d3c26e261276e0b2a525270d1c86039d6b3e121b43f87d6578b34a"
+      }
+    },
+    "ci5Codeql": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-codeql.json",
+      "sha256": "d7732f458f1a182ddfabaf431b0ae75f01c1d982b9396b28bd9f3d8e18df15e2",
+      "original": {
+        "path": ".work/v230-ci5-codeql-review.json",
+        "sha256": "d7732f458f1a182ddfabaf431b0ae75f01c1d982b9396b28bd9f3d8e18df15e2"
+      }
+    },
+    "oldLedger": {
+      "path": "verification/audit-evidence/v230-ci6/previous-ledger.json",
+      "sha256": "a74b7bab831b13387a70acbaaa74f1d4ba53b2533d59de0d49961c7f236528ab",
+      "original": {
+        "path": "verification/audits.json",
+        "sha256": "a74b7bab831b13387a70acbaaa74f1d4ba53b2533d59de0d49961c7f236528ab"
+      }
+    },
+    "oldAuth": {
+      "path": "verification/audit-evidence/v230-ci6/ci5-authorization.json",
+      "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8",
+      "original": {
+        "path": "verification/audit-evidence/release-closeout/authorization.json",
+        "sha256": "6bdcfa8cb2a27a4b61c008890d2012c47518e6f6c39fd9532d643786bf4e90d8"
+      }
+    }
+  }
+}
