@@ -46,10 +46,12 @@ test('preflight binds two actual plans and reusable build outputs without execut
   const { base, files, source, options } = fixture();
   expect(() => checkBuild(base, source, toolPins(base), options.head)).toThrow(/build evidence is missing/);
   put(base, 'dist/stale.js', 'Stale artifact must not survive a rebuild.');
-  const result = releasePreflight({ ...options, build: true }, base);
+  // Both real release bases may already contain the previous full release.
+  // The remaining narrow diff must honor the current full-tests authorization.
+  const result = releasePreflight({ ...options, prBase: options.pushBase, build: true }, base);
   expect(result).toMatchObject({ status: 'ready-for-ci', testsExecuted: false, releaseGatePassed: false, head: options.head });
-  expect(result.plans.push).toMatchObject({ mode: 'selected', files: [files[0]], baseCommit: options.pushBase });
-  expect(result.plans.pullRequest).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.prBase });
+  expect(result.plans.push).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase, selection: { status: 'selected' } });
+  expect(result.plans.pullRequest).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase, selection: { status: 'selected' } });
   expect(result.plans.pullRequest.targets).toEqual(['linux', 'windows', 'linux-root']);
   expect(existsSync(path.join(base, 'dist/stale.js'))).toBe(false);
   const calls = readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8');
@@ -58,7 +60,10 @@ test('preflight binds two actual plans and reusable build outputs without execut
   expect(readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8')).toBe(calls);
   // Evidence-only commits retain identical source; the original build identity remains honest.
   put(base, 'verification/reports/note.md', 'Fixture evidence only.'); const nextHead = commit(base, 'evidence');
-  expect(releasePreflight({ ...options, head: nextHead }, base).build).toMatchObject({ builtForHead: options.head, rebuilt: false });
+  const evidenceOnly = releasePreflight({ ...options, head: nextHead, pushBase: options.head, prBase: options.head }, base);
+  expect(evidenceOnly.build).toMatchObject({ builtForHead: options.head, rebuilt: false });
+  for (const plan of [evidenceOnly.plans.push, evidenceOnly.plans.pullRequest])
+    expect(plan).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.head, selection: { status: 'no-behavior-change' } });
   expect(readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8')).toBe(calls);
 });
 
@@ -108,10 +113,17 @@ test('failed rebuild clears prior success and source changes during building nev
   expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
 });
 
-test('tool pin drift and a selected-only release PR are explicit blockers', () => {
+test('tool pin drift and a release without full-tests authorization are explicit blockers', () => {
   const { base, options } = fixture();
   expect(() => toolPins(base, '24.15.0')).toThrow(/pins disagree/);
-  expect(() => releasePreflight({ ...options, prBase: options.pushBase }, base)).toThrow(/authorized full inventory/);
+  // A narrow release with full authorization is valid; one without that scope
+  // must still fail before any build or test execution.
+  const approval = JSON.parse(readFileSync(path.join(base, authorizationPath), 'utf8'));
+  approval.scopes = ['targeted-tests'];
+  const bytes = JSON.stringify(approval); put(base, authorizationPath, bytes);
+  const head = commit(base, 'insufficient approval scope');
+  expect(() => releasePreflight({ ...options, head, prBase: options.pushBase, authorizationSha256: hash(bytes) }, base)).toThrow(/Explicit user instruction and completed repair review/);
+  expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
   const name = '.github/workflows/security.yml'; put(base, name, readFileSync(path.join(base, name), 'utf8').replaceAll('24.22.1', '24.15.0'));
   expect(() => toolPins(base)).toThrow(/Workflow Node pin disagrees: security/);
   put(base, name, readFileSync(path.join(base, name), 'utf8').replaceAll('24.15.0', '24.22.1'));

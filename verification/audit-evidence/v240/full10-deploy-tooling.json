@@ -1,0 +1,1111 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-10",
+  "reviewerId": "v240-web-independent-deploy-tooling",
+  "digest": "787da4b63643ab2abd7e2d180c1cc196251740451b7b5e2c5af9cb5e075074fc",
+  "startDigest": "787da4b63643ab2abd7e2d180c1cc196251740451b7b5e2c5af9cb5e075074fc",
+  "endDigest": "787da4b63643ab2abd7e2d180c1cc196251740451b7b5e2c5af9cb5e075074fc",
+  "sourceFiles": 2130,
+  "startedAt": "2026-11-17T18:17:55.870Z",
+  "firstActualHashCheckAt": "2026-11-17T18:18:25.003Z",
+  "completedAt": "2026-11-17T18:19:57.043Z",
+  "complete": true,
+  "scopes": [
+    "deployment-release"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    ".github/dependabot.yml",
+    ".github/workflows/affected.yml",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/security.yml",
+    "deploy/README.md",
+    "deploy/RECOVERY.md",
+    "deploy/__init__.py",
+    "deploy/accounts.py",
+    "deploy/archive.py",
+    "deploy/auth_storage_policy.py",
+    "deploy/build.py",
+    "deploy/caddy_dns_source/main_test.go",
+    "deploy/candidate_archive.py",
+    "deploy/candidate_probe.py",
+    "deploy/catalog.py",
+    "deploy/cli.py",
+    "deploy/common.py",
+    "deploy/config_layer.py",
+    "deploy/control_update.py",
+    "deploy/diagnostic_secrets.py",
+    "deploy/dns_archive.py",
+    "deploy/dns_caddy_build.py",
+    "deploy/dns_providers.py",
+    "deploy/dns_tls.py",
+    "deploy/edge_defaults.py",
+    "deploy/execution_identity.py",
+    "deploy/execution_mode.py",
+    "deploy/git_refs.py",
+    "deploy/https.py",
+    "deploy/https_guidance.py",
+    "deploy/https_health.py",
+    "deploy/install.py",
+    "deploy/install.sh",
+    "deploy/install_recovery.py",
+    "deploy/journal.py",
+    "deploy/journal_schema.py",
+    "deploy/manager.py",
+    "deploy/native_launcher.py",
+    "deploy/operator.py",
+    "deploy/operator_origin.py",
+    "deploy/ownership.py",
+    "deploy/ports.py",
+    "deploy/provider.py",
+    "deploy/provider_bedrock.py",
+    "deploy/provider_catalogs.py",
+    "deploy/provider_gateway.py",
+    "deploy/provider_layers.py",
+    "deploy/provider_lifecycle.py",
+    "deploy/provider_registry.py",
+    "deploy/proxy_core.py",
+    "deploy/proxy_transaction.py",
+    "deploy/requests.py",
+    "deploy/safe_fs.py",
+    "deploy/sandbox.py",
+    "deploy/service_lifecycle.py",
+    "deploy/service_proxy.py",
+    "deploy/shared_auth.py",
+    "deploy/sudo_publish.py",
+    "deploy/system.py",
+    "deploy/thread_history.py",
+    "deploy/transactions.py",
+    "deploy/units.py",
+    "deploy/workspace.py",
+    "deploy/workspace_commit.py",
+    "deploy/workspace_git.py",
+    "deploy/workspace_git_transaction.py",
+    "deploy/workspace_git_view.py",
+    "deploy/workspace_index.py",
+    "deploy/workspace_index_store.py",
+    "deploy/workspace_paths.py",
+    "deploy/workspace_recovery.py",
+    "deploy/workspace_resources.py",
+    "deploy/workspace_search.py",
+    "deploy/workspace_store.py",
+    "deploy/workspace_worktrees.py",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "scripts/RELEASE-PREFLIGHT.md",
+    "scripts/build-codeql-go.mjs",
+    "scripts/build-server.mjs",
+    "scripts/check-builtin-mcp.mjs",
+    "scripts/ci-checks.mjs",
+    "scripts/ci-job-status.mjs",
+    "scripts/compatibility-watch.mjs",
+    "scripts/git-object-reader.mjs",
+    "scripts/go-tests.mjs",
+    "scripts/prepare-ci-go.py",
+    "scripts/prepare-ci-native.mjs",
+    "scripts/prepare-ci-pnpm.mjs",
+    "scripts/publish-release.mjs",
+    "scripts/python-tests.py",
+    "scripts/release-audit.mjs",
+    "scripts/release-authorization.mjs",
+    "scripts/release-preflight.mjs",
+    "scripts/reviewed-history.mjs",
+    "scripts/run-tests.mjs",
+    "scripts/select-tests.mjs",
+    "scripts/snapshot.mjs",
+    "scripts/test-environment.mjs",
+    "scripts/test-paths.mjs",
+    "scripts/test-retention.mjs",
+    "scripts/windows-controller-preflight.mjs",
+    "tests/deploy/linux_isolation.py",
+    "tests/deploy/linux_native_boundary.py",
+    "tests/deploy/process_identity.py",
+    "tests/deploy/recovery_runbook_probe.py",
+    "tests/deploy/root/test_account_recovery.py",
+    "tests/deploy/root/test_accounts.py",
+    "tests/deploy/root/test_candidate_archive.py",
+    "tests/deploy/root/test_cross_audit_operations.py",
+    "tests/deploy/root/test_directory_durability.py",
+    "tests/deploy/root/test_dns_caddy_build.py",
+    "tests/deploy/root/test_edge_diagnostics.py",
+    "tests/deploy/root/test_https.py",
+    "tests/deploy/root/test_initialization_resume.py",
+    "tests/deploy/root/test_journal_recovery.py",
+    "tests/deploy/root/test_management_boundaries.py",
+    "tests/deploy/root/test_project_identity.py",
+    "tests/deploy/root/test_provider_extended.py",
+    "tests/deploy/root/test_provider_layers.py",
+    "tests/deploy/root/test_proxy_core.py",
+    "tests/deploy/root/test_release_reuse.py",
+    "tests/deploy/root/test_request_spool.py",
+    "tests/deploy/root/test_shared_auth.py",
+    "tests/deploy/root/test_toolchain.py",
+    "tests/deploy/root/test_tree_durability.py",
+    "tests/deploy/test_accounts.py",
+    "tests/deploy/test_auth_storage_policy.py",
+    "tests/deploy/test_candidate_archive.py",
+    "tests/deploy/test_control_update.py",
+    "tests/deploy/test_cross_audit_remediation.py",
+    "tests/deploy/test_dependency_lock.py",
+    "tests/deploy/test_deployment.py",
+    "tests/deploy/test_directory_durability.py",
+    "tests/deploy/test_dns_caddy_build.py",
+    "tests/deploy/test_dns_tls.py",
+    "tests/deploy/test_edge_diagnostics.py",
+    "tests/deploy/test_execution_mode.py",
+    "tests/deploy/test_https.py",
+    "tests/deploy/test_https_defaults.py",
+    "tests/deploy/test_https_guidance.py",
+    "tests/deploy/test_https_health.py",
+    "tests/deploy/test_https_ports.py",
+    "tests/deploy/test_initialization_resume.py",
+    "tests/deploy/test_install_recovery.py",
+    "tests/deploy/test_journal_schema.py",
+    "tests/deploy/test_management_boundaries.py",
+    "tests/deploy/test_management_capacity.py",
+    "tests/deploy/test_native_shutdown.py",
+    "tests/deploy/test_operator.py",
+    "tests/deploy/test_origins.py",
+    "tests/deploy/test_prepare_ci_go.py",
+    "tests/deploy/test_project_creation.py",
+    "tests/deploy/test_provider_bedrock.py",
+    "tests/deploy/test_provider_gateway.py",
+    "tests/deploy/test_provider_layers.py",
+    "tests/deploy/test_provider_lifecycle.py",
+    "tests/deploy/test_provider_registry.py",
+    "tests/deploy/test_proxy_bootstrap.py",
+    "tests/deploy/test_proxy_core.py",
+    "tests/deploy/test_proxy_transaction.py",
+    "tests/deploy/test_request_spool.py",
+    "tests/deploy/test_sandbox.py",
+    "tests/deploy/test_service_lifecycle.py",
+    "tests/deploy/test_service_proxy.py",
+    "tests/deploy/test_source_pack.py",
+    "tests/deploy/test_thread_history.py",
+    "tests/deploy/test_toolchain.py",
+    "tests/deploy/test_workspace.py",
+    "tests/deploy/test_workspace_ack.py",
+    "tests/deploy/test_workspace_commit.py",
+    "tests/deploy/test_workspace_index.py",
+    "tests/deploy/test_workspace_recovery.py",
+    "tests/deploy/test_workspace_resources.py",
+    "tests/deploy/test_workspace_search.py",
+    "tests/deploy/test_workspace_worktrees.py",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/tooling/audit-remediation.test.ts",
+    "tests/tooling/builtin-mcp.test.ts",
+    "tests/tooling/ci-checks.test.ts",
+    "tests/tooling/codeql-go.test.ts",
+    "tests/tooling/compatibility-watch.test.ts",
+    "tests/tooling/go-tests.test.ts",
+    "tests/tooling/prepare-ci-native.test.ts",
+    "tests/tooling/publish-release.test.ts",
+    "tests/tooling/release-audit.test.ts",
+    "tests/tooling/release-preflight.test.ts",
+    "tests/tooling/reviewed-history.test.ts",
+    "tests/tooling/run-tests.test.ts",
+    "tests/tooling/select-tests.test.ts",
+    "tests/tooling/test-environment.test.ts",
+    "tests/tooling/vision-compat.test.ts",
+    "tests/tooling/windows-controller-preflight.test.ts"
+  ],
+  "method": "Independent read-only deployment/tooling review. Fully reread all four changed files and their current authorization, runner, release preflight and workflow consumers. Retained the full9 complete semantic baseline only for the 190 paths whose actual SHA256 exactly matches the prior manifest. Independently recomputed the canonical 2,130-file snapshot and every actual source hash at start/end, rehashed repair evidence, and reconciled the raw Windows/Linux targeted case identities. No tests or production actions executed during this audit.",
+  "reviewDetails": {
+    "changedFullyReread": [
+      "scripts/RELEASE-PREFLIGHT.md",
+      "scripts/ci-checks.mjs",
+      "tests/tooling/ci-checks.test.ts",
+      "tests/tooling/release-preflight.test.ts"
+    ],
+    "unchangedInherited": [
+      {
+        "path": ".github/dependabot.yml",
+        "sha256": "e355afededefa7b6ec517a32479364c10b7ea686ae7a11a7eb095dec090130bc"
+      },
+      {
+        "path": ".github/workflows/affected.yml",
+        "sha256": "7b1348c88bb74d55f45e937264a44aeb96b80e3e70ccea3cd1a5d1833d4dc773"
+      },
+      {
+        "path": ".github/workflows/compatibility.yml",
+        "sha256": "9c65a38e595570c48a91c097621016e6b4f8e0a6d622afa2ee546248c224742e"
+      },
+      {
+        "path": ".github/workflows/release.yml",
+        "sha256": "a7b4d5aae4ccbab9c6b65c0f87e4cbdd02930f7edfd584dd4aeec79e258d3a8a"
+      },
+      {
+        "path": ".github/workflows/security.yml",
+        "sha256": "d8dc5012ab056547878c9e335b473b37021441e7a7a0608df137d2b6090f4045"
+      },
+      {
+        "path": "deploy/README.md",
+        "sha256": "a0d5ac94ae4f67542ba37f98b1d5a1e74608b181d3ed8e1b5e69f59482b68daf"
+      },
+      {
+        "path": "deploy/RECOVERY.md",
+        "sha256": "9997e192cf4439ee6b3b1cd0951b96f3f8a342501d3a658cb8be89d60ee6a207"
+      },
+      {
+        "path": "deploy/__init__.py",
+        "sha256": "e7dd3d13a07850c232db59e99d9d1c76bac359a0a1909c400ee1d29bd089883d"
+      },
+      {
+        "path": "deploy/accounts.py",
+        "sha256": "cedd18e0284cc63b70272370a3d6e5c83485a65b26a23e1d9de10a6c4a735104"
+      },
+      {
+        "path": "deploy/archive.py",
+        "sha256": "d445666caf134d09e161f98a7739b632f529ac9a8ecd536b947e6adcb3a1dfc7"
+      },
+      {
+        "path": "deploy/auth_storage_policy.py",
+        "sha256": "8d5fb24357c604c8672f0a9e3483bcaa83e43964cc6008765bd5089c53f10a30"
+      },
+      {
+        "path": "deploy/build.py",
+        "sha256": "8fc61f3fd00bad0a6965dee660f4d920ce963f358e8043e42cb4a4763ebe8868"
+      },
+      {
+        "path": "deploy/caddy_dns_source/main_test.go",
+        "sha256": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83"
+      },
+      {
+        "path": "deploy/candidate_archive.py",
+        "sha256": "a3478135a427a513580bca211d7679b2d6adee45b2179f3306b922e8c4ebd69d"
+      },
+      {
+        "path": "deploy/candidate_probe.py",
+        "sha256": "0674920c5e922a6fccb63e432f843597650e97d0a2d9364c24067ebef387f5d8"
+      },
+      {
+        "path": "deploy/catalog.py",
+        "sha256": "f90928d0f5d52c95793f0a8af8fbdfd00e8410ab82fefba83f132d2599a9ec29"
+      },
+      {
+        "path": "deploy/cli.py",
+        "sha256": "a4d2ed94dabe689b5f8c5bc7ebd7f1d0c48466c34623411347ad215f88d9f1c8"
+      },
+      {
+        "path": "deploy/common.py",
+        "sha256": "f115f012cbb5354c56347909e4118b000830a5b7f5a30092beb8bdb63993ec7b"
+      },
+      {
+        "path": "deploy/config_layer.py",
+        "sha256": "bcbc8f8c6c89e7ae809526510ee53685eea93f8d2f17aedbb5e904e06f4a5259"
+      },
+      {
+        "path": "deploy/control_update.py",
+        "sha256": "ba4c79652e3e1d86bfad9b1c608b5130d5b74331c2551be8df21ded58da4ea02"
+      },
+      {
+        "path": "deploy/diagnostic_secrets.py",
+        "sha256": "87616bc763c3e0dae88814391f718cadfd5885e2b9016ec2889b2be5593cc6ea"
+      },
+      {
+        "path": "deploy/dns_archive.py",
+        "sha256": "e6f8311eb8fa70e47a07b4bcf3cb1912fff3d705b35aa06767258483c42433a4"
+      },
+      {
+        "path": "deploy/dns_caddy_build.py",
+        "sha256": "88babaac6ea04d2e63df0c3bba128c1e7c987dad22eda8d188b3b6bb71e63c89"
+      },
+      {
+        "path": "deploy/dns_providers.py",
+        "sha256": "e85f0d718dd911d1116c604d497bd637e7e7e3927cc4457eb6a8bbbcc76de167"
+      },
+      {
+        "path": "deploy/dns_tls.py",
+        "sha256": "25168f639dadc5249c529571fc008dac86d87150d8e7afba54cba0e1bc492e0a"
+      },
+      {
+        "path": "deploy/edge_defaults.py",
+        "sha256": "b2ee74b8c5fe22c095f13651cfc4a174449ab367e1d30bce78421fcc4c099ae1"
+      },
+      {
+        "path": "deploy/execution_identity.py",
+        "sha256": "9e928abd9463180f907278e8fca364b93507e22349392ce022073a77e7c5d01f"
+      },
+      {
+        "path": "deploy/execution_mode.py",
+        "sha256": "7119b1d2acef6864bf4c5bdad515d06c3581597d2080d4bf1227e73b55e817ba"
+      },
+      {
+        "path": "deploy/git_refs.py",
+        "sha256": "87f154a5e92f0e885ca570b3c852dfe2d5083d445f0986ad11871548721a98fd"
+      },
+      {
+        "path": "deploy/https.py",
+        "sha256": "3326e6b2af6fbb678f14881bb264e2f8755cad8e9f36398bba99cca390af13d6"
+      },
+      {
+        "path": "deploy/https_guidance.py",
+        "sha256": "143157050a8f0ffe69f6a214bc1d7cc7661968bee4c65b9b3f4511ff3db4b218"
+      },
+      {
+        "path": "deploy/https_health.py",
+        "sha256": "1862f1c1373a582ea08a3627d2449e17ce998dc517bdd513b147d1e046ba1d90"
+      },
+      {
+        "path": "deploy/install.py",
+        "sha256": "f63aad0da66ac39c8cc9dd14543edd2b938a4c1db16925bf9e8fae027eb7e4a2"
+      },
+      {
+        "path": "deploy/install.sh",
+        "sha256": "5add2d4d28b631b890c2f45c208deb8d221ef09df52257808648258337531b2b"
+      },
+      {
+        "path": "deploy/install_recovery.py",
+        "sha256": "380985d12a16c1ea41a4324825918fb2a6944cee823401a8e4272e0ac11ebc6a"
+      },
+      {
+        "path": "deploy/journal.py",
+        "sha256": "0aa88ca2acb55a101def3269e99c60bf2d4bba0f48f8a6a764b6aeff7a0d115e"
+      },
+      {
+        "path": "deploy/journal_schema.py",
+        "sha256": "d935928a9f6b4386fd456b1b419bd5495331db6f9e85462ba0402646d56fc101"
+      },
+      {
+        "path": "deploy/manager.py",
+        "sha256": "8cfefde8924f29020aa6e62528c200972e26b44a69c826a5aecbeba98a78a6ff"
+      },
+      {
+        "path": "deploy/native_launcher.py",
+        "sha256": "283c75bec3237e9d16706f36efb81ca45629cc2312b46228acd93ae2a2910227"
+      },
+      {
+        "path": "deploy/operator.py",
+        "sha256": "e8fa3e083bbf1f75ef72159d8969e56b07c36b98d4e3de3838e535c8176b223e"
+      },
+      {
+        "path": "deploy/operator_origin.py",
+        "sha256": "dc5b47f34a13c5954ebc4e8b0b927a4f6db33f5973bcae8f96f1e68c4a19c92d"
+      },
+      {
+        "path": "deploy/ownership.py",
+        "sha256": "55b5049b9c54c613426786a25326e7032b4eadbe0fd77462ba4561d7c9779099"
+      },
+      {
+        "path": "deploy/ports.py",
+        "sha256": "6b82bbadabaedd493e13ee48a8c5ff0fc223e6222a8505667e77eb8014bf37cf"
+      },
+      {
+        "path": "deploy/provider.py",
+        "sha256": "c580f19408b948ce9fe6ca7f4ab8936812d89ad6ae35f1d5a439c8c1458a502b"
+      },
+      {
+        "path": "deploy/provider_bedrock.py",
+        "sha256": "780ab28c22b5b71446f1dba203317bec10b980ff947047e5a89927878c8fab2c"
+      },
+      {
+        "path": "deploy/provider_catalogs.py",
+        "sha256": "54c26f79ffdfb48777ab4d9f1fdd96d3726760b2d09734e5549573cf986f9e57"
+      },
+      {
+        "path": "deploy/provider_gateway.py",
+        "sha256": "f7b959c207bf02f37d8e0c24c8ac5af85a23745b0486ce79196de244348c0abe"
+      },
+      {
+        "path": "deploy/provider_layers.py",
+        "sha256": "bcfdaaf6c9983a52f3f0f0a2ec24d5d48bd9774ad9fe1af856d4dd02e6ce2cbe"
+      },
+      {
+        "path": "deploy/provider_lifecycle.py",
+        "sha256": "0584b9e3b68c308180bf79866c17649cbc24e08b572e50dfff2b6738757e0591"
+      },
+      {
+        "path": "deploy/provider_registry.py",
+        "sha256": "0351b3e11886d561a7b1740cc30ec82826db0d0c66553cb53a18cc6ade6e7365"
+      },
+      {
+        "path": "deploy/proxy_core.py",
+        "sha256": "11f9af6776f246e1cb5569858b97bc204cfcee0acf5440d3bd6f60126b896106"
+      },
+      {
+        "path": "deploy/proxy_transaction.py",
+        "sha256": "1c3f197e9e244ed0a121852ed42b064cc77f6cd49bd98cae89d1533e3c7767c5"
+      },
+      {
+        "path": "deploy/requests.py",
+        "sha256": "f189b06f877e4a05a0922077fd895b931838fef4c056a6964d84983278653083"
+      },
+      {
+        "path": "deploy/safe_fs.py",
+        "sha256": "622d89245d23b5581552e38863eba71c8cf757f961f81f4b80589e7e1d0b8f4b"
+      },
+      {
+        "path": "deploy/sandbox.py",
+        "sha256": "66d4454d52fa6db25411af4dfacb2171e2e0117c2f96672b04746671495c87f5"
+      },
+      {
+        "path": "deploy/service_lifecycle.py",
+        "sha256": "12cc5b9e719300a9851106e09268cc5a05984389e1c6efc867ebbb9802dbfe90"
+      },
+      {
+        "path": "deploy/service_proxy.py",
+        "sha256": "098904e8d21177e29543bbe363037f1e7ed8afa94b2a13c974f685843cffbb7f"
+      },
+      {
+        "path": "deploy/shared_auth.py",
+        "sha256": "c3c2d1d4979da54bf3caacf4733330e81d83cb66abfc6dfecd3d3d656afd2c61"
+      },
+      {
+        "path": "deploy/sudo_publish.py",
+        "sha256": "47040191bf5759e7c63eb38ea50160a3204efd557c4a6b8006fa2411bb224215"
+      },
+      {
+        "path": "deploy/system.py",
+        "sha256": "ec43d23ad86ab6d1e38c341ded2f9c8e73fdacf16c5effb843c64b6dfc6a6039"
+      },
+      {
+        "path": "deploy/thread_history.py",
+        "sha256": "2c06b40dc5d9aadb05e3bd62db79c317b176ca77e3841a3931f08fb96830e45a"
+      },
+      {
+        "path": "deploy/transactions.py",
+        "sha256": "d4b97a5f44af6d04c6abdab40d077e0907c1fbbe584a5644b4587d0fefd25123"
+      },
+      {
+        "path": "deploy/units.py",
+        "sha256": "95389a6408f7ec849878470d75cd14e7153b53aaf6bd9857749614395a1db689"
+      },
+      {
+        "path": "deploy/workspace.py",
+        "sha256": "6652f8954af6e0062c560acfb2e718f3dce31f09951d33bd5b16b6a04bb749a5"
+      },
+      {
+        "path": "deploy/workspace_commit.py",
+        "sha256": "cabf2f23507f8c9d5ad28a9262fede13b4c2eb7be3d7b9471251fd96943345b1"
+      },
+      {
+        "path": "deploy/workspace_git.py",
+        "sha256": "9c86ec3868b90964dc233ccdd7d2784f533b8583cbfa24e5de49fab648c1a8f1"
+      },
+      {
+        "path": "deploy/workspace_git_transaction.py",
+        "sha256": "37ed0dae9fc6335cbbc60e6124292b694fe8229f10063ab7e95cfa9b5f79faa7"
+      },
+      {
+        "path": "deploy/workspace_git_view.py",
+        "sha256": "0c92289a515e92845c8bd14eec9e658d4ad6a188768cda0d00f44077c4c71b2b"
+      },
+      {
+        "path": "deploy/workspace_index.py",
+        "sha256": "f7a5f6eb8be7c11ad62a1353315165a063173ddcd15aab75c3d48f117e0ebc9a"
+      },
+      {
+        "path": "deploy/workspace_index_store.py",
+        "sha256": "a8578d190d7ebe01c2610d016951b9ef5f2bcff7ebb2ea025d19a6b6d5cf05a1"
+      },
+      {
+        "path": "deploy/workspace_paths.py",
+        "sha256": "eef2944f9a06b82ac3b417df04f6ac4a91dd1538e9c2e485c2d71ecde4eaaee7"
+      },
+      {
+        "path": "deploy/workspace_recovery.py",
+        "sha256": "7ef086f28692961515d0b8cc009434d766f4029908733663a88329b16cb6acd5"
+      },
+      {
+        "path": "deploy/workspace_resources.py",
+        "sha256": "81d16f0e770babbbf21238e3ff150c689f391ea76cbe7466cdedcb5ffd16e02a"
+      },
+      {
+        "path": "deploy/workspace_search.py",
+        "sha256": "26d0db381e4379c2127f61c12718924851b37947c6e76659c6caff1708a3c1ff"
+      },
+      {
+        "path": "deploy/workspace_store.py",
+        "sha256": "acaa10d35e7312c92773cb4a14b681a2a33b52666d4f9e57290b901b9914619a"
+      },
+      {
+        "path": "deploy/workspace_worktrees.py",
+        "sha256": "27284f8c417815a8a33de64150d9cd3bf80041f5f8b3f5af144789b48ce99ff6"
+      },
+      {
+        "path": "package.json",
+        "sha256": "1110b0b9005c26f86eadefde9b2e3382f78cce8e92a73017affb306baffa66bc"
+      },
+      {
+        "path": "pnpm-workspace.yaml",
+        "sha256": "f7ca0bd84a4d5e63606df261dc3494a2da0235ed1f3a90289a4e224d811537d8"
+      },
+      {
+        "path": "scripts/build-codeql-go.mjs",
+        "sha256": "ca7bbf543f8e80a7a21d997ea8abca1dfa42d9f578f4c12e82e9c0f97a6288b7"
+      },
+      {
+        "path": "scripts/build-server.mjs",
+        "sha256": "6765aa1dbbd9670e95fcef3aa18b08391dd3a1e9f0dd4cc0d199a64a5d1b47de"
+      },
+      {
+        "path": "scripts/check-builtin-mcp.mjs",
+        "sha256": "6a392a4684b1bbed41247aaa83a4ed439f3291f62f2c349db1aa609da9a09bf8"
+      },
+      {
+        "path": "scripts/ci-job-status.mjs",
+        "sha256": "8c86b6b7b8a8655b827df85b97d97e74ae1df9c12a6cbd664d6c860e3a85ef97"
+      },
+      {
+        "path": "scripts/compatibility-watch.mjs",
+        "sha256": "d5f47c07232abc6a81a538a6b0e4bc71a7c26989c66a153d6ccbc91acc6d5c9c"
+      },
+      {
+        "path": "scripts/git-object-reader.mjs",
+        "sha256": "1e42dd1aaa978d3183b65a443698598c706f98cabf417b73707001808b53e4d6"
+      },
+      {
+        "path": "scripts/go-tests.mjs",
+        "sha256": "a72cf5496f31e92bf01fd042351e1a3c24fb12e7dff7d9345ffb4f581770e84a"
+      },
+      {
+        "path": "scripts/prepare-ci-go.py",
+        "sha256": "2ec71bcdb84ebe9a912b3ba58cb73b277346febfc69e51c709f899ec5cda8a4f"
+      },
+      {
+        "path": "scripts/prepare-ci-native.mjs",
+        "sha256": "0d89a83f9687b6ce0b90c2ca5e699b183c1a5ee2f24b5ba68724dacf4f2d263a"
+      },
+      {
+        "path": "scripts/prepare-ci-pnpm.mjs",
+        "sha256": "a7dbd2189f3baf74120248e326713b4173a421cc1e4d3bc1e19316681f59ff8b"
+      },
+      {
+        "path": "scripts/publish-release.mjs",
+        "sha256": "a20629aadf25b2d446a6eecf41169c8d613f4685eb1b0bed9fcd0b9d0147087b"
+      },
+      {
+        "path": "scripts/python-tests.py",
+        "sha256": "c03f5bf7f4247dca1d2413c6ccbd156c1a306df298d71e564d548cce11522eab"
+      },
+      {
+        "path": "scripts/release-audit.mjs",
+        "sha256": "950852dc4490935ef80458e40a46f42bb74da9e1c801870b2dd9acc1c10421db"
+      },
+      {
+        "path": "scripts/release-authorization.mjs",
+        "sha256": "e55fcc9cbe482d2e2cb100ac5f90b9c5b38d535cb63b01bb91287eba2dd0c46e"
+      },
+      {
+        "path": "scripts/release-preflight.mjs",
+        "sha256": "99e9d2dbd6560c06ca4d090f42299e350a4f0fe1ac153e41eeac00e8fefd646f"
+      },
+      {
+        "path": "scripts/reviewed-history.mjs",
+        "sha256": "a7f5201a2ece3bbf15b526f8e6c60cc288e8c7a066fa87af5504979efc31a4e2"
+      },
+      {
+        "path": "scripts/run-tests.mjs",
+        "sha256": "dbce6007e57b4e95a8085d4222c4e01ad0f33675dc2cbeda4ad386929c4f32f0"
+      },
+      {
+        "path": "scripts/select-tests.mjs",
+        "sha256": "7151ef09f2e562f0ccf7974339b4eaaca25474da462c86ca480fcd47fe29f638"
+      },
+      {
+        "path": "scripts/snapshot.mjs",
+        "sha256": "9f177e64847bbd2b72c7a888fd8f2453ee23a86bcdae08786c58ea360b73522f"
+      },
+      {
+        "path": "scripts/test-environment.mjs",
+        "sha256": "9b688e57a8604f85e60bb69fb7a465c35d32c5e5ec2fd3e566e55e64390b956a"
+      },
+      {
+        "path": "scripts/test-paths.mjs",
+        "sha256": "686f2b38bbe962ece7b1c4cd437238be8a1dc3a58342d8197ce006c90538e500"
+      },
+      {
+        "path": "scripts/test-retention.mjs",
+        "sha256": "519c6d35c63ea8601c19b7c702496340061340c34ba7cc113632a964dea6492f"
+      },
+      {
+        "path": "scripts/windows-controller-preflight.mjs",
+        "sha256": "af0e33e63234973bcc4adec45fb83f8075930682e7ce2e8deb144df4f0d06442"
+      },
+      {
+        "path": "tests/deploy/linux_isolation.py",
+        "sha256": "8e1eb0ec2ed7e944d9ee7e7a830d2307234d423f3fd95b72122b60ab8b2f2a7a"
+      },
+      {
+        "path": "tests/deploy/linux_native_boundary.py",
+        "sha256": "95037bd111999aa5920cf9192f0a750716460d0bc1cc75222eb539a85eb00b03"
+      },
+      {
+        "path": "tests/deploy/process_identity.py",
+        "sha256": "60bfbdeda9c8bcbe62c1fae3a79db692ed04a7194695d7b1c2f9a66d814d6050"
+      },
+      {
+        "path": "tests/deploy/recovery_runbook_probe.py",
+        "sha256": "c1222740c9229300606be5a852ed0a88e4f58dcc124bde3dd44c653b0ab0bd19"
+      },
+      {
+        "path": "tests/deploy/root/test_account_recovery.py",
+        "sha256": "557ddac501d72495743ac88bf9fbc1cd6f5e536bea1c4a060e3cd3f2d6fbff09"
+      },
+      {
+        "path": "tests/deploy/root/test_accounts.py",
+        "sha256": "ee1edac10ed95c8d8d3191ba80587b024835c3edbe4aa97c29aa5f7a07c49c53"
+      },
+      {
+        "path": "tests/deploy/root/test_candidate_archive.py",
+        "sha256": "2fbea72985c0170657390745228df1965c052b61b3218b4dafe42ec1823256de"
+      },
+      {
+        "path": "tests/deploy/root/test_cross_audit_operations.py",
+        "sha256": "352039c0753b78393cbc60a44d214b623cee8d17c761bfc8f3d35ba10bc44571"
+      },
+      {
+        "path": "tests/deploy/root/test_directory_durability.py",
+        "sha256": "e726138b4b9dec962d4c99cba394d0d476d176a122e3f68e2e1237480bc77548"
+      },
+      {
+        "path": "tests/deploy/root/test_dns_caddy_build.py",
+        "sha256": "f9566f96a8faadb17e6c34c7202553e66fc888c8d6b30519e4a0778cfe2f1107"
+      },
+      {
+        "path": "tests/deploy/root/test_edge_diagnostics.py",
+        "sha256": "490d56de07b513c1ddc617260bf76ca4a8c5c325797922559bffb40c95ad4ef0"
+      },
+      {
+        "path": "tests/deploy/root/test_https.py",
+        "sha256": "761712478c635027fbcb068a4b12b73e0ee4825a2c3116c53e988027c59a7138"
+      },
+      {
+        "path": "tests/deploy/root/test_initialization_resume.py",
+        "sha256": "6899ed54037018616ec35fe0bb40727e01f21a2dbc1a8bdc12310874768907e8"
+      },
+      {
+        "path": "tests/deploy/root/test_journal_recovery.py",
+        "sha256": "f8da45b771bb0eee4d8e0d4d3f712314711dad40320a55c7f9fd3eea6a5de080"
+      },
+      {
+        "path": "tests/deploy/root/test_management_boundaries.py",
+        "sha256": "71e22105cf7124e64c187b95a958cba31f35a1e050bf1bc4adce58fa494637ee"
+      },
+      {
+        "path": "tests/deploy/root/test_project_identity.py",
+        "sha256": "377be23a0a25f3ab13a73c9116399bcc404dcdb6c132a2bef607bd8ef1a17816"
+      },
+      {
+        "path": "tests/deploy/root/test_provider_extended.py",
+        "sha256": "df8cb1334f07041afa367ef08fe5f2a286320e090be66c49d47299e7b08e170e"
+      },
+      {
+        "path": "tests/deploy/root/test_provider_layers.py",
+        "sha256": "fd300ed8046d3fe6abdf2b29bb5d3457e6eb38a35aa8d34e1c63dedc45183e4d"
+      },
+      {
+        "path": "tests/deploy/root/test_proxy_core.py",
+        "sha256": "b6c4fde4a9a794880928acf65fc1bfefed78b0b410c70803c10d26b660ea9787"
+      },
+      {
+        "path": "tests/deploy/root/test_release_reuse.py",
+        "sha256": "72fde303534f8fb91f565eb4aa4908a3f2c316eb15666016f844c528e8215986"
+      },
+      {
+        "path": "tests/deploy/root/test_request_spool.py",
+        "sha256": "546ae9bc7f246fc859c86562566fc8f1229965d42c2df794451eef0a126ac5d3"
+      },
+      {
+        "path": "tests/deploy/root/test_shared_auth.py",
+        "sha256": "443947ba9977153c531be1acb0a6d7d90aee530369f9a7edaabcdc726172d1ab"
+      },
+      {
+        "path": "tests/deploy/root/test_toolchain.py",
+        "sha256": "dbaaab90072fd98b8b0373f2041244019f943143a589043b0eb31fe1143e4aac"
+      },
+      {
+        "path": "tests/deploy/root/test_tree_durability.py",
+        "sha256": "5905a0d993648cdb0d4849fb239aff99ff7900b4df9e9ce94db1efb719c1f876"
+      },
+      {
+        "path": "tests/deploy/test_accounts.py",
+        "sha256": "1fd9398dbc588376cb65b29e791f1133bb64e17dcd6640e44d7bd9954cb647a9"
+      },
+      {
+        "path": "tests/deploy/test_auth_storage_policy.py",
+        "sha256": "773c00c8d91d3c5f00054f58730d95f8f6c35a71703559ae53f411fd4c23bf80"
+      },
+      {
+        "path": "tests/deploy/test_candidate_archive.py",
+        "sha256": "7087a14dc34a1f47e3cc3e2f271b60f1ccef743aa2051c847d410f231ec7978f"
+      },
+      {
+        "path": "tests/deploy/test_control_update.py",
+        "sha256": "3d5ba260b1db68be82505309df962b87c384c1ecf3ca7d9ab3791c81af68d7f3"
+      },
+      {
+        "path": "tests/deploy/test_cross_audit_remediation.py",
+        "sha256": "32c59c23f4c983deaec63c77e8b240765323c5666097b98ff0c43bb54ff8b35f"
+      },
+      {
+        "path": "tests/deploy/test_dependency_lock.py",
+        "sha256": "a820db8f10309bd2c7ac4a5bb43e0410d9d27a2ad9ea7864aea2207331c0b0f5"
+      },
+      {
+        "path": "tests/deploy/test_deployment.py",
+        "sha256": "aa658342d10f15bf77ab2260d9feb359754b0ecb00786015f62f96e98bd3acd9"
+      },
+      {
+        "path": "tests/deploy/test_directory_durability.py",
+        "sha256": "2a568038e8da415c231eb203cf15b74ba4a36a5715e32f4a5bf3734207719f30"
+      },
+      {
+        "path": "tests/deploy/test_dns_caddy_build.py",
+        "sha256": "5faf7d10a41d8942d9bf5f52c79d85d2e928b1a59d2357322098e5d3c4293ae9"
+      },
+      {
+        "path": "tests/deploy/test_dns_tls.py",
+        "sha256": "dcebfb77e60840d0f85e2e26d85da2ea7725e7825feb34400345ce4443d85c5c"
+      },
+      {
+        "path": "tests/deploy/test_edge_diagnostics.py",
+        "sha256": "e8c262e57ff612ef0f2d56f14cc228f6e37128105b6e46921164db25633d84c4"
+      },
+      {
+        "path": "tests/deploy/test_execution_mode.py",
+        "sha256": "cc4aa78f1bd7bdcda06590d16b1115be287a4827bac71a6f7157fa35ebbf90a9"
+      },
+      {
+        "path": "tests/deploy/test_https.py",
+        "sha256": "cae764391696e2343eea3b1b24b400dbf9b6ed0641d66167ef8a78202fe374fa"
+      },
+      {
+        "path": "tests/deploy/test_https_defaults.py",
+        "sha256": "3939b56ba536286c41e25b1386f4b7942e020d8caeefb42f41674e3d4971a6e5"
+      },
+      {
+        "path": "tests/deploy/test_https_guidance.py",
+        "sha256": "691002a67f5ae2f25223eee2bf6943a6f1e82f2f74bb7203eecf9bdb8efcb7b2"
+      },
+      {
+        "path": "tests/deploy/test_https_health.py",
+        "sha256": "64c4d39a7995661450b20949bbb3695902ac5cae0e11b6bc33679ef50257cd2d"
+      },
+      {
+        "path": "tests/deploy/test_https_ports.py",
+        "sha256": "a70f65329239c08cd7b13db5d0155112e942fc310ad253df38a621ebb6b02189"
+      },
+      {
+        "path": "tests/deploy/test_initialization_resume.py",
+        "sha256": "6df8eca2685babf95fcb2169ca8443bb9b64b6529a8f8182e893f6b79bc557e9"
+      },
+      {
+        "path": "tests/deploy/test_install_recovery.py",
+        "sha256": "1c4ae691690245e7384e91ff17c1f8752660e05d67991b7536385e772b956539"
+      },
+      {
+        "path": "tests/deploy/test_journal_schema.py",
+        "sha256": "9cdf23a7a2fb10340000d87582123ef8b8e6d4efc02ac57ebe025672822d38e3"
+      },
+      {
+        "path": "tests/deploy/test_management_boundaries.py",
+        "sha256": "0e31747996ae47dd09c5424defa524ad28be29fb60af590d1fd6d5f8105ea707"
+      },
+      {
+        "path": "tests/deploy/test_management_capacity.py",
+        "sha256": "9357c7732ef3b41edf8479d26ed554555575bac79cd934add7a5306347141f77"
+      },
+      {
+        "path": "tests/deploy/test_native_shutdown.py",
+        "sha256": "3126dfb29b4b710af64ba2a5e9eae1624ef3925f98a483b7d4bff02d458ef7ee"
+      },
+      {
+        "path": "tests/deploy/test_operator.py",
+        "sha256": "b27a82106fac2017502f12528df95c676689c50dc01ac110f75f9d776f873993"
+      },
+      {
+        "path": "tests/deploy/test_origins.py",
+        "sha256": "f2391cabca033d694380d83cf4b5e2d50af6acd541ce4373a08ae5b75af05c0c"
+      },
+      {
+        "path": "tests/deploy/test_prepare_ci_go.py",
+        "sha256": "f6809e2784c5d6a4aef0789dd82a495669632107e090ac2d8f0f6eea33a920c6"
+      },
+      {
+        "path": "tests/deploy/test_project_creation.py",
+        "sha256": "47f535f84fc50bddbb30acf4ea7d451cbb208de41ea19755f8e217c7ba3079de"
+      },
+      {
+        "path": "tests/deploy/test_provider_bedrock.py",
+        "sha256": "7ed2f117b161dfac8b237c52d98cdde83fa2f025d04c51431966452f7d2b516c"
+      },
+      {
+        "path": "tests/deploy/test_provider_gateway.py",
+        "sha256": "ea8c6ff7c542a3ab4e741adee76019ba41cb355c85b72e0d548abdc14de32559"
+      },
+      {
+        "path": "tests/deploy/test_provider_layers.py",
+        "sha256": "cb6ffd6415eb39d277c45b64aa5d0be2623a60432755c7aa273134b49649ee82"
+      },
+      {
+        "path": "tests/deploy/test_provider_lifecycle.py",
+        "sha256": "ac58e57f97e00dbfbf55a664a9293a99e1ddd1944fbf297571ae4fe4e7518424"
+      },
+      {
+        "path": "tests/deploy/test_provider_registry.py",
+        "sha256": "96e059f9ac58db555426623a437711dcfdb8e5f178988de4166661138ff72fef"
+      },
+      {
+        "path": "tests/deploy/test_proxy_bootstrap.py",
+        "sha256": "ee1ac55173d41e6c73b434da76151b4968796190dbb6431a73ddbac801c1b2ae"
+      },
+      {
+        "path": "tests/deploy/test_proxy_core.py",
+        "sha256": "7fb8d77362963b75ae5213b3fa2f8ff8ef474c5bec59c5e780a031cf454629aa"
+      },
+      {
+        "path": "tests/deploy/test_proxy_transaction.py",
+        "sha256": "b6a2757369ab20878613e436b890a3d477fbe14fda3153db8419020292e74e2a"
+      },
+      {
+        "path": "tests/deploy/test_request_spool.py",
+        "sha256": "0b95c6ab69dd09f102e6b69682bc8c6727e8175d1724364b3cd12143f0da1a02"
+      },
+      {
+        "path": "tests/deploy/test_sandbox.py",
+        "sha256": "4d2e7b3f26d92ac389ecc8eaed0c1ac3b0fed584547cb95b96f039b5410e39a6"
+      },
+      {
+        "path": "tests/deploy/test_service_lifecycle.py",
+        "sha256": "e5fad191fceaaa8419b631830b38eac5d44bfbb7746f1b12059f43d8ffc6f516"
+      },
+      {
+        "path": "tests/deploy/test_service_proxy.py",
+        "sha256": "8d763a5db9068fc7ceca0ea2d8cdeb109d321e05d4a1ba07b987c65d48dd4995"
+      },
+      {
+        "path": "tests/deploy/test_source_pack.py",
+        "sha256": "2160b0e50a883382871ab26db35ebd156c15da85bd130ccf05714f1d7c756c8c"
+      },
+      {
+        "path": "tests/deploy/test_thread_history.py",
+        "sha256": "eb4eea6d8a0d01d78a5fa5d82f244a4616b9037347b5850d95b7e775d4b4db55"
+      },
+      {
+        "path": "tests/deploy/test_toolchain.py",
+        "sha256": "7016c4a006e93352e556d87842f1b4430e17306e9584eb6492adb5628a7f8fd0"
+      },
+      {
+        "path": "tests/deploy/test_workspace.py",
+        "sha256": "ff954a60c9c2224a47849b98a1ae9d41f74e9f60853e3244c6727e2a263a0414"
+      },
+      {
+        "path": "tests/deploy/test_workspace_ack.py",
+        "sha256": "64e0a25cb8210f5b55902932b1fe2abcb3a194437c4495b6c99d5aca97ab8a13"
+      },
+      {
+        "path": "tests/deploy/test_workspace_commit.py",
+        "sha256": "edb24819ba54fa542beabc9ec72391c3125379a575829f6b074b439bad638378"
+      },
+      {
+        "path": "tests/deploy/test_workspace_index.py",
+        "sha256": "52e051aeb85b35d85f40d368dc30d26023dd8ff1ecc2560065ceb8ab40add6ce"
+      },
+      {
+        "path": "tests/deploy/test_workspace_recovery.py",
+        "sha256": "a9f9da08fd7649e8cebae113445e566635e840997e2a6767ad72d870ed410473"
+      },
+      {
+        "path": "tests/deploy/test_workspace_resources.py",
+        "sha256": "8ecf76b220107d609d4f42dd6796ac92a61402d76607ea9ad8519f830a102c6f"
+      },
+      {
+        "path": "tests/deploy/test_workspace_search.py",
+        "sha256": "9187a818166219aebc678f42305b615797c9c1e764582b12576c8559f3d14ede"
+      },
+      {
+        "path": "tests/deploy/test_workspace_worktrees.py",
+        "sha256": "20e4110938af8d85467d2b9c5ba8d985d702b7b7d17d2d8460ecdcbb4659c4e7"
+      },
+      {
+        "path": "tests/deploy/vision_stdio_probe.mjs",
+        "sha256": "a00042ffe77ebe0c3f165ffef9c4421c828e96b40dc9c1322cabdc07f5cfd76d"
+      },
+      {
+        "path": "tests/tooling/audit-remediation.test.ts",
+        "sha256": "47d8337a67322dd7014b255dae01caaa3399fcb758dbc03fc95be29f04440aee"
+      },
+      {
+        "path": "tests/tooling/builtin-mcp.test.ts",
+        "sha256": "70e687be2821b157d8f30b4d7c3347675377ffb4128e028f44a2b5f5e78bfdb0"
+      },
+      {
+        "path": "tests/tooling/codeql-go.test.ts",
+        "sha256": "42387a46537bc9d23c5b4d8c5aed92e7f804e2d5f839a135eeb5268ff938857d"
+      },
+      {
+        "path": "tests/tooling/compatibility-watch.test.ts",
+        "sha256": "f8d4347d9a77cc275cb920946ebd2cc16775a03fe84075e92fb843335a8885fb"
+      },
+      {
+        "path": "tests/tooling/go-tests.test.ts",
+        "sha256": "ca09f3d40d24e669141eea94c0d29e43ac9c8fb4cf2216595a5730ac2393e1a6"
+      },
+      {
+        "path": "tests/tooling/prepare-ci-native.test.ts",
+        "sha256": "0b1ae6b76da94f5699dc108cd2365e2127ed112a9c39c4eaaa60d9da37d5032a"
+      },
+      {
+        "path": "tests/tooling/publish-release.test.ts",
+        "sha256": "cbcd10eb41be43907f20aa6ed1cca132e34a5ad129bf7e0c5e7f35653091351d"
+      },
+      {
+        "path": "tests/tooling/release-audit.test.ts",
+        "sha256": "067b07c2343257b20f3afdf4d874c5ee9d4ce3f28d87ec6c72d064b10e63e4d4"
+      },
+      {
+        "path": "tests/tooling/reviewed-history.test.ts",
+        "sha256": "706949b61c544a1a2170bf20c42d625098cff65ca2d091861365ddc3c76566c5"
+      },
+      {
+        "path": "tests/tooling/run-tests.test.ts",
+        "sha256": "39f7e5e079db92b90051eec746c5f0beb5c86bff7787659209e2f0654f566b62"
+      },
+      {
+        "path": "tests/tooling/select-tests.test.ts",
+        "sha256": "48cfeec07929fa4f393fc25922db7bb5ee5025bb55e4f2c2de1b363a7165a77b"
+      },
+      {
+        "path": "tests/tooling/test-environment.test.ts",
+        "sha256": "845035cb16963e7221ec3c0bc38a55ffabfa3a4511f75d3a07416a20157d139a"
+      },
+      {
+        "path": "tests/tooling/vision-compat.test.ts",
+        "sha256": "218d0614c23cdfcecb2db2d58aea46635dca2b73c20fd3218ac28b2365fd432c"
+      },
+      {
+        "path": "tests/tooling/windows-controller-preflight.test.ts",
+        "sha256": "a7ed90ea2a7a68fc8ccd819cc9113c0e5fe22445dfebe5571e38ab307f228a51"
+      }
+    ],
+    "currentConsumerChecks": [
+      "Searched every production/direct test selectCiPlan and buildCiPlan caller; only buildCiPlan supplies production authorization and obtains it through releaseAuthorization.",
+      "Reread releaseAuthorization in full: exact expected checksum, declared ordinary evidence path/no symlinks, bounded bytes, current digest/count/version, valid nonfuture time, explicit instruction, completed repair review, no unresolved blockers and full-tests scope remain required.",
+      "Reread runCi authorized-full admission and prepareRun full branch: the authorized file/checksum is revalidated against current source and the exact current inventory is compared, including required native, deployment and Go fixtures. Target partition/platform/UID and post-run source checks remain intact.",
+      "Reread actual releasePreflight planning: checked-out committed raw source, current target ancestor, exact committed authorization bytes, tool pins, full PR plan and build evidence checks remain unchanged.",
+      "Rechecked current workflow trust inputs, CI root/standard target outputs, ci-job-status and per-case reconciliation. Selecting authorized-full changes inventory breadth only; failed, missing or stale platform results cannot become successful.",
+      "The no-authorization Go planning consumer still selects its existing mapped regressions. Other unchanged deployment, tracing, artifact and release behavior inherits the exact full9 semantic baseline."
+    ]
+  },
+  "conclusions": [
+    "The sole production behavior change honors an already-validated current full-tests authorization for narrow and evidence-only diffs. It does not create authorization or make the diff itself a trusted approval source.",
+    "Any supplied mismatched sourceDigest now fails even when the diff is narrow. buildCiPlan continues to ignore untrusted self-approval in PR content, require an external exact checksum for PR approval, reject explicit missing/wrong/stale proof, and isolate stale PR repository variables from trusted main.",
+    "Without valid trusted full authorization, narrow changes remain selected and evidence-only changes remain no-behavior-change. Broad changes still require complete authorization. An optional PR approval variable without its file does not authorize full scope and retains the prior narrow-only behavior.",
+    "Real Git-backed tests exercise narrow and evidence-only current-source authorizations via main, manual and externally approved PR paths, plus self-approval and stale/wrong checksum rejection. The actual releasePreflight regression now uses both bases at the current fixture target, checks selected diff plus complete authorized inventory, and repeats evidence-only new-head reuse with unchanged source.",
+    "The obsolete test that required a valid authorized narrow PR to fail was replaced with a real insufficient-full-tests-scope refusal. All committed-source, bytes, pins, unintegrated target, output mutation, rebuild failure and publication refusal assertions remain present.",
+    "The new lesson accurately describes the local preflight failure before push, the previous broad historical-base fixture gap, and the need to preserve refusal gates rather than choose a false base."
+  ],
+  "verificationEvidence": {
+    "independentlyRehashedRecords": 14,
+    "modules": 5,
+    "caseIds": 72,
+    "windowsPassed": 71,
+    "windowsSkipped": [
+      {
+        "file": "tooling/ci-checks.test.ts",
+        "name": "root fixtures have a traversable disposable temp outside their private home",
+        "status": "skipped"
+      }
+    ],
+    "linuxPassed": 72,
+    "linuxSkipped": 0,
+    "sameIds": true,
+    "repairedSourceDigest": "787da4b63643ab2abd7e2d180c1cc196251740451b7b5e2c5af9cb5e075074fc",
+    "limits": "These are reviewed prior targeted results, not a new test run. The full preflight uses real Git and intentionally tiny offline TS/Vite executables for orchestration, not a fresh production build."
+  },
+  "limits": [
+    "No new tests, full matrix, Hosted runs, network calls, paid calls, deployment or service mutations were performed during this audit.",
+    "The repository working candidate still needs fresh source-bound authorization, a committed-head preflight and the new complete test/security gates; the prior failed preflight and Hosted runs remain failed.",
+    "The 190 byte-identical paths retain full9 complete semantic coverage and this round consumer-impact checks; this report does not claim every unchanged file was reread.",
+    "This report covers the exact 194 deployment/tooling paths. Other complete source domains and supplemental root/protocol/MCP reviews remain separate reports."
+  ],
+  "evidenceSHA": [
+    {
+      "path": "verification/audit-evidence/v240/full9-deploy-tooling.json",
+      "sha256": "452abc81841e40f6186b3594baf44822467555b6585eb0f1092f380f45b56377"
+    },
+    {
+      "path": "verification/audit-evidence/v240/full9-closeout-plan-fix.json",
+      "sha256": "d81b8fb9f6c46e28d296022e12f06ea0a54d53d97676b88cabec5d09585943c8"
+    },
+    {
+      "path": ".work/v240/frozen-source-full10.json",
+      "sha256": "e2c915f94f70713a9e483e8a3af5a84cde078409b0c46f27fb8c70d88923d9a9"
+    },
+    {
+      "path": ".work/v240/full9-file-hashes.json",
+      "sha256": "d01e14f0cb5403e53ae1800ae44efde0db2e4486cb082dac945e9028cc3ddd0c"
+    },
+    {
+      "path": ".work/v240/full10-file-hashes.json",
+      "sha256": "17d1b513aa2d1e4f9471999316df650cf089f6aa3e1e1c86ae23344c7a13a602"
+    },
+    {
+      "path": ".work/v240/full10-source-delta.json",
+      "sha256": "4364184bfb222e6c7507b0788b2a0481e45c3813e83d0b3120084ca1d69513a8"
+    },
+    {
+      "path": ".work/v240/full10-deploy-tooling-hash-check.json",
+      "sha256": "bb2aa2c0a590dc90fe2c1755efb1a64737bd7632cbf372104e3242bd0b888b98"
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "0122a91bb67458b4903c2d20f38ba7d62b02e7859537b5d61c2ab859e04f90a2"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "1887e5a882c64ee2cd20c7a9d3330666002b5ef711ea4c9a6fa194905dec0244"
+    },
+    {
+      "path": "tests/tooling/release-preflight.test.ts",
+      "sha256": "a644e106b72df2e2ba3eed8548f1b9f0721a68ee23cc1d2d387f2b4cc59f3556"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-before.log",
+      "sha256": "2b11c08d5b0bfcb362338dbeed3e73690fbea16bc5a33106bde6ccfa55b713bd"
+    },
+    {
+      "path": ".work/test-results/run-ovwUKJ/vitest.json",
+      "sha256": "ca236000bea126edac5ab4250606e900d034af0b3a1049cbb6dd1237fa4d238c"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-windows.log",
+      "sha256": "7185818f180f76afb2fe2e796b5cddc1919c32864b39b41b8083f2f1b6898e16"
+    },
+    {
+      "path": ".work/test-results/run-TvWcA4/vitest.json",
+      "sha256": "6c556c2c5b31702c32ead40d46cd8c025ed331bdc2bc019cad8a521eb0d97d9f"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux.log",
+      "sha256": "f39cbf336ff4a9e1a2d22ec008ffdf998e86a8e5c4583b6bf6e19ca529af6425"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux-vitest.json",
+      "sha256": "6293a88d728d166e49d6925829fd99163b0ab867b7f19915f640a8ff188619ff"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux-result.json",
+      "sha256": "a6bcd5585626bca02cfa7c8734c60a28b4a6f821bd423863392e9a9f7bb13706"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux-execution.json",
+      "sha256": "5f3b026f52e1387ca6430673a63a9d117458411b87d98fd99b1de0b5802537ca"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux-manifest.json",
+      "sha256": "3f74d9ab63889eaa9ffb8c9900b525687a830bbc180abb0139527b407d93c7db"
+    },
+    {
+      "path": ".work/v240/full9-closeout-plan-linux-comparison.json",
+      "sha256": "3fe8aedde088f6ed4a883bcf0a239348dc61a45e05e9202cf699c995b7135d6f"
+    }
+  ]
+}

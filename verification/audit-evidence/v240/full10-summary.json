@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-10",
+  "status": "complete-clean-audit",
+  "complete": true,
+  "source": {
+    "files": 2130,
+    "digest": "787da4b63643ab2abd7e2d180c1cc196251740451b7b5e2c5af9cb5e075074fc",
+    "baseCommit": "historical-commit-034"
+  },
+  "startedAt": "2026-11-17T18:17:55.870Z",
+  "recordedAt": "2026-11-17T18:23:11.551Z",
+  "reports": [
+    {
+      "path": "verification/audit-evidence/v240/full10-runtime-gateway.json",
+      "sha256": "4929e0900574d9c77d0f14325ac2ff2140dc2df1c085e44dfbfb135aed64dcde",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full10-deploy-tooling.json",
+      "sha256": "51c48dca658dff2e928c6e32b2d28d069c0c414eec007b67ec87e998575d2882",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full10-root-protocol-ancillary.json",
+      "sha256": "4b6b1529f3562640a55528a79668a0223179e32f07d17ccc443f0329474e46b7",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full10-web.json",
+      "sha256": "996c1cc79883d331b2185fd06a6247ef9c649b4e2d07b37d574470ed15167039",
+      "findings": 0
+    }
+  ],
+  "reportedFindings": 0,
+  "findings": [],
+  "coverageGaps": [],
+  "note": "Every current source path is covered. Unchanged file coverage explicitly retains complete previous semantic review only after exact per-file hash matching and current consumer-impact review. Newly changed code is reread. Generated protocol is freshly reproduced from the pinned official CLI. This audit does not claim full-test, hosted-security, paid-inference or production-deployment success."
+}

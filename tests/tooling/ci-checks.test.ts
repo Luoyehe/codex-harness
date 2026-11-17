@@ -52,6 +52,7 @@ test('build metadata requires explicit current-source authorization, never an im
   const plan = selectCiPlan({ changed: ['package.json'], available, head, sourceDigest: digest, authorization: { sourceDigest: digest } });
   expect(plan.mode).toBe('authorized-full'); expect(plan.files).toEqual(available);
   expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
+  expect(() => selectCiPlan({ changed: ['tests/core/example.test.ts'], available, head, sourceDigest: digest, authorization: { sourceDigest: 'c'.repeat(64) } })).toThrow(/exact-source/);
 });
 
 test('authorization requires matching bytes, source, version, user instruction and no unresolved blocker', () => {
@@ -106,6 +107,36 @@ test('main and manual plans ignore stale PR approval while explicit manual check
   expect(workflow).toContain('HARNESS_AUTHORIZATION_SHA: ${{ inputs.authorization_sha256 }}');
   expect(workflow).toContain("HARNESS_PR_AUTHORIZATION_SHA: ${{ github.event_name == 'pull_request' && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}");
   expect(workflow).not.toContain('inputs.authorization_sha256 || vars.HARNESS_RELEASE_AUTHORIZATION_SHA256');
+});
+
+test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects the whole inventory for a %s diff', kind => {
+  const { base, baseCommit } = fixture();
+  const changed = kind === 'narrow' ? 'tests/core/example.test.ts' : 'verification/reports/closeout.md';
+  mkdirSync(path.dirname(path.join(base, changed)), { recursive: true });
+  writeFileSync(path.join(base, changed), '// Reviewed closeout change.\n');
+  const approval = approve(base, baseCommit);
+  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed closeout'], { cwd: base, windowsHide: true });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
+  const env = { GITHUB_SHA: currentHead };
+  // Merely committing an approval into a PR never makes it trusted.
+  const unapproved = buildCiPlan(base, env, event);
+  expect(unapproved).toMatchObject({ mode: kind === 'narrow' ? 'selected' : 'no-behavior-change', files: kind === 'narrow' ? [changed] : [] });
+  expect(unapproved).not.toHaveProperty('authorization');
+  const plans = [
+    buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main', HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, { before: baseCommit }),
+    buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'workflow_dispatch', HARNESS_CI_BASE: baseCommit, HARNESS_AUTHORIZATION_SHA: approval.sha256 }, {}),
+    buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event),
+  ];
+  for (const plan of plans) {
+    expect(plan).toMatchObject({ mode: 'authorized-full', baseCommit, sourceDigest: approval.value.sourceDigest, authorization: { sha256: approval.sha256 } });
+    expect(plan.files).toEqual(available); expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
+    expect(plan.selection.status).toBe(unapproved.mode);
+  }
+  expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, event)).toThrow(/checksum/);
+  writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// Source changed after closeout approval.\n');
+  expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event)).toThrow(/source/);
 });
 
 test('a committed PR authorization cannot approve itself and external PR approval remains exact-source', () => {

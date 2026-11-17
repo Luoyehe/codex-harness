@@ -21,7 +21,10 @@ const save = (file, value) => { mkdirSync(path.dirname(file), { recursive: true 
 export function selectCiPlan({ changed, available, head, sourceDigest, authorization }) {
   if (!commit(head)) throw Error('CI must inspect an explicit head commit');
   const selected = selectTests(changed, available);
-  const full = selected.status === 'requires-full-audit';
+  // buildCiPlan only passes a trusted releaseAuthorization result, which has
+  // already required full-tests scope. Honor that intent even for narrow or
+  // evidence-only closeouts; a supplied stale authorization must still fail.
+  const full = Boolean(authorization) || selected.status === 'requires-full-audit';
   if (full && (!authorization || authorization.sourceDigest !== sourceDigest)) throw Error('Change scope requires complete review and an exact-source closeout authorization; no tests were started');
   const files = full ? [...available].sort() : Object.values(selected.groups).flat().sort();
   const rootFiles = files.filter(name => name.startsWith('tests/deploy/root/'));
