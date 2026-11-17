@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-matrix-4",
+  "recordedAt": "2026-11-17T16:52:43.959Z",
+  "status": "passed",
+  "candidate": "historical-commit-043",
+  "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+  "sourceFiles": 2128,
+  "selectedFiles": 284,
+  "uniqueCases": 3393,
+  "coverageGaps": [],
+  "sourceUnchangedAcrossAllTargets": true,
+  "cleanAudit": {
+    "path": "verification/audit-evidence/v240/full8-summary.json",
+    "sha256": "ccd68bb34ee9f6d2b9c384824c837a912d0dde6d3efd0b69e192a7fb20368342"
+  },
+  "authorization": {
+    "path": "verification/audit-evidence/release-closeout/authorization.json",
+    "sha256": "6e313bb76f61026f8d3ca5cb197cc9f7b3ad1c4220b42ed6640a39738685d52b",
+    "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+    "sourceFiles": 2128,
+    "baseCommit": "historical-commit-101",
+    "version": "2.4.0"
+  },
+  "platforms": [
+    {
+      "target": "windows",
+      "exitCode": 3,
+      "files": 259,
+      "cases": 3038,
+      "counts": {
+        "passed": 2914,
+        "failed": 0,
+        "skipped": 124
+      },
+      "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+      "sourceDigestAfter": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590"
+    },
+    {
+      "target": "linux",
+      "exitCode": 3,
+      "files": 259,
+      "cases": 3038,
+      "counts": {
+        "passed": 3021,
+        "failed": 0,
+        "skipped": 17
+      },
+      "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+      "sourceDigestAfter": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590"
+    },
+    {
+      "target": "linux-root",
+      "exitCode": 0,
+      "files": 25,
+      "cases": 355,
+      "counts": {
+        "passed": 355,
+        "failed": 0,
+        "skipped": 0
+      },
+      "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+      "sourceDigestAfter": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v240/matrix4/ci-plan.json",
+      "sha256": "d1d76e8ae927f36322a0a0f6764d7320ac029b7bae01c813d52b698a135d802d"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-controller.log",
+      "sha256": "93b7b661b04f140d0c0e2ee050b1f346cdcc6708c6c6a494ea0d466a43ccda97"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-execution.json",
+      "sha256": "7cbe5a4321ee1c046cb6f429416130566aabd105185c8c9cd91e4ab7128f455d"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-full.log",
+      "sha256": "9a4cfa753d73a871022af7904bb6738b5d625aca965c030efb2eea83ce9eb869"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-preparation.json",
+      "sha256": "654975cd923f31c2a4e4f3b6c566f7d066aa66d6f5208a0a07cfcbaf815b1894"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-preparation.log",
+      "sha256": "35afa184eddfd3d4b0faa1e3c568ddd2adff747bac1ba82235faf4fd579da653"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-remote-artifact-manifest.json",
+      "sha256": "78ceb3a692429c868f3883308d2844c0bb3efdb382c2387c4df710d0105d472b"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-root-full.log",
+      "sha256": "03c20a8b32a4673632eaf62909046cb95d628bcc2f0f637604ee8291771d35a8"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-summary.json",
+      "sha256": "01cb1df9d53ff648aab96097a9bc34419e829a96428641f9645b5929becb633c"
+    },
+    {
+      "path": ".work/v240/matrix4/linux-vitest.json",
+      "sha256": "7ea71b6a1c5f2c7108241e076e3dd849030e41d982304e0fb7b8f5215ca6f4e1"
+    },
+    {
+      "path": ".work/v240/matrix4/preflight.log",
+      "sha256": "140faba2ea2e9af6ab2df4bc2b898cc6c5e493281db6410308a60200f02ddef5"
+    },
+    {
+      "path": ".work/v240/matrix4/reconciled.json",
+      "sha256": "cb5b87b993bc4fd68979aa02bfafcc59e8a7f48e000bd4a9aeb9e2d648a33096"
+    },
+    {
+      "path": ".work/v240/matrix4/result-linux-root.json",
+      "sha256": "064c8ca7ce6c6f04f680268b4ff7aefefa2ea7529165e16dedeb33e9fee8b67e"
+    },
+    {
+      "path": ".work/v240/matrix4/result-linux.json",
+      "sha256": "5bcc2264071ea7ba59f239f7cea1952c820bbcda74c9cc0c0587232ec84a896d"
+    },
+    {
+      "path": ".work/v240/matrix4/result-windows.json",
+      "sha256": "209573c727a7919a7a100694f64f5247606bd09ab777ca71c37474e1dce8dcc3"
+    },
+    {
+      "path": ".work/v240/matrix4/windows-vitest.json",
+      "sha256": "b8a3cba3aeb9eaf8cca613680b7344e3648c5fc95dd058c92c418ea80cc7dc78"
+    },
+    {
+      "path": ".work/v240/matrix4/windows.log",
+      "sha256": "80133e5c5b6c0bf56a9be5a2c040fbcec15c5958ac01ace37c4de35689aba06f"
+    }
+  ],
+  "limitations": [
+    "This is the actual complete local Windows/Linux/Root matrix, not hosted GitHub check success.",
+    "Local Python versions were Windows 3.12.14 and Linux 3.12.3; the hosted standard workflow pins 3.12.10 and remains a separate gate.",
+    "No paid model inference, external MCP tool call, physical Safari validation or production deployment.",
+    "The previous three failed candidates and their complete original evidence remain failed; this report does not relabel them."
+  ]
+}
