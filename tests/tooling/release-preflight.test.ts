@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { committedSource, parsePreflightArgs, releasePreflight, toolPins } from '../../scripts/release-preflight.mjs';
+import { checkBuild, committedSource, parsePreflightArgs, releasePreflight, toolPins } from '../../scripts/release-preflight.mjs';
 import { snapshot } from '../../scripts/snapshot.mjs';
 
 const fixtures: string[] = [], fixtureRoot = path.resolve('.work/release-preflight-tests');
@@ -81,11 +81,15 @@ test('raw source comparison catches assume-unchanged edits and untracked source'
 });
 
 test('altered, additional and missing emitted artifacts invalidate build evidence', () => {
-  const { base, options } = fixture(); releasePreflight({ ...options, build: true }, base);
+  const { base, options } = fixture();
+  const result = releasePreflight({ ...options, build: true }, base);
+  const source = { digest: result.sourceDigest, files: result.sourceFiles };
+  // Recheck real artifact evidence without repeating unrelated Git/authorization planning for each mutation.
+  const verifyArtifacts = () => checkBuild(base, source, result.pins, options.head);
   const name = 'dist/src/runtime/main.js', original = readFileSync(path.join(base, name), 'utf8');
-  put(base, name, 'export const stale = true;'); expect(() => releasePreflight(options, base)).toThrow(/stale or outputs changed/);
-  put(base, name, original); put(base, 'dist/extra.js', 'extra'); expect(() => releasePreflight(options, base)).toThrow(/stale or outputs changed/);
-  rmSync(path.join(base, 'dist/extra.js')); rmSync(path.join(base, name)); expect(() => releasePreflight(options, base)).toThrow(/Required build output missing/);
+  put(base, name, 'export const stale = true;'); expect(verifyArtifacts).toThrow(/stale or outputs changed/);
+  put(base, name, original); put(base, 'dist/extra.js', 'extra'); expect(verifyArtifacts).toThrow(/stale or outputs changed/);
+  rmSync(path.join(base, 'dist/extra.js')); rmSync(path.join(base, name)); expect(verifyArtifacts).toThrow(/Required build output missing/);
 });
 
 test('failed rebuild clears prior success and source changes during building never publish a record', () => {

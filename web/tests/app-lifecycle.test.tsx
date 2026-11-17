@@ -587,8 +587,9 @@ it('unmounts modal ownership on access expiry and does not reopen it after renew
   });
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
+  const serviceManagement = await screen.findByRole('button', { name: '服务管理' });
   f.expireAccess();
-  fireEvent.click(screen.getByRole('button', { name: '服务管理' }));
+  fireEvent.click(serviceManagement);
   await screen.findByRole('button', { name: '重新检查登录' });
   expect(document.querySelector('dialog')).toBeNull();
   f.restoreAccess();
@@ -874,7 +875,7 @@ it('opens process and remote settings read-only without starting execution or re
   await screen.findByRole('heading', { name: '直接执行命令' });
   await waitFor(() => expect(f.count('process/list')).toBe(1));
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
-  fireEvent.click(screen.getByRole('button', { name: '远端环境与连接' }));
+  fireEvent.click(await screen.findByRole('button', { name: '远端环境与连接' }));
   await screen.findByRole('heading', { name: '远端执行环境' });
   await waitFor(() => expect(f.count('remoteControl/status/read')).toBe(1));
   expect(f.count('process/spawn')).toBe(0);
@@ -901,7 +902,7 @@ it('retains owner-only OAuth handoff after configuration refresh without startin
   const f = await fixture(false, false, undefined, true, call =>
     call.method === 'account/gatewayOAuth/read' && ++gatewayReads === 1 ? initialGateway : undefined);
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
-  fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
+  fireEvent.click(await screen.findByRole('button', { name: '模型供应商' }));
   fireEvent.click(await screen.findByText('供应商网关 OAuth', { selector: 'summary' }));
   await waitFor(() => expect(f.count('account/gatewayOAuth/read')).toBe(1));
   const consent = screen.getByRole('checkbox', { name: '确认开始当前供应商的网关授权流程' });
@@ -928,7 +929,7 @@ it('retains owner-only OAuth handoff after configuration refresh without startin
 it('retains an accepted owner pairing through ordinary configuration revision changes', async () => {
   const f = await fixture();
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
-  fireEvent.click(screen.getByRole('button', { name: '远端环境与连接' }));
+  fireEvent.click(await screen.findByRole('button', { name: '远端环境与连接' }));
   await screen.findByText('状态：connected · fixture');
   await waitFor(() => expect(f.count('remoteControl/client/list')).toBe(1));
   fireEvent.click(screen.getByText('配对新的客户端', { selector: 'summary' }));
@@ -1019,7 +1020,7 @@ it.each(['sidebar', 'settings'])('refuses removing the current project from %s w
     fireEvent.click(screen.getByRole('button', { name: '移除项目（保留目录）' }));
   } else {
     fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
-    fireEvent.click(screen.getByRole('button', { name: '项目目录' }));
+    fireEvent.click(await screen.findByRole('button', { name: '项目目录' }));
     fireEvent.click(screen.getByRole('button', { name: '移除项目' }));
   }
   fireEvent.click(await enabledButton({ name: '移除项目' }));

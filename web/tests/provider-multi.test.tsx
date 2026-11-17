@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
+import { createRoot } from 'react-dom/client';
 import type { Api } from '../lib/api';
 import { ProviderSettings } from '../components/ProviderSettings';
 import { useModelCatalogRefresh } from '../hooks/useModelCatalogRefresh';
@@ -19,6 +20,33 @@ const fixtureApi = () => ({
   csrf: 'fixture', call: vi.fn(async (method: string) => method === 'system/provider/read' ? registry : { data: [], nextCursor: null }),
   mutate: vi.fn().mockResolvedValue(registry),
 }) as unknown as Api;
+
+it.each(['new', 'existing'])('preserves a rapid %s provider selection when the initial registry becomes visible', async target => {
+  let deliver!: (value: typeof registry) => void;
+  const pending = new Promise<typeof registry>(resolve => { deliver = resolve; });
+  const api = { csrf: 'fixture', call: vi.fn((method: string) => method === 'system/provider/read'
+    ? pending : Promise.resolve({ data: [], nextCursor: null })), mutate: vi.fn() } as unknown as Api;
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  let clicked = false;
+  // Deliver the actual click at first DOM publication, before the passive
+  // initial-ID pin. No hook mock, sleeps or repeated clicks hide this ordering.
+  const observer = new MutationObserver(() => {
+    if (clicked) return;
+    const label = target === 'new' ? '添加供应商' : 'Coding Plan';
+    const button = [...container.querySelectorAll('button')].find(element => element.textContent === label);
+    if (button) { clicked = true; button.click(); }
+  });
+  observer.observe(container, { childList: true, subtree: true });
+  try {
+    await act(async () => { root.render(<ProviderSettings api={api} epoch="a" onChanged={() => {}} />); });
+    deliver(registry);
+    await waitFor(() => expect(clicked).toBe(true));
+    await waitFor(() => expect(screen.getByLabelText('供应商')).toHaveProperty('value', target === 'new' ? 'responses' : 'zhipu-coding'));
+    expect(screen.getByLabelText('供应商')).toHaveProperty('disabled', target !== 'new');
+    expect(api.mutate).not.toHaveBeenCalled();
+  } finally { observer.disconnect(); await act(async () => { root.unmount(); }); container.remove(); }
+});
 
 it('keeps an existing ChatGPT type fixed while saving its display name', async () => {
   const api = fixtureApi();

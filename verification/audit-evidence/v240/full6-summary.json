@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-6",
+  "status": "complete-clean-audit",
+  "complete": true,
+  "source": {
+    "files": 2128,
+    "digest": "98266d6e917b1b144fa38b56869e6f990255b70b5efe5489207ce26252b7b5e3",
+    "baseCommit": "historical-commit-103"
+  },
+  "startedAt": "2026-11-17T15:52:37.883Z",
+  "recordedAt": "2026-11-17T15:56:59.723Z",
+  "reports": [
+    {
+      "path": "verification/audit-evidence/v240/full6-runtime-gateway.json",
+      "sha256": "609a534b64f8a993b06ec7f961a964470209450b14f369f1076e339335dae68d",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full6-deploy-tooling.json",
+      "sha256": "a0dc480815e12dab45efd43d2459b7aefa18b703aebc52c3d5696e77ac3e13e8",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full6-root-protocol-ancillary.json",
+      "sha256": "3fd158d2b4a7e192d7c95e3863617204725fd87346871cf78ac3d8d19f043fc2",
+      "findings": 0
+    },
+    {
+      "path": "verification/audit-evidence/v240/full6-web.json",
+      "sha256": "ad78a1b79a23fa1a88b34773175ee35a9f74cd7171f93fdbe866418b0e20b7f5",
+      "findings": 0
+    }
+  ],
+  "reportedFindings": 0,
+  "findings": [],
+  "coverageGaps": [],
+  "note": "Every current source path is covered. Unchanged file coverage explicitly retains complete previous semantic review only after exact per-file hash matching and current consumer-impact review. Newly changed code is reread. Generated protocol is freshly reproduced from the pinned official CLI. This audit does not claim full-test, hosted-security, paid-inference or production-deployment success."
+}

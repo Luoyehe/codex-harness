@@ -89,7 +89,9 @@ function ProviderSettingsForm({
   // Once opened, the editor belongs to that ID even if another client changes
   // the default or replaces the complete registry from a saved profile.
   useEffect(() => {
-    if (registry && !selectedId) setSelectedId(effectiveId);
+    // A click can select a target after the first registry render but before
+    // this effect runs. Pin only an actually unselected editor, never that click.
+    if (registry && !selectedId) setSelectedId(previous => previous || effectiveId);
   }, [registry, selectedId, effectiveId]);
   const [name, setName] = useState(''), [connectionEnabled, setConnectionEnabled] = useState(true);
   const [supportsTools, setSupportsTools] = useState(true);

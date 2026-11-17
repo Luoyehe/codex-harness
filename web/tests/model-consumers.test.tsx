@@ -57,6 +57,7 @@ it('creates an automation with a same-named provider from page two entirely insi
   const calls: Call[] = [];
   let failNextPage = true;
   let includeBeta = true;
+  let heldNextPage: Promise<void> | undefined;
   vi.stubGlobal('WebSocket', class {
     onopen = () => {}; onclose = () => {}; onmessage = (_event: { data: string }) => {}; close() {}
     constructor() { sockets.push(this); }
@@ -72,6 +73,10 @@ it('creates an automation with a same-named provider from page two entirely insi
         if (request.params.cursor && failNextPage) {
           failNextPage = false;
           throw new Error('Second page unavailable');
+        }
+        if (request.params.cursor && heldNextPage) {
+          const pending = heldNextPage; heldNextPage = undefined;
+          await pending;
         }
         result = { ...(!request.params.cursor ? page(firstPage, 'page-two') : page(includeBeta ? [beta] : [])), providerErrors: partial };
         break;
@@ -110,15 +115,16 @@ it('creates an automation with a same-named provider from page two entirely insi
   const select = dialog.getByRole('combobox', { name: '自动化模型' }) as HTMLSelectElement;
   expect(select.options).toHaveLength(51);
   expect(dialog.getByText(/Offline.*Catalog temporarily unavailable/)).toBeTruthy();
-  fireEvent.click(dialog.getByRole('button', { name: '加载更多模型' }));
-  await dialog.findByText(/Second page unavailable/);
+  await loadMore();
+  await dialog.findByText(/连接中断或请求超时，请检查网络后重新读取状态/);
+  expect(dialog.queryByText(/Second page unavailable/)).toBeNull();
   expect(select.options).toHaveLength(51);
-  fireEvent.click(dialog.getByRole('button', { name: '加载更多模型' }));
+  await loadMore();
   const betaOption = await dialog.findByRole('option', { name: 'Shared · Beta' }) as HTMLOptionElement;
   fireEvent.change(select, { target: { value: betaOption.value } });
   const effort = dialog.getByRole('combobox', { name: '自动化推理强度' }) as HTMLSelectElement;
-  await waitFor(() => expect(within(effort).getByRole('option', { name: 'max' })).toBeTruthy());
-  expect(within(effort).queryByRole('option', { name: 'high' })).toBeNull();
+  await waitFor(() => expect(within(effort).getByRole('option', { name: '最高' })).toHaveProperty('value', 'max'));
+  expect([...effort.options].map(option => option.value)).toEqual(['', 'max']);
   fireEvent.change(effort, { target: { value: 'max' } });
   fireEvent.change(dialog.getByRole('textbox', { name: '计划名称' }), { target: { value: 'Daily check' } });
   fireEvent.change(dialog.getByRole('textbox', { name: '自动执行的指令' }), { target: { value: 'Review my project' } });
@@ -126,26 +132,30 @@ it('creates an automation with a same-named provider from page two entirely insi
   await dialog.findByText(/执行时间 ·/);
   fireEvent.click(dialog.getByRole('checkbox', { name: /确认保存计划/ }));
   await enabledButton({ name: '创建暂停的计划' });
-  // Refresh must retain the chosen provider/effort while it is beyond the first page.
+  // Refresh retains the chosen row while automatically rereading the pages
+  // already loaded. Hold page two to verify that the old row cannot be submitted.
+  const refreshedPage = deferred<void>(); heldNextPage = refreshedPage.promise;
+  const pageReads = calls.filter(call => call.method === 'model/list' && call.params.cursor === 'page-two').length;
   fireEvent.click(dialog.getByRole('button', { name: '重新读取模型目录' }));
-  await waitFor(() => expect(select.value).toBe('__unavailable__'));
+  await waitFor(() => expect(calls.filter(call => call.method === 'model/list' && call.params.cursor === 'page-two')).toHaveLength(pageReads + 1));
+  expect(select.value).toBe(betaOption.value);
   expect(effort.value).toBe('max');
   expect(dialog.getByRole('button', { name: '创建暂停的计划' }).matches(':disabled')).toBe(true);
-  await loadMore();
-  await waitFor(() => expect(select.value).toBe(betaOption.value));
+  await act(async () => { refreshedPage.resolve(); await refreshedPage.promise; });
   await enabledButton({ name: '创建暂停的计划' });
+  expect(select.value).toBe(betaOption.value);
+  expect(dialog.queryByRole('button', { name: '加载更多模型' })).toBeNull();
   // A removed entry stays visible as unavailable, without silently picking Alpha.
   includeBeta = false;
   fireEvent.click(dialog.getByRole('button', { name: '重新读取模型目录' }));
-  await loadMore();
-  await waitFor(() => expect(dialog.queryByRole('button', { name: '加载更多模型' })).toBeNull());
-  expect(select.value).toBe('__unavailable__');
+  await waitFor(() => expect(select.value).toBe('__unavailable__'));
+  expect(dialog.queryByRole('button', { name: '加载更多模型' })).toBeNull();
   expect(effort.value).toBe('max');
   expect(dialog.getByRole('button', { name: '创建暂停的计划' }).matches(':disabled')).toBe(true);
   expect(calls.some(call => call.method === 'automation/create')).toBe(false);
   includeBeta = true;
   fireEvent.click(dialog.getByRole('button', { name: '重新读取模型目录' }));
-  await loadMore();
+  await waitFor(() => expect(select.value).toBe(betaOption.value));
   fireEvent.click(await enabledButton({ name: '创建暂停的计划' }));
   await waitFor(() => expect(calls.some(call => call.method === 'automation/create')).toBe(true));
   expect(calls.find(call => call.method === 'automation/create')?.params.spec).toMatchObject({ options: { model: 'shared', modelProvider: 'beta', effort: 'max' } });
@@ -244,9 +254,28 @@ it.each([true, false])('keeps the selected config effort during catalog reload (
   if (!remains) {
     expect(within(effortSelect()).getByRole('option', { name: 'max（当前值）' }).matches(':disabled')).toBe(true);
     fireEvent.change(effortSelect(), { target: { value: '' } });
-    fireEvent.click(await enabledButton({ name: '保存 1 项配置' }));
-    await waitFor(() => expect(api.mutate).toHaveBeenCalledWith('settings/write', { expectedVersion: 'v1', changes: [{ key: 'model_reasoning_effort', value: null }] }));
+    // max was only a draft. Returning to the original unset value is a no-op.
+    expect(screen.getByRole('button', { name: '保存 0 项配置' }).matches(':disabled')).toBe(true);
+    fireEvent.submit(screen.getByRole('button', { name: '保存 0 项配置' }).closest('form')!);
+    expect(api.mutate).not.toHaveBeenCalled();
   }
+});
+
+it('clears a persisted reasoning effort even when its model disappears from the refreshed catalog', async () => {
+  let reads = 0;
+  const api = configApi(() => page(++reads === 1 ? [alpha, beta] : [alpha]),
+    () => ({ model: 'shared', model_provider: 'beta', model_reasoning_effort: 'max' }));
+  render(<ConfigSettings {...configProps(api, 'config-clear-persisted-missing')} />);
+  await waitFor(() => expect(within(effortSelect()).getByRole('option', { name: 'max' })).toBeTruthy());
+  fireEvent.click(screen.getByRole('button', { name: '重新读取配置' }));
+  await waitFor(() => expect(within(effortSelect()).getByRole('option', { name: 'max（当前值）' }).matches(':disabled')).toBe(true));
+  expect(effortSelect().value).toBe('max');
+  expect(api.mutate).not.toHaveBeenCalled();
+  fireEvent.change(effortSelect(), { target: { value: '' } });
+  fireEvent.click(await enabledButton({ name: '保存 1 项配置' }));
+  await waitFor(() => expect(api.mutate).toHaveBeenCalledExactlyOnceWith('settings/write', {
+    expectedVersion: 'v1', changes: [{ key: 'model_reasoning_effort', value: null }],
+  }));
 });
 
 it('rejects a late config catalog page after the effective provider generation changes', async () => {

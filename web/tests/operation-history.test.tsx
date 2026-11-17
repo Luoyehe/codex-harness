@@ -77,8 +77,8 @@ it('shows a failed attempt and successful retry by creation time with full dates
   const rows = view.container.querySelectorAll('.recovery-row');
   expect(rows[0]!.textContent).toContain(retry.id.slice(0, 8));
   expect(rows[1]!.textContent).toContain(failed.id.slice(0, 8));
-  expect(rows[0]!.textContent).toContain(new Date(retry.createdAt).toLocaleString());
-  expect(rows[1]!.textContent).toContain(new Date(failed.createdAt).toLocaleString());
+  expect(rows[0]!.textContent).toContain(new Date(retry.createdAt).toLocaleString('zh-CN'));
+  expect(rows[1]!.textContent).toContain(new Date(failed.createdAt).toLocaleString('zh-CN'));
   expect(rows[0]!.textContent).toContain('已受理'); expect(rows[1]!.textContent).toContain('确定未发送');
   expect(await listOperations()).toEqual([]);
   expect(api.call).not.toHaveBeenCalled(); expect(api.mutate).not.toHaveBeenCalled();

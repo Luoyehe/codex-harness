@@ -119,8 +119,9 @@ it('keeps settings open when another saved draft cannot be opened and requires a
   failWrites();
   fireEvent.change(editor(), { target: { value: 'only copy' } });
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+  // The loading shell is replaced by Settings' own dialog after import.
+  fireEvent.click(await screen.findByRole('button', { name: '本地草稿' }));
   const settings = within(screen.getByRole('dialog', { name: '设置' }));
-  fireEvent.click(settings.getByRole('button', { name: '本地草稿' }));
   const row = settings.getByText('普通 · Project B').closest('.info-card')!;
   fireEvent.click(within(row as HTMLElement).getByRole('button', { name: '打开草稿' }));
   expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
