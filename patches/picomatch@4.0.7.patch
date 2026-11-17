@@ -1,0 +1,73 @@
+diff --git a/lib/parse.js b/lib/parse.js
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -282,6 +282,32 @@
+   }
+ 
+   return depth;
++};
++
++// A repeated extglob must not add another variable-length choice around an
++// already variable body. Inspect the compiled source, respecting escapes and
++// character classes, so nested syntax and regex options cannot hide a repeat.
++const hasVariableRepeat = (source, nestedAlternatives) => {
++  let bracket = false;
++  let openParen = false;
++  for (let i = 0; i < source.length; i++) {
++    const ch = source[i];
++    if (ch === '\\') {
++      if (!bracket && /[1-9k]/.test(source[i + 1] || '')) return true;
++      openParen = false;
++      i++;
++      continue;
++    }
++    if (ch === '[' && !bracket) { bracket = true; openParen = false; continue; }
++    if (ch === ']' && bracket) { bracket = false; openParen = false; continue; }
++    if (bracket) continue;
++    if (ch === '*' || ch === '+') return true;
++    if (ch === '?' && !openParen) return true;
++    if (ch === '{' && /^\{\d+,\d*\}/.test(source.slice(i))) return true;
++    if (nestedAlternatives && ch === '|') return true;
++    openParen = ch === '(';
++  }
++  return false;
+ };
+ 
+ const analyzeRepeatedExtglob = (body, options) => {
+@@ -539,7 +565,35 @@
+   const extglobClose = token => {
+     const literal = input.slice(token.startIndex, state.index + 1);
+     const body = input.slice(token.startIndex + 2, state.index);
+-    const analysis = analyzeRepeatedExtglob(body, opts);
++    let analysis = analyzeRepeatedExtglob(body, opts);
++
++    if (token.type === 'plus' || token.type === 'star') {
++      const inner = tokens.slice(token.tokensIndex + 2)
++        .map(part => (part.output != null ? part.output : part.value) + (part.suffix || ''))
++        .join('');
++      const branches = splitTopLevel(body);
++      if (!analysis.risky && hasVariableRepeat(inner, branches.length === 1)) {
++        // P*Q over one path segment is closed under concatenation when P and Q
++        // contain only ordinary filename literals and one-character wildcards.
++        // A union is also closed when every branch shares P or every branch
++        // shares Q; keep ordinary extension alternatives such as *.js|*.ts.
++        // Reuse the compiled body to retain dot and platform separator rules.
++        // Captures of the last repetition and bash globstar need other semantics;
++        // reject those forms explicitly instead of silently changing matches.
++        const simple = branches.map(branch => /^([\p{L}\p{N}_.? -]*)\*([\p{L}\p{N}_.? -]*)$/u.exec(branch));
++        const closed = simple.every(Boolean) && (
++          simple.every(match => match[1] === simple[0][1]) ||
++          simple.every(match => match[2] === simple[0][2])
++        );
++        if (closed && !opts.capture && opts.bash !== true) {
++          analysis = { risky: true, safeOutput: `(?:${inner})${token.type === 'star' ? '?' : ''}` };
++        } else {
++          const error = new SyntaxError('Unsupported variable-length repeated extglob');
++          error.code = 'PICOMATCH_UNSAFE_REPEAT';
++          throw error;
++        }
++      }
++    }
+ 
+     if ((token.type === 'plus' || token.type === 'star') && analysis.risky) {
+       const safeOutput = analysis.safeOutput

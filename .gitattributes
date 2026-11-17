@@ -2,3 +2,5 @@
 *.png binary
 *.jpg binary
 *.woff2 binary
+# A blank context line in a unified diff starts with one literal space.
+patches/picomatch@4.0.7.patch whitespace=-blank-at-eol

@@ -4,6 +4,8 @@
 
 Codex and all npm dependencies retain their respective upstream licenses. Their license files remain with the distributions in installed releases. The Harness application code is MIT licensed; this does not change any upstream project's license.
 
+Harness applies a local security patch to [picomatch 4.0.7](https://github.com/micromatch/picomatch/releases/tag/4.0.7) for [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf). The patch is distributed in `patches/picomatch@4.0.7.patch`. The installed package retains its upstream version and MIT license.
+
 The optional service proxy downloads an unmodified Xray runtime from official [XTLS/Xray-core releases](https://github.com/XTLS/Xray-core/releases) when the server operator requests it. Xray-core is licensed under the [Mozilla Public License 2.0](https://github.com/XTLS/Xray-core/blob/main/LICENSE); the corresponding source is available from the selected release's tag. Xray source, binaries and routing-data files are not bundled in this repository. Downloaded components and routing data retain their upstream licenses; the Harness MIT license does not relicense them.
 
 Official documentation is used as a reference, and is linked in the design and verification documents. Downloaded documentation and temporary runtimes are excluded from this repository.

@@ -1,6 +1,7 @@
 """Bounded candidate lock reads, exact byte limits and stable file identity."""
 import contextlib
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,6 +19,7 @@ class DependencyLockTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[2]
         for name in ("package.json", "pnpm-workspace.yaml"):
             (self.source / name).write_bytes((repository / name).read_bytes())
+        shutil.copytree(repository / "patches", self.source / "patches")
         self.original = (repository / "pnpm-lock.yaml").read_bytes()
         self.path = self.source / "pnpm-lock.yaml"
         self.path.write_bytes(self.original)

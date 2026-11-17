@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "status": "windows-linux-targeted-and-real-registry-verified",
+  "kind": "exact-local-patch-dependency-audit-gate",
+  "recordedAt": "2026-11-17T19:00:56.602Z",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "9ef2cc2dc13fbcccb36cab217480f27d28e67da9db876cd42b1fda8daa384298"
+    },
+    {
+      "path": "scripts/dependency-audit.mjs",
+      "sha256": "2aeb8bf71b3bf219d0184e3b65f82bd2402c114dfea02176a6f4b942b5f257fc"
+    },
+    {
+      "path": "scripts/picomatch-patch-proof.mjs",
+      "sha256": "50996e36a1eb25d7203c676dfa2668222ba7129fd37a836f8bbfa61fbdcce291"
+    },
+    {
+      "path": "tests/tooling/dependency-audit.test.ts",
+      "sha256": "bcd6dff53d76cc9c4e2768c2f883221624473262c4168b3d434a8280443f459d"
+    }
+  ],
+  "approvedInputs": [
+    {
+      "path": "deploy/dependency_patch_contract.py",
+      "sha256": "1e60bd954b79e9d09ef496cf03482509bb1fe4460d6506a4abf33d99eb0e39ab"
+    },
+    {
+      "path": "patches/picomatch@4.0.7.patch",
+      "sha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "7f419947318eb26cbccc9a8ec8a9a540512e66d6c69e00788aa89be65c7d52e9"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "ea36f9bd24b813903190dd336e882cb5c4e568c36aae87780c1c02fa219f5911"
+    }
+  ],
+  "implementation": [
+    "A fresh pnpm registry report is retained verbatim together with its real exit code. The package remains picomatch 4.0.7; no advisory is removed or relabeled in that original file.",
+    "The only local remediation classification matches GHSA-fc5q-39xc-vjpf, picomatch, 4.0.7 findings, the known vulnerable range and high severity, after an in-process approved-content proof. All other high/critical findings remain unresolved blockers; unknown responses, counts, exits and proof failures fail closed.",
+    "Proof binds the reviewed LF patch SHA, pinned-pnpm lock patch hash, upstream SRI, workspace mapping, patched snapshots and every installed package file/directory. Bounded traversal covers ordinary pnpm copies, hoisted/root aliases and package-local nested shadow copies; every actual installed direct consumer must resolve one of the verified copies.",
+    "The shared Python declaration is parsed as strict JSON data by the JS helper, never executed. Saved proof/classification files are not trusted. Output paths are repository-relative; known report/lock/installation/content failures have safe distinct explanations.",
+    "Classification output is created exclusively and cannot overwrite an existing output or a hard link to the original raw audit. Security retains failed-job semantics and uploads both original and classified evidence."
+  ],
+  "realRegistryAndInstalledVerification": {
+    "startedAt": "2026-11-17T18:55:44.926Z",
+    "completedAt": "2026-11-17T18:55:46.358Z",
+    "exit": 1,
+    "signal": null,
+    "errorCode": null,
+    "originalVulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 1,
+      "critical": 0
+    },
+    "classificationStatus": "passed",
+    "locallyRemediated": [
+      {
+        "ghsa": "GHSA-fc5q-39xc-vjpf",
+        "package": "picomatch",
+        "severity": "high",
+        "classification": "locally-remediated",
+        "version": "4.0.7",
+        "patchSha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31"
+      }
+    ],
+    "unresolved": [],
+    "installedInstances": 1,
+    "actualConsumers": [
+      "fdir",
+      "tinyglobby",
+      "vite",
+      "vitest"
+    ],
+    "packageVersion": "4.0.7"
+  },
+  "windows": {
+    "modules": 4,
+    "caseIds": 55,
+    "passed": 54,
+    "skipped": 1,
+    "failed": 0,
+    "exitCode": 3,
+    "raw": ".work/test-results/run-BdwVHH/vitest.json",
+    "skip": "tests/tooling/codeql-go.test.ts: real shell entry forwards arguments and tracing environment to the backend (POSIX-only)"
+  },
+  "strictTestTypes": {
+    "exitCode": 0,
+    "path": ".work/v240/picomatch-gate-types-final.log"
+  },
+  "verificationScope": "Only defensive structure, installation-integrity and ordinary tool-consumer tests were used here. No denial-of-service payload or timing attack was generated or executed. Picomatch algorithm/ordinary matching review is a separate independent repair and test report.",
+  "limits": [
+    "The raw registry audit still exits 1 and reports the original high advisory. The gate passes with one explicit local remediation, not a claim of an upstream patched release or a zero-advisory audit.",
+    "One existing moderate advisory database discrepancy remains; this repair does not change the project high/critical blocking threshold or suppress that recorded warning.",
+    "Fresh full-source audit, complete matrix and final same-commit Hosted gates remain required; targeted evidence does not retroactively pass prior failed candidates.",
+    "The first install retained an old unpatched instance and was correctly rejected. Deployment integration evidence preserves that failure and the subsequent clean frozen install; this report does not reinterpret the refusal as success."
+  ],
+  "evidenceSHA": [
+    {
+      "path": "dependency-audit.json",
+      "sha256": "88065681060b19f28967e5343a3bac4af5e36fb194486573cc6dc01dcfdc7b85"
+    },
+    {
+      "path": "dependency-audit-classification.json",
+      "sha256": "e3c4f8e7b1d6c00ea913b1fcada90a4b2b0578e26f2032535a1aa940be6cf072"
+    },
+    {
+      "path": ".work/v240/picomatch-gate-audit-execution.json",
+      "sha256": "7325da015d1e213611059d737b0185421192bc51e014a7b0e92b85634ec26683"
+    },
+    {
+      "path": ".work/v240/picomatch-gate-audit-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/picomatch-gate-classification.log",
+      "sha256": "1273d913b470e86e9ed2cfcb9b1dc5edd9f6759c8fcf98cdc21c51c61c010098"
+    },
+    {
+      "path": ".work/v240/picomatch-gate-windows-final.log",
+      "sha256": "0f00bd558cd2c7d716c3ca497cdb3e1b94138446115406fc5dece6756649eb37"
+    },
+    {
+      "path": ".work/test-results/run-BdwVHH/vitest.json",
+      "sha256": "b7d81c97b22c57ebc86c717a4005aa9343e4feeaf2324bfed5dc3fe34acf31ae"
+    },
+    {
+      "path": ".work/v240/picomatch-gate-types-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/dependency-patch-installed-proof-windows-clean.json",
+      "sha256": "87be5d4f7999d08362ffef330958da7b9f762fd340fc6d30abdba4cbaa412c41"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-manifest.json",
+      "sha256": "88266d4692dc741c6820d360072ea92ff95ccb18cb2aa39e14aaed338a5057cb"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/tooling-vitest.json",
+      "sha256": "5f20f6817e291896e35a6d042df54663d5e7e9f22916774c6b899147e349dc8e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/tooling-targeted.log",
+      "sha256": "4f9f8d8206e336d32506980bfd4da9d10ddc8d9e6c329d6d5f6a71065cdc3112"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/javascript-package-proof.log",
+      "sha256": "08b3216753bfc584ba18f49ccd998d39850d59a2a5664da401ed339a215406b0"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/python-package-proof.log",
+      "sha256": "b2c4078136397baa3e5b7ef85503962d5ae8ab45baaa56ea7c7631613d81ee5a"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/offline-install.log",
+      "sha256": "7cabf3c367a8efa57cec70381d344d5e73004d50f4a1606cd5bdd9fc3fbef39c"
+    }
+  ],
+  "linux": {
+    "modules": 4,
+    "caseIds": 55,
+    "passed": 55,
+    "skipped": 0,
+    "failed": 0,
+    "sameIdsAsWindows": true,
+    "raw": ".work/v240/dependency-patch-linux-evidence/tooling-vitest.json",
+    "context": "Part of a fresh isolated Linux five-module run: all 77 passed, including the separate 22-case picomatch regression. This report claims its own four modules/55 case identities only.",
+    "installation": "Fresh offline pinned-pnpm install from verified package store; actual JavaScript and Python installed-package proofs succeeded. No existing local node_modules tree was copied.",
+    "changedSinceTransfer": [
+      "deploy/README.md"
+    ],
+    "scopeBinding": "All gate/test/patch/contract/lock hashes match the Linux transfer and current source. The listed subsequent documentation difference does not change executed code."
+  }
+}

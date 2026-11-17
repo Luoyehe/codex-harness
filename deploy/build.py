@@ -16,6 +16,7 @@ from pathlib import Path
 from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
 from .safe_fs import durable_tree, extract_tar, inspect_tree, snapshot, stable_identity
 from .system import System, run
+from .dependency_patch import PATCH_SETTINGS, copy_approved_patch, read_approved_patch, validate_patch_lock, verify_installed_patch
 
 NODE_HASHES = {
     "x64": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6",
@@ -26,7 +27,7 @@ CODEX_INTEGRITIES = {
     "x64": "o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww==",
     "arm64": "NZ/DaQUpcQmxmqee7Z9uC1rzw3GhSbooawcaTe1LN5Yk+WlinUKGdTXJgClRT/9ogQEEM9TWxYzvxPfj5G/xFg==",
 }
-SOURCE_ROOTS = {"src", "web", "protocol"}
+SOURCE_ROOTS = {"src", "web", "protocol", "patches"}
 SOURCE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.server.json", "tsconfig.base.json"}
 MAX_LOCK_BYTES = 8 * 1024**2
 APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7",
@@ -34,7 +35,7 @@ APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.
                       "hono": "4.13.16"}
 WORKSPACE_SETTINGS = {"packages": ["."], "minimumReleaseAge": 1440, "blockExoticSubdeps": True,
                       "trustPolicy": "no-downgrade", "strictDepBuilds": True, "ignoreScripts": True,
-                      "overrides": APPROVED_OVERRIDES}
+                      "overrides": APPROVED_OVERRIDES, "patchedDependencies": PATCH_SETTINGS}
 
 
 def architecture() -> str:
@@ -63,6 +64,8 @@ def download(url: str, output: Path, expected: str, algorithm: str = "sha256") -
 def pack_source(source: Path, output: Path) -> None:
     require(source.is_dir() and not output.exists(), "Invalid source or existing output")
     source, output = source.resolve(), output.resolve()
+    if (source / "patches").exists() or (source / "patches").is_symlink():
+        read_approved_patch(source)
     require(not any(output.is_relative_to(source / root) for root in SOURCE_ROOTS) and
             output not in {source / name for name in SOURCE_FILES},
             "Source archive output must be outside the packaged inputs")
@@ -155,8 +158,8 @@ def dependency_input(source: Path) -> tuple[dict, str, dict]:
     lock = dependency_lock(source / "pnpm-lock.yaml")
     require(lock.startswith("lockfileVersion: '9.0'"), "Unsupported lock format")
     # Intentionally narrow registry-only lock contract. No YAML tags, aliases,
-    # escaped keys, custom tarballs, patched/git/local dependencies or executable hooks.
-    for token in ("http:", "https:", "git+", "tarball:", "directory:", "patcheddependencies:",
+    # escaped keys, custom tarballs, arbitrary patches, git/local dependencies or executable hooks.
+    for token in ("http:", "https:", "git+", "tarball:", "directory:",
                   "pnpmfile", "!", "&", "\\", '"'):
         require(token not in lock.lower(), "Lock uses unsupported dependency resolution")
     require(not re.search(r"(?<![a-z0-9_-])(?:git|gitlab|github|bitbucket|ssh|file|link|workspace):|type:\s*'?git'?|\*[a-z0-9_]", lock, re.I),
@@ -175,6 +178,7 @@ def dependency_input(source: Path) -> tuple[dict, str, dict]:
         require(key not in selected, "Duplicate lock override declaration")
         selected[key] = match[3]
     require(selected == APPROVED_OVERRIDES, "Lock security overrides differ from reviewed workspace")
+    validate_patch_lock(lock, source)
     return minimal, lock, workspace
 
 
@@ -347,13 +351,15 @@ class Builder:
         input_manifest = inspect_tree(source)
         tx = self.layout.state / "transactions" / identity
         mkdir(tx, 0o700)
-        dependency_digest = digest({"manifest": minimal, "lock": lock, "workspace": workspace})
+        patches = validate_patch_lock(lock, source)
+        dependency_digest = digest({"manifest": minimal, "lock": lock, "workspace": workspace, "patches": patches})
         write_json(tx / "input.json", {"source": input_manifest, "dependencyDigest": dependency_digest})
         fetch = stage / "fetch"
         fetch_image = self.bounded_workspace(fetch, 4)
         write_json(fetch / "package.json", minimal, mode=0o644)
         write_json(fetch / "pnpm-workspace.yaml", workspace, mode=0o644)
         (fetch / "pnpm-lock.yaml").write_text(lock)
+        require(copy_approved_patch(source, fetch) == patches, "Dependency patch changed before fetch", "integrity")
         # Only these sanitized dependency inputs are ever visible as the fetch cwd.
         chown_tree(fetch, self.uid, self.gid)
         node = str(tools / "node/bin/node")
@@ -396,6 +402,9 @@ class Builder:
         for name in ("package.json", "pnpm-lock.yaml"):
             require((export / "app" / name).read_bytes() == (source / name).read_bytes(), "Build changed dependency inputs", "integrity")
         require(dependency_workspace(export / "app") == workspace, "Build changed reviewed dependency workspace", "integrity")
+        require(read_approved_patch(export / "app") == read_approved_patch(source),
+                "Build changed reviewed dependency patch", "integrity")
+        patch_proof = verify_installed_patch(export / "app")
         # Ensure the exact full runtime, metadata and executable bits survived export.
         for component in ("node", "codex"):
             require(inspect_tree(export / component) == inspect_tree(tools / component), "Full runtime handoff mismatch", "integrity")
@@ -410,7 +419,8 @@ class Builder:
         manifest = inspect_tree(export, root_owned=True)
         release = publish_release(self.layout, export, manifest)
         write_json(tx / "prepared.json", {"release": release, "inputDigest": digest(input_manifest), "manifestDigest": digest(manifest),
-                                         "nativeInitializationProbe": True, "offlineBoundaryProbe": True, "nativeSandboxProbe": True})
+                                         "nativeInitializationProbe": True, "offlineBoundaryProbe": True, "nativeSandboxProbe": True,
+                                         "dependencyPatch": patch_proof})
         # Both producers have been confirmed stopped by isolated() before import.
         # Failure paths retain mounts/images for diagnosis instead of guessing.
         for directory, image in ((fetch, fetch_image), (build, build_image)):

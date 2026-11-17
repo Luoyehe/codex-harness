@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-and-targeted-verified",
+  "completedAt": "2026-11-17T19:01:35.977063+00:00",
+  "sourceFiles": [
+    {
+      "path": "deploy/build.py",
+      "sha256": "138cec8a177b5ecab35429ed4b2a0a6237231d352f7ffd34af48003b7fb31984"
+    },
+    {
+      "path": "deploy/dependency_patch.py",
+      "sha256": "ff83a97bc0d6d131ea0950ef12a1735c3b1b6fc592ce48e98dbbff1c4263ac13"
+    },
+    {
+      "path": "deploy/dependency_patch_contract.py",
+      "sha256": "1e60bd954b79e9d09ef496cf03482509bb1fe4460d6506a4abf33d99eb0e39ab"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "7f419947318eb26cbccc9a8ec8a9a540512e66d6c69e00788aa89be65c7d52e9"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "ea36f9bd24b813903190dd336e882cb5c4e568c36aae87780c1c02fa219f5911"
+    },
+    {
+      "path": "patches/picomatch@4.0.7.patch",
+      "sha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31"
+    },
+    {
+      "path": "tests/deploy/test_dependency_patch.py",
+      "sha256": "7bb777964c7d874878ca1273c6b10aff4b4cced62eb84e8da3504a58887b40a6"
+    },
+    {
+      "path": "tests/deploy/test_dependency_lock.py",
+      "sha256": "8220f4c03a38c58eb92dc81d2406a2fdd272b369e5f5643ad38d8914a325d576"
+    },
+    {
+      "path": "tests/deploy/test_deployment.py",
+      "sha256": "022ec9737eece3bd21da52d7e4a51114ff8e04a4756b54b779035dc2b7105354"
+    },
+    {
+      "path": "tests/deploy/test_source_pack.py",
+      "sha256": "2160b0e50a883382871ab26db35ebd156c15da85bd130ccf05714f1d7c756c8c"
+    },
+    {
+      "path": "tests/deploy/test_toolchain.py",
+      "sha256": "7016c4a006e93352e556d87842f1b4430e17306e9584eb6492adb5628a7f8fd0"
+    },
+    {
+      "path": "tests/deploy/root/test_toolchain.py",
+      "sha256": "dbaaab90072fd98b8b0373f2041244019f943143a589043b0eb31fe1143e4aac"
+    },
+    {
+      "path": "tests/deploy/root/test_tree_durability.py",
+      "sha256": "5905a0d993648cdb0d4849fb239aff99ff7900b4df9e9ce94db1efb719c1f876"
+    }
+  ],
+  "contract": {
+    "package": "picomatch@4.0.7",
+    "patchSha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31",
+    "versionUnchanged": true,
+    "officialUpstreamIntegrityRetained": true,
+    "fixedPnpmVersion": "11.22.0",
+    "lockGeneratedByActualPnpm": true,
+    "approvedPackageFiles": 10,
+    "arbitraryPatchMappingsOrHooksAccepted": false
+  },
+  "implementation": [
+    "The reviewed .py pure-data declaration is included by the existing trusted install/control-update material contract, avoiding a missing JSON sidecar.",
+    "Exact workspace, patch path/bytes, lock hash, official upstream integrity and post-patch package files are bound before fetch and after stopped-producer export.",
+    "Dependency digest and source archive include the patch. The sanitized fetch workspace receives the same bytes; metadata/store are copied for the offline install.",
+    "Read-only installed verification traverses bounded physical node_modules namespaces, checks every picomatch copy including nested shadows, requires store-contained resolutions and exact complete approved file contents. It executes no installed/candidate verifier as root."
+  ],
+  "validation": {
+    "windowsPython": {
+      "modules": 5,
+      "cases": 89,
+      "passed": 81,
+      "platformSkips": 8,
+      "failed": 0
+    },
+    "linuxPython": {
+      "uid": 65534,
+      "modules": 5,
+      "cases": 89,
+      "passed": 89,
+      "skipped": 0,
+      "failed": 0,
+      "allEightWindowsPlatformSkipsExecutedAndPassed": true
+    },
+    "linuxRoot": {
+      "modules": 2,
+      "cases": 22,
+      "passed": 22,
+      "skipped": 0,
+      "scope": "Trusted deployment toolchain/durability fixtures in an isolated root-owned copy; no candidate npm/Go/helper executed as root."
+    },
+    "linuxTooling": {
+      "uid": 65534,
+      "modules": 5,
+      "cases": 77,
+      "passed": 77,
+      "skipped": 0,
+      "exactIdsMatchWindows": true
+    },
+    "actualInstallation": {
+      "windows": "New empty node_modules frozen install, ignore scripts, package-import-method copy, followed by real full-package/consumer proof.",
+      "linux": "Fresh task-owned fetch with ordinary uid 65534 and dedicated public registry metadata/store; new app from actual pack_source archive installed with offline/frozen/ignore-scripts inside a network namespace with no active interface.",
+      "actualBuild": "Server tsc, production Vite web build and both server entry syntax checks ran as ordinary uid in the same disconnected namespace; all exited zero.",
+      "postBuildProof": "Python full-package proof on actual built app and JavaScript full-package/consumer proof on a byte-preserving dependency copy both passed."
+    }
+  },
+  "failureRetention": [
+    {
+      "kind": "operator-invocation",
+      "evidence": ".work/v240/dependency-patch-installed-proof-windows.log",
+      "reason": "Initial proof command guessed a non-exported function name and failed module loading; no proof ran. Correct named API was then used."
+    },
+    {
+      "kind": "expected-integrity-refusal",
+      "evidence": ".work/v240/dependency-patch-installed-proof-windows-first.log",
+      "reason": "First frozen install in the prior virtual store retained an unpatched unused picomatch instance; full-instance proof rejected it. Original node_modules was moved intact to task-owned retained storage and a fresh empty dependency tree was installed; old package evidence was not ignored or relabeled as safe."
+    },
+    {
+      "kind": "test-environment-prerequisite",
+      "evidence": ".work/v240/dependency-patch-linux-evidence/python-targeted.log",
+      "reason": "First isolated Python group had loopback down: 88 passed and the local HTTP catalog fixture errored with Network unreachable. No source/assertion changed; the test namespace subsequently enabled only lo and all 89 passed. The first aggregate/raw log remains failed."
+    }
+  ],
+  "limitations": [
+    "This is affected validation, not a new full matrix or hosted Security success.",
+    "The Linux workflow exercised actual fetch/install/build/proof commands, not the complete privileged Builder.prepare transaction or live candidate activation. Existing root transaction tests and independent source audit cover those composition boundaries.",
+    "The prior dependency advisory remains in the raw registry audit; local content proof supports the separately implemented classification, not an upstream release/version claim.",
+    "The source capture included all 2138 current source paths; deploy/README.md changed afterward while executable/test inputs remained identical. Final full11 audit binds the final documentation and source.",
+    "[private deployment detail omitted]"
+  ],
+  "evidence": [
+    {
+      "path": ".work/v240/dependency-patch-lock-generation.log",
+      "sha256": "fab8a719a39fbb6832fc5cde3d0297dc4fccc6812f54a6b4b738c251e40e4c9e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-frozen-install-windows.log",
+      "sha256": "245eeeee6813c8523c24e65db1c6dffd22edc9327a4d55b1f8659f072797de95"
+    },
+    {
+      "path": ".work/v240/dependency-patch-installed-proof-windows.log",
+      "sha256": "2f03e97c75f848a531e733be02983d057f5384c0b5a242dae61e33731e4f13cc"
+    },
+    {
+      "path": ".work/v240/dependency-patch-installed-proof-windows-first.log",
+      "sha256": "470c9fc3b74fabd2481f6a8b034921da708c5b93c33215fbadb91774257f05f1"
+    },
+    {
+      "path": ".work/v240/dependency-patch-frozen-install-windows-clean.log",
+      "sha256": "bc4e1ea736d4a52c198a9b6a63c3e39bb8a4ffd5cc2ede835c2413df57309bf8"
+    },
+    {
+      "path": ".work/v240/dependency-patch-installed-proof-windows-clean.json",
+      "sha256": "87be5d4f7999d08362ffef330958da7b9f762fd340fc6d30abdba4cbaa412c41"
+    },
+    {
+      "path": ".work/v240/dependency-patch-python-windows.json",
+      "sha256": "7a6b5e7026f568eb68c16875dbf95e9535e0ff47cb567a39122c6a2012df4058"
+    },
+    {
+      "path": ".work/v240/dependency-patch-python-windows.log",
+      "sha256": "67f24b87cd3a5fc8effa5c0da4d1e9f1134b8781f769d061536456e50614df62"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-manifest.json",
+      "sha256": "88266d4692dc741c6820d360072ea92ff95ccb18cb2aa39e14aaed338a5057cb"
+    },
+    {
+      "path": ".work/v240/dependency-patch-platform-comparison.json",
+      "sha256": "48b67b789b95620b1ce2cb9fece8c2cf2ae54c47cb4fb6e71d3a8006cde0f9b6"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-prepare.py",
+      "sha256": "ee6bfe68da74e7eada59fa6a43c5a9992d5178084e46aa5a9773b508f50c26bb"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-targeted.py",
+      "sha256": "771c14fba5ca32350bf0cae860347918e23c1a05ac762fe3612f1e1c8629133f"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-prepare.log",
+      "sha256": "82df7e10b44012b2be56237e417261c7c125928f93dfa62d93abb425f60a46f6"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-targeted-launch.log",
+      "sha256": "c70ae78f047d804e7a4acc3b8078d9af444ff84969cf5db64d41d193ac34dc60"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence.tgz",
+      "sha256": "fa9ceeba4b0704de2ec63d1b61fc2db81a71e11205276a03df6a250f166d0d6a"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/completed.json",
+      "sha256": "119e0afefb0bf16e5e5f452e0aa01bcb646e98f8b030e3185f31e5a6e1b8551e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/fetch.log",
+      "sha256": "4dd3f771a5a840776a08f4a139fed30dba3f6e274047b99fbf8299660fcd6b71"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/gateway-syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/javascript-package-proof.log",
+      "sha256": "08b3216753bfc584ba18f49ccd998d39850d59a2a5664da401ed339a215406b0"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/offline-install.log",
+      "sha256": "7cabf3c367a8efa57cec70381d344d5e73004d50f4a1606cd5bdd9fc3fbef39c"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/python-package-proof.log",
+      "sha256": "b2c4078136397baa3e5b7ef85503962d5ae8ab45baaa56ea7c7631613d81ee5a"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/python-targeted-final.log",
+      "sha256": "d3cf86728881b21ed73b4383a87a3b849c3c24d9070d04ffcd8de24e1d6b85eb"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/python-targeted.log",
+      "sha256": "9eb53d8aaf29823eff4aea5909c270eec3b2bc7ad8048e62669466ebcf5e47a3"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/repo/.work/v240/dependency-patch-python-linux-final.json",
+      "sha256": "a26be0fdd13f84fcfb58d16a50cfafa4d8de51317af5b3e94003183c1a41d5aa"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/repo/.work/v240/dependency-patch-python-linux.json",
+      "sha256": "6909c5c322d571209e353d681bbcb810724e2b50f3f1a533d28d84100bef317c"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/repo/.work/v240/dependency-patch-tooling-linux-result.json",
+      "sha256": "a71133f7bb9160197b6f75086ed4404e03ab89f9513cf8e529ac590954af6201"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/root-toolchain-targeted.log",
+      "sha256": "950ee87aba9dbe30cef9d773f4f39887e04bcf4df3a4e2b582d973bb7c396fcb"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/server-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/steps.json",
+      "sha256": "54f2952c4b4114f73fa61b2199a0603a243d4919e70c3e6da0e4bf514444c641"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/targeted-steps.json",
+      "sha256": "ad2221a7e4a32bd15937ee55955f43fc65a5ce169c2541eb3ad7fb031681e96e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/tooling-targeted.log",
+      "sha256": "4f9f8d8206e336d32506980bfd4da9d10ddc8d9e6c329d6d5f6a71065cdc3112"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/tooling-vitest.json",
+      "sha256": "5f20f6817e291896e35a6d042df54663d5e7e9f22916774c6b899147e349dc8e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/trusted-control-tests/.work/dependency-patch-root.json",
+      "sha256": "9fbcbd2b8b09df8cb3f050f697c70c9faa1b7b8d919caef23d268178f008453e"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/web-build.log",
+      "sha256": "6556e8956afdf0f4922c23407b22b9ded9213d35ca3d8ced376167bb420dc77f"
+    },
+    {
+      "path": ".work/v240/dependency-patch-linux-evidence/worker-syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+}

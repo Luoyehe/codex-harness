@@ -4,6 +4,7 @@ import bz2
 import gzip
 import hashlib
 import json
+import shutil
 import lzma
 import os
 import sqlite3
@@ -745,6 +746,7 @@ class BoundaryTests(unittest.TestCase):
             target = Path(folder)
             (target / "package.json").write_bytes((source / "package.json").read_bytes())
             (target / "pnpm-workspace.yaml").write_bytes((source / "pnpm-workspace.yaml").read_bytes())
+            shutil.copytree(source / "patches", target / "patches")
             (target / "pnpm-lock.yaml").write_text(lock + "\n  injected: {tarball: https://untrusted.invalid/code.tgz}\n")
             with self.assertRaises(DeployError): dependency_input(target)
 
@@ -778,6 +780,7 @@ class BoundaryTests(unittest.TestCase):
             target = Path(folder)
             for name in ("package.json", "pnpm-workspace.yaml"):
                 (target / name).write_bytes((source / name).read_bytes())
+            shutil.copytree(source / "patches", target / "patches")
             lock = (source / "pnpm-lock.yaml").read_text()
             for changed in (lock.replace("  zod: 4.6.7", "  zod: 3.25.76"),
                             lock.replace("  zod: 4.6.7", "  zod: 4.6.7\n  zod: 4.6.7"),
@@ -792,10 +795,13 @@ class BoundaryTests(unittest.TestCase):
             source.mkdir()
             write_json(source / "package.json", {"name": "fixture"})
             write_json(source / "pnpm-workspace.yaml", WORKSPACE_SETTINGS)
+            shutil.copytree(Path(__file__).resolve().parents[2] / "patches", source / "patches")
             archive = root / "source.tgz"
             pack_source(source, archive)
             with tarfile.open(archive) as packed:
                 self.assertIn("pnpm-workspace.yaml", packed.getnames())
+                self.assertEqual(packed.extractfile("patches/picomatch@4.0.7.patch").read(),
+                                 (source / "patches/picomatch@4.0.7.patch").read_bytes())
                 self.assertEqual(json.load(packed.extractfile("pnpm-workspace.yaml")), WORKSPACE_SETTINGS)
 
 

@@ -65,10 +65,20 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: node scripts/prepare-ci-pnpm.mjs
-      - run: pnpm audit --audit-level high --json > dependency-audit.json
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Retain registry audit and verify exact local patch content
+        shell: bash
+        run: |
+          set +e
+          pnpm audit --audit-level high --json > dependency-audit.json
+          audit_status=$?
+          set -e
+          node scripts/dependency-audit.mjs --audit-exit "$audit_status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: dependency-audit
-          path: dependency-audit.json
+          path: |
+            dependency-audit.json
+            dependency-audit-classification.json
           if-no-files-found: error

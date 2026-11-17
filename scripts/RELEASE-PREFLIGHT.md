@@ -10,6 +10,8 @@ node scripts/release-preflight.mjs --head <candidate-commit> --push-base <previo
 
 Use the pinned Node version from `deploy/common.py`, and install dependencies with the pinned pnpm and `pnpm install --frozen-lockfile --ignore-scripts` first. `--build` invokes the existing TypeScript and Vite entrypoints; it does not install dependencies, fetch credentials, push, create a workflow run, or execute any tests. Its fixed generated output directories `dist` and `web/dist` are rebuilt from empty directories. It refuses substituted output directories or parents.
 
+For a release carrying the local picomatch patch, run the dependency job from `.github/workflows/security.yml` on the freshly installed tree. Retain both the original registry report and the local classification. A version-based registry report can still list the patched package. Check that the classification names the exact advisory and verifies the installed parser used by the build and test tools. When an official fix becomes available, remove the patch, its deployment contract and the advisory-specific classification together, and validate the new frozen install and both build paths.
+
 The preflight:
 
 - Requires the supplied commit to be checked out, and compares every source filename, raw Git blob hash and executable bit with that commit. Untracked/changed source cannot be hidden by a successful prior build or Git's `assume-unchanged` flag.
@@ -145,7 +147,7 @@ After those repairs, local candidate `historical-commit-034` was correctly stopp
 
 A trusted, source-matching `explicit-user-release-closeout` authorization with the required `full-tests` scope is an explicit complete-validation request, independent of diff breadth. Without that verified authorization, ordinary narrow changes retain affected-test selection; proposed PR files still cannot authorize themselves, and explicit missing, mismatched or invalid proof must fail. Cover actual Git-backed narrow and evidence-only commits for trusted main, externally approved PR and manual paths, alongside unapproved PR and invalid-proof refusals. Exercise the actual release preflight with both bases set to the current target, rather than relying only on a fixture whose older PR base happens to contain a broad version change.
 
-### v2.4.0 current dependency advisory blocks publication
+### v2.4.0 dependency audit failure on candidate historical-commit-073
 
 Candidate `historical-commit-073` passed all four hosted CodeQL jobs, but Security run `44147510629` failed its dependency audit. The same pinned pnpm 11.22.0 command locally reported high-severity `GHSA-fc5q-39xc-vjpf` against picomatch 4.0.7 through Vite/Vitest and their development dependencies. Keep the hosted step result separate from the locally reproduced advisory: the complete hosted dependency artifact was not available. The previous successful hosted audit used the identical lockfile and occurred after the advisory's GitHub review timestamp; without its raw audit response, do not invent a publication or registry-propagation timeline to explain the difference.
 

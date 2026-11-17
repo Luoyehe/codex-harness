@@ -25,6 +25,16 @@ test('the one-stop shell entry retains deployment and operator journey coverage'
   expect(plan.requiresFullAudit).toEqual([]);
 });
 
+test('the dependency audit and its workflow retain checks of the installed parser and deployment lock', () => {
+  const required = ['tests/tooling/picomatch-patch.test.ts', 'tests/tooling/dependency-audit.test.ts', 'tests/deploy/test_dependency_lock.py', 'tests/deploy/test_dependency_patch.py', 'tests/deploy/test_deployment.py', 'tests/deploy/test_source_pack.py'];
+  for (const input of ['patches/picomatch@4.0.7.patch', 'deploy/dependency_patch_contract.py', 'scripts/picomatch-patch-proof.mjs', 'scripts/dependency-audit.mjs', '.github/workflows/security.yml']) {
+    const plan = selectTests([input], [...available, ...required]);
+    expect(plan.groups.unit).toEqual(expect.arrayContaining(required.slice(0, 2)));
+    expect(plan.groups.deploy).toEqual(expect.arrayContaining(required.slice(2)));
+    expect(selectTests([input], available).requiresFullAudit).toContainEqual({ path: required[0], reason: 'missing-patch-regression' });
+  }
+});
+
 test.each(['tests/runtime/mcp-oauth-fixture.mjs', 'tests/runtime/native-fixture.mjs'])('shared runtime helper %s retains runtime and gateway consumers', changed => {
   const gateway = 'tests/gateway/mcp-oauth.test.ts';
   const inventory = [...available, gateway];

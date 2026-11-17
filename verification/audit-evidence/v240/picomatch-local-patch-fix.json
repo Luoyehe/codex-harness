@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "kind": "defensive-local-dependency-repair",
+  "recordedAt": "2026-11-17T19:02:01.553Z",
+  "status": "windows-and-linux-targeted-passed",
+  "supersedesBlockerOperationallyWithoutRewritingHistory": {
+    "path": "verification/audit-evidence/v240/hosted-ci2-dependency-blocker.json",
+    "sha256": "59f39e05d4761d8a41aa5a0c92b4f8baf459a37c2e2c073fad12e39f39265a5b",
+    "bytes": 18311
+  },
+  "package": {
+    "name": "picomatch",
+    "version": "4.0.7",
+    "advisory": "GHSA-fc5q-39xc-vjpf",
+    "versionUnchanged": true,
+    "upstreamIntegrity": "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==",
+    "archiveSha256": "697b463be3cdbd9ffc8f4194fd5019a69ddf95875fb703d78b2b115cc9e740a8",
+    "officialGitHead": "6bb40679c218cefba5d4e9662408c5fdf699a8bb",
+    "patch": {
+      "path": "patches/picomatch@4.0.7.patch",
+      "sha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31",
+      "bytes": 3257
+    },
+    "changedPackageFiles": [
+      {
+        "path": "lib/parse.js",
+        "originalSha256": "4e1e05447668aa1e94366c5516a2bcd8f5fff800cc92b1d0cd7d77703b8618c4",
+        "patchedSha256": "02188536117b4b47d401836664d6f1dfa4cb916456e68584e7bca1d5df0890ca"
+      }
+    ],
+    "completePackageManifest": {
+      "path": ".work/v240/picomatch-local-patch/package-manifest.json",
+      "sha256": "d9168bcb796cb0fee1e05e904ad0f4e1d1114e77e4e69e46ab6f695e3cf9c80a",
+      "bytes": 3440
+    }
+  },
+  "latestUpstreamCheck": {
+    "evidence": [
+      {
+        "path": ".work/v240/picomatch-local-patch/current-metadata.json",
+        "url": "https://registry.npmjs.org/picomatch",
+        "status": 200,
+        "fetchedAt": "2026-11-17T18:53:57.245Z",
+        "sha256": "9a8e64f1208fef4d18c27f48267e00c639b65743484cf3f5e788d018195b6fbb"
+      },
+      {
+        "path": ".work/v240/picomatch-local-patch/current-advisory.json",
+        "url": "https://api.github.com/advisories/GHSA-fc5q-39xc-vjpf",
+        "status": 200,
+        "fetchedAt": "2026-11-17T18:53:57.048Z",
+        "sha256": "cc99706e61047047b6690db94abb98b5940d007196775c12902c0f79d8aedbd5"
+      },
+      {
+        "path": ".work/v240/picomatch-local-patch/official-source-tree.json",
+        "url": "https://api.github.com/repos/micromatch/picomatch/git/trees/6bb40679c218cefba5d4e9662408c5fdf699a8bb?recursive=1",
+        "status": 200,
+        "fetchedAt": "2026-11-17T18:53:56.930Z",
+        "sha256": "f14d312a92e9fc316d5bc20f61307af742cbde82a9f4c3e55b10f68c266e66d8"
+      }
+    ],
+    "conclusion": "The official registry still lists 4.0.7 as latest and no 4.0.8 package. The GitHub advisory has no first_patched_version. The local patch is not represented as an upstream release.",
+    "upstreamTests": "The exact official git tree contains 37 JavaScript test files. The npm distribution omits these tests. The upstream full test suite was not executed or claimed to pass."
+  },
+  "algorithm": [
+    "Inspect the compiled body of repeated plus/star extglobs for variable repetition, optional quantifiers, ranges, backreferences and nested alternatives while respecting escapes and character classes.",
+    "For a single-segment P*Q body containing one wildcard star plus ordinary filename literals and bounded one-character wildcards, remove the surrounding unbounded repetition. Concatenating any two accepted segments is still accepted by that body.",
+    "Allow a union of these bodies when all branches share the prefix or all share the suffix; always retain a noncapturing group around the entire union. Outer star is represented by an optional body to preserve its zero repetitions.",
+    "Reuse the compiled body so existing platform separator and dot rules remain in effect. Keep existing upstream repeated-extglob safeguards and safe reductions.",
+    "If the new variable-length form cannot be normalized under these conditions, throw SyntaxError with PICOMATCH_UNSAFE_REPEAT during compilation. The new guard remains active even when maxExtglobRecursion is false."
+  ],
+  "compatibilityBoundaries": [
+    "This is a conservative defensive repair, not a claim that every valid extglob retains its previous result. Some complex or nested variable-length forms are explicitly rejected instead of silently producing a different matcher.",
+    "Capture-enabled and bash-mode variable repeated forms are rejected rather than incorrectly preserving last-iteration capture or cross-separator semantics. Ordinary finite extglobs and ordinary capture/bash matching remain available.",
+    "Common same-prefix or same-suffix multi-branch filename patterns remain supported. Arbitrary differing-prefix-and-suffix branches, path-crossing bodies and nested alternatives outside the proven normalization are not newly supported.",
+    "Compiled-structure and bounded ordinary-filename checks support the chosen fix. They do not prove universal regex complexity or all upstream option combinations."
+  ],
+  "validation": {
+    "constraints": "No denial-of-service input, exploit reproduction, long-string test, timing threshold or live external service was created or executed. Unsupported patterns were compiled only; matching used fixed ordinary filenames at most 24 characters in the comparison and 32 in committed tests.",
+    "ordinaryCompatibility": {
+      "evidence": {
+        "path": ".work/v240/picomatch-local-patch/compatibility.json",
+        "sha256": "ac9112ed653f672ec72b3e5e64ec5263a81cae8d0e13324de1d5d46eb3428ead",
+        "bytes": 46992
+      },
+      "checker": {
+        "path": ".work/v240/picomatch-local-patch/compatibility.cjs",
+        "sha256": "b22a9ffd685384f98958801eb876459532fdd7eceef35513123673b9ce6c3fed",
+        "bytes": 2494
+      },
+      "comparisons": 7752,
+      "mismatches": [],
+      "explicitlyRejected": [
+        {
+          "pattern": "+(*(a)|*(b))",
+          "settings": {
+            "maxExtglobRecursion": false
+          },
+          "code": "PICOMATCH_UNSAFE_REPEAT"
+        }
+      ],
+      "patterns": 36,
+      "optionSets": 9,
+      "fixedNames": 24
+    },
+    "windowsInstalledDependency": {
+      "command": "& .work/v240/run-targeted.ps1 tests/tooling/picomatch-patch.test.ts",
+      "actualModuleResolution": "createRequire(realpathSync(node_modules/vitest/package.json)) resolves the actual transitive installed package used by Vitest.",
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "raw": {
+        "path": ".work/test-results/run-nZVd8j/vitest.json",
+        "sha256": "eb72a1c0657bbd9308e9c1f14aa1c1ef9d2b385bf83812661ea1f8ca53d51c29",
+        "bytes": 7321
+      },
+      "log": {
+        "path": ".work/v240/picomatch-local-patch/patched-structure-tests.log",
+        "sha256": "b417016b10b32b05960cf6ccc0344086beee03d3d3cc624e93555ab94b3dccdb",
+        "bytes": 6140
+      }
+    },
+    "strictTypes": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+      "status": "passed",
+      "log": {
+        "path": ".work/v240/picomatch-local-patch/test-types-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "linuxInstalledDependency": {
+      "status": "passed",
+      "owner": "v240_deploy",
+      "uid": 65534,
+      "environment": "Fresh dependency tree installed offline in a task-only directory. Targeted execution used a separate network namespace with loopback only.",
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "sameExactWindowsCaseIds": true,
+      "containingRun": {
+        "modules": 5,
+        "tests": 77,
+        "passed": 77,
+        "failed": 0,
+        "skipped": 0
+      },
+      "raw": {
+        "path": ".work/v240/dependency-patch-linux-evidence/tooling-vitest.json",
+        "sha256": "5f20f6817e291896e35a6d042df54663d5e7e9f22916774c6b899147e349dc8e",
+        "bytes": 25964
+      },
+      "aggregate": {
+        "path": ".work/v240/dependency-patch-linux-evidence/repo/.work/v240/dependency-patch-tooling-linux-result.json",
+        "sha256": "a71133f7bb9160197b6f75086ed4404e03ab89f9513cf8e529ac590954af6201",
+        "bytes": 17862
+      },
+      "log": {
+        "path": ".work/v240/dependency-patch-linux-evidence/tooling-targeted.log",
+        "sha256": "4f9f8d8206e336d32506980bfd4da9d10ddc8d9e6c329d6d5f6a71065cdc3112",
+        "bytes": 684
+      },
+      "source": {
+        "path": ".work/v240/dependency-patch-linux-manifest.json",
+        "sha256": "88266d4692dc741c6820d360072ea92ff95ccb18cb2aa39e14aaed338a5057cb",
+        "bytes": 247390
+      },
+      "completion": {
+        "path": ".work/v240/dependency-patch-linux-evidence/completed.json",
+        "sha256": "119e0afefb0bf16e5e5f452e0aa01bcb646e98f8b030e3185f31e5a6e1b8551e",
+        "bytes": 1006
+      },
+      "exactPatchAndTestHashesMatchCurrent": true
+    },
+    "fullAuditAndMatrix": {
+      "status": "pending",
+      "note": "No full-suite pass or release readiness is claimed by this targeted repair report."
+    }
+  },
+  "intermediateEvidence": [
+    {
+      "evidence": {
+        "path": ".work/v240/picomatch-local-patch/original-structure-tests.log",
+        "sha256": "ef77164797f0a75d0dc02cd2b5803bb8b1bf43e62394e896ee5f5bd202744f99",
+        "bytes": 1512
+      },
+      "raw": {
+        "path": ".work/test-results/run-t3hNPN/vitest.json",
+        "sha256": "d7d442ea93c4915197e4c300a98c44521f4ff9d909df4541ad0646f46a9bf5ca",
+        "bytes": 825
+      },
+      "outcome": "Zero tests executed because createRequire was anchored at the pnpm symlink instead of its real target. Corrected to realpathSync; not used as behavioral red evidence."
+    },
+    {
+      "evidence": {
+        "path": ".work/v240/picomatch-local-patch/original-structure-tests-resolved.log",
+        "sha256": "146000d22387f1780f642152f32e6651e625408986d24aa2205f21130e597043",
+        "bytes": 9853
+      },
+      "raw": {
+        "path": ".work/test-results/run-NrX7fU/vitest.json",
+        "sha256": "f50f8c2641323d5080835b97edb30fe4a32bdc84ebbc338dba18ffe613e8e105",
+        "bytes": 39531
+      },
+      "outcome": "The unpatched package ran 21 cases: 19 failed and 2 passed. One failure was a fixture misclassification of an escaped literal plus fixed-width wildcard; the other 18 corresponded to intended structure/rejection changes. The fixture was corrected and a positive fixed-width case added, yielding the final 22 cases. No production patch change was required for this fixture correction."
+    },
+    {
+      "outcome": "Independent review caught missing grouping around the initial multi-branch normalization. The final patch always groups the whole compiled inner source, and committed regressions cover adjacent prefix/suffix literals and one-sided nonmatches. All final evidence refers to the corrected hash."
+    },
+    {
+      "outcome": "An exploratory display used a matcher directly as Array.filter callback, whose index is interpreted as an optional diagnostic flag. That display was corrected to a one-argument callback and was not used as accepted evidence. The committed tests and the 7752-comparison checker use one-argument calls."
+    }
+  ],
+  "ownedSourceFiles": [
+    {
+      "path": "patches/picomatch@4.0.7.patch",
+      "sha256": "c73761bb7036564f7701ba09543036aaf7055cc1298cbfa6af8a4fc674394c31",
+      "bytes": 3257
+    },
+    {
+      "path": "tests/tooling/picomatch-patch.test.ts",
+      "sha256": "756b89d28ae58dcf620b60ec1f469308a99849fe61ca95adf1dfc4fc5001c52b",
+      "bytes": 5201
+    }
+  ],
+  "integrationOwnership": "Workspace/lock/installation/deployment and the exact-content dependency gate are independently implemented and tested by other agents. The linked deployment report preserves its intermediate failures and proves actual offline installation/build rather than relying on copied package content.",
+  "deploymentEvidence": {
+    "path": "verification/audit-evidence/v240/dependency-patch-deployment.json",
+    "sha256": "47318be5cc598615375250172942a59ed91abcd173b49413e85baeca92e46e71",
+    "bytes": 12919
+  }
+}

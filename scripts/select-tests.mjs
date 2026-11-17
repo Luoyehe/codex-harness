@@ -22,6 +22,9 @@ const builtinMcpTests = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vis
 const toolchainPythonTests = ['tests/deploy/test_toolchain.py', 'tests/deploy/root/test_toolchain.py', 'tests/deploy/root/test_tree_durability.py'];
 const codeqlGoInputs = ['scripts/build-codeql-go.mjs', 'scripts/prepare-ci-go.py', '.github/workflows/security.yml'];
 const codeqlGoTest = 'tests/tooling/codeql-go.test.ts';
+const patchFile = 'patches/picomatch@4.0.7.patch';
+const patchProofInputs = new Set([patchFile, 'deploy/dependency_patch.py', 'deploy/dependency_patch_contract.py', 'scripts/picomatch-patch-proof.mjs', 'scripts/dependency-audit.mjs', '.github/workflows/security.yml']);
+const patchTests = ['tests/tooling/picomatch-patch.test.ts', 'tests/tooling/dependency-audit.test.ts', 'tests/deploy/test_dependency_lock.py', 'tests/deploy/test_dependency_patch.py', 'tests/deploy/test_deployment.py', 'tests/deploy/test_source_pack.py'];
 const deploymentPairs = [
   [...dnsCaddyPythonTests, goTestFile],
   // Tree durability composes the ordinary toolchain archive fixture.
@@ -43,7 +46,7 @@ const deploymentPairs = [
   ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'],
   ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py'],
 ];
-const auditMetadata = new Set(['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
+const auditMetadata = new Set([patchFile, 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
 const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
 
 export function testInventory(base = root) {
@@ -117,11 +120,15 @@ export function selectTests(changed, available) {
     else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', goTestFile, ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
-    else plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
+    else if (!patchProofInputs.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
   }
   for (const name of plan.changed.filter(name => codeqlGoInputs.includes(name))) {
     if (!inventory.has(codeqlGoTest)) plan.requiresFullAudit.push({ path: codeqlGoTest, reason: 'missing-codeql-entry-regression' });
     add(name, [codeqlGoTest], 'codeql-tracing-entry-and-workflow-order');
+  }
+  for (const name of plan.changed.filter(name => patchProofInputs.has(name))) {
+    for (const required of patchTests) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-patch-regression' });
+    add(name, patchTests, 'local-dependency-patch-and-installation');
   }
   for (const name of [...selected].sort()) {
     if (nativeNames.has(name)) plan.groups.native.push(name);
