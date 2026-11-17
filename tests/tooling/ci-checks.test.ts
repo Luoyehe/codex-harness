@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -183,6 +183,20 @@ test('coverage reconciles exact per-case platform complements and rejects failur
     (r: any[]) => r[2].cases = [],
     (r: any[]) => r[0].exitCode = 1,
   ]) { const changed = structuredClone(reports); mutate(changed); expect(() => reconcileCi(plan, changed)).toThrow(); }
+  // Actual merged-artifact consumption must ignore nested raw diagnostics and
+  // still require each aggregate report at the archive root.
+  const { base } = fixture(), output = path.join(base, '.work/ci-results');
+  mkdirSync(path.join(output, 'test-results/raw-failure'), { recursive: true });
+  const planFile = path.join(output, 'ci-plan.json');
+  writeFileSync(planFile, JSON.stringify(plan));
+  for (const report of reports) writeFileSync(path.join(output, `result-${report.target}.json`), JSON.stringify(report));
+  writeFileSync(path.join(output, 'test-results/raw-failure/vitest.json'), '{"success":false,"numFailedTests":1}');
+  writeFileSync(path.join(output, 'test-results/raw-failure/result-windows.json'), JSON.stringify({ ...reports[1], exitCode: 1 }));
+  const reconcile = () => spawnSync(process.execPath, [path.resolve('scripts/ci-checks.mjs'), 'reconcile', planFile, output], { cwd: base, windowsHide: true, encoding: 'utf8' });
+  expect(reconcile().status).toBe(0);
+  expect(JSON.parse(readFileSync(path.join(output, 'reconciled.json'), 'utf8'))).toMatchObject({ status: 'passed', cases: 3 });
+  rmSync(path.join(output, 'result-windows.json'));
+  expect(reconcile()).toMatchObject({ status: 1, stderr: expect.stringContaining('Every expected platform report is required exactly once') });
 });
 
 test('documentation-only CI explicitly reports that no tests ran', () => {
@@ -239,5 +253,24 @@ test('hosted root work is scoped and every matrix result is reconciled before th
   expect(coverage).not.toContain("needs.plan.result == 'success'");
   expect(coverage).toContain('scripts/ci-job-status.mjs');
   expect(coverage).toContain('HARNESS_CI_NEEDS: ${{ toJSON(needs) }}');
+  expect(coverage).toContain('merge-multiple: true');
+  const standard = workflow.replaceAll('\r\n', '\n').split('\n  standard:\n')[1]!.split('\n  root_deploy:\n')[0]!;
+  const aggregateCheck = standard.split('      - name: Require aggregate case report before publishing diagnostics\n')[1]!.split('      - uses:')[0]!;
+  expect(aggregateCheck).toContain('if: always()');
+  expect(aggregateCheck).toContain('CI_TARGET: ${{ matrix.target }}');
+  const checkSource = aggregateCheck.match(/run: node --input-type=module -e '([^'\n]+)'/)![1]!;
+  const artifact = standard.split('          name: cases-${{ matrix.target }}\n')[1]!;
+  expect(artifact).toContain('path: |\n            .work/result-${{ matrix.target }}.json\n            .work/test-results/*/vitest.json');
+  expect(artifact).toContain('if-no-files-found: error');
+  // Execute the workflow's actual check, including raw-only and directory
+  // false positives that a multi-path upload would otherwise accept.
+  const { base } = fixture(), raw = path.join(base, '.work/test-results/raw-failure/vitest.json');
+  mkdirSync(path.dirname(raw), { recursive: true }); writeFileSync(raw, '{"success":false}');
+  const check = () => spawnSync(process.execPath, ['--input-type=module', '-e', checkSource], { cwd: base, env: { ...process.env, CI_TARGET: 'windows' }, windowsHide: true });
+  expect(check().status).toBe(1);
+  const result = path.join(base, '.work/result-windows.json');
+  mkdirSync(result); expect(check().status).toBe(1); rmSync(result, { recursive: true });
+  writeFileSync(result, '{"exitCode":1}'); expect(check().status).toBe(0);
+  rmSync(raw); expect(check().status).toBe(0);
   expect(workflow).not.toContain('pull_request_target:');
 });

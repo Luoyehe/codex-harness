@@ -151,11 +151,21 @@ jobs:
           code=0
           node scripts/ci-checks.mjs "$CI_TARGET" .work/ci-plan.json ".work/result-$CI_TARGET.json" || code=$?
           test "$code" -eq 0 -o "$code" -eq 3
+      - name: Require aggregate case report before publishing diagnostics
+        if: always()
+        env:
+          CI_TARGET: ${{ matrix.target }}
+        # A raw failure report must not mask a missing aggregate result.
+        run: node --input-type=module -e 'import { statSync } from "node:fs"; if (!statSync(".work/result-" + process.env.CI_TARGET + ".json").isFile()) throw Error("Missing aggregate case report");'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: cases-${{ matrix.target }}
-          path: .work/result-${{ matrix.target }}.json
+          # The shared .work root keeps result-*.json at the archive root.
+          # Only explicit test reports are retained, never test/runtime homes.
+          path: |
+            .work/result-${{ matrix.target }}.json
+            .work/test-results/*/vitest.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

@@ -524,6 +524,7 @@ it('provides one common return without pending approvals and preserves owned too
   expect(voice.isConnected).toBe(true);
   expect(voice.closest('[hidden]')).toBeTruthy();
   fireEvent.click(screen.getByLabelText('打开官方云任务界面'));
+  await act(async () => { await import('../components/TerminalPanel'); });
   const terminal = await screen.findByLabelText('交互终端');
   expect(terminalLifecycle.opens).toBe(1);
   expect(screen.getAllByRole('button', { name: /返回聊天|返回会话/ })).toHaveLength(1);
@@ -587,6 +588,9 @@ it('unmounts modal ownership on access expiry and does not reopen it after renew
   });
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
+  // Module loading is a prerequisite, not a one-second DOM-query deadline.
+  // Keep the actual deferred loader and Settings implementation in this test.
+  await act(async () => { await import('../components/Settings'); });
   const serviceManagement = await screen.findByRole('button', { name: '服务管理' });
   f.expireAccess();
   fireEvent.click(serviceManagement);
@@ -875,6 +879,7 @@ it('opens process and remote settings read-only without starting execution or re
   await screen.findByRole('heading', { name: '直接执行命令' });
   await waitFor(() => expect(f.count('process/list')).toBe(1));
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+  await act(async () => { await import('../components/Settings'); });
   fireEvent.click(await screen.findByRole('button', { name: '远端环境与连接' }));
   await screen.findByRole('heading', { name: '远端执行环境' });
   await waitFor(() => expect(f.count('remoteControl/status/read')).toBe(1));
@@ -902,6 +907,7 @@ it('retains owner-only OAuth handoff after configuration refresh without startin
   const f = await fixture(false, false, undefined, true, call =>
     call.method === 'account/gatewayOAuth/read' && ++gatewayReads === 1 ? initialGateway : undefined);
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+  await act(async () => { await import('../components/Settings'); });
   fireEvent.click(await screen.findByRole('button', { name: '模型供应商' }));
   fireEvent.click(await screen.findByText('供应商网关 OAuth', { selector: 'summary' }));
   await waitFor(() => expect(f.count('account/gatewayOAuth/read')).toBe(1));
@@ -929,6 +935,7 @@ it('retains owner-only OAuth handoff after configuration refresh without startin
 it('retains an accepted owner pairing through ordinary configuration revision changes', async () => {
   const f = await fixture();
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+  await act(async () => { await import('../components/Settings'); });
   fireEvent.click(await screen.findByRole('button', { name: '远端环境与连接' }));
   await screen.findByText('状态：connected · fixture');
   await waitFor(() => expect(f.count('remoteControl/client/list')).toBe(1));
@@ -1020,6 +1027,7 @@ it.each(['sidebar', 'settings'])('refuses removing the current project from %s w
     fireEvent.click(screen.getByRole('button', { name: '移除项目（保留目录）' }));
   } else {
     fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+    await act(async () => { await import('../components/Settings'); });
     fireEvent.click(await screen.findByRole('button', { name: '项目目录' }));
     fireEvent.click(screen.getByRole('button', { name: '移除项目' }));
   }

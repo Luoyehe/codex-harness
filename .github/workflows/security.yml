@@ -31,10 +31,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: matrix.language == 'go'
         with:
@@ -43,11 +39,18 @@ jobs:
         if: matrix.language == 'go'
         with:
           python-version: '3.12.10'
-      - name: Build the actual sealed Go source for CodeQL
+      - name: Prepare the verified Go toolchain before tracing
         if: matrix.language == 'go'
         run: |
           python -B scripts/prepare-ci-go.py
-          node scripts/build-codeql-go.mjs
+          node scripts/build-codeql-go.mjs --prepare
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build }}
+      - name: Build the actual sealed Go source for CodeQL
+        if: matrix.language == 'go'
+        run: node scripts/build-codeql-go.mjs
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: /language:${{ matrix.language }}

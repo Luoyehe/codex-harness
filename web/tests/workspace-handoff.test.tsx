@@ -121,6 +121,7 @@ it.each(['workspace', 'recovery-files', 'recovery-thread', 'settings-draft', 'se
     fireEvent.click(screen.getByRole('button', { name: '打开项目文件' }));
     if (route.startsWith('settings')) {
       fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      await act(async () => { await import('../components/Settings'); });
       await screen.findByTestId('settings-open');
     }
     rejectDraftWrites();

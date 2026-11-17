@@ -4632,19 +4632,22 @@
       "category": "improvement",
       "dispositions": [
         {
-          "status": "implemented-awaiting-hosted-security",
-          "resolution": "Add dependency monitoring for npm, Actions and Go; scan Actions plus build Go under CodeQL using pinned sealed offline dependencies.",
+          "status": "implemented-real-codeql-verified",
+          "resolution": "Add dependency monitoring for npm, Actions and Go; scan Actions and actual Go source. Prepare the verified compiler before CodeQL init, publish its PATH and build through the init-selected tracing entry while retaining pinned sealed offline dependencies.",
           "files": [
             ".github/dependabot.yml",
             ".github/workflows/security.yml",
             "scripts/build-codeql-go.mjs"
           ],
-          "validation": [],
+          "validation": [
+            "Hosted run 44130969168 passed JavaScript/TypeScript, Python, Actions and dependency checks, but Go finalization failed with exit32; that candidate is not publishable.",
+            "verification/audit-evidence/v240/hosted-codeql-go-fix.json retains the original failure, actual CodeQL2.27.4 reproduction and final corrected prepare/build/finalize/analysis success with official go-queries1.6.14, plus matching Windows/Linux direct-entry regressions. main.go is extracted; main_test.go is excluded by the extractor default."
+          ],
           "remaining": [
-            "Hosted Security has not yet been executed for the final release candidate. CodeQL JavaScript/TypeScript, Python, Actions and manual Go extraction plus dependency audit must run and be reviewed before claiming hosted security validation. Implemented workflow configuration and local checks are not hosted success."
+            "The exact final candidate must still pass all hosted Security and Reviewed checks before publication. Local real-scanner success does not substitute for that release gate; no final hosted success is claimed by this pre-publication record."
           ],
           "owner": "root",
-          "state": "implemented-awaiting-hosted-security"
+          "state": "implemented-real-codeql-verified"
         }
       ]
     },

@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "kind": "retained-hosted-reviewed-failure",
+  "reviewerId": "runtime-agent-independent-failure-review",
+  "recordedAt": "2026-11-17T18:02:34.437051+00:00",
+  "status": "failed-run-retained-root-cause-and-targeted-repairs-verified",
+  "originalRun": {
+    "repository": "Luoyehe/codex-harness",
+    "workflow": "Reviewed checks",
+    "runId": 44130969420,
+    "jobId": 134207882040,
+    "url": "https://github.com/Luoyehe/codex-harness/actions/runs/44130969420/job/134207882040",
+    "head": "historical-commit-018",
+    "branch": "main",
+    "sourceDigest": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+    "sourceDigestAfter": "926e9e138b0670baf9ad8be6f2528cf08d3e0065ce77075bf38df546dc6dd590",
+    "failed": true,
+    "publishable": false,
+    "failedStep": [
+      {
+        "name": "Run exact selection and retain platform skips for reconciliation",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 13,
+        "started_at": "2026-11-17T16:56:11Z",
+        "completed_at": "2026-11-17T17:04:44Z"
+      }
+    ]
+  },
+  "evidenceAcquisition": {
+    "method": "User supplied two downloaded ZIP files and their extracted directories. Every ZIP entry was read with CRC validation and compared byte-for-byte with the supplied extracted file. Both original ZIPs were preserved unchanged and copied into ignored task evidence. The archive and original extracted evidence were not edited.",
+    "previousAnonymousInvestigation": {
+      "path": ".work/v240/hosted-ci1-windows-investigation.json",
+      "sha256": "509df72638a65fd15e1aa6c6aa3dd9b4c933fc372e88417164ff1d93de7486f8"
+    },
+    "previousAccessLimitation": "The anonymous job/run log endpoints required repository administration and artifact download required authentication. The earlier restricted-access investigation remains unchanged as historical evidence. User-supplied complete logs now close the assertion-identification gap.",
+    "archives": [
+      {
+        "source": "D:\\Document\\ChatGPT\\codex-harness\\debug\\cases-windows.zip",
+        "retained": ".work/v240/hosted-ci1-downloaded/cases-windows.zip",
+        "bytes": 41449,
+        "sha256": "65296b59a9e08bb68dceb3a81332a82b421f919869e0f099b591eeb5282fed2e",
+        "verifiedEntries": 1
+      },
+      {
+        "source": "D:\\Document\\ChatGPT\\codex-harness\\debug\\logs_119465576901.zip",
+        "retained": ".work/v240/hosted-ci1-downloaded/logs_119465576901.zip",
+        "bytes": 311951,
+        "sha256": "4fbd8e2c6c1c5275165b71987046a934dfde60f8c11581a1d9afdb0db1c2ea27",
+        "verifiedEntries": 67
+      }
+    ],
+    "zipEntryManifest": {
+      "path": ".work/v240/hosted-ci1-downloaded-analysis.json",
+      "sha256": "23db2243fd4384ad0cb66a39ef12efbad86cf32d558f30875bef72fa003b6164"
+    },
+    "zipEntryCount": 68,
+    "allExtractedEntriesMatch": true,
+    "publicArtifactMetadata": {
+      "path": ".work/v240/hosted-ci1-windows-artifacts.json",
+      "sha256": "026d80cc2fa4ebc1d6ba632769ae3c7d1de7d71d4a136d343784866f192c3c04"
+    },
+    "allArtifactIdentityChecks": [
+      {
+        "id": 14351740172,
+        "name": "cases-windows",
+        "bytes": 41449,
+        "sha256": "65296b59a9e08bb68dceb3a81332a82b421f919869e0f099b591eeb5282fed2e",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": true
+      },
+      {
+        "id": 14350820780,
+        "name": "cases-linux",
+        "bytes": 178626,
+        "sha256": "3d5f8d427de7bac42a6765462a254905c6dddf75c1cf5453ff08c035fd86b651",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": false
+      },
+      {
+        "id": 14350046872,
+        "name": "windows-controller-preflight",
+        "bytes": 1951,
+        "sha256": "fa1c33f2c1d7d48b893933b7ed6ccb223782f5fe9c17a417679a080485245548",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": false
+      },
+      {
+        "id": 14349323273,
+        "name": "source-security",
+        "bytes": 2632,
+        "sha256": "2a97706193d944706432236afcf820a63c166fd39df882bc3ad2babd38a3916d",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": false
+      },
+      {
+        "id": 14349088784,
+        "name": "cases-linux-root",
+        "bytes": 18253,
+        "sha256": "c093a9bea0e45a97edbf3c771ceb79567ea61dbf76a0f4cf266f7a8ad2c905c7",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": false
+      },
+      {
+        "id": 14349073650,
+        "name": "ci-plan",
+        "bytes": 31150,
+        "sha256": "a511d808cfd5a6b7d639b76e866a3db4a1e9f93c2facb8cc62c6e6ff2870a39d",
+        "head": "historical-commit-018",
+        "runId": 44130969420,
+        "digestPresentInCompleteLogs": true,
+        "archiveBytesIndependentlyVerified": false
+      }
+    ]
+  },
+  "inspection": {
+    "method": "Read all Windows step logs, combined job log and structured result; enumerate every selected file/case and parse all group outcomes, warnings, failure/traceback blocks and assertion stacks. Review the complete failure block, prerequisites, artifact receipts, cleanup, and downstream coverage gate. Distinguish expected negative fixture output from actual job failure by tracing the test runner fixtures and terminal group outcomes. Review actual failed-commit source and earlier retained matrix evidence, not only public annotations.",
+    "windowsCombinedLogLines": 2178,
+    "windowsLogFiles": [
+      {
+        "path": "logs_119465576901/3_standard (windows-2025, windows, 0.169.0-win32-x64).txt",
+        "bytes": 291118,
+        "sha256": "4c89ccd0539b469fa4fc41176ae33d07542a040c55e250d42f8dd4f9961b2758",
+        "lines": 2178
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/11_Verify isolated Windows process controllers before native tests.txt",
+        "bytes": 2698,
+        "sha256": "926140cddb547bb9431105846ec30930319d31988f42cd268adbbf83d8cf35c4",
+        "lines": 16
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/12_Run actions_upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9.txt",
+        "bytes": 2747,
+        "sha256": "8d5bb1cfa99b995069279a397afde35989a1ea768af7bc59c1690d4239b57310",
+        "lines": 33
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/13_Run exact selection and retain platform skips for reconciliation.txt",
+        "bytes": 251979,
+        "sha256": "98e96274e89d476afdddc0910fdef01926e305da871a71081da1a9ecfe5f75a0",
+        "lines": 1735
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/14_Run actions_upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9.txt",
+        "bytes": 2726,
+        "sha256": "11038920c1587426af6e9997a54fec9ff79f79d298a7f62a0256c06e2ab1c66a",
+        "lines": 34
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/1_Set up job.txt",
+        "bytes": 2742,
+        "sha256": "6c899a5af2a3f3cd2671d54386bc30b56abe696c75a17e124a4da05e0007ebca",
+        "lines": 36
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/28_Post Run actions_checkout@3d3c42e5aac5ba805825da76410c181273ba90b1.txt",
+        "bytes": 1938,
+        "sha256": "02070387da19e64ee7290e22e3c6cbda23849131e8378241d232a80b5dfc80f6",
+        "lines": 15
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/29_Complete job.txt",
+        "bytes": 62,
+        "sha256": "7ff7cd0f9bfdf6746e9d92e07e5af11adbcfcc3bedb314d1a9bdd08351ee2d8f",
+        "lines": 1
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/2_Run actions_checkout@3d3c42e5aac5ba805825da76410c181273ba90b1.txt",
+        "bytes": 11994,
+        "sha256": "88cf455331017af768ae3d3c9fef710a57a226d2480fdae13153767f71b6d402",
+        "lines": 119
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/3_Run actions_setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1.txt",
+        "bytes": 1105,
+        "sha256": "7881c90b661caed52762b163abf53859caf9ade0e5d6f13177372ac1e8b998d3",
+        "lines": 19
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/4_Run actions_setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0.txt",
+        "bytes": 926,
+        "sha256": "602ed04d3f794ec9afa6a0b26debc630ba231c8b49285cf58c2008a183d22985",
+        "lines": 16
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/5_Run actions_download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333.txt",
+        "bytes": 2575,
+        "sha256": "818a21b8f4b6697d35acfcc9cd65afd47fd440663f70bd9daa3655a2f83c0ddc",
+        "lines": 29
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/6_Verify pinned pnpm distribution.txt",
+        "bytes": 945,
+        "sha256": "8d5cf903d98cae9cee2e73c7cfeb01a38f8df5105ab39d90254e2f0b4f3bdb69",
+        "lines": 12
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/7_Install pinned dependencies and build the actual modules.txt",
+        "bytes": 5859,
+        "sha256": "aa6f8787bf88313ba4d3eca2ecb16a656a88bb2b57deafec82537be898766632",
+        "lines": 82
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/8_Prepare independent official CLI.txt",
+        "bytes": 1489,
+        "sha256": "49298ebb88803d34e800d8d636d0a6849ae86747ec5b5018d96fe8e867d3bf42",
+        "lines": 16
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/9_Prepare pinned Go and authenticated public modules.txt",
+        "bytes": 1375,
+        "sha256": "f82f3772667d640a6ce5205a3d186a3dcd8b8dea47f25c6c2d4c9c0bf713cd5c",
+        "lines": 15
+      },
+      {
+        "path": "logs_119465576901/standard (windows-2025, windows, 0.169.0-win32-x64)/system.txt",
+        "bytes": 693,
+        "sha256": "df9e836c86276a246dc82f5abb0056a19279893f9f85a96cc724a0c5ba7dbf46",
+        "lines": 9
+      }
+    ],
+    "completeLogArchiveContainsOtherJobs": true,
+    "otherJobsBoundary": "Other jobs are checked for run/commit/artifact identity, terminal outcome and causal relationship. This report does not claim a fresh source audit or re-execution of Linux/root tests.",
+    "baselineSource": [
+      {
+        "path": "web/tests/app-lifecycle.test.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "e4c1dab85ef285d924d5e8e21d8ba22cd3d98242778464a9d551c287990ee74d"
+      },
+      {
+        "path": "web/tests/draft-navigation.test.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "fefb246bda789f7937bfc8e2bce9b928657cb285615622b3a0f67343dda2506f"
+      },
+      {
+        "path": "web/tests/deferred-panel.test.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "9514da7bd38cf98120a3cba325e76b039c03d434830edb2b61d0ab05c913204f"
+      },
+      {
+        "path": "web/components/DeferredPanel.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "df866dd40e55dac684f0fd6a27c573798f686b34f1fea0ea0347fbd4ffcd7419"
+      },
+      {
+        "path": "web/components/Settings.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "b5f0dc7041df0c8d3d19533c0229374e71d826db78476135a40f6611afa4c96d"
+      },
+      {
+        "path": "web/Workspace.tsx",
+        "gitCommit": "historical-commit-018",
+        "sha256": "1e067828f268215190c06e9aa87af79bdb5655ce8cb4c7b6b14c80ada4be2a69"
+      },
+      {
+        "path": "web/tests/operation-setup.ts",
+        "gitCommit": "historical-commit-018",
+        "sha256": "86e02362b9695f678f3a64b8ac044b1a9c09c8d70bfad24f99c968fedeea16c3"
+      },
+      {
+        "path": "vitest.config.ts",
+        "gitCommit": "historical-commit-018",
+        "sha256": "c008b68df1163c81d9e76c93681ae826e7a37b1ff77ee725896d8e3e11faa76e"
+      },
+      {
+        "path": "scripts/run-tests.mjs",
+        "gitCommit": "historical-commit-018",
+        "sha256": "dbce6007e57b4e95a8085d4222c4e01ad0f33675dc2cbeda4ad386929c4f32f0"
+      },
+      {
+        "path": "scripts/ci-checks.mjs",
+        "gitCommit": "historical-commit-018",
+        "sha256": "ef8bca982c3c58e9563d308f46c70a83adc16017618d1f68732e1ccd8bb69d8e"
+      },
+      {
+        "path": "scripts/ci-job-status.mjs",
+        "gitCommit": "historical-commit-018",
+        "sha256": "8c86b6b7b8a8655b827df85b97d97e74ae1df9c12a6cbd664d6c860e3a85ef97"
+      },
+      {
+        "path": ".github/workflows/affected.yml",
+        "gitCommit": "historical-commit-018",
+        "sha256": "2c92bb76bd1a9bc8a91441e6e51fc32b6301340b89e1f757b7390589a737e5ce"
+      }
+    ]
+  },
+  "actualFailure": {
+    "id": "HOSTED-REVIEWED-CI1-WEB-01",
+    "file": "web/tests/app-lifecycle.test.tsx",
+    "test": "unmounts modal ownership on access expiry and does not reopen it after renewal",
+    "line": 590,
+    "durationMs": 1335,
+    "assertion": "await screen.findByRole('button', { name: '服务管理' })",
+    "error": "TestingLibraryElementError: Unable to find role=\"button\" and name \"服务管理\"",
+    "phase": "First settings opening, before f.expireAccess() at line 591; no expiry, renewal, draft-retention or no-replay assertion had yet executed.",
+    "completeLogLocations": {
+      "failureSummaryLine": 443,
+      "caseDurationLine": 458,
+      "failureBlock": [
+        1104,
+        1455
+      ],
+      "stackLine": 1446,
+      "javascriptSummary": [
+        1457,
+        1466
+      ]
+    },
+    "domLimit": "The Testing Library DOM dump is truncated within the sidebar. It does not show the optional-panel loading fallback and cannot prove that loading or a retry error was visible.",
+    "sourceObservation": "SettingsOnDemand uses a real dynamic import and caches successful modules. The failed test starts a normal Testing Library findByRole immediately after opening the fallback dialog. Installed @testing-library/dom 10.4.2 defaults asyncUtilTimeout to 1000 ms; this test has no override. Vitest test/hook timeout is 15000 ms with four workers. This was a missing-element query timeout, not the 15-second test timeout.",
+    "classification": "test-readiness-prerequisite",
+    "rootCauseStatus": "controlled-real-import-ordering-confirmed",
+    "repairOwner": "v240_web",
+    "rootCause": "The test combined cold asynchronous Settings module/dependency readiness with the default one-second DOM query deadline. A controlled gate around the real module confirms the old query fails before the import completes, while releasing that gate exposes the actual control and permits all original access-expiry/renewal/draft/unknown/no-replay assertions to pass. The hosted trace does not record the exact import duration, so the controlled ordering is not represented as a replay of its unrecorded scheduling.",
+    "controlledEvidence": [
+      {
+        "path": ".work/v240/hosted-settings-probe.json",
+        "sha256": "de36984bfdebdc56e1012958879194714ed97ebb35c19bd01c2a993f6d181f5b"
+      },
+      {
+        "path": ".work/v240/hosted-settings-probe.log",
+        "sha256": "e1ca1d4cd5ecfdfe2219a59ca9dfd0090c6548deb5ac200dea73577bd344b806"
+      },
+      {
+        "path": ".work/v240/settings-readiness-probe/trace.json",
+        "sha256": "e35382dbc3c7dfdd1488ee6395bc7e1c8f2f51258d6661fb9221cb710b31c12e"
+      },
+      {
+        "path": ".work/v240/settings-readiness-probe/source-manifest.json",
+        "sha256": "4c355eb60e92a89c9d9a6cfe754753178127e488d8de766b3d3eb7312a9b9e43"
+      }
+    ],
+    "controlledProbeSummary": {
+      "oldQueryFailed": true,
+      "importStarted": true,
+      "importCompletedAtFailure": false,
+      "accessExpiredAtFailure": false,
+      "buttonAvailableAfterSettlement": true,
+      "passedDiagnosticCase": 1,
+      "explicitNameFilteredCases": 37,
+      "limit": "The 37 filtered cases are diagnostic exclusions, not proof that a complete suite passed."
+    }
+  },
+  "outcomes": {
+    "javascript": {
+      "selectedFiles": 208,
+      "passedFiles": 206,
+      "failedFiles": 1,
+      "skippedFiles": 1,
+      "totalCases": 2366,
+      "passed": 2353,
+      "failed": 1,
+      "skipped": 12,
+      "groupStatus": "failed",
+      "exitCode": 1
+    },
+    "python": {
+      "selectedFiles": 50,
+      "totalCases": 652,
+      "passed": 541,
+      "failed": 0,
+      "skipped": 111,
+      "groupStatus": "skipped",
+      "exitCode": 3,
+      "reason": "Explicit platform skips remain recorded; not silently converted to passes."
+    },
+    "go": {
+      "selectedFiles": 1,
+      "totalCases": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "checks": [
+        "module-verification",
+        "test-discovery",
+        "go-test",
+        "executable-build",
+        "version-plugin-probe"
+      ]
+    },
+    "windowsFinalExitCode": 1,
+    "otherReviewedJobs": [
+      {
+        "id": 134207600104,
+        "name": "plan",
+        "conclusion": "success"
+      },
+      {
+        "id": 134207882049,
+        "name": "root_deploy",
+        "conclusion": "success"
+      },
+      {
+        "id": 134207882107,
+        "name": "standard (ubuntu-24.04, linux, 0.169.0-linux-x64)",
+        "conclusion": "success"
+      },
+      {
+        "id": 134214779051,
+        "name": "Verified case coverage",
+        "conclusion": "failure"
+      }
+    ],
+    "coverageFailure": {
+      "jobId": 134214779051,
+      "error": "Required job outcome mismatch: standard",
+      "cause": "Expected downstream fail-closed behavior after the Windows standard matrix job failed. No separate assertion failure or coverage reconciliation success is inferred."
+    },
+    "notAdditionalFailures": [
+      {
+        "kind": "controller-preflight-comparisons",
+        "detail": "Legacy-module-discovery and restricted-path-auto-discovery deliberately time out at 10 seconds as comparisons. The required powershell-ci-environment, powershell-sparse-environment, windows-job and windows-process stages all pass, and overall preflight status is passed."
+      },
+      {
+        "kind": "negative-tooling-fixtures",
+        "detail": "The empty Python selected file, broken setUpClass traceback and unavailable fixture originate in tests/tooling/run-tests.test.ts and are expected rejection/skip assertions. That parent file passes all 12 tests."
+      },
+      {
+        "kind": "nonblocking-build-warning",
+        "detail": "Vite reports chunks over 500 kB after successfully building; the dependency, source-type, test-type and actual-build step succeeds."
+      },
+      {
+        "kind": "unrelated-older-timeout",
+        "detail": "All eight release-preflight tests pass in this hosted run. The previously repaired artifact validator and failed-rebuild cases finish in 3955 ms and 4552 ms."
+      }
+    ]
+  },
+  "resultArtifact": {
+    "path": ".work/v240/hosted-ci1-downloaded/result-windows.json",
+    "sha256": "a15e2c957f70b8176908c5f0419a46ff9b5bd910fbfb70e561c1c5dde8cdd96c",
+    "target": "windows",
+    "selectedFiles": 259,
+    "recordedCases": 672,
+    "recordedPassed": 561,
+    "recordedSkipped": 111,
+    "limitation": "The 672 recorded cases are Python 652 plus Go 20. runVitest returns a failed result before parsing cases when its child exits nonzero, so this artifact is not a complete list of 2366 JavaScript assertions. The complete job log, not the aggregate artifact alone, establishes the exact JavaScript failure.",
+    "rawVitestPathInHostedLog": ".work/test-results/run-DOrKab/vitest.json",
+    "rawVitestUploaded": false
+  },
+  "retrospective": {
+    "priorEvidence": [
+      {
+        "evidence": {
+          "path": ".work/v240/final-matrix/windows-vitest.json",
+          "sha256": "836f77d6599b0beeca47131d6d8a621952f8ab85720a8c5d06a1a08db19d658c"
+        },
+        "test": "unmounts modal ownership on access expiry and does not reopen it after renewal",
+        "status": "failed",
+        "durationMs": 200.08660000000054
+      },
+      {
+        "evidence": {
+          "path": ".work/v240/final-matrix/linux-vitest.json",
+          "sha256": "f794e6ddbce85e898be2e11527eea5c191ecd09a78765212f63dfa1acc01c926"
+        },
+        "test": "unmounts modal ownership on access expiry and does not reopen it after renewal",
+        "status": "failed",
+        "durationMs": 107.90066100000013
+      },
+      {
+        "evidence": {
+          "path": ".work/v240/matrix4/windows-vitest.json",
+          "sha256": "b8a3cba3aeb9eaf8cca613680b7344e3648c5fc95dd058c92c418ea80cc7dc78"
+        },
+        "test": "unmounts modal ownership on access expiry and does not reopen it after renewal",
+        "status": "passed",
+        "durationMs": 335.6095000000005
+      },
+      {
+        "evidence": {
+          "path": ".work/v240/matrix4/linux-vitest.json",
+          "sha256": "7ea71b6a1c5f2c7108241e076e3dd849030e41d982304e0fb7b8f5215ca6f4e1"
+        },
+        "test": "unmounts modal ownership on access expiry and does not reopen it after renewal",
+        "status": "passed",
+        "durationMs": 393.3818140000003
+      }
+    ],
+    "earlierFix": {
+      "path": "verification/audit-evidence/v240/full-matrix1-web-fixes.json",
+      "sha256": "08407223a7c13a815382ebf27e54cf58d1e6fae39eab01d17eca7c189c84ef9f"
+    },
+    "whyEarlierChecksMissed": [
+      "Matrix1 already exposed this same test using a synchronous getByRole before the lazily imported Settings mounted. That repair changed the test to await the actual navigation control and retained all expiry/draft/unknown/no-replay assertions; it did not establish an explicit module-readiness prerequisite.",
+      "The subsequent targeted set DID include this actual App-level test, deferred-panel, draft-navigation and other consumers: nine files, 128 identical cases on Windows and Linux all passed. It would be inaccurate to say the failing case was omitted from targeted tests.",
+      "The local fourth full matrix also passed this case on Windows and Linux at the same source digest. Those observed successes do not prove a fixed one-second DOM query deadline bounds cold module transformation/import under a different hosted workload. The downloaded logs do not measure the exact import duration or prove a machine-specific slowdown cause.",
+      "The generic deferred-panel tests exercise supplied loader promises and retry/unmount behavior, but do not load the actual Settings module dependency graph. Actual App consumers used real imports without deliberately controlling the not-yet-ready boundary. A controlled real-import dependency is required to separate module preparation from the lifecycle behavior being asserted.",
+      "Earlier audits reviewed the switch from synchronous lookup to semantic readiness as sufficient and did not challenge the remaining coupling of a DOM-query deadline to a cold bundler/module import. The repeat failure is retained as an incomplete prior prevention rule, not hidden by a green rerun."
+    ],
+    "analogousConsumers": [
+      "App settings access-expiry and draft-navigation entrypoints",
+      "SettingsOnDemand first load, close while pending, reopen and import rejection/retry",
+      "TerminalOnDemand callers and the existing generic deferred-panel lifecycle contract"
+    ],
+    "preventiveRequirements": [
+      "Synchronize actual module readiness as an explicit prerequisite in tests of unrelated settings/auth/draft behavior, without extending DOM query/test deadlines or replacing Settings with a dummy component.",
+      "Retain separate controlled tests for true pending real Settings imports, including unmount/owner change and later reopening; do not warm away the only cold-import coverage.",
+      "Keep all original expiry, unknown operation, draft preservation and no replay assertions. Inspect analogous App entrypoints, rather than changing only one failed call.",
+      "Retain complete failed-run logs and preferably raw Vitest JSON alongside the aggregate cases artifact; never claim the failed JavaScript aggregate contains missing assertion identities."
+    ]
+  },
+  "repairVerification": {
+    "status": "targeted-windows-linux-verified-not-release-complete",
+    "webRepair": {
+      "path": "verification/audit-evidence/v240/hosted-web-import-readiness-fix.json",
+      "sha256": "e87179e735cbc22029cda3ff83ab909ca6b741278339732c8c829ccabbb687d4"
+    },
+    "artifactRepair": {
+      "path": "verification/audit-evidence/v240/hosted-reviewed-artifact-fix.json",
+      "sha256": "cb538d5084a8bdb4699e3ca7dc634c9ae64fcd6da3abda85916be53791044ebc"
+    },
+    "web": {
+      "windowsPassed": 87,
+      "linuxPassed": 87,
+      "skipped": 0,
+      "sameCaseIds": true,
+      "files": 6,
+      "description": "Explicitly await the exact actual Settings/Terminal import promise after opening, then query the DOM; retain a controlled pending real Settings import close/reopen regression. No production loader or timeout change."
+    },
+    "diagnosticPublication": {
+      "windowsPassed": 65,
+      "windowsSkipped": 1,
+      "linuxPassed": 66,
+      "linuxSkipped": 0,
+      "sameCaseIds": true,
+      "files": 4,
+      "description": "Preserve raw Vitest alongside the required root aggregate, independently reject missing/invalid aggregate file, and verify actual reconciliation ignores nested diagnostics."
+    },
+    "sourceAndTestTypes": "Web and strict test type checks passed; exact commands/log hashes are in the linked repair reports.",
+    "intermediateFailures": "The linked reports retain all local diagnostic/intermediate fixture failures and the omitted-interpreter invocation. None is used as passing evidence or relabeled as a production failure.",
+    "fullAuditAndMatrix": "A new clean full source audit and complete platform matrix remain required after these source/test changes.",
+    "hostedRerun": "Pending; the original Hosted Reviewed run remains failed and unpublishable."
+  },
+  "limits": [
+    "The initial full-log diagnosis was read-only. The explicitly authorized follow-up changed only the CI artifact publication workflow and its existing contract/regression test; the separate WEB repair changed tests only. No production service state, original downloaded evidence, timeout or concurrency was changed.",
+    "The logs archive has a locally computed checksum, not an independently published GitHub archive checksum. Its identity is corroborated by exact checkout/run IDs and the cases artifact upload receipt whose public digest matches the downloaded ZIP.",
+    "Only cases-windows archive bytes were independently compared with the public artifact digest. Other artifact identities/digests are cross-checked between public metadata and complete upload/download logs, without claiming their unprovided bytes were downloaded.",
+    "The original failure, downstream coverage failure, earlier anonymous access limit and earlier failed local matrices remain failed/historical. Separate passing targeted repair evidence does not retroactively pass any original run."
+  ],
+  "completedAt": "2026-11-17T18:02:34.438051+00:00"
+}

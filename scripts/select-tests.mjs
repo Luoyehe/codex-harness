@@ -20,6 +20,8 @@ const nativeNames = new Set(nativeTestFiles);
 const dnsCaddyPythonTests = ['tests/deploy/test_dns_caddy_build.py', 'tests/deploy/root/test_dns_caddy_build.py'];
 const builtinMcpTests = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
 const toolchainPythonTests = ['tests/deploy/test_toolchain.py', 'tests/deploy/root/test_toolchain.py', 'tests/deploy/root/test_tree_durability.py'];
+const codeqlGoInputs = ['scripts/build-codeql-go.mjs', 'scripts/prepare-ci-go.py', '.github/workflows/security.yml'];
+const codeqlGoTest = 'tests/tooling/codeql-go.test.ts';
 const deploymentPairs = [
   [...dnsCaddyPythonTests, goTestFile],
   // Tree durability composes the ordinary toolchain archive fixture.
@@ -116,6 +118,10 @@ export function selectTests(changed, available) {
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
     else plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
+  }
+  for (const name of plan.changed.filter(name => codeqlGoInputs.includes(name))) {
+    if (!inventory.has(codeqlGoTest)) plan.requiresFullAudit.push({ path: codeqlGoTest, reason: 'missing-codeql-entry-regression' });
+    add(name, [codeqlGoTest], 'codeql-tracing-entry-and-workflow-order');
   }
   for (const name of [...selected].sort()) {
     if (nativeNames.has(name)) plan.groups.native.push(name);
