@@ -106,8 +106,9 @@ export class Realtime {
     const suffix = method.slice('thread/realtime/'.length), schema = events[suffix]; if (!schema) return true;
     const entry = [...this.sessions.values()].find(item => item.threadId === params.threadId && item.state !== 'closed'); if (!entry || !entry.dispatched || entry.epochEnded || entry.closedNotification) return true;
     checked(schema, params, 512 * 1024);
-    // 0.164.0 echoes the requested ID before SDP/fanout. Canonical history
-    // items also retain that ID, including promotions after an older session.
+    // Historical 0.164.0 fixtures echo the requested ID before SDP/fanout. The
+    // 0.169.0 generated contract retains it; live paid realtime was not re-tested.
+    // Canonical history items retain the ID, including older-session promotions.
     if (suffix === 'started') {
       if (params.realtimeSessionId !== entry.nativeSessionId) return true;
       entry.started = true; if (entry.state === 'starting') entry.state = 'active'; entry.version = string(params.version, 'version', 16);

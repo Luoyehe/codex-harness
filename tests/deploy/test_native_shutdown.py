@@ -12,6 +12,9 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
+
+from tests.deploy.process_identity import same_process
 
 
 @unittest.skipUnless(sys.platform == "linux", "Linux subreaper and service signals")
@@ -92,8 +95,12 @@ class NativeShutdownTests(unittest.TestCase):
                 started = time.monotonic()
                 code = child.wait(timeout=6)
                 self.assertLess(time.monotonic() - started, 6)
-                for pid in pids:
-                    self.assertFalse(Path("/proc", str(pid)).exists(), "A supervised descendant survived shutdown")
+                for entry in identities:
+                    descriptor = handles.get(entry['pid'])
+                    if descriptor is not None:
+                        self.assertTrue(select.select([descriptor], [], [], 0)[0], "A supervised descendant survived shutdown")
+                    else:
+                        self.assertFalse(same_process(entry["pid"], entry["start"]), "A supervised descendant survived shutdown")
                 return code, pids
             finally:
                 if child.poll() is None:
@@ -133,6 +140,44 @@ class NativeShutdownTests(unittest.TestCase):
 
     def test_buffered_eof_cannot_acknowledge_unconfirmed_cleanup(self):
         self.assertNotEqual(self.run_case("unconfirmed-buffered")[0], 0)
+
+    def test_natural_exit_keeps_leader_owned_through_every_group_signal(self):
+        from deploy import native_launcher as native
+        child = subprocess.Popen([sys.executable, '-c', 'raise SystemExit(17)'], start_new_session=True)
+        try:
+            self.assertEqual(native.wait_child_exit(child, 3), 17)
+            self.assertIsNone(child.returncode)
+            self.assertIn(child.pid, native.direct_children())
+            original = os.killpg
+            def owned_group(pid, signum):
+                self.assertEqual(pid, child.pid)
+                self.assertIsNone(child.returncode)
+                self.assertIn(pid, native.direct_children())
+                self.assertEqual(native.child_exit(child), 17)
+                original(pid, signum)
+            with patch('deploy.native_launcher.os.killpg', side_effect=owned_group) as signal_group:
+                self.assertTrue(native.clean_children(child, time.monotonic() + 3))
+                signal_group.assert_called()
+            self.assertEqual(child.returncode, 17)
+            self.assertNotIn(child.pid, native.direct_children())
+        finally:
+            if child.returncode is None:
+                child.kill(); child.wait()
+
+    def test_reaped_leader_cannot_authorize_a_historical_group_signal(self):
+        from deploy import native_launcher as native
+        child = subprocess.Popen([sys.executable, '-c', 'pass'], start_new_session=True)
+        child.wait(timeout=3)
+        with patch('deploy.native_launcher.os.killpg') as signal_group, patch('deploy.native_launcher.os.kill') as signal_pid:
+            self.assertFalse(native.clean_children(child, time.monotonic() + 3))
+            signal_group.assert_not_called()
+            signal_pid.assert_not_called()
+
+    def test_reused_pid_is_distinct_from_the_recorded_process(self):
+        with patch('tests.deploy.process_identity.process_start', return_value='new-start'):
+            self.assertFalse(same_process(123, 'original-start'))
+        with patch('tests.deploy.process_identity.process_start', return_value='original-start'):
+            self.assertTrue(same_process(123, 'original-start'))
 
 
 if __name__ == "__main__":

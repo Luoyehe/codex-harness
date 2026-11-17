@@ -40,6 +40,7 @@ it('sends only explicit scoped literal search and labels incomplete results befo
   fireEvent.click(screen.getByRole('button', { name: '搜索此范围' }));
   await screen.findByText(/搜索结果不完整：结果数上限/);
   expect(call).toHaveBeenCalledWith('workspace/search', {
+    excludeNames: [],
     projectId: 'project',
     path: '',
     query: 'needle',

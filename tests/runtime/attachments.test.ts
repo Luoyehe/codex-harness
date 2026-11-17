@@ -13,6 +13,33 @@ const parent = path.resolve('.work/attachment-tests'); mkdirSync(parent, { recur
 function setup() { const home = mkdtempSync(path.join(parent, 'run-')); const storage = new Attachments(home); const dir = path.join(home, 'attachments'); return { home, storage, dir }; }
 const upload = (storage: Attachments, text = 'file data') => object(storage.upload({ name: 'a.txt', mimeType: 'text/plain', base64: Buffer.from(text).toString('base64') }, 'client')).attachmentId as string;
 
+test('confirmed deletion releases only its own references and copied attachments survive restart', () => {
+  const { storage, home, dir } = setup(), first = upload(storage), second = upload(storage, 'second');
+  const prepared = storage.prepare([first, second], 'source'); prepared.pin(); prepared.settle(true);
+  const copy = storage.reserveCopy('source'); storage.finishCopy(copy, 'partial-fork', [path.join(dir, first)]);
+  expect(() => storage.readHistory({ threadId: 'partial-fork', path: path.join(dir, second) })).toThrow('retained attachment');
+  storage.releaseThread('source'); expect(existsSync(path.join(dir, second))).toBe(false);
+  const restored = new Attachments(home); expect(restored.readHistory({ threadId: 'partial-fork', path: path.join(dir, first) })).toMatchObject({ attachmentId: first });
+  restored.releaseThread('partial-fork'); expect(existsSync(path.join(dir, first))).toBe(false); expect(() => upload(restored)).not.toThrow();
+});
+test('unknown copy persists a byte reservation until complete startup reconciliation proves target references', () => {
+  const { storage, home, dir } = setup(), id = upload(storage), filename = path.join(dir, id);
+  const prepared = storage.prepare([id], 'source'); prepared.pin(); prepared.settle(true); storage.reserveCopy('source'); storage.releaseThread('source');
+  let restored = new Attachments(home); restored.gc(Date.now() + 1); expect(existsSync(filename)).toBe(true);
+  restored.reconcile({ threadIds: ['target', 'compressed'], references: [{ threadId: 'target', paths: [filename] }], unresolvedThreadIds: ['compressed'] });
+  restored.releaseThread('target'); expect(existsSync(filename)).toBe(true);
+  restored = new Attachments(home); restored.reconcile({ threadIds: ['target'], references: [{ threadId: 'target', paths: [filename] }], unresolvedThreadIds: [] });
+  expect(restored.readHistory({ threadId: 'target', path: filename })).toMatchObject({ attachmentId: id }); restored.releaseThread('target'); expect(existsSync(filename)).toBe(false);
+});
+test('incomplete startup inventory preserves legacy copy candidates until all histories are verified', () => {
+  const { storage, home, dir } = setup(), orphan = upload(storage), retained = upload(storage), fresh = upload(storage);
+  for (const [id, thread] of [[orphan, 'deleted'], [retained, 'compressed']] as const) { const prepared = storage.prepare([id], thread); prepared.pin(); prepared.settle(true); }
+  const restored = new Attachments(home); restored.reconcile({ threadIds: ['compressed'], references: [], unresolvedThreadIds: ['compressed'] });
+  expect(existsSync(path.join(dir, orphan))).toBe(true); restored.releaseThread('deleted'); restored.gc(Date.now() + 1); expect(existsSync(path.join(dir, orphan))).toBe(true); expect(existsSync(path.join(dir, fresh))).toBe(true); expect(restored.readHistory({ threadId: 'compressed', path: path.join(dir, retained) })).toMatchObject({ attachmentId: retained });
+  const again = new Attachments(home); again.reconcile({ threadIds: ['compressed'], references: [{ threadId: 'compressed', paths: [path.join(dir, retained)] }], unresolvedThreadIds: [] });
+  expect(existsSync(path.join(dir, orphan))).toBe(false); expect(existsSync(path.join(dir, retained))).toBe(true);
+});
+
 test('audio uses a fixed native-recognized suffix while opaque IDs, identity checks and retained history survive restart', () => {
   const { storage, home, dir } = setup(); const audio = object(storage.upload({ name: '../chosen.wav', mimeType: 'audio/wav', base64: 'YQ==' }, 'client'));
   const prepared = storage.prepare([audio.attachmentId!], 'thread'), native = object(prepared.input[0]); expect(native).toEqual({ type: 'localAudio', path: path.join(dir, `${audio.attachmentId}.wav`) });

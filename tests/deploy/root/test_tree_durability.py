@@ -11,10 +11,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from deploy.build import Builder, publish_release
+from deploy.build import Builder, publish_release, toolchain_spec
 from deploy.common import DeployError, Layout, digest, mkdir, write_json
 from deploy.https import edge_binary
 from deploy.safe_fs import durable_tree, extract_tar, inspect_tree, snapshot
+from tests.deploy.test_toolchain import archive_for
 
 
 def archive_bytes(name="package/bin/tool"):
@@ -216,36 +217,37 @@ class TreeDurabilityTests(unittest.TestCase):
         builder = Builder(self.layout, Mock(), 0, 0)
 
         def download(url, target, *args):
-            target.write_bytes(archive_bytes())
+            target.write_bytes(archive_for(url))
         return builder, download
 
     def test_toolchain_syncs_assembly_before_manifest_and_rename_parents_afterwards(self):
         builder, download = self.toolchain_fixture()
-        root = self.layout.work / "toolchain"
+        root = self.layout.work / "toolchains" / digest(toolchain_spec("x64"))
         with patch("deploy.build.download", side_effect=download), patch("deploy.build.architecture", return_value="x64"), self.syncing() as events:
             def publish(path, value):
                 assembled = next(self.layout.work.glob("tools-*/assembled"))
                 positions = self.positions(events)
-                self.assertIn(assembled, positions)
-                self.assertIn(assembled / "node/bin/tool", positions)
+                self.assertIn(assembled / "runtime", positions)
+                self.assertIn(assembled / "runtime/node/bin/node", positions)
                 self.assertIn(self.layout.work.parent, positions)
                 self.assertIn(self.layout.work.parent.parent, positions)
                 self.assertFalse(root.exists())
                 write_json(path, value)
             with patch("deploy.build.write_json", side_effect=publish):
-                self.assertEqual(builder.toolchain(), root)
-            self.assertEqual(events[-2][1], root.parent)
-            self.assertEqual(events[-1][1], next(self.layout.work.glob("tools-*")))
-        with self.syncing(lambda path: path == root / "node/bin"), self.assertRaises(OSError):
+                self.assertEqual(builder.toolchain(), root / "runtime")
+            self.assertEqual(events[-1][1], self.layout.work)
+            self.assertIn(root.parent, self.positions(events))
+        with self.syncing(lambda path: path == root / "runtime/node/bin"), self.assertRaises(OSError):
             builder.toolchain()
 
     def test_toolchain_sync_failure_prevents_manifest_and_rename(self):
         builder, download = self.toolchain_fixture()
         with patch("deploy.build.download", side_effect=download), patch("deploy.build.architecture", return_value="x64"), \
-                self.syncing(lambda path: path.name == "assembled"), self.assertRaises(OSError):
+                self.syncing(lambda path: path.name == "runtime"), self.assertRaises(OSError):
             builder.toolchain()
         self.assertFalse((self.layout.config / "toolchain-manifest.json").exists())
         self.assertFalse((self.layout.work / "toolchain").exists())
+        self.assertEqual(list((self.layout.work / "toolchains").iterdir()), [])
 
     def edge_fixture(self):
         for directory in (self.layout.work, self.layout.control, self.layout.config):

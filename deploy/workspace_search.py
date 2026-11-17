@@ -18,7 +18,9 @@ RESERVED = {".git", ".harness-workspace"}
 
 
 def validate(params: dict) -> None:
-    require(set(params) <= {"path", "query", "mode", "caseSensitive", "limit"}, "Unsupported search option")
+    require(set(params) <= {"path", "query", "mode", "caseSensitive", "limit", "excludeNames"}, "Unsupported search option")
+    exclusions = params.get("excludeNames", [])
+    require(isinstance(exclusions, list) and len(exclusions) <= 32 and all(isinstance(name, str) and 0 < len(name.encode()) <= 255 and name not in (".", "..") and not any(ord(c) < 32 or c in "/\\" or ord(c) == 127 for c in name) for name in exclusions), "Invalid search directory exclusions")
     relative(params.get("path", ""), empty=True)
     query = params.get("query")
     require(isinstance(query, str) and 0 < len(query.encode()) <= 512 and not any(ord(char) < 32 or ord(char) == 127 for char in query), "Search requires a nonempty single-line literal query")
@@ -33,6 +35,7 @@ def search(root: Root, params: dict) -> dict:
     selected = params.get("path", "")
     query = params["query"] if params.get("caseSensitive", False) else params["query"].casefold()
     mode, limit = params.get("mode", "path"), params.get("limit", 100)
+    excluded = RESERVED | set(params.get("excludeNames", []))
     results, reasons = [], set()
     visited = skipped = read_bytes = 0
     deadline = time.monotonic() + MAX_SECONDS
@@ -69,6 +72,7 @@ def search(root: Root, params: dict) -> dict:
                     relative(name)
                     info = entry.stat(follow_symlinks=False)
                     if stat.S_ISDIR(info.st_mode):
+                        if entry.name in excluded: continue
                         child = os.open(entry.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
                         try:
                             walk(child, name, depth + 1)
@@ -126,4 +130,4 @@ def search(root: Root, params: dict) -> dict:
     return {"path": selected, "query": params["query"], "mode": mode, "matches": results,
             "complete": not reasons, "reasons": sorted(reasons), "visitedEntries": visited,
             "readBytes": read_bytes, "skippedEntries": skipped,
-            "excludedNames": sorted(RESERVED)}
+            "excludedNames": sorted(excluded)}

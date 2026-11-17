@@ -11,6 +11,7 @@ import {
 import { byteLength, checkedSnapshot, fileTextError, type FileSnapshot } from '../lib/workspace';
 import { message, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 import { FileEditor } from './FileEditor';
 
@@ -137,6 +138,7 @@ function SkillRootsContent({
     consentRef = useRef<object | undefined>(undefined),
     [consentOwner, setConsentOwner] = useState<object>(),
     confirmed = consentOwner === consentScope;
+  useSettingsDraft(draft !== undefined && JSON.stringify(draft) !== JSON.stringify(baseline.selected));
   const consent = (value: boolean) => {
     consentRef.current = value ? consentScope : undefined;
     setConsentOwner(consentRef.current);
@@ -362,7 +364,7 @@ export function SkillCreator({
           errors: { message: string }[];
           skills: { name: string; path: string; enabled: boolean }[];
         }[];
-      }>('skills/list', { projectId: project.id, forceReload: true }, signal),
+      }>('skills/list', { projectId: project.id, forceReload: revision > 0 }, signal),
     visible && Boolean(path && plan.data?.file),
   );
   const expectedPath = `${project.cwd.replace(/[\\/]$/, '')}/${path}`.replaceAll('\\', '/');
@@ -395,6 +397,7 @@ export function SkillCreator({
     ? (cache.current.get(fileDraftKey(project.id, path))?.pending ??
       drafts.find((draft) => draft.path === path)?.pending)
     : undefined;
+  useSettingsDraft(!prepared && Boolean(slug || text));
   const planOwner = JSON.stringify([project.id, project.cwd, epoch, path]);
   const retainedPlan = useRef<{ api: Api; owner: string; data?: Plan }>({ api, owner: planOwner });
   if (retainedPlan.current.api !== api || retainedPlan.current.owner !== planOwner)

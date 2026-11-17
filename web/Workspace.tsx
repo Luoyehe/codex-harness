@@ -1,9 +1,9 @@
-import { providerModels, providerRelation } from './lib/provider-models';
+import { modelSupportsEffort, providerModels, providerRelation } from './lib/provider-models';
 import { uuid } from './lib/ids';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Api, RpcError } from './lib/api';
 import { Events } from './lib/events';
-import { consumeThreadOperations, listOperations, reconcileOperation } from './lib/operations';
+import { consumeThreadOperations, listOperations, reconcileOperation, retireOldTerminalHandoffs } from './lib/operations';
 import {
   array,
   message,
@@ -51,7 +51,7 @@ import { Welcome } from './components/Welcome';
 import { Composer, type Attachment, type SendIntent } from './components/Composer';
 import { Diff, Messages } from './components/Messages';
 import { Prompts } from './components/Prompts';
-import { Settings } from './components/Settings';
+import { SettingsOnDemand, TerminalOnDemand } from './components/DeferredPanel';
 import { EmergencyRecovery } from './components/EmergencyRecovery';
 import { RootExecutionNotice } from './components/ExecutionModeSettings';
 import { Dialog } from './components/Dialog';
@@ -62,7 +62,6 @@ import { RenameDialog } from './components/RenameDialog';
 import { ArchiveActions } from './components/ArchiveActions';
 import { RealtimePanel } from './components/RealtimePanel';
 import { ProcessPanel } from './components/ProcessPanel';
-import { TerminalPanel } from './components/TerminalPanel';
 import { TaskPanel } from './components/TaskPanel';
 import { ThreadTerminals } from './components/ThreadTerminals';
 import { HookEventsProvider } from './components/HookEventsPanel';
@@ -71,15 +70,10 @@ import { PredictionPanel } from './components/PredictionPanel';
 import { GuardianReviewPanel } from './components/GuardianReviewPanel';
 import { ThreadExecutionSettings } from './components/ThreadExecutionSettings';
 import { BranchDialog, HistoryTools, ReviewDialog } from './components/HistoryTools';
-import './styles-workflows.css';
-import './styles-workspace.css';
-import './styles-extensions.css';
 import { WorkspacePanel } from './components/WorkspacePanel';
 import { McpEventBridge } from './components/McpPanel';
 import { OrganizationPanel } from './components/OrganizationPanel';
 import { AutomationsPanel } from './components/AutomationsPanel';
-import './styles-automations.css';
-import './styles-input-context.css';
 
 export function Workspace({
   api,
@@ -153,9 +147,9 @@ export function Workspace({
     composerSlot = useRef<HTMLDivElement>(null);
   const [panelFocusRevision, setPanelFocusRevision] = useState(0),
     pendingPanelFocus = useRef(false);
-  const setPanel = (next: typeof panel) => {
+  const setPanel = (next: typeof panel, focus = true) => {
     if (threadMenu.current) threadMenu.current.open = false;
-    pendingPanelFocus.current = true;
+    pendingPanelFocus.current = focus;
     setPanelState(next);
     setPanelFocusRevision((value) => value + 1);
   };
@@ -197,6 +191,8 @@ export function Workspace({
     [busy, setBusy] = useState(new Set<string>());
   const [draftGuard, setDraftGuard] = useState(false),
     [discardRevision, setDiscardRevision] = useState<string>();
+  const pendingNavigation = useRef<{ projectId: string; threadId: string; key: string; mode: DraftMode; apply: () => void } | undefined>(undefined)
+  const compacting = useRef(new Set<string>());
   const [completedHandoff, setCompletedHandoff] = useState<{
     id: string; navigation: number; message: string;
   }>();
@@ -221,12 +217,14 @@ export function Workspace({
   const changeContext = (nextProject: string, nextThread: string, apply: () => void, accepted?: () => boolean) => {
     if (executionBlocked) { setError('执行身份已变化或尚未确认。请先保留当前草稿并完成身份切换。'); return false; }
     if (!draftState.canNavigateTo(executionDraftKey(nextThread || `new:${nextProject}`, draftMode)) && !accepted?.()) {
+      pendingNavigation.current ??= { projectId: nextProject, threadId: nextThread, key: contextKey, mode: draftMode, apply };
       setDiscardRevision(undefined);
       setDraftGuard(true);
       return false;
     }
     setProjectId(nextProject);
     setThreadId(nextThread);
+    pendingNavigation.current = undefined;
     apply();
     return true;
   };
@@ -251,6 +249,15 @@ export function Workspace({
     committedUrl.current = url.href;
   }, settings.accepted);
   const latestNavigate = useRef(navigate);
+  const continueNavigation = () => {
+    const pending = pendingNavigation.current;
+    pendingNavigation.current = undefined;
+    if (!pending || pending.key !== contextKey || pending.mode !== draftMode) return;
+    if (!pending.threadId && !projects.some(project => project.id === pending.projectId)) {
+      setError('原先选择的项目已不可用，草稿已保留，请重新选择。'); return;
+    }
+    changeContext(pending.projectId, pending.threadId, pending.apply);
+  };
   latestNavigate.current = navigate;
   const openThread = (id: string) => {
     if (!navigate(id)) return false;
@@ -316,7 +323,6 @@ export function Workspace({
   const projects = array<Project & { path?: string }>(
     projectsResource.data?.projects ?? projectsResource.data?.data,
   ).map((p) => ({ ...p, cwd: p.cwd ?? p.path ?? '' }));
-  const project = projects.find((p) => p.id === projectId);
   const threadListKey = `${resourceEpoch}:${projectId}:${archived}:${search}:${threadOrder}`;
   const threads = usePaged<Thread>(
     api,
@@ -402,7 +408,16 @@ export function Workspace({
   }, [defaults.loading]);
   const conversation = useConversation(api, events, network.runtimeConnected ? threadId : '', resourceEpoch),
     prompts = usePrompts(api, events, resourceEpoch);
+  // A historical thread owns its cwd. A remembered sidebar selection must never
+  // authorize file or terminal actions in another project while history loads.
+  const project = threadId ? projects.find(p => p.cwd === conversation.thread?.cwd) : projects.find(p => p.id === projectId);
+  const missingThreadProject = Boolean(threadId && conversation.thread?.cwd && !project);
   const operations = useOperations();
+  useEffect(() => {
+    if (network.connection === 'connected' && network.runtimeConnected && network.connectionId)
+      void retireOldTerminalHandoffs({ clientId: api.clientId, connectionId: `${network.epoch}:${network.revision}` })
+        .catch(failure => setError(message(failure)));
+  }, [api, network.connection, network.runtimeConnected, network.connectionId, network.epoch, network.revision]);
   const settingsReceipts = operations.operations
     .filter(
       (op) =>
@@ -428,7 +443,9 @@ export function Workspace({
   }, [threadId, resumedThread, threadDefaults, settingsReceipts]);
   const effectiveProvider = options.modelProvider ?? (threadId ? threadDefaults?.modelProvider : defaults.data?.modelProvider);
   const modelCatalog = useModelCatalogRefresh(api, typeof effectiveProvider === 'string' ? effectiveProvider : undefined,
-    active && network.configurationReady && network.connection === 'connected' && network.runtimeConnected);
+    active && network.configurationReady && network.connection === 'connected' && network.runtimeConnected, resourceEpoch,
+    !active || network.connection !== 'connected' || !network.runtimeConnected ? '连接恢复后可同步模型目录。' :
+      executionBlocked ? '执行身份确认后可同步模型目录。' : '请先结束正在运行的任务，再同步供应商模型目录。');
   const isBusy = busy.has(contextKey);
   const pending = operations.operations.some(
     (op) =>
@@ -590,7 +607,7 @@ export function Workspace({
       nav = navigation.current,
       canLeaveAfterAcceptance = draftState.canLeaveAfterAcceptance;
     if (
-      !projectId || executionBlocked || foreignDraftModel ||
+      !project || executionBlocked || foreignDraftModel ||
       pending ||
       isBusy ||
       draftState.error ||
@@ -609,7 +626,7 @@ export function Workspace({
     setError('');
     let target = threadId;
     try {
-      const context = contextPayload(projectId, draftState.references, draftState.extraContext),
+      const context = contextPayload(project!.id, draftState.references, draftState.extraContext),
         schema = parseOutputSchema(draftState.outputSchema);
       if (intent !== 'send' && schema) throw new Error('结构化输出只支持普通发送。');
       const structured = schema ? { outputSchema: schema } : {};
@@ -694,11 +711,12 @@ export function Workspace({
     try {
       let modelOptions: Record<string, unknown> | undefined;
       if (options.model && options.modelProvider) {
-        const selected = models.items.find(row => (row.model ?? row.id) === options.model && row.modelProvider === options.modelProvider);
+        const matches = providerModels(models.items, options.modelProvider, directoryComplete).filter(row => (row.model ?? row.id) === options.model);
+        const selected = matches.length === 1 ? matches[0] : undefined;
         if (!selected || models.loading) throw new Error('请从当前模型目录选择可用模型，再加载会话。');
-        if (options.effort && !selected.supportedReasoningEfforts?.some(row => row.reasoningEffort === options.effort))
+        if (options.effort && !modelSupportsEffort(selected, options.effort))
           throw new Error('所选思考强度已不适用于当前模型，请重新选择或清除本次强度设置。');
-        modelOptions = { modelProvider: options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
+        modelOptions = { modelProvider: selected.modelProvider ?? options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
       await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) }, draftMode);
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
@@ -880,6 +898,7 @@ export function Workspace({
               <button
                 className={`icon-button ${panel === 'files' ? 'selected' : ''}`}
                 aria-label="打开项目文件"
+                disabled={!project}
                 onClick={() => {
                   setWorkspaceMounted(true);
                   setPanel(panel === 'files' ? 'chat' : 'files');
@@ -890,7 +909,9 @@ export function Workspace({
               <button
                 className={`icon-button ${panel === 'terminal' ? 'selected' : ''}`}
                 aria-label="打开项目终端"
+                disabled={!project}
                 onClick={() => {
+                  setTerminalProgram('shell');
                   setTerminalMounted(true);
                   setPanel(panel === 'terminal' ? 'chat' : 'terminal');
                 }}
@@ -987,9 +1008,9 @@ export function Workspace({
                     >
                       会话命令与后台终端
                     </button>
-                    <button onClick={() => setModal('guardian')}>Guardian 拒绝与一次重试</button>
+                    <button onClick={() => setModal('guardian')}>守护审查（Guardian）与重试</button>
                     <button onClick={() => setModal('execution')}>会话与当前回合设置</button>
-                    <button onClick={() => setModal('tasks')}>任务队列、目标与 Agents</button>
+                    <button onClick={() => setModal('tasks')}>任务队列、目标与子智能体</button>
                     <button onClick={() => setModal('history')}>搜索与完整导出</button>
                     <button onClick={() => setModal('convert-thread')}>切换供应商 / 转换会话</button>
                     <button
@@ -1004,12 +1025,19 @@ export function Workspace({
                     <button onClick={() => setModal('rename')}>重命名会话</button>
                     <button onClick={() => setPanel('diff')}>查看修改 diff</button>
                     <button
-                      disabled={conversation.active}
+                      disabled={!workflowEnabled || conversation.active || conversation.realtimeActive || isBusy}
                       onClick={async () => {
+                        if (!workflowEnabled || conversation.active || conversation.realtimeActive || isBusy || compacting.current.has(contextKey)) return;
+                        const key = contextKey;
+                        compacting.current.add(key);
+                        setBusy(current => new Set([...current, key]));
                         try {
                           await api.mutate('thread/compact', { threadId });
                         } catch (e) {
                           setError(message(e));
+                        } finally {
+                          compacting.current.delete(key);
+                          setBusy(current => { const next = new Set(current); next.delete(key); return next; });
                         }
                       }}
                     >
@@ -1143,9 +1171,12 @@ export function Workspace({
               }
               recoveryEpoch={resourceEpoch}
             />
+            {missingThreadProject && <p className="connection-banner" role="status">此会话的工作目录尚未注册。文件、终端及项目写入已停用；请添加对应项目。草稿与会话历史保留。</p>}
+            {network.error && <p className="connection-banner" role="status">{network.error} <button className="button small" onClick={() => { conversation.refresh(); network.clearError(); }}>重新读取并核对</button></p>}
             {(error || resume.error || conversation.error || prompts.error) && (
               <div className="error-banner" role="alert">
                 <span>{error || resume.error || conversation.error || prompts.error}</span>
+                {prompts.error && <button className="button small" onClick={prompts.refresh}>重新读取审批请求</button>}
                 <button
                   className="button small"
                   onClick={() => {
@@ -1227,7 +1258,7 @@ export function Workspace({
                     const turn = conversation.turns.find((row) =>
                       row.items.some((item) => item.id === itemId),
                     );
-                    setPanel('chat');
+                    setPanel('chat', false);
                     if (turn) setFocusTarget({ turnId: turn.id, itemId });
                     else setError('后台进程的历史条目尚未加载，请重新读取完整会话。');
                   }}
@@ -1301,7 +1332,7 @@ export function Workspace({
                   onReference={(reference) => {
                     try {
                       const references = [...draftState.references, reference];
-                      contextPayload(projectId, references, draftState.extraContext);
+                      contextPayload(project?.id ?? '', references, draftState.extraContext);
                       draftState.setReferences(references);
                       setPanel('chat');
                     } catch (e) {
@@ -1317,7 +1348,15 @@ export function Workspace({
             )}
             {terminalMounted && (
               <div className="terminal-slot" hidden={panel !== 'terminal'}>
-                <TerminalPanel
+                <TerminalOnDemand
+                  loadingFallback={(failed, retry) => <section className="panel stack" aria-label="终端">
+                    <h2>终端</h2>
+                    <p role={failed ? 'alert' : 'status'}>{failed ? '终端暂时无法加载，请检查连接后重试。对话与草稿仍然保留。' : '正在加载终端…'}</p>
+                    <div className="actions">
+                      {failed && <button className="button" onClick={retry}>重新加载终端</button>}
+                      <button className="button" onClick={() => setPanel('chat')}>返回对话</button>
+                    </div>
+                  </section>}
                   onShell={() => setTerminalProgram('shell')}
                   program={terminalProgram}
                   runtimeEpoch={network.epoch}
@@ -1333,7 +1372,7 @@ export function Workspace({
                   onServiceSettings={() => setModal('settings-admin')}
                   api={api}
                   events={events}
-                  projectId={projectId}
+                  projectId={project?.id ?? ''}
                   connected={network.connection === 'connected' && network.runtimeConnected}
                   epoch={`${network.epoch}:${network.revision}`}
                 />
@@ -1394,7 +1433,7 @@ export function Workspace({
           <div ref={composerSlot} className="composer-slot" hidden={panel !== 'chat'}>
             <Composer
               onProviders={() => setModal('settings-provider')}
-              projectId={projectId}
+              projectId={project?.id ?? ''}
               threadId={resumedThread === threadId ? threadId : ''}
               epoch={resourceEpoch}
               references={draftState.references}
@@ -1503,6 +1542,8 @@ export function Workspace({
             )}
             {modal === 'loaded' && (
               <LoadedThreadsPanel
+                knownThreads={threads.items}
+                navigationError={error}
                 api={api}
                 epoch={resourceEpoch}
                 connected={active && network.connection === 'connected' && network.runtimeConnected}
@@ -1639,7 +1680,12 @@ export function Workspace({
             )}{' '}
             {recoveryOpen && <EmergencyRecovery api={api} onClose={() => setRecoveryOpen(false)} />}
             {(modal === 'settings' || modal === 'settings-admin' || modal === 'settings-provider') && (
-              <Settings
+              <SettingsOnDemand
+                loadingFallback={(failed, retry) => <Dialog title="设置" onClose={() => setModal('')} wide>
+                  <p role={failed ? 'alert' : 'status'}>{failed ? '设置暂时无法加载，请检查连接后重试。对话与草稿仍然保留。' : '正在加载设置…'}</p>
+                  {failed && <button className="button" onClick={retry}>重新加载设置</button>}
+                </Dialog>}
+                navigationError={error}
                 onRecover={() => setRecoveryOpen(true)}
                 initialTab={modal === 'settings-admin' ? 'admin' : modal === 'settings-provider' ? 'provider' : 'general'}
                 onOpenNativeTerminal={(id) => {
@@ -1662,7 +1708,7 @@ export function Workspace({
                 threadIdle={!conversation.active}
                 lease={`${network.epoch}:${network.revision}:${active && network.runtimeConnected ? 'online' : 'offline'}`}
                 connected={active && network.connection === 'connected' && network.runtimeConnected}
-                projectId={projectId}
+                projectId={project?.id}
                 configurationReady={active && network.configurationReady}
                 managementReady={active && runtimeNetwork.configurationReady && runtimeNetwork.connection === 'connected' && runtimeNetwork.runtimeConnected}
                 api={api}
@@ -1684,6 +1730,7 @@ export function Workspace({
                     return;
                   }
                   if (context.key.startsWith('new:')) {
+                    if (!projects.some(project => project.id === context.key.slice(4))) { setError('此草稿的项目已被移除。草稿仍保留，可在本地草稿中导出，或重新添加原项目后打开。'); return; }
                     navigate('', { projectId: context.key.slice(4) });
                   } else openThread(context.key);
                 }}
@@ -1703,7 +1750,7 @@ export function Workspace({
                 onChanged={workflowChanged}
                 onLocate={(turnId, itemId) => {
                   setModal('');
-                  setPanel('chat');
+                  setPanel('chat', false);
                   setFocusTarget({ turnId, itemId });
                 }}
                 onClose={() => setModal('')}
@@ -1715,7 +1762,7 @@ export function Workspace({
                 api={api}
                 events={events}
                 threadId={threadId}
-                projectId={projectId}
+                projectId={project?.id ?? ''}
                 epoch={resourceEpoch}
                 enabled={workflowEnabled && !conversation.realtimeActive}
                 activeTurnId={conversation.activeTurn?.id}
@@ -1750,7 +1797,7 @@ export function Workspace({
                 turns={conversation.turns}
                 onClose={() => setModal('')}
                 onLocate={(turnId, itemId) => {
-                  setPanel('chat');
+                  setPanel('chat', false);
                   setFocusTarget({ turnId, itemId });
                 }}
               />
@@ -1778,7 +1825,7 @@ export function Workspace({
                 key={threadId + resourceEpoch}
                 api={api}
                 threadId={threadId}
-                projectId={projectId}
+                projectId={project?.id ?? ''}
                 initialTarget={reviewTarget}
                 initialSeparate={Boolean(reviewTarget) || !threadId}
                 enabled={
@@ -1822,7 +1869,7 @@ export function Workspace({
               />
             )}
             {draftGuard && (
-              <Dialog title="草稿尚未保存" onClose={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>
+              <Dialog title="草稿尚未保存" onClose={() => { pendingNavigation.current = undefined; setDraftGuard(false); setDiscardRevision(undefined); }}>
                 <p>当前输入只保留在页面中。请先保存，或明确放弃未保存的修改，再切换项目或会话。</p>
                 {discardRevision ? <>
                   <p>确认放弃这次未保存的修改，并恢复本页最近保存的版本？其他草稿不会改变。</p>
@@ -1831,6 +1878,7 @@ export function Workspace({
                     onClick={() => {
                       if (draftState.discardUnsaved(discardRevision)) {
                         setDraftGuard(false);
+                        continueNavigation();
                       }
                       setDiscardRevision(undefined);
                     }}>确认放弃未保存的修改</button>
@@ -1838,11 +1886,11 @@ export function Workspace({
                     onClick={() => setDiscardRevision(draftState.revision)}>重新确认当前修改</button>}
                 </> : <>
                   <button className="button" onClick={() => {
-                    if (draftState.retrySave()) setDraftGuard(false);
+                    if (draftState.retrySave()) { setDraftGuard(false); continueNavigation(); }
                   }}>重试保存草稿</button>
                   <button className="button" onClick={() => setDiscardRevision(draftState.revision)}>放弃未保存的修改</button>
                 </>}
-                <button className="button" onClick={() => { setDraftGuard(false); setDiscardRevision(undefined); }}>返回继续编辑</button>
+                <button className="button" onClick={() => { pendingNavigation.current = undefined; setDraftGuard(false); setDiscardRevision(undefined); }}>返回继续编辑</button>
               </Dialog>
             )}
 

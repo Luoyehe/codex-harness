@@ -50,7 +50,7 @@ This procedure is for a completely initialized instance with no unfinished manag
 Before taking locks, run the new recorded uninstall and require `servicesRemoved: true`:
 
 ```sh
-sudo python3 -B -m deploy.cli --instance demo uninstall
+sudo python3 -B -m deploy.cli --instance demo uninstall --confirm-stop
 ```
 
 The backup will contain the resulting `removed` lifecycle journal and barriers. An older unrecorded uninstall cannot provide this maintenance workflow.
@@ -164,7 +164,7 @@ python3 -B -m deploy.cli --instance demo status
 
 Use only a trusted snapshot produced above. Keep the same instance name, paths, accounts, numeric UID/GID values and reviewed control code. Do not restore onto a newly initialized same-name instance or over an unrelated unit. Restoring old authentication databases may reinstate credentials or sessions that were changed or revoked after the snapshot; review restored account access after login.
 
-1. Run the new `uninstall` against the current intact instance first and require its recorded `removed` state. This protects the restore window across reboot. Then acquire the two locks above, pointing `BACKUP` at the chosen existing snapshot; do **not** create a new backup directory over it. Repeat the stop/cgroup/process checks without overwriting snapshot metadata. If the existing instance cannot pass recorded uninstall/ownership checks, stop for operator recovery rather than copying over an unclaimed directory.
+1. Run `uninstall --confirm-stop` against the current intact instance first and require its recorded `removed` state. This protects the restore window across reboot. Then acquire the two locks above, pointing `BACKUP` at the chosen existing snapshot; do **not** create a new backup directory over it. Repeat the stop/cgroup/process checks without overwriting snapshot metadata. If the existing instance cannot pass recorded uninstall/ownership checks, stop for operator recovery rather than copying over an unclaimed directory.
 2. Verify checksums and extract into a new private staging directory. Never extract directly over `/` or the whole `/etc/systemd/system` directory.
 
    ```sh
@@ -331,7 +331,7 @@ The private archive and progress inventory are under `/var/cache/codex-harness/o
 
 The following manual procedure describes the same safeguards and remains available for inspection:
 
-Use the same recorded `uninstall`, two locks and stopped-instance checks above. Inspect one exact 32-hex candidate ID. Require all of the following before moving it:
+Use the same recorded `uninstall --confirm-stop`, two locks and stopped-instance checks above. Inspect one exact 32-hex candidate ID. Require all of the following before moving it:
 
 - `/var/lib/codex-harness-instances/INSTANCE/transactions/ID/prepared.json` exists, names a release whose full manifest verifies, and records all three successful native initialization, offline boundary and sandbox probes.
 - The only pending transaction is the current verified `removed` service-lifecycle record. No unfinished release/provider/configuration-layer/HTTPS/control transaction remains. A preparation record alone does not establish that a failed or interrupted activation is safe to discard.
@@ -357,3 +357,47 @@ Use the same trusted control generation and retain the private transaction journ
 Recovery validates retained configuration/core hashes and exact unit definitions, confirms the main service cgroups stopped, then stops the proxy pair before publishing rules and selection. It changes only the owned chains while preserving the PID1-managed membership set; removal requires empty membership. The proxy and routing units are static dependencies with no separately modified enablement state. Unknown shutdown or failed restoration leaves barriers and a pending journal. Keep both old and candidate materials until recovery is verified.
 
 A normal `proxy-rollback --confirm-restart` uses the previous completed selection bound to the current proxy configuration; it does not roll back accounts, application data or root execution policy. Disabling retains proxy configuration and cores. Retained proxy selections require a control generation declaring proxy support, including when disabled. The fixed `proxy-core-check`, `proxy-routes-start` and `proxy-ready` launcher helpers can run during control restoration only from their exact root systemd service contexts; management RPC and execute requests remain blocked by unfinished control maintenance.
+
+## v2.4.0 controlled retained-material recovery
+
+- A legacy first HTTPS attempt may have a recovered transaction but still retain
+  `phase: prepared` metadata. Use `https-read` for its exact revision, then
+  `https-reset-prepared --expected-revision REVISION --confirm`. The command requires
+  the HTTP origin, absent edge units/Caddyfile, confirmed stopped edge services, and
+  an exact recovered journal binding. It removes only that metadata selection;
+  certificates, DNS credentials and journals remain. Arbitrary prepared/unknown
+  states are not reset. Configure HTTPS again through the normal menu afterwards.
+- `candidate-archive --candidate EXACT_32_HEX --failed --confirm-stop` archives a
+  failed build only after complete installed-instance preflight, known stopped
+  units/empty cgroups, no mounts, exact inode and references, and a recorded service
+  maintenance window. Images may be retained as ordinary evidence; mounted images
+  still refuse archival. No recursive deletion occurs. Retry the same candidate if
+  movement or restoration was interrupted; `restore-services` remains available.
+- `dns-build-archive --build EXACT_32_HEX --confirm-stop` stops only that build's
+  known transient units, confirms empty cgroups and no mounted tree, and moves the
+  complete directory into an operator archive. Selected Caddy binaries and DNS
+  credential generations are separate and unchanged. If a mount remains, inspect
+  the exact retained build, loop-device backing file and mount table on the server;
+  resolve the original unmount failure before retrying. Never recursively remove a
+  mounted tree or infer that a failed unit means its cgroup is empty.
+- `uninstall --dry-run` displays the exact managed service definitions and retained
+  data policy. Actual CLI removal requires `--confirm-stop`. `restore-services`
+  restores the bound definitions and activity; a dry run does not create a removal
+  record. Automation should explicitly supply the confirmation flag.
+- An uncaught process death may leave `.new-*` in an unselected provider generation.
+  First recover every pending provider/control transaction, stop the fixed manager
+  units and confirm their cgroups empty, then hold the instance management lock.
+  Identify the exact generation and check `current`, all pending journals and saved
+  profile bindings before considering it unreferenced. Copy its full evidence into
+  a root-private operator archive with recorded file hashes/owners/inodes. Compare
+  each `.new-*` against the implementation's atomic-write naming and its intended
+  sibling file; only independently verified unreferenced temporary files may be
+  moved into that archive. Do not remove arbitrary `.new`, active generations,
+  unfamiliar files or journals. If the intended sibling cannot be proved, retain
+  the generation and seek manual review. After the exact residue is quarantined,
+  `provider-prune` rechecks the whole removal set under its normal rules.
+- Workspace `.state-next` is never overwritten blindly. A complete matching staged
+  receipt can be published under the store lock; a conflicting terminal receipt or
+  partial/unknown content remains evidence. Query the original operation rather
+  than issuing a new write. A previously published success is never rewritten as
+  failure because its final directory synchronization failed.

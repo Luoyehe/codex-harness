@@ -18,10 +18,12 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
   const pageCount = useRef(1),
     boundary = useRef<number | null | undefined>(undefined),
     pending = useRef(false),
+    queuedRefresh = useRef(false),
     generation = useRef(0);
   const fetchPages = useCallback(
     async (more = false, next: number | null = null) => {
-      if (!enabled || !id || pending.current || (more && next === null)) return;
+      if (!enabled || !id || (more && next === null)) return;
+      if (pending.current) { if (!more) queuedRefresh.current = true; return; }
       const gen = generation.current,
         expectedOwner = key;
       if (more && pageCount.current >= 20) {
@@ -37,7 +39,7 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
       setState((old) => ({
         ...(old.key === key ? old : { key, items: [], next: null }),
         loading: true,
-        error: '',
+        error: old.key === key ? old.error : '',
       }));
       try {
         const records = new Map<string, Run>();
@@ -90,7 +92,10 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
         if (owner.current === expectedOwner && generation.current === gen)
           setState((old) => ({ ...old, loading: false, error: message(error) }));
       } finally {
-        if (generation.current === gen) pending.current = false;
+        if (generation.current === gen) {
+          pending.current = false;
+          if (queuedRefresh.current) { queuedRefresh.current = false; void fetchPages(); }
+        }
       }
     },
     [api, id, enabled, key],
@@ -98,6 +103,7 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
   useEffect(() => {
     generation.current++;
     pending.current = false;
+    queuedRefresh.current = false;
     pageCount.current = 1;
     boundary.current = undefined;
     void fetchPages();
@@ -107,5 +113,6 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
   }, [fetchPages]);
   const current =
     state.key === key ? state : { key, items: [], next: null, error: '', loading: enabled };
-  return { ...current, refresh: fetchPages, more: () => fetchPages(true, current.next) };
+  return { ...current, initialLoading: current.loading && current.items.length === 0,
+    refresh: fetchPages, more: () => fetchPages(true, current.next) };
 }

@@ -6,7 +6,7 @@ import type { DiagnosticRedactor } from './redaction.js';
 
 type Native = (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>;
 interface Host { native: Native; redactor: DiagnosticRedactor; notify?: (method: string, params: JsonObject) => void }
-type Login = { handoffId: string; clientId: string; channel: string | undefined; providerId: string; revoked: boolean; dispatched: boolean; observed: boolean; status: string; authUrl?: string; error?: string | undefined; expiresAt: number; timer: NodeJS.Timeout };
+type Login = { handoffId: string; clientId: string; channel: string | undefined; providerId: string; revoked: boolean; dispatched: boolean; observed: boolean; status: string; authUrl?: string; userCode?: string; nativeLoginId?: string; error?: string | undefined; expiresAt: number; timer: NodeJS.Timeout };
 const hash = (value: JsonValue) => createHash('sha256').update(canonical(value)).digest('hex');
 function checked(schema: string, result: JsonValue): JsonObject { try { jsonBytes(result, 1024 * 1024); validateOfficial(schema, result); return object(result); } catch { throw new DeliveryError('invalid_native_response', 'Native account response could not be verified', 'unknown'); } }
 const owns = (login: Login, context: CallContext) => !login.revoked && login.clientId === context.clientId && login.channel === context.eventChannelId;
@@ -23,11 +23,11 @@ export class AccountTools {
   }
   async read(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     if (method === 'account/resetCredit/preview') { onlyKeys(params, []); return this.creditPreview(); }
-    if (method === 'account/gatewayOAuth/read') { onlyKeys(params, []); return { ...checked('GatewayOAuthReadResponse', await this.host.native(method, null)), restartRequired: this.login?.revoked === true }; }
+    if (method === 'account/gatewayOAuth/read') { onlyKeys(params, []); return { ...checked('GatewayOAuthReadResponse', await this.host.native(method, {})), restartRequired: this.login?.revoked === true }; }
     if (method === 'account/gatewayOAuth/handoff') {
       onlyKeys(params, ['handoffId']); const id = string(params.handoffId, 'handoffId', 36), login = this.login;
       if (!login || login.handoffId !== id || !owns(login, context)) throw new DeliveryError('not_found', 'OAuth handoff is unavailable for this connection');
-      return { handoffId: id, providerId: login.providerId, status: login.status, expiresAt: login.expiresAt, ...(login.authUrl ? { authUrl: login.authUrl } : {}), ...(login.error ? { error: login.error } : {}) };
+      return { handoffId: id, providerId: login.providerId, status: login.status, expiresAt: login.expiresAt, ...(login.authUrl ? { authUrl: login.authUrl } : {}), ...(login.userCode ? { userCode: login.userCode } : {}), ...(login.error ? { error: login.error } : {}) };
     }
     throw new DeliveryError('method_not_found', 'Unsupported account read');
   }
@@ -61,12 +61,19 @@ export class AccountTools {
     if (method === 'account/gatewayOAuth/login') {
       onlyKeys(params, ['providerId', 'confirm']); if (params.confirm !== true) throw new DeliveryError('confirmation_required', 'Explicit gateway authorization is required');
       if (this.login) throw new DeliveryError(this.login.revoked ? 'oauth_restart_required' : 'login_pending', this.login.revoked ? 'Restart the native service before starting another OAuth handoff; native notifications have no login identity' : 'Finish or cancel the existing gateway authorization first');
-      const status = checked('GatewayOAuthReadResponse', await this.host.native('account/gatewayOAuth/read', null));
+      const providerId = string(params.providerId, 'providerId', 1024);
+      const status = checked('GatewayOAuthReadResponse', await this.host.native('account/gatewayOAuth/read', { modelProvider: providerId }));
       if (status.required !== true || status.providerId !== string(params.providerId, 'providerId', 1024)) throw new DeliveryError('gateway_changed', 'Current provider does not match the reviewed OAuth gateway');
       const timer = setTimeout(() => { void this.disconnect().catch(() => {}); }, 10 * 60000); timer.unref();
       const login: Login = { handoffId: randomUUID(), clientId: context.clientId, channel: context.eventChannelId, providerId: String(status.providerId), status: 'started', revoked: false, dispatched: false, observed: false, expiresAt: Date.now() + 10 * 60000, timer }; this.login = login;
       try {
-        checked('GatewayOAuthLoginResponse', await write(method, null, { beforeWrite: () => { if (this.login !== login || login.revoked) throw new DeliveryError('client_disconnected', 'OAuth owner disconnected before login'); login.dispatched = true; } }));
+        const response = checked('GatewayOAuthLoginResponse', await write(method, { modelProvider: providerId }, { beforeWrite: () => { if (this.login !== login || login.revoked) throw new DeliveryError('client_disconnected', 'OAuth owner disconnected before login'); login.dispatched = true; } }));
+        if (response.prompt !== null) {
+          const prompt = object(response.prompt), authUrl = string(prompt.verificationUrl, 'gateway verification URL', 8192), userCode = string(prompt.userCode, 'gateway user code', 256), id = string(prompt.loginId, 'gateway login id', 256);
+          this.host.redactor.addSecret(authUrl); this.host.redactor.addSecret(userCode);
+          const url = new URL(authUrl); if (url.protocol !== 'https:' || url.username || url.password) throw new DeliveryError('invalid_native_response', 'Gateway authorization requires an HTTPS URL without embedded credentials', 'unknown');
+          if (!login.revoked && this.login === login && login.status !== 'failed' && login.status !== 'succeeded') { if (login.nativeLoginId && login.nativeLoginId !== id) throw new DeliveryError('invalid_native_response', 'Gateway login identity changed', 'unknown'); login.nativeLoginId = id; login.authUrl = authUrl; login.userCode = userCode; }
+        }
         return { handoffId: login.handoffId, providerId: login.providerId, started: true };
       } catch (e) {
         if (!login.dispatched && !login.observed && e instanceof DeliveryError && e.delivery === 'not_sent') this.clear(login);
@@ -87,7 +94,8 @@ export class AccountTools {
     if (method !== 'account/gatewayOAuth/changed') return false;
     checked('GatewayOAuthChangedNotification', params); const login = this.login;
     if (typeof params.authUrl === 'string') this.host.redactor.addSecret(params.authUrl);
-    if (login && !login.revoked && params.providerId === login.providerId) {
+    if (login && !login.revoked && params.providerId === login.providerId && (!login.nativeLoginId || params.loginId === login.nativeLoginId)) {
+      if (typeof params.loginId === 'string') login.nativeLoginId = params.loginId;
       login.observed = true;
       login.status = String(params.status); login.error = params.error === null ? undefined : String(this.host.redactor.value(params.error!));
       if (typeof params.authUrl === 'string') {
@@ -95,21 +103,21 @@ export class AccountTools {
         if (url.protocol !== 'https:' || url.username || url.password) throw new DeliveryError('invalid_native_response', 'Gateway authorization requires an HTTPS URL without embedded credentials', 'unknown');
         this.host.redactor.addSecret(params.authUrl); login.authUrl = params.authUrl;
       }
-      if (login.status === 'failed' || login.status === 'succeeded') delete login.authUrl;
+      if (login.status === 'failed' || login.status === 'succeeded') { delete login.authUrl; delete login.userCode; }
     }
     // A late native event is never forwarded with its sensitive authorization URL.
     this.host.notify?.(method, { providerId: params.providerId!, status: params.status!, error: params.error === null ? null : this.host.redactor.value(params.error!) });
     return true;
   }
-  private clear(login: Login): void { clearTimeout(login.timer); login.revoked = true; delete login.authUrl; if (this.login === login) this.login = undefined; }
-  private revoke(login: Login): void { clearTimeout(login.timer); login.revoked = true; delete login.authUrl; }
+  private clear(login: Login): void { clearTimeout(login.timer); login.revoked = true; delete login.authUrl; delete login.userCode; if (this.login === login) this.login = undefined; }
+  private revoke(login: Login): void { clearTimeout(login.timer); login.revoked = true; delete login.authUrl; delete login.userCode; }
   async disconnect(clientId?: string, channel?: string): Promise<void> {
     const login = this.login; if (!login || clientId !== undefined && login.clientId !== clientId || channel !== undefined && login.channel !== channel) return;
     if (login.revoked) return;
     this.revoke(login);
     if (!login.dispatched && !login.observed) { this.clear(login); return; }
-    // This protocol has no native login ID. Even an acknowledged cancel cannot
-    // correlate a later event to a fresh owner, so retain the epoch tombstone.
+    // Browser OAuth can still omit native login IDs. Retain the epoch tombstone
+    // after cancellation rather than assigning an uncorrelated late event to a fresh owner.
     try { checked('GatewayOAuthCancelResponse', await this.host.native('account/gatewayOAuth/cancel', null)); }
     catch { /* Runtime restart is required before a new handoff. */ }
   }

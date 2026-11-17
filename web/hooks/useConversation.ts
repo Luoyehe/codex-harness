@@ -49,6 +49,8 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     pages = useRef(0),
     streamStatus = useRef<unknown>(undefined);
   const [revision, setRevision] = useState(0);
+  const diffTurn = useRef('');
+  const holdDisplay = useRef(false);
   const historyComplete = useRef(false),
     voice = useRef(false),
     opening = useRef<string | null>(null),
@@ -70,7 +72,7 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     selectedContext = useRef<typeof visit | undefined>(undefined);
   const publish = (value: Turn[]) => {
     current.current = value;
-    setTurns(value);
+    if (!holdDisplay.current) setTurns(value);
   };
   const refresh = useCallback(() => {
     if (!voice.current) setRevision((v) => v + 1);
@@ -128,8 +130,9 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     if (page.nextCursor !== null) seen.current.add(page.nextCursor);
     pages.current++;
     canonical.current = entries;
+    if (page.complete) holdDisplay.current = false;
     publish(merged);
-    setTimeline(entries);
+    if (!holdDisplay.current) setTimeline(entries);
     setCursor(page.nextCursor);
     setComplete(page.complete);
     const active = activeRealtime(entries, opening.current) !== null;
@@ -147,9 +150,12 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     return page;
   };
   useEffect(() => {
-    if (selectedContext.current !== visit) {
+    const sameVisit = selectedContext.current === visit;
+    holdDisplay.current = sameVisit;
+    if (!sameVisit) {
       selectedContext.current = visit;
       setDiff('');
+      diffTurn.current = '';
       setUsage(undefined);
       voice.current = false;
       setRealtimeActive(false);
@@ -164,9 +170,8 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
     canonical.current = [];
     streamed.current = [];
     restartFromStream.current = false;
-    publish([]);
-    setTimeline([]);
-    setThread(undefined);
+    current.current = [];
+    if (!sameVisit) { setTurns([]); setTimeline([]); setThread(undefined); }
     setError('');
     setReady(false);
     setCursor(null);
@@ -301,12 +306,21 @@ export function useConversation(api: Api, events: Events, threadId: string, reso
         if (event.type === 'realtime') return;
         if (method === 'error') setError(String(object(p.error).message ?? '模型回合发生错误。'));
         if (method === 'thread/tokenUsage/updated') setUsage(p.tokenUsage);
+        if (method === 'turn/started') {
+          diffTurn.current = String(object(p.turn).id ?? p.turnId ?? '');
+          setDiff('');
+        }
+        if (method === 'turn/diff/updated' && typeof p.turnId === 'string') {
+          const latestTurn = diffTurn.current || current.current.at(-1)?.id;
+          if (latestTurn && p.turnId !== latestTurn) return;
+          diffTurn.current = p.turnId;
+        }
         if (method === 'thread/status/changed') {
           streamStatus.current = p.status;
           setThread((t) => (t ? { ...t, status: p.status } : t));
         }
         const live = applyNotification(streamed.current, method, p);
-        const result = applyNotification(current.current, method, p);
+        const result = applyNotification(current.current, method, p, true);
         if (result.touched) touched.current.add(result.touched);
         if (result.diff !== undefined) setDiff(result.diff);
         boundedCombined(result.turns, canonical.current);

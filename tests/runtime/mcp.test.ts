@@ -32,6 +32,14 @@ async function setup() {
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const toolParams = { threadId: 'thread', server: 'local', tool: 'echo', arguments: { message: 'hello' } };
 const streamParams = { threadId: 'thread', server: 'local', name: 'watch', arguments: {} };
+test('oversized subscription notification stops only that subscription and leaves the runtime usable', async () => {
+  const { service, native, events } = await setup(); const stream = object(await service.call('mcp/stream/start', streamParams, context));
+  native.emit('notification', { method: 'mcpServer/event/stream/notification', params: { subscriptionId: stream.subscriptionId!, notification: { method: 'large', params: { data: 'x'.repeat(1024 * 1024) } } } });
+  await expect.poll(() => native.calls.some(call => call.method === 'mcpServer/event/stream/stop')).toBe(true);
+  await expect.poll(() => object(object(service.status()).activity).subscriptions).toBe(0);
+  expect(native.connected).toBe(true); expect(object(object(service.status()).activity).unknown).toBe(false);
+  expect(events.filter(event => event.type === 'mcp')).toMatchObject([{ data: { type: 'error', code: 'event_capacity' } }, { data: { type: 'closed' } }]);
+});
 
 test('fresh tool discovery validates arguments, retains native isError, and separates receipt identity from owner-only result', async () => {
   const { native, service } = await setup();

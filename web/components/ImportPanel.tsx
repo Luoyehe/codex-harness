@@ -19,12 +19,14 @@ export function ImportPanel({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
   api: Api;
   project: Project;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
+  visible?: boolean;
 }) {
   const [includeNativeHome, setHome] = useState(false),
     [maxSessionAgeDays, setAge] = useState('30'),
@@ -36,7 +38,7 @@ export function ImportPanel({
     [loading, setLoading] = useState(false),
     [error, setError] = useState(''),
     [result, setResult] = useState<{ importId: string; results: ImportTypeResult[] }>();
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     scope = {
       projectId: project.id,
       includeNativeHome,
@@ -46,6 +48,7 @@ export function ImportPanel({
     key = `${epoch}:${JSON.stringify(scope)}`,
     owner = useRef(key);
   owner.current = key;
+  useEffect(() => { setConfirmed(false); setAllowExecution(false); }, [visible, enabled, epoch]);
   const generation = useRef(0),
     observedReceipt = useRef('');
   const scopeOwner = useRef(JSON.stringify(scope));
@@ -58,12 +61,16 @@ export function ImportPanel({
   );
   const histories = useResource(
     `${epoch}:${project.id}:${includeNativeHome}:${action.revision}`,
-    (signal) =>
-      api.call<{ data: Record<string, unknown>[]; complete: boolean }>(
+    async (signal) => {
+      const result = await api.call<{ data: Record<string, unknown>[]; complete: boolean }>(
         'import/history',
         { projectId: project.id, includeNativeHome },
         signal,
-      ),
+      );
+      if (!Array.isArray(result.data) || typeof result.complete !== 'boolean')
+        throw new Error('导入历史响应无效，请重新读取。');
+      return result;
+    }, visible,
   );
   const current = preview?.key === key ? preview.value : undefined,
     selectedItems = current?.items.filter((item) => selected.includes(item.itemId)) ?? [],
@@ -325,7 +332,7 @@ export function ImportPanel({
         <article className="stack info-card" key={String(history.importId)}>
           <p className="small muted">
             {typeof history.completedAtMs === 'number'
-              ? new Date(history.completedAtMs).toLocaleString()
+              ? new Date(history.completedAtMs).toLocaleString('zh-CN')
               : '完成时间未提供'}{' '}
             · {String(history.providerId ?? '原生记录')}
           </p>

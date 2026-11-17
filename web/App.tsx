@@ -6,6 +6,12 @@ import { DialogScope } from './components/Dialog';
 import { Workspace } from './Workspace';
 
 function SessionApp() {
+  useState(() => {
+    try {
+      const saved = localStorage.getItem('harness.theme');
+      document.documentElement.dataset.theme = ['light', 'dark'].includes(saved ?? '') ? saved! : 'system';
+    } catch { document.documentElement.dataset.theme = 'system'; }
+  });
   const [api] = useState(() => new Api()),
     [authenticated, setAuthenticated] = useState(false),
     [loading, setLoading] = useState(true),
@@ -67,6 +73,7 @@ function SessionApp() {
               logout={async () => {
                 await api.logout();
                 setAuthenticated(false);
+                setError('');
               }}
             />
           )}

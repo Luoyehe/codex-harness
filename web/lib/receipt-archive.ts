@@ -42,9 +42,13 @@ export function checkedPreview(value: unknown): ArchivePreview {
   return data as ArchivePreview;
 }
 export function readRotation(): RotationIntent | undefined {
-  const raw = sessionStorage.getItem(rotationKey);
+  let raw: string | null;
+  try { raw = sessionStorage.getItem(rotationKey); }
+  catch { throw new Error('浏览器暂时无法读取维护记录，请恢复存储后重试；不要再次提交轮换。'); }
   if (!raw) return;
-  const value = object(JSON.parse(raw));
+  let value: Record<string, unknown>;
+  try { value = object(JSON.parse(raw)); }
+  catch { throw new Error('维护恢复记录格式损坏，请保留记录并核对服务代际；不要再次提交轮换。'); }
   if (
     !Number.isSafeInteger(value.generation) ||
     Number(value.generation) < 0 ||
@@ -92,8 +96,9 @@ export async function receiptArchive(
       chunk.base64.length > 699052
     )
       throw new Error('归档分片身份或容量不匹配，未允许轮换。');
-    const binary = atob(chunk.base64),
-      bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const binary = atob(chunk.base64), bytes = new Uint8Array(binary.length);
+    // Avoid Array.from's per-character intermediate allocation at 80 MiB.
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
     const next = offset + bytes.length;
     if (
       next > preview.bytes ||
@@ -108,6 +113,9 @@ export async function receiptArchive(
   } while (offset < preview.bytes);
   if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError');
   const blob = new Blob(chunks, { type: 'application/json' });
+  // Blob owns its immutable content. Release the temporary chunk list before
+  // allocating the contiguous digest buffer, especially for large exports.
+  chunks.length = 0;
   const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
   const digest = Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('');
   if (digest !== preview.digest) throw new Error('完整归档 SHA-256 不匹配，未允许轮换。');

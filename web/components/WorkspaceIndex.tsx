@@ -173,6 +173,7 @@ export function WorkspaceIndex({
         ))}
       </ul>
       {entries.length === 0 && <p className="muted">当前没有未提交的修改。</p>}
+      <p className="small muted">网页按文件原始字节暂存，不运行 Git 过滤器。LFS、换行或编码转换文件请使用终端 Git。</p>
       <div className="inline">
         <span className="small muted">已选择 {selected.length} 项</span>
         <button
@@ -216,7 +217,7 @@ export function WorkspaceIndex({
                   {file
                     ? file.deleted
                       ? ' · 暂存删除（当前不存在）'
-                      : ` · ${file.bytes!.toLocaleString()} 字节`
+                      : ` · ${file.bytes!.toLocaleString('zh-CN')} 字节`
                     : ''}
                 </li>
               );

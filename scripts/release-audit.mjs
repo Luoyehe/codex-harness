@@ -1,8 +1,9 @@
-import { spawn, execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createReadStream } from 'node:fs';
 import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GitObjectReader, readTree } from './git-object-reader.mjs';
 
 const ownRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 // Matches are never included in diagnostics. Test credentials must be constructed
@@ -84,6 +85,7 @@ export async function scanStream(stream, name, report) {
   report.scannedFiles++;
 }
 
+/** @param {string} root @param {string[]} names @param {{open?:(name:string)=>import('node:stream').Readable}} options */
 export async function scanFiles(root, names, { open = createReadStream } = {}) {
   const report = newReport('source');
   const base = await realpath(root);
@@ -127,37 +129,32 @@ export async function auditGitObjects(root = ownRoot) {
   const inventory = git(root, ['cat-file', '--batch-all-objects', '--batch-check=%(objectname) %(objecttype)']).trim();
   if (!inventory) throw new Error('An empty object inventory cannot pass history checks');
   const trees = new Map(); const nestedTrees = new Set(); const objectTypes = new Map();
-  let entryCount = 0;
-  for (const row of inventory.split('\n')) {
+  const inventoryRows = inventory.split('\n').map(row => {
     const match = /^([a-f0-9]{40,64}) (blob|commit|tag|tree)$/.exec(row.trim());
     if (!match) throw new Error('Invalid Git object inventory');
+    return match;
+  });
+  const reader = new GitObjectReader(root);
+  let entryCount = 0;
+  for (const match of inventoryRows) {
     const [, id, type] = match; const name = `git-object/${id}`;
     objectTypes.set(id, type);
-    const child = spawn('git', type === 'tree' ? ['ls-tree', '-z', id] : ['cat-file', type, id], { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
-    const ended = new Promise(resolve => { child.on('error', () => resolve(false)); child.on('close', code => resolve(code === 0)); });
     try {
+      const stream = await reader.object(id, type);
       if (type === 'tree') {
         // NUL framing preserves tabs/newlines and avoids Git's quoted-name
         // rendering. Keep edges so nested policies see complete path context.
-        let pending = ''; const entries = [];
-        for await (const chunk of child.stdout) {
-          report.scannedBytes += chunk.length; pending += chunk.toString('latin1');
-          let end;
-          while ((end = pending.indexOf('\0')) >= 0) {
-            const entry = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40,64})\t([^\0]+)$/.exec(pending.slice(0, end)); pending = pending.slice(end + 1);
-            if (!entry || entry[4].includes('/') || entry[4] === '.' || entry[4] === '..' || ++entryCount > 1_000_000) throw new Error('Invalid or excessive Git tree inventory');
-            entries.push({ name: entry[4], type: entry[2], id: entry[3], tree: entry[2] === 'tree' ? entry[3] : null });
-            if (entry[2] === 'tree') nestedTrees.add(entry[3]);
-          }
-          if (pending.length > 1024 * 1024) throw new Error('Excessive Git tree entry');
-        }
-        if (pending) throw new Error('Incomplete Git tree');
+        const entries = await readTree(stream, id.length / 2, count => { report.scannedBytes += count; });
+        entryCount += entries.length;
+        if (entryCount > 1_000_000) throw Error('Excessive Git tree inventory');
+        for (const entry of entries) if (entry.tree) nestedTrees.add(entry.tree);
         trees.set(id, entries);
         report.scannedFiles++;
-      } else await scanStream(child.stdout, name, report);
-      if (!(await ended)) throw Object.assign(new Error(), { code: 'GIT_OBJECT_READ_FAILED' });
-    } catch (error) { child.kill(); await ended; report.unreadable.push({ ...issue(name, 'unreadable'), code: safeCode(error) }); }
+      } else await scanStream(stream, name, report);
+      await reader.endObject();
+    } catch (error) { reader.abort(); await reader.closed; report.unreadable.push({ ...issue(name, 'unreadable'), code: safeCode(error) }); return finish(report); }
   }
+  if (!(await reader.close())) { report.unreadable.push({ ...issue('git-objects', 'unreadable'), code: 'GIT_OBJECT_READ_FAILED' }); return finish(report); }
   // All forest roots include dangling trees, not just commit-reachable paths.
   // A shared subtree must be inspected once per prefix: it can be harmless at
   // src/ yet forbidden at reference/. Bounds fail closed rather than skip.

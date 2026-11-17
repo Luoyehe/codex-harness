@@ -1,4 +1,5 @@
 import { object } from './types';
+import { validDateTime } from '../../src/shared/date-time';
 const supported = new Set([
   'type',
   'title',
@@ -133,7 +134,7 @@ export function validateValue(schema: unknown, value: unknown, name = '字段'):
       errors.push(`${name}需要有效日期。`);
     if (
       s.format === 'date-time' &&
-      (Number.isNaN(Date.parse(value)) || !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value))
+      !validDateTime(value)
     )
       errors.push(`${name}需要带时区的日期时间。`);
   } else if (type === 'number' || type === 'integer') {

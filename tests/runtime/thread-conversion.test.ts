@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks());
 const config = { bin: '/fixture/codex', home: '/fixture/home', cwd: '/project', env: {} };
 function fixture(sourceOverrides: JsonObject = {}, targetOverrides: JsonObject = {}) {
   const thread = nativeThread({ id: 'source', path: '/fixture/source.jsonl', modelProvider: 'a', ...sourceOverrides });
-  const target = nativeThread({ id: 'target', path: '/fixture/target.jsonl', modelProvider: 'a', ...targetOverrides });
+  const target = nativeThread({ id: 'target', path: '/fixture/target.jsonl', modelProvider: 'b', ...targetOverrides });
   const snapshot: JsonObject = { model: 'model', modelProvider: 'a', cwd: '/project', serviceTier: null, disabledPluginIds: [],
     runtimeWorkspaceRoots: [], instructionSources: [], approvalPolicy: 'never', approvalsReviewer: 'user', sandbox: { type: 'dangerFullAccess' },
     activePermissionProfile: null, reasoningEffort: null, multiAgentMode: 'explicitRequestOnly', collaborationMode: { mode: 'default', settings: { model: 'model', reasoning_effort: null, developer_instructions: null } } };
@@ -22,11 +22,11 @@ function fixture(sourceOverrides: JsonObject = {}, targetOverrides: JsonObject =
     calls.push(method);
     // Simulate an adapter that returns a positive ACK without calling beforeWrite.
     if (method === 'thread/unsubscribe') { native.emit('notification', { method: 'thread/closed', params: { threadId: 'source' } }); return { status: 'unsubscribed' }; }
-    if (method === 'thread/start') return { ...snapshot, thread: target };
+    if (method === 'thread/start') return { ...snapshot, modelProvider: 'b', thread: target };
     throw new Error('Unexpected dispatch after failed creation bookkeeping');
   }) as NativeRpc['call'];
-  const release = vi.fn(), host: ConversionHost = { reserve: () => release, capture: vi.fn(), closed: vi.fn(), publish: vi.fn(), uncertain: vi.fn() };
-  const run = () => convertThread(config, native, thread, snapshot, { modelProvider: 'b', model: 'model' }, 'foreign', {}, 'Target', host, () => {});
+  const release = vi.fn(), host: ConversionHost = { reserve: () => release, capture: vi.fn(), closed: vi.fn(), copied: vi.fn(async () => {}), publish: vi.fn(), uncertain: vi.fn() };
+  const run = () => convertThread(config, native, thread, snapshot, { modelProvider: 'b', model: 'model' }, 'foreign', 'Target', host, () => {});
   return { run, host, calls, helper, release, native, thread, target, snapshot };
 }
 
@@ -42,7 +42,7 @@ test('conversion verifies the new history without aggregating two individually s
     : request.action === 'repair' ? { needsRepair: false } : { expected, sourceMetadata: { serviceTier: null } });
   f.native.call = vi.fn(async (method: string, params: JsonObject) => {
     if (method === 'thread/unsubscribe') { f.native.emit('notification', { method: 'thread/closed', params: { threadId: params.threadId } }); return { status: 'unsubscribed' }; }
-    if (method === 'thread/start') return { ...f.snapshot, thread: f.target };
+    if (method === 'thread/start') return { ...f.snapshot, modelProvider: 'b', thread: f.target };
     if (method === 'thread/name/set') return {};
     if (method === 'thread/read') return { thread: f.target };
     if (method === 'thread/resume') return { ...f.snapshot, modelProvider: 'b', thread: { ...f.target, modelProvider: 'b' } };
@@ -82,7 +82,7 @@ test('same-provider aliases with compatible history do not create a duplicate ch
   const f = fixture({ modelProvider: 'openai' });
   vi.mocked(history.historyCompatibility).mockResolvedValue(false);
   await expect(convertThread(config, f.native, nativeThread({ id: 'source', modelProvider: 'openai', cwd: '/project', path: '/source.jsonl' }),
-    { modelProvider: 'openai', cwd: '/project' }, { modelProvider: 'harness_chatgpt' }, 'plaintext', {}, 'ChatGPT', f.host, () => {}))
+    { modelProvider: 'openai', cwd: '/project' }, { modelProvider: 'harness_chatgpt' }, 'plaintext', 'ChatGPT', f.host, () => {}))
     .rejects.toMatchObject({ code: 'provider_unchanged', delivery: 'not_sent' });
   expect(f.calls).toEqual([]); expect(f.helper).not.toHaveBeenCalled();
 });

@@ -279,15 +279,32 @@ class Manager:
         from .execution_identity import state
         from .shared_auth import status as shared_auth_status
         from .service_proxy import status as proxy_status
+        require(type(self.config.get("workerUid")) is int and self.config["workerUid"] > 0 and
+                type(self.config.get("workerGid")) is int and self.config["workerGid"] > 0,
+                "Invalid fixed native identity", "integrity")
         roles = ["gateway", "worker"]
         if (self.layout.config / "https.json").exists() or (self.layout.config / "https.json").is_symlink():
             roles.append("caddy")
         from .https_health import https_health
-        return {"instance": self.layout.instance, "release": self.selected(), "previous": self.selected("previous"), "executionMode": state(self.config),
-                "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"), "sharedChatgptAuth": shared_auth_status(self.layout, self.config),
-                "origin": self.config["origin"], "nodeVersion": NODE_VERSION, "pnpmVersion": PNPM_VERSION, "codexVersion": CODEX_VERSION,
-                "services": {role: self.system.state(self.layout.unit(role)) for role in roles},
-                "https": https_health(self, connect_address="127.0.0.1", timeout=3), "serviceProxy": proxy_status(self)}
+        errors = {}
+        def inspect(name, fn):
+            try:
+                return fn()
+            except Exception as exc:
+                code = exc.code if isinstance(exc, DeployError) else "diagnostic_unavailable"
+                errors[name] = code
+                return {"available": False, "error": {"code": code, "message": "该诊断项暂不可用，请检查服务器恢复记录。"}}
+        value = {"instance": self.layout.instance, "release": inspect("release", self.selected),
+                 "previous": inspect("previous", lambda: self.selected("previous")),
+                 "executionMode": inspect("executionMode", lambda: state(self.config)),
+                 "providerConfigLayer": self.config.get("providerConfigLayer", "legacy"),
+                 "sharedChatgptAuth": inspect("sharedChatgptAuth", lambda: shared_auth_status(self.layout, self.config)),
+                 "origin": self.config["origin"], "nodeVersion": NODE_VERSION, "pnpmVersion": PNPM_VERSION, "codexVersion": CODEX_VERSION,
+                 "services": {role: inspect("service/" + role, lambda role=role: self.system.state(self.layout.unit(role))) for role in roles},
+                 "https": inspect("https", lambda: https_health(self, connect_address="127.0.0.1", timeout=3)),
+                 "serviceProxy": inspect("serviceProxy", lambda: proxy_status(self))}
+        return {**value, "degraded": bool(errors), "diagnosticErrors": errors}
+
 
     def verify_https(self, *, probe: bool = True) -> dict:
         from .https_health import https_health
@@ -304,7 +321,13 @@ class Manager:
             from .units import render_edge_units
             unit = self.layout.unit("caddy")
             regular(self.layout.units / unit, {render_edge_units(self.layout, builtin=metadata.get("authentication") == "builtin",
-                    dns_metadata=metadata if metadata.get("dnsProvider") is not None else None)[unit].encode()})
+                    dns_metadata=metadata if metadata.get("dnsProvider") is not None else None, client_identity=metadata.get("clientIdentity") == 1)[unit].encode()})
+            if metadata.get("clientIdentity") == 1:
+                token = (self.layout.config / "gateway-token").read_text().strip()
+                expected = "HARNESS_EDGE_PROXY_TOKEN=" + hashlib.sha256(("codex-harness-edge-client-v1\0" + token).encode()).hexdigest() + "\n"
+                proxy_env = self.layout.config / "edge-proxy.env"
+                regular(proxy_env, {expected.encode()})
+                require(os.name != "posix" or stat.S_IMODE(proxy_env.stat().st_mode) == 0o600, "Unsafe edge identity credential", "integrity")
             from .dns_tls import validate_dns_selection
             validate_dns_selection(self.layout, metadata)
             if metadata.get("tls") == "provided":
@@ -327,7 +350,7 @@ class Manager:
                 "HTTPS verification failed (" + str(result["failure"]) + "); inspect status and logs --service caddy", "https_health")
         return result
 
-    def verify(self, *, https_probe: bool = True, service_recovery: Path | None = None) -> dict:
+    def verify(self, *, https_probe: bool = True, service_recovery: Path | None = None, maintenance_legacy: bool = False) -> dict:
         from .execution_identity import managed, native_settings, require_application, state
         from .shared_auth import verify as verify_shared_auth
         from .service_proxy import enabled as proxy_enabled, ready as proxy_ready, selection as proxy_selection, verify_selection
@@ -360,6 +383,11 @@ class Manager:
         unit_policy = "current"
         for name, value in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             if (self.layout.units / name).read_bytes() != value.encode():
+                if maintenance_legacy and name == self.layout.unit("worker"):
+                    variants = {render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[name].encode() for runtime in (False, True) for home in (False, True)}
+                    require((self.layout.units / name).read_bytes() in variants, "Unrecognized legacy worker definition", "integrity")
+                    unit_policy = "retained-legacy"
+                    continue
                 require(service_recovery is not None and name == self.layout.unit("worker"),
                         "Service unit differs from managed configuration", "integrity")
                 from .service_lifecycle import verify_retained_definition
@@ -379,6 +407,9 @@ class Manager:
             if self.config.get("providerConfigLayer") is None:
                 sudo_policies.add(sudo_rule(self.layout, config=self.config, workspace=False, legacy_thread_history=True).encode())
         sudo_policy = "current"
+        if maintenance_legacy:
+            from .units import sudo_variants
+            sudo_policies.update(sudo_variants(self.layout, self.config))
         if sudo_path.read_bytes() not in sudo_policies:
             require(service_recovery is not None, "Fixed sudo policy changed", "integrity")
             from .service_lifecycle import verify_retained_definition
@@ -527,11 +558,30 @@ class Manager:
         write_json(tx / "state.json", journal)
         return self.providers.public(new)
 
+    @staticmethod
+    def compact_provider_result(value: dict) -> dict:
+        # An acceptance receipt proves publication, not a second catalog export.
+        fields = ("kind", "revision", "providerId", "modelProvider", "source", "applied", "requiresConfirmation",
+                  "savedProfileId", "deletedProfileId", "restoredProfileId", "defaultProviderId")
+        return {key: value[key] for key in fields if key in value}
+
+    def read_receipt(self, path: Path) -> dict:
+        # v2.3.3 could persist a duplicated catalog after a successful mutation.
+        # Read a bounded legacy record, keep identity/delivery exactly, and
+        # compact only the already-completed provider result for transport.
+        saved = read_json(path, 16 * 1024 * 1024)
+        if saved.get("state") == "completed" and saved.get("method") in ("provider/write", "models/refresh"):
+            result = saved.get("result")
+            if isinstance(result, dict) and not result.get("requiresConfirmation"):
+                saved = {**saved, "result": self.compact_provider_result(result)}
+        require(len(canonical(saved)) <= 1024 * 1024 - 1024, "Management receipt exceeds transport budget", "budget")
+        return saved
+
     def refresh_models(self, params: dict) -> dict:
         require(not set(params) - {"expectedRevision", "models", "confirmCapabilities", "providerId", "automatic"}, "Invalid catalog refresh fields")
         current = self.providers.read()
         require(params.get("expectedRevision") == current["revision"], "Provider changed; read again", "revision_conflict")
-        if params.get("automatic") is True or "providerId" in params:
+        if params.get("automatic") is True or "providerId" in params or "models" in params:
             from .provider_registry import selected, replace_settings, provider_id
             from .provider_catalogs import apply_discovery
             row = selected(current, params.get("providerId"))
@@ -547,17 +597,13 @@ class Manager:
             result = self.provider_change({"expectedRevision": current["revision"]}, prepared=updated)
             return {**result, **redacted(value), "revision": result["revision"], "providerId": row["id"],
                     "modelProvider": provider_id(row), "source": "provider", "applied": True, "requiresConfirmation": False}
-        if "models" in params:
-            require(params.get("confirmCapabilities") is True, "Confirm the model capabilities before applying the catalog", "confirmation_required")
-            return {**self.provider_change({"expectedRevision": params["expectedRevision"], "models": params["models"]}, catalog=True),
-                    "applied": True, "requiresConfirmation": False}
         require("confirmCapabilities" not in params, "Confirmation requires a model catalog")
         if current["kind"] in ("chatgpt", "chatgpt-gateway", "bedrock-runtime", "bedrock-mantle"):
             return {**redacted(current), "source": "native", "applied": False, "requiresConfirmation": False}
-        from .catalog import fetch_ids
-        models = fetch_ids(current)
+        from .provider_catalogs import discover
+        models, source = discover(current)
         require(self.providers.read()["revision"] == current["revision"], "Provider changed during discovery", "revision_conflict")
-        return {**redacted(current), "models": models, "source": "provider", "applied": False, "requiresConfirmation": True,
+        return {**redacted(current), "models": models, "source": source, "applied": False, "requiresConfirmation": True,
                 "notice": "These model IDs are unverified. Confirm Responses/tool compatibility and reasoning settings before applying."}
 
     def restart(self) -> dict:
@@ -672,7 +718,7 @@ class Manager:
         receipt = receipts / (operation + ".json")
         identity = digest({"method": method, "params": params})
         if receipt.exists():
-            saved = read_json(receipt)
+            saved = self.read_receipt(receipt)
             require(saved["requestDigest"] == identity, "Operation ID reused with different input", "operation_conflict")
             if saved["state"] == "completed":
                 return {"ok": True, "result": saved["result"]}
@@ -754,9 +800,11 @@ class Manager:
                     if re.fullmatch(r"[0-9a-f]{32}", generation.name):
                         settings = read_json(generation / "settings.json", 4 * 1024 * 1024)
                         known_secrets.extend(row["settings"].get("apiKey") for row in entries(settings))
+                from .diagnostic_secrets import retained_secrets
+                known_secrets.extend(retained_secrets(self.layout))
                 for secret in sorted({value for value in known_secrets if isinstance(value, str) and value}, key=len, reverse=True):
                     text = text.replace(secret, "[redacted]")
-                value = {"text": text, "truncated": len(text) >= 131072}
+                value = {"text": text[-131072:], "truncated": len(text) > 131072, "redactionNotice": "已遮蔽已配置凭据；短凭据可能同时遮蔽普通文本。"}
             elif method == "provider/read":
                 require(not params, "provider/read takes no parameters")
                 value = self.providers.public()
@@ -779,10 +827,12 @@ class Manager:
                 require(set(params) == {"operationId"} and isinstance(params["operationId"], str) and
                         bool(re.fullmatch(r"[0-9a-f-]{36}", params["operationId"])), "Invalid operation lookup")
                 path = receipts / (params["operationId"] + ".json")
-                value = read_json(path) if path.exists() else {"operationId": params["operationId"], "state": "not_received"}
+                value = self.read_receipt(path) if path.exists() else {"operationId": params["operationId"], "state": "not_received"}
             else:
                 require(not params, "restart takes no parameters")
                 value = self.restart()
+            if mutation and method in ("provider/write", "models/refresh") and not (method == "models/refresh" and value.get("requiresConfirmation")):
+                value = self.compact_provider_result(value)
             result = {"ok": True, "result": value}
         except DeployError as exc:
             discovery = method == "models/refresh" and "models" not in params and params.get("automatic") is not True and "providerId" not in params
@@ -790,5 +840,6 @@ class Manager:
         if mutation:
             saved["state"] = "completed" if result["ok"] else "failed"
             saved["result" if result["ok"] else "error"] = result["result" if result["ok"] else "error"]
+            require(len(canonical(saved)) <= 1024 * 1024 - 1024, "Management receipt exceeds transport budget", "budget")
             write_json(receipt, saved)
         return result

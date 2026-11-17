@@ -3,6 +3,7 @@ import type { Api } from '../lib/api';
 import { object, type HarnessEvent } from '../lib/types';
 import { uuid } from '../lib/ids';
 import { executionIdentity, type ExecutionIdentity } from '../lib/execution-mode';
+import { MAX_EVENT_BYTES } from '../../src/shared/event-limits';
 
 export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enabled = true) {
   const callback = useRef(onEvent);
@@ -19,6 +20,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   const [connectionId, setConnectionId] = useState('');
   const [executionMode, setExecutionMode] = useState<ExecutionIdentity>();
   const [executionModeConfirmed, setExecutionModeConfirmed] = useState(false);
+  const [error, setError] = useState('');
   useEffect(() => {
     api.connectionChanged?.();
     if (!enabled) {
@@ -31,13 +33,16 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
       return;
     }
     let disposed = false,
+      reconnecting = false,
       socket: WebSocket | undefined,
       timer: ReturnType<typeof setTimeout>,
+      stableTimer: ReturnType<typeof setTimeout>,
       attempt = 0;
     let upstreamConnected = false,
       observedEpoch = '';
     const connect = () => {
       if (disposed) return;
+      reconnecting = false;
       setConnection('connecting');
       setRuntimeConnected(false);
       setActivityReady(false);
@@ -48,14 +53,16 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
       url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       url.searchParams.set('clientId', api.clientId);
       socket = new WebSocket(url);
+      const owner = socket;
       socket.onopen = () => {
-        if (disposed) return;
-        attempt = 0;
+        if (disposed || owner !== socket) return;
+        stableTimer = setTimeout(() => { attempt = 0; }, 10_000);
         setConnection('connected');
       };
       socket.onmessage = (event) => {
-        if (disposed) return;
-        if (typeof event.data !== 'string' || event.data.length > 2_000_000) {
+        if (disposed || owner !== socket) return;
+        if (typeof event.data !== 'string' || new TextEncoder().encode(event.data).byteLength > MAX_EVENT_BYTES) {
+          setError('实时事件超过传输上限，正在重新连接并读取状态；不会重复发送操作。');
           socket?.close();
           return;
         }
@@ -112,13 +119,17 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
                 (activity.processes === undefined || activity.processes === 0),
             );
           }
-          callback.current({ type: parsed.type, data });
+          if (parsed.type === 'resync' && typeof data.reason === 'string')
+            setError('部分实时事件无法显示，请重新读取当前会话以核对完整结果。');
+          try { callback.current({ type: parsed.type, data }); }
+          catch { setError('部分页面状态未能更新，请重新读取当前会话；连接仍保持。'); }
         } catch {
           socket?.close();
         }
       };
       socket.onclose = () => {
-        if (disposed) return;
+        if (disposed || owner !== socket) return;
+        clearTimeout(stableTimer);
         api.connectionChanged?.();
         upstreamConnected = false;
         setConnection('offline');
@@ -126,6 +137,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
         setActivityReady(false);
         setConfigurationReady(false);
         setExecutionModeConfirmed(false);
+        reconnecting = true;
         void (async () => {
           try {
             const session = await api.session();
@@ -133,16 +145,29 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
           } catch {
             /* An unreachable server is not evidence of logout. */
           }
-          if (!disposed) timer = setTimeout(connect, Math.min(15000, 500 * 2 ** attempt++));
+          if (!disposed && owner === socket && reconnecting) timer = setTimeout(connect, Math.min(15000, 500 * 2 ** attempt++));
         })();
       };
-      socket.onerror = () => socket?.close();
+      socket.onerror = () => owner.close();
     };
+    const wake = () => {
+      if (disposed || document.visibilityState === 'hidden' || !reconnecting) return;
+      clearTimeout(timer);
+      connect();
+    };
+    const viewError = () => setError('部分页面状态未能更新，请重新读取当前会话；连接仍保持。');
+    window.addEventListener('online', wake);
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('harness-view-error', viewError);
     connect();
     return () => {
       api.connectionChanged?.();
       disposed = true;
       clearTimeout(timer);
+      clearTimeout(stableTimer);
+      window.removeEventListener('online', wake);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('harness-view-error', viewError);
       socket?.close();
     };
   }, [api, enabled]);
@@ -157,5 +182,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
     connectionId,
     executionMode,
     executionModeConfirmed,
+    error,
+    clearError: () => setError(''),
   };
 }

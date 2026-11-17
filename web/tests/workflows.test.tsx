@@ -282,7 +282,7 @@ it.each(['queue', 'goal'] as const)(
       ).toBe(true);
     }
     await act(async () => reject(new Error('edit rejected')));
-    await screen.findByText('edit rejected');
+    await screen.findByText(/连接中断或请求超时/);
     expect(input.matches(':disabled')).toBe(false);
     expect(input.value).toBe('submitted draft');
     expect(cancel.matches(':disabled')).toBe(false);
@@ -629,7 +629,7 @@ it.each([
   } else {
     const retained = await screen.findByRole('textbox', { name: label }) as HTMLTextAreaElement;
     expect(retained.value).toBe('submitted draft');
-    await screen.findByText('edit response lost');
+    await screen.findByText(/连接中断或请求超时/);
     expect((await listOperations()).find((operation) => operation.id === originalId)?.state).toBe('unknown');
     await api.call('operation/read', { operationId: originalId });
     expect(requests.filter((request) => request.method === 'operation/read').map((request) => request.params)).toEqual([{ operationId: originalId }]);
@@ -1012,7 +1012,7 @@ it('gives steer and queue additions stable message identities and retains unknow
   );
   await expect(
     api.mutate('thread/queue/add', { threadId: 't', text: 'Follow up' }),
-  ).rejects.toThrow('response lost');
+  ).rejects.toThrow('连接中断或请求超时');
   expect(typeof (requests[0]?.params as Record<string, unknown>).clientUserMessageId).toBe(
     'string',
   );

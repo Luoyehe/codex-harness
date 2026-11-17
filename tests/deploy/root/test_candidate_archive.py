@@ -83,6 +83,20 @@ class CandidateArchiveRootTests(unittest.TestCase):
         self.assertFalse((self.layout.config / "uninstalled.json").exists())
         self.assertEqual(self.system.events, [])
 
+    def test_failed_build_requires_explicit_review_and_retains_images_and_evidence(self):
+        preparation = self.layout.state / "transactions" / self.candidate / "prepared.json"
+        write_json(preparation, {"failure": "offline compiler failed"})
+        (self.source / "build.ext4").write_bytes(b"unmounted failed image fixture")
+        with self.assertRaises(DeployError) as caught:
+            self.perform()
+        self.assertEqual(caught.exception.code, "candidate_not_complete")
+        self.assertEqual(self.system.events, [])
+        result = archive.archive_candidate(self.layout, self.candidate, confirm_stop=True, allow_failed=True)
+        self.assertEqual((Path(result["archive"]) / "build.ext4").read_bytes(), b"unmounted failed image fixture")
+        self.assertEqual(read_json(preparation), {"failure": "offline compiler failed"})
+        self.assertIsNone(read_json(Path(result["inventory"]))["release"])
+        self.assertTrue(result["servicesRestored"])
+
     def assert_legacy_archive_restores_with_real_verification(self, *, workspace):
         self.fixture.enable_real_verification()
         old = self.fixture.install_previous_sudo(workspace=workspace)

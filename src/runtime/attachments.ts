@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { constants, mkdirSync, writeFileSync, renameSync, unlinkSync, lstatSync, openSync, closeSync, fsyncSync, fstatSync, fchmodSync, readSync, opendirSync, chmodSync, chownSync, type BigIntStats } from 'node:fs';
 import path from 'node:path';
-import { isContextText } from './input-context.js';
+import { contextSource } from './input-context.js';
 import { DeliveryError, jsonBytes, LIMITS, object, onlyKeys, string, type JsonObject, type JsonValue } from './types.js';
 
 interface Identity { dev: string; ino: string; birthtimeNs: string; mtimeNs: string }
-interface Attachment { attachmentId: string; fileName?: string; name: string; mimeType: string; size: number; owner: string; created: number; threads: string[]; identity: Identity; sha256: string; state: 'live' | 'deleting' }
+interface Attachment { attachmentId: string; fileName?: string; name: string; mimeType: string; size: number; owner: string; created: number; threads: string[]; identity: Identity; sha256: string; state: 'live' | 'deleting'; referencesUnverified?: boolean }
 interface PinGroup { pending: Set<symbol>; retained: boolean }
+interface CopyReservation { id: string; source: string }
 export interface PreparedAttachments { input: JsonValue[]; pin: () => void; settle: (retain: boolean) => void }
 const INDEX_LIMIT = 2 * 1024 * 1024;
 const DIRECTORY_LIMIT = LIMITS.attachments + 32;
@@ -24,6 +25,7 @@ const absent = (error: unknown): boolean => (error as NodeJS.ErrnoException).cod
 export class Attachments {
   private entries = new Map<string, Attachment>();
   private pins = new Map<Attachment, Map<string, PinGroup>>();
+  private copies = new Map<string, CopyReservation>();
   private readonly dir: string;
   private readonly dirIdentity: Identity;
   constructor(home: string, private readonly group?: number) {
@@ -37,12 +39,17 @@ export class Attachments {
     try { source = this.readFile('index.json', INDEX_LIMIT).bytes; } catch (error) { if (!absent(error)) throw error; }
     if (source) {
       const index = object(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(source)));
-      if (index.version !== 2 || !Array.isArray(index.entries) || index.entries.length > LIMITS.attachments) throw fault('Invalid attachment index');
+      if (![2, 3].includes(Number(index.version)) || !Array.isArray(index.entries) || index.entries.length > LIMITS.attachments) throw fault('Invalid attachment index');
+      if (index.version === 3) {
+        if (!Array.isArray(index.copies) || index.copies.length > 128) throw fault('Invalid attachment copy index');
+        for (const value of index.copies) { const copy = object(value); if (typeof copy.id !== 'string' || !UUID.test(copy.id) || this.copies.has(copy.id) || typeof copy.source !== 'string' || copy.source.length > 256) throw fault('Invalid attachment copy reservation'); this.copies.set(copy.id, { id: copy.id, source: copy.source }); }
+      }
       for (const value of index.entries) {
         const item = object(value); const id = string(item.attachmentId, 'attachmentId'); const stored = object(item.identity);
         if (!UUID.test(id) || this.entries.has(id) || typeof item.size !== 'number' || !Number.isSafeInteger(item.size) || item.size < 0 || item.size > LIMITS.attachmentBytes || !Array.isArray(item.threads) || item.threads.length > 256 || !item.threads.every(thread => typeof thread === 'string' && thread.length <= 4096) || typeof item.owner !== 'string' || typeof item.created !== 'number' || !Number.isFinite(item.created) || (item.state !== 'live' && item.state !== 'deleting') || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256) || !['dev', 'ino', 'birthtimeNs', 'mtimeNs'].every(key => typeof stored[key] === 'string' && /^\d{1,30}$/.test(stored[key] as string))) throw fault('Invalid attachment metadata');
         string(item.name, 'name', 256); string(item.mimeType, 'mimeType', 128); string(item.owner, 'owner', 256);
         if (item.fileName !== undefined && (!audioFormats[String(item.mimeType).split(';')[0]!.toLowerCase()] || item.fileName !== `${id}.${audioFormats[String(item.mimeType).split(';')[0]!.toLowerCase()]}`)) throw fault('Invalid attachment data filename');
+        if (item.referencesUnverified !== undefined && typeof item.referencesUnverified !== 'boolean') throw fault('Invalid attachment reconciliation state');
         const entry = value as unknown as Attachment; this.entries.set(id, entry);
         if (entry.state === 'live') this.readEntry(entry);
       }
@@ -100,15 +107,71 @@ export class Attachments {
     const target = this.file('index.json'); const temp = this.file(`index-${randomUUID()}.tmp`);
     try {
       const fd = openSync(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0), 0o600);
-      try { writeFileSync(fd, jsonBytes({ version: 2, entries: [...this.entries.values()] }, INDEX_LIMIT)); fsyncSync(fd); } finally { closeSync(fd); }
+      try { writeFileSync(fd, jsonBytes({ version: 3, entries: [...this.entries.values()], copies: [...this.copies.values()] }, INDEX_LIMIT)); fsyncSync(fd); } finally { closeSync(fd); }
       this.checkDirectory(); renameSync(temp, target); this.syncDirectory();
     } finally { try { unlinkSync(temp); } catch {} }
   }
   private syncDirectory(): void { if (process.platform !== 'win32') { const fd = openSync(this.dir, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); try { fsyncSync(fd); } finally { closeSync(fd); } } }
   private public(item: Attachment): JsonObject { return { attachmentId: item.attachmentId, name: item.name, mimeType: item.mimeType, size: item.size }; }
+  get root(): string { return this.dir; }
+  get needsReconciliation(): boolean { return this.copies.size > 0 || [...this.entries.values()].some(entry => entry.threads.length > 0 || entry.referencesUnverified === true); }
+  protectUnverifiedReferences(): void {
+    const changed = [...this.entries.values()].filter(entry => entry.threads.length && !entry.referencesUnverified);
+    for (const entry of changed) entry.referencesUnverified = true;
+    try { if (changed.length) this.save(); } catch (error) { for (const entry of changed) delete entry.referencesUnverified; throw error; }
+  }
+  hasThread(threadId: string): boolean { return [...this.entries.values()].some(entry => entry.state === 'live' && entry.threads.includes(threadId)); }
+  /** Durable guard precedes native fork/copy: an unknown outcome cannot free its bytes. */
+  reserveCopy(source: string): string | undefined {
+    const entries = [...this.entries.values()].filter(entry => entry.state === 'live' && entry.threads.includes(source));
+    if (!entries.length) return undefined;
+    if (this.copies.size >= 128 || entries.some(entry => entry.threads.length >= 256)) throw new DeliveryError('capacity', '附件复制等待核对的数量已达上限，请先重启运行时完成核对。');
+    const id = randomUUID(), marker = 'copy:' + id;
+    this.copies.set(id, { id, source }); for (const entry of entries) entry.threads.push(marker);
+    try { this.save(); } catch (error) { this.copies.delete(id); for (const entry of entries) entry.threads = entry.threads.filter(value => value !== marker); throw error; }
+    return id;
+  }
+  finishCopy(id: string | undefined, target?: string, paths: string[] = []): void {
+    if (!id || !this.copies.has(id)) return;
+    const copy = this.copies.get(id)!, marker = 'copy:' + id, previous = new Map<Attachment, string[]>(); const verified = new Set(paths);
+    for (const entry of this.entries.values()) if (entry.threads.includes(marker)) {
+      previous.set(entry, [...entry.threads]); entry.threads = entry.threads.filter(value => value !== marker);
+      if (target && verified.has(path.join(this.dir, this.dataName(entry))) && !entry.threads.includes(target)) entry.threads.push(target);
+    }
+    this.copies.delete(id);
+    try { this.save(); } catch (error) { this.copies.set(id, copy); for (const [entry, threads] of previous) entry.threads = threads; throw error; }
+  }
+  /** Called only after permanent native deletion is positively confirmed. */
+  releaseThread(threadId: string): void {
+    const previous = new Map<Attachment, string[]>();
+    for (const entry of this.entries.values()) if (entry.threads.includes(threadId) && !this.pins.get(entry)?.get(threadId)?.pending.size) { previous.set(entry, entry.threads); entry.threads = entry.threads.filter(id => id !== threadId); }
+    if (!previous.size) return;
+    try { this.save(); } catch (error) { for (const [entry, threads] of previous) entry.threads = threads; throw error; }
+    for (const entry of previous.keys()) if (!entry.threads.length && !entry.referencesUnverified) { entry.state = 'deleting'; this.save(); this.finishDelete(entry); }
+  }
+  /** Startup-only proof from a complete bounded rollout directory inventory.
+   * Compressed/changed histories keep their old refs, and unresolved copies
+   * retain their durable guards until every potential target is inspected. */
+  reconcile(value: JsonObject): void {
+    if (!Array.isArray(value.threadIds) || value.threadIds.length > 10000 || !Array.isArray(value.unresolvedThreadIds) || !Array.isArray(value.references)) throw fault('Invalid attachment reconciliation proof');
+    const present = new Set(value.threadIds.map(id => string(id, 'history thread', 256))), unresolved = new Set(value.unresolvedThreadIds.map(id => string(id, 'unresolved history thread', 256)));
+    if ([...unresolved].some(id => !present.has(id))) throw fault('Invalid unresolved history identity');
+    const refs = new Map<string, Set<string>>(); let count = 0;
+    for (const row of value.references) { const record = object(row), id = string(record.threadId, 'history thread', 256); if (!present.has(id) || unresolved.has(id) || !Array.isArray(record.paths) || record.paths.length > 128) throw fault('Invalid attachment history reference'); for (const file of record.paths) { if (++count > 32768) throw fault('Attachment reference budget exceeded'); const filename = string(file, 'attachment path', 4096); const ids = refs.get(filename) ?? new Set<string>(); ids.add(id); refs.set(filename, ids); } }
+    const oldUnverified = new Map([...this.entries.values()].map(entry => [entry, entry.referencesUnverified === true])), oldCopies = new Map(this.copies), previous = new Map<Attachment, string[]>(), replacements = new Map<Attachment, string[]>();
+    for (const entry of this.entries.values()) {
+      previous.set(entry, [...entry.threads]); const found = refs.get(path.join(this.dir, this.dataName(entry))) ?? new Set<string>();
+      const retained = unresolved.size ? entry.threads : [];
+      const next = [...new Set([...retained, ...found])]; if (next.length > 256) throw fault('Attachment reference capacity exhausted'); replacements.set(entry, next);
+    }
+    for (const [entry, threads] of replacements) { entry.threads = threads; entry.referencesUnverified = unresolved.size > 0 && (previous.get(entry)!.length > 0 || oldUnverified.get(entry) === true); }
+    if (!unresolved.size) this.copies.clear();
+    try { this.save(); } catch (error) { this.copies = oldCopies; for (const [entry, threads] of previous) { entry.threads = threads; entry.referencesUnverified = oldUnverified.get(entry) === true; } throw error; }
+    for (const entry of previous.keys()) if (!entry.threads.length && !entry.referencesUnverified && (previous.get(entry)!.length || oldUnverified.get(entry))) { entry.state = 'deleting'; this.save(); this.finishDelete(entry); }
+  }
   upload(params: JsonObject, clientId: string): JsonValue {
     const name = string(params.name, 'name', 256); let mimeType = string(params.mimeType ?? 'application/octet-stream', 'mimeType', 128); string(clientId, 'clientId', 256);
-    const mediaType = mimeType.split(';')[0]!.trim().toLowerCase(); let audio = audioFormats[mediaType];
+    const mediaType = mimeType.split(';')[0]!.trim().toLowerCase(); let audio: string | undefined = audioFormats[mediaType];
     if (!audio && mediaType === 'application/octet-stream') audio = /\.(wav|mp3|m4a|webm|ogg)$/i.exec(name)?.[1]?.toLowerCase();
     if (mediaType.startsWith('audio/') && !audio) throw new DeliveryError('unsupported_audio_format', 'Use wav, mp3, m4a, webm or ogg audio');
     if (audio) mimeType = audioMimes[audio]!;
@@ -157,7 +220,7 @@ export class Attachments {
   }
   remove(params: JsonObject): JsonValue {
     const item = this.get(params.attachmentId);
-    if (item.threads.length) throw new DeliveryError('attachment_in_use', 'Attachment is retained by thread history');
+    if (item.threads.length || item.referencesUnverified) throw new DeliveryError('attachment_in_use', 'Attachment is retained by thread history');
     item.state = 'deleting'; try { this.save(); } catch (error) { item.state = 'live'; throw error; }
     if (!this.finishDelete(item)) throw new DeliveryError('attachment_delete_pending', 'Attachment deletion is pending; its storage remains reserved', 'unknown');
     return {};
@@ -171,18 +234,21 @@ export class Attachments {
     }
     return { type: 'text', text: `Attached file ${JSON.stringify(entry.name)} is available at ${JSON.stringify(file)}.`, text_elements: [] };
   }
-  describeInput(input: JsonValue, threadId: string): { text: string; attachmentIds: string[]; attachments: JsonObject[]; retainedInput: JsonValue[]; retainedAttachments: JsonValue[]; retainedReferences: JsonValue[]; hasOpaqueInput: boolean } {
+  describeInput(input: JsonValue, threadId: string): { text: string; attachmentIds: string[]; attachments: JsonObject[]; retainedInput: JsonValue[]; retainedAttachments: JsonValue[]; retainedReferences: JsonValue[]; retainedExtras: JsonValue[]; retainedLegacyContext: JsonValue[]; hasOpaqueInput: boolean } {
     if (!Array.isArray(input)) throw new DeliveryError('invalid_native_response', 'Queued input must be an array');
-    const text: string[] = [], attachmentIds: string[] = [], attachments: JsonObject[] = [], retainedInput: JsonValue[] = [], retainedAttachments: JsonValue[] = [], retainedReferences: JsonValue[] = []; let hasOpaqueInput = false;
+    const text: string[] = [], attachmentIds: string[] = [], attachments: JsonObject[] = [], retainedInput: JsonValue[] = [], retainedAttachments: JsonValue[] = [], retainedReferences: JsonValue[] = [], retainedExtras: JsonValue[] = [], retainedLegacyContext: JsonValue[] = []; let hasOpaqueInput = false;
     const candidates = [...this.entries.values()].filter(entry => entry.state === 'live' && entry.threads.includes(threadId)).map(entry => ({ entry, native: this.nativeInput(entry) }));
     for (const item of input) {
       const value = object(item); const match = candidates.find(({ native }) => value.type === native.type && (value.type === 'localImage' || value.type === 'localAudio' ? value.path === native.path : value.text === native.text));
       if (match) { attachmentIds.push(match.entry.attachmentId); attachments.push(this.public(match.entry)); retainedInput.push(item); retainedAttachments.push(item); }
-      else if (isContextText(value) || value.type === 'skill' || value.type === 'mention') { retainedInput.push(item); retainedReferences.push(item); hasOpaqueInput = true; }
+      else if (contextSource(value) || value.type === 'skill' || value.type === 'mention') {
+        retainedInput.push(item); const source = contextSource(value);
+        (source === 'extra' ? retainedExtras : source === 'legacy' ? retainedLegacyContext : retainedReferences).push(item); hasOpaqueInput = true;
+      }
       else if (value.type === 'text') text.push(string(value.text, 'queued text', 1024 * 1024, true));
       else { retainedInput.push(item); retainedAttachments.push(item); hasOpaqueInput = true; }
     }
-    return { text: text.join('\n'), attachmentIds, attachments, retainedInput, retainedAttachments, retainedReferences, hasOpaqueInput };
+    return { text: text.join('\n'), attachmentIds, attachments, retainedInput, retainedAttachments, retainedReferences, retainedExtras, retainedLegacyContext, hasOpaqueInput };
   }
   prepare(ids: JsonValue | undefined, threadId: string): PreparedAttachments {
     if (ids === undefined) return { input: [], pin: () => {}, settle: () => {} };
@@ -226,7 +292,7 @@ export class Attachments {
   }
   gc(now = Date.now()): void {
     const files = this.scan();
-    for (const item of this.entries.values()) if (item.state === 'live' && item.threads.length === 0 && now - item.created > MAX_AGE) {
+    for (const item of this.entries.values()) if (item.state === 'live' && item.threads.length === 0 && !item.referencesUnverified && now - item.created > MAX_AGE) {
       item.state = 'deleting'; try { this.save(); } catch (error) { item.state = 'live'; throw error; }
     }
     for (const item of [...this.entries.values()]) if (item.state === 'deleting') this.finishDelete(item);

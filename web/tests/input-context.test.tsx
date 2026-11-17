@@ -204,10 +204,10 @@ it('only offers enabled discovered skills and callable installed Apps, while pre
   );
   expect(calls.find((call) => call.method === 'skills/list')?.params).toEqual({
     projectId: 'p',
-    forceReload: true,
+    forceReload: false,
   });
 });
-it('allows reference-only messages but blocks wrong-project references and schema on queued input', () => {
+it('allows reference-only messages but blocks wrong-project references and schema on queued input', async () => {
   const send = vi.fn().mockResolvedValue(false),
     props = {
       api: {} as Api,
@@ -233,6 +233,7 @@ it('allows reference-only messages but blocks wrong-project references and schem
   fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenLastCalledWith([], 'send');
+  await act(async () => {});
   view.rerender(<Composer {...props} projectId="foreign" />);
   expect((screen.getByRole('button', { name: '发送消息' }) as HTMLButtonElement).disabled).toBe(
     true,

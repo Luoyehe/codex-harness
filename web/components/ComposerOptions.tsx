@@ -29,11 +29,16 @@ export function ComposerOptions({
           <option value="">
             {inheritance}（{inherited('approvalPolicy')}）
           </option>
-          <option value="untrusted">仅信任安全操作</option>
+          <option value="untrusted">不受信任的操作请求审批</option>
           <option value="on-request">模型请求时审批</option>
           <option value="never">不请求审批</option>
         </select>
       </label>
+      {(options.approvalPolicy === 'never' || options.sandbox === 'danger-full-access') && <p className="workspace-warning">
+        {options.approvalPolicy === 'never' ? '不请求审批会减少执行前的确认；' : ''}
+        {options.sandbox === 'danger-full-access' ? '完整访问允许按当前执行账号的权限访问文件和运行命令；' : ''}
+        请仅对你信任的项目和任务启用。此设置不改变执行账号或服务器 Root 授权。
+      </p>}
       <label className="field">
         文件访问
         <select

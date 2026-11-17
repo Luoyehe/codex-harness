@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { RpcError, type Api } from '../lib/api';
 import { message } from '../lib/types';
 import { workspacePath } from '../lib/workspace';
+import { usePageVisible } from './usePageVisible';
 
 /** A bounded alternative to unrestricted native fs/watch. No background owner
  * survives the mounted, connected browser view, and no draft is ever replaced. */
@@ -17,6 +18,7 @@ export function useWorkspaceWatch(
   },
   onChanged: (paths: string[]) => void,
 ) {
+  const visible = usePageVisible();
   const [state, setState] = useState<{ key: string; error: string; checkedAt?: number }>(),
     callback = useRef(onChanged);
   callback.current = onChanged;
@@ -26,7 +28,7 @@ export function useWorkspaceWatch(
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const observed = new Map<string, string>();
-    if (!scope.enabled || !scope.connected) return;
+    if (!scope.enabled || !scope.connected || !visible) return;
     const read = async () => {
       let pending: Promise<readonly [string, string]>[] = [];
       try {
@@ -78,7 +80,7 @@ export function useWorkspaceWatch(
       controller.abort();
       clearTimeout(timer);
     };
-  }, [api, key]);
+  }, [api, key, visible]);
   return {
     active: scope.enabled && scope.connected,
     error: state?.key === key ? state.error : '',

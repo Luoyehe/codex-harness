@@ -10,7 +10,7 @@
   --surface-2: #f0f2f0;
   --sidebar: #f6f7f5;
   --text: #252b29;
-  --muted: #7a827b;
+  --muted: #626d65;
   --line: #e6e9e5;
   --accent: #47786b;
   --on-accent: #fff;
@@ -375,8 +375,8 @@ hr {
   color: var(--muted);
 }
 .brand-mark {
-  background: #e6eee8;
-  color: #527262;
+  background: var(--accent-soft);
+  color: var(--accent);
   width: 47px;
   height: 47px;
   border-radius: 14px;
@@ -451,7 +451,7 @@ hr {
   align-items: center;
   justify-content: space-between;
   padding: 7px 11px 0;
-  color: #91978f;
+  color: var(--muted);
   font-size: 11px;
   letter-spacing: 1px;
 }
@@ -541,8 +541,8 @@ hr {
   width: 31px;
   height: 31px;
   border-radius: 50%;
-  background: #e5e9e2;
-  color: #687860;
+  background: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -641,6 +641,14 @@ hr {
   flex-direction: column;
   position: relative;
 }
+.conversation-viewport {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
 .thread-menu {
   position: relative;
 }
@@ -686,8 +694,8 @@ hr {
   overflow: auto;
 }
 .welcome-emblem {
-  color: #68867a;
-  background: linear-gradient(135deg, #edf2ea, #e3ebe4);
+  color: var(--accent);
+  background: var(--accent-soft);
   width: 58px;
   height: 58px;
   display: flex;
@@ -701,7 +709,7 @@ hr {
 .welcome .eyebrow {
   font-size: 10px;
   margin-bottom: 13px;
-  color: #9b9f94;
+  color: var(--muted);
 }
 .welcome h1 {
   font-size: 30px;
@@ -772,7 +780,7 @@ hr {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #a1a69d;
+  color: var(--muted);
   font-size: 10px;
   margin-top: 25px;
 }
@@ -783,15 +791,15 @@ hr {
   flex-shrink: 0;
 }
 .composer {
-  border: 1px solid #dfe5dc;
+  border: 1px solid var(--line);
   background: var(--bg);
   border-radius: 17px;
   box-shadow: 0 5px 23px #22351e05;
   padding: 9px 11px;
 }
 .composer:focus-within {
-  border-color: #adbdad;
-  box-shadow: 0 5px 23px #22351e09;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 .composer textarea {
   width: 100%;
@@ -1343,6 +1351,9 @@ hr {
   letter-spacing: 5px;
   text-align: center;
   padding: 10px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .log-output {
   max-height: 320px;
@@ -1465,6 +1476,11 @@ hr {
 }
 .dialog .sidebar {
   overflow: auto;
+}
+.dialog .sidebar .project-tree {
+  flex: none;
+  min-height: 100px;
+  overflow: visible;
 }
 .attachment-chip .attachment-download {
   font-size: 11px;

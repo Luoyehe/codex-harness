@@ -469,6 +469,19 @@ it('invalidates worktree creation consent on ref and epoch ABA changes while ret
   expect((ref as HTMLSelectElement).value).toBe('HEAD');
   expect(calls.some((call) => call.operationId)).toBe(false);
 });
+it('uses a short retirement action while preserving the warning and exact-version consent', async () => {
+  const { api, calls } = setup();
+  render(<WorkspaceWorktrees {...treeProps(api)} />);
+  await selectTree();
+  fireEvent.click(await enabledButton({ name: '退役工作树（保留文件）…' }));
+  expect(screen.getByText(/仅当没有未提交、未跟踪或忽略的文件时/)).toBeTruthy();
+  const confirm = screen.getByRole('button', { name: '确认退役工作树' });
+  expect(confirm).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('checkbox', { name: '确认对上述工作树执行此操作' }));
+  fireEvent.click(confirm);
+  await waitFor(() => expect(calls.find(call => call.method === 'workspace/worktree/retire')?.params)
+    .toMatchObject({ worktreeId: treeId, expectedRevision: 'd'.repeat(64), confirm: true }));
+});
 it('does not close or clear a new worktree form when an earlier scope creation is acknowledged', async () => {
   let finish!: (value: unknown) => void;
   const { api } = setup((call) =>
@@ -525,7 +538,8 @@ it('does not dismiss a later worktree intent when an earlier operation recovery 
   fireEvent.click(await enabledButton({ name: '归档工作树…' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /确认对上述工作树/ }));
   fireEvent.click(screen.getByRole('button', { name: '确认归档工作树' }));
-  await screen.findByText('second response lost');
+  await waitFor(async () => expect((await listOperations()).find((operation) => operation.id === second)?.state).toBe('unknown'));
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', expect.stringContaining('连接中断或请求超时'));
   const changed = initial.onChanged.mock.calls.length;
   await act(async () =>
     finish({

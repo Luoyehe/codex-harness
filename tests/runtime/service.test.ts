@@ -48,6 +48,16 @@ function setup(providerRegistry?: RuntimeConfig['providerRegistry']): { service:
 }
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.restoreAllMocks(); });
 const context = { clientId: 'client-a' };
+test('general diagnostic events redact registered credentials while ordinary assistant prose is preserved', async () => {
+  const { service, native, events } = setup();
+  await service.call('account/login', {}, { ...context, beforeWrite: () => {} });
+  native.emit('notification', { method: 'warning', params: { threadId: null, message: 'upstream private-code' } });
+  native.emit('notification', { method: 'error', params: { threadId: 'thread', turnId: 'turn', willRetry: false, error: { message: 'private-code', codexErrorInfo: null, additionalDetails: null } } });
+  native.emit('notification', { method: 'item/agentMessage/delta', params: { threadId: 'thread', turnId: 'turn', itemId: 'item', delta: 'private-code in user-authored prose' } });
+  const notifications = events.filter(event => event.type === 'notification').map(event => object(event.data));
+  for (const event of notifications.filter(event => event.method === 'warning' || event.method === 'error')) expect(JSON.stringify(event)).not.toContain('private-code');
+  expect(notifications.find(event => event.method === 'item/agentMessage/delta')).toMatchObject({ params: { delta: 'private-code in user-authored prose' } });
+});
 test('project lists include every recorded provider while preserving native page filters and boundaries', async () => {
   const { service, native, cwd } = setup(), original = native.call.bind(native);
   const page = { data: [{ id: 'retired-provider-thread', modelProvider: 'provider-removed', cwd }], nextCursor: 'next', backwardsCursor: null };
@@ -122,7 +132,7 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
     native.beforeNativeWrite = method => { if (method === 'thread/timeline/list') notify(native, 'turn/completed'); };
     await expect(service.call('thread/history', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'history_stale' });
     await expect(service.call('turn/start', { threadId: 't', text: 'requires a fresh read' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
-    native.beforeNativeWrite = undefined;
+    delete native.beforeNativeWrite;
     expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'completed')] });
   });
 
@@ -174,7 +184,7 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
     };
     await expect(service.call('thread/history', { threadId: 'created-thread' }, context)).rejects.toMatchObject({ code: 'history_stale' });
     release(); await starting;
-    native.beforeNativeWrite = undefined;
+    delete native.beforeNativeWrite;
     expect(await service.call('thread/history', { threadId: 'created-thread' }, context)).toMatchObject({ complete: true, turns: [row('turn-1', 'inProgress')] });
     expect(native.calls.filter(call => call.method === 'turn/start')).toHaveLength(1);
     expect(native.calls.some(call => call.method === 'thread/resume')).toBe(false);
@@ -204,7 +214,7 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
     const { service, native } = setup(); notify(native, 'turn/completed'); native.page = page(row('live', 'interrupted'));
     native.beforeNativeWrite = call => { if (call === 'thread/timeline/list') native.emit('notification', { method, params: { threadId: 't' } }); };
     await expect(service.call('thread/history', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'history_stale' });
-    native.beforeNativeWrite = undefined;
+    delete native.beforeNativeWrite;
     expect(await service.call('thread/history', { threadId: 't' }, context)).toMatchObject({ complete: true, turns: [row('live', 'interrupted')] });
   });
 
@@ -251,7 +261,7 @@ describe('history reconciles exact live turns without trusting mixed lifecycle s
 describe('RuntimeService admission and recovery', () => {
   async function resumable(instructionCount = 0, providerRegistry?: RuntimeConfig['providerRegistry']) {
     const fixture = setup(providerRegistry), { service, native, cwd } = fixture, original = native.call.bind(native);
-    const thread = { id: 'stored', environments: null, extra: null, sessionId: 'stored', forkedFromId: null, parentThreadId: null, preview: '', ephemeral: false, section: null, sectionEnteredAt: null, projectId: null, historyMode: 'paginated', modelProvider: 'fixture', model: 'fixture', reasoningEffort: null, createdAt: 1, updatedAt: 1, recencyAt: null, status: { type: 'idle' }, path: null, cwd, cliVersion: '0.164.0', originator: null, source: 'appServer', canAcceptDirectInput: true, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null, name: null, daybreakEnabled: null, turns: [] };
+    const thread = { id: 'stored', environments: null, extra: null, sessionId: 'stored', forkedFromId: null, parentThreadId: null, preview: '', ephemeral: false, section: null, sectionEnteredAt: null, projectId: null, historyMode: 'paginated', modelProvider: 'fixture', model: 'fixture', reasoningEffort: null, createdAt: 1, updatedAt: 1, recencyAt: null, status: { type: 'idle' }, path: null, cwd, cliVersion: '0.169.0', originator: null, source: 'appServer', canAcceptDirectInput: true, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null, name: null, daybreakEnabled: null, turns: [] };
     const response = { thread, model: 'fixture', modelProvider: 'fixture', serviceTier: null, disabledPluginIds: [], cwd, runtimeWorkspaceRoots: [], instructionSources: Array.from({ length: instructionCount }, (_, index) => `/fixture/${index}/${'p'.repeat(80)}.md`), approvalPolicy: 'never', approvalsReviewer: 'user', sandbox: { type: 'dangerFullAccess' }, activePermissionProfile: null, reasoningEffort: null, collaborationMode: null, multiAgentMode: 'explicitRequestOnly', initialTurnsPage: null, turnsBackwardsCursor: null, itemsBackwardsCursor: null };
     validateOfficial('ThreadResumeResponse', response);
     native.call = async (method, params, options) => {
@@ -266,16 +276,14 @@ describe('RuntimeService admission and recovery', () => {
     return { ...fixture, response };
   }
 
-  test('a positive resume exceeding the real snapshot budget remains unknown and cannot resume again', async () => {
+  test('a legal large resume snapshot is retained without poisoning a positive acknowledgement', async () => {
     const { service, native, response } = await resumable(4000);
     expect(Buffer.byteLength(JSON.stringify(response))).toBeGreaterThan(256 * 1024);
     expect(Buffer.byteLength(JSON.stringify(response))).toBeLessThan(12 * 1024 * 1024);
-    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'invalid_native_response', delivery: 'unknown' });
-    expect(object(object(service.status()).activity).unknown).toBe(true);
-    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toEqual({ requiresResume: true });
-    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'activity_unknown' });
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).resolves.toMatchObject({ thread: { id: 'stored' } });
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    expect(await service.call('thread/session', { threadId: 'stored' }, context)).toMatchObject({ requiresResume: false });
     expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
-    expect(native.calls.filter(call => call.method === 'thread/goal/get')).toHaveLength(0);
   });
 
   test('a valid positive resume stores its settings and confirms continuation before succeeding', async () => {
@@ -381,11 +389,15 @@ describe('RuntimeService admission and recovery', () => {
     expect(await service.call('thread/session', { threadId: 'stored' }, context)).toEqual({ requiresResume: true });
   });
 
-  test('continuation failure after resume retains its specific unknown outcome', async () => {
+  test('read-only continuation failure after a positive resume can be rechecked without replaying the resume', async () => {
     const { service, native } = await resumable();
     native.beforeNativeWrite = method => { if (method === 'thread/goal/get') throw new DeliveryError('native_read_failed', 'Goal read failed'); };
-    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).rejects.toMatchObject({ code: 'activity_unknown', delivery: 'unknown' });
-    expect(object(object(service.status()).activity).unknown).toBe(true);
+    await expect(service.call('thread/resume', { threadId: 'stored' }, context)).resolves.toMatchObject({ continuationUnverified: true });
+    expect(object(object(service.status()).activity).unknown).toBe(false);
+    await expect(service.call('turn/start', { threadId: 'stored', text: 'blocked until verified' }, context)).rejects.toMatchObject({ code: 'continuation_unverified', delivery: 'not_sent' });
+    delete native.beforeNativeWrite;
+    await expect(service.call('thread/session', { threadId: 'stored' }, context)).resolves.toMatchObject({ requiresResume: false });
+    expect(object(object(service.status()).activity).activeThreads).not.toContain('stored');
     expect(native.calls.filter(call => call.method === 'thread/resume')).toHaveLength(1);
   });
 

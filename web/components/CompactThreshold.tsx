@@ -38,7 +38,7 @@ export function CompactThreshold({
       {known ? (
         <>
           <p className="small">
-            已配置的上下文窗口为 {windowTokens.toLocaleString()} Token。
+            已配置的上下文窗口为 {windowTokens.toLocaleString('zh-CN')} Token。
             {Number.isSafeInteger(current) && current > 0
               ? ` 当前阈值约占 ${((current / windowTokens) * 100).toFixed(1)}%。`
               : ''}
@@ -65,7 +65,7 @@ export function CompactThreshold({
             >
               换算为 Token 阈值
             </button>
-            {valid && <span className="small">{tokens.toLocaleString()} Token</span>}
+            {valid && <span className="small">{tokens.toLocaleString('zh-CN')} Token</span>}
           </div>
         </>
       ) : (

@@ -78,6 +78,7 @@ class ProxyTransactionTests(unittest.TestCase):
             self.stack.enter_context(patch(module, portable_os))
         self.core = self.stack.enter_context(patch("deploy.proxy_core.verify_core", return_value={"version": "26.10.29"}))
         self.configuration = self.stack.enter_context(patch("deploy.proxy_transaction.verify_configuration"))
+        self.stack.enter_context(patch("deploy.service_proxy.require_available_ports"))
 
     def write_current(self, config):
         write_json(self.layout.config / "instance.json", config)
@@ -159,7 +160,7 @@ class ProxyTransactionTests(unittest.TestCase):
         with patch("deploy.proxy_core.prepare_core", return_value={"core": "a" * 64}) as prepare, \
              patch.object(transaction, "snapshot") as snapshot:
             result = transaction.change(self.manager, action="core-update", confirm_restart=True, version="26.10.29")
-            prepare.assert_called_once_with(self.layout, "26.10.29", download_proxy=None)
+            prepare.assert_called_once_with(self.layout, "26.10.29", download_proxy=None, expected_sha256=None)
             snapshot.assert_not_called()
         self.assertFalse(result["changed"]); self.assertFalse(result["enabled"])
         self.assertEqual((self.layout.config / "instance.json").read_bytes(), original)

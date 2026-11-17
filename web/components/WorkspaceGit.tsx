@@ -37,6 +37,7 @@ function GitView({
     key,
     (signal) => api.call('workspace/git/status', { projectId: project.id }, signal),
     active,
+    true,
   );
   const diff = useResource(
     `${key}:${staged}`,
@@ -76,17 +77,17 @@ function GitView({
       {status.loading && <p role="status">读取 Git 状态…</p>}
       {status.data && status.data.complete !== true && (
         <p className="error" role="alert">
-          Git 状态不完整，未作为完整结果展示。
+          仅显示前 1,000 项状态。请在终端整理后刷新；列表不完整时不能暂存或提交。
         </p>
       )}
-      {status.data?.complete === true && (
+      {status.data && (
         <>
           <WorkspaceIndex
             api={api}
             project={project}
             epoch={epoch}
             entries={entries}
-            enabled={enabled && active}
+            enabled={enabled && active && status.data.complete === true && !status.loading && !status.error}
             onFile={onFile}
             onChanged={() => {
               status.refresh();
@@ -183,7 +184,7 @@ function GitView({
         project={project}
         epoch={epoch}
         ownerEpoch={ownerEpoch}
-        enabled={enabled && active}
+        enabled={enabled && active && status.data?.complete === true && !status.loading && !status.error}
         visible={visible}
         onChanged={() => {
           status.refresh();

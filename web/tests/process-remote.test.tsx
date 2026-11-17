@@ -83,6 +83,21 @@ function processRoute(call: Call) {
     return { processHandle: 'handle', cwd: project.cwd, tty: false };
   return {};
 }
+it('distinguishes confirmed process exit from incomplete output collection', async () => {
+  const exited = { ...process, status: 'exited', exitCode: 0, outputDrainTimedOut: true };
+  const { api } = routed(call => {
+    if (call.method === 'process/list') return { data: [exited] };
+    if (call.method === 'process/read') return { ...exited, stdoutBase64: btoa('partial output'), stderrBase64: '' };
+    return {};
+  });
+  render(<ProcessPanel {...base()} api={api} />);
+  await screen.findByRole('option', { name: /handle/ });
+  fireEvent.change(screen.getByRole('combobox', { name: '当前连接的进程' }), { target: { value: 'handle' } });
+  await screen.findByText('进程已结束，部分输出未能完整收集。');
+  expect(screen.getByText(/状态：已退出.*退出码 0/)).toBeTruthy();
+  expect(screen.getByText('partial output')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '发送输入' })).toBeNull();
+});
 const interactiveProcesses = [
   { ...process, tty: true },
   { ...process, tty: true, processHandle: 'other' },
@@ -216,7 +231,7 @@ it.each(['not_sent', 'unknown'])(
     const input = await selectProcessInput();
     fireEvent.change(input, { target: { value: 'A' } });
     fireEvent.click(screen.getByRole('button', { name: '发送输入' }));
-    await screen.findByText(delivery === 'not_sent' ? 'write rejected' : 'transport lost');
+    await screen.findByText(delivery === 'not_sent' ? 'write rejected' : /服务返回了无法读取的响应/);
     expect(input.value).toBe('A');
     if (delivery === 'unknown') {
       fireEvent.click(screen.getByRole('button', { name: '查询原进程控制回执' }));
@@ -759,10 +774,10 @@ it('releases only the current failed pairing check and permits a fresh check aft
     button = await fixture.create(),
     first = await fixture.check(button);
   await act(async () => first.reject(new Error('current pairing query failed')));
-  expect(screen.getByText('current pairing query failed')).toBeTruthy();
+  expect(screen.getByText(/服务返回了无法读取的响应/)).toBeTruthy();
   expect(button.disabled).toBe(false);
   const second = await fixture.check(button);
-  expect(screen.queryByText('current pairing query failed')).toBeNull();
+  expect(screen.queryByText(/服务返回了无法读取的响应/)).toBeNull();
   await act(async () => second.resolve({ claimed: false }));
   expect(button.disabled).toBe(false);
   const third = await fixture.check(button);

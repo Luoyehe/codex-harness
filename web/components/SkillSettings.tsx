@@ -7,6 +7,7 @@ import type { HooksListEntry } from '../../protocol/ts/v2/HooksListEntry';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
+import { statusLabel, skillScopes, hookTrust } from '../lib/status-labels';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
 export function SkillSettings({
   api,
@@ -82,7 +83,7 @@ export function SkillSettings({
               <div className="section-heading">
                 <strong>{skill.interface?.displayName ?? skill.name}</strong>
                 <span className="badge">
-                  {skill.enabled ? '已启用' : '已停用'} · {skill.scope}
+                  {skill.enabled ? '已启用' : '已停用'} · {statusLabel(skill.scope, skillScopes)}
                 </span>
               </div>
               <p>{skill.description}</p>
@@ -163,7 +164,7 @@ export function SkillSettings({
               <div className="section-heading">
                 <strong>{hook.eventName}</strong>
                 <span className="badge">
-                  {hook.enabled ? '已启用' : '已停用'} · {hook.trustStatus}
+                  {hook.enabled ? '已启用' : '已停用'} · {statusLabel(hook.trustStatus, hookTrust)}
                 </span>
               </div>
               <p className="small">

@@ -66,7 +66,9 @@ def rename_absent(source_fd: int, source: str, target_fd: int, target: str) -> N
     if rename(source_fd, os.fsencode(source), target_fd, os.fsencode(target), 1) != 0:
         error = ctypes.get_errno()
         if error == errno.EEXIST:
-            raise DeployError("conflict", "Workspace destination changed; recovery material retained")
+            exc = DeployError("already_exists", "Workspace destination already exists; nothing was replaced")
+            exc.no_effect = True
+            raise exc
         if error == errno.EXDEV:
             raise DeployError("unsupported_path", "Workspace mutation cannot cross a filesystem boundary")
         raise OSError(error, os.strerror(error))

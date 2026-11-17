@@ -22,6 +22,7 @@ type OpenAttempt = {
   bytes: number;
   overflow: boolean;
   closeOnly: boolean;
+  closeRequested?: boolean;
   resolved: boolean;
 };
 
@@ -59,8 +60,7 @@ export function TerminalPanel({
   const container = useRef<HTMLDivElement>(null),
     term = useRef<Terminal | undefined>(undefined),
     fit = useRef<FitAddon | undefined>(undefined),
-    terminalId = useRef(''),
-    writeQueue = useRef(Promise.resolve());
+    terminalId = useRef('');
   const [id, setId] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -130,6 +130,26 @@ export function TerminalPanel({
     term.current = terminal;
     fit.current = addon;
     let resizeTimer: ReturnType<typeof setTimeout>;
+    const inputBatches: { target: string; text: string; bytes: number }[] = [];
+    let writing = false;
+    const drainInput = async () => {
+      if (writing) return;
+      writing = true;
+      try {
+        while (inputBatches.length) {
+          const batch = inputBatches.shift()!;
+          try {
+            if (blocked.current || batch.target !== terminalId.current) continue;
+            await api.call('terminal/write', { terminalId: batch.target, text: batch.text });
+          } catch (e) {
+            if (batch.target === terminalId.current) {
+              blocked.current = true;
+              setError(`${message(e)} 输入结果可能未知，已暂停输入。请关闭此终端。`);
+            }
+          } finally { queuedBytes.current -= batch.bytes; }
+        }
+      } finally { writing = false; }
+    };
     const input = terminal.onData((text) => {
       const target = terminalId.current;
       if (!target || blocked.current) return;
@@ -140,19 +160,12 @@ export function TerminalPanel({
         return;
       }
       queuedBytes.current += bytes;
-      writeQueue.current = writeQueue.current.then(async () => {
-        try {
-          if (blocked.current || target !== terminalId.current) return;
-          await api.call('terminal/write', { terminalId: target, text });
-        } catch (e) {
-          if (target === terminalId.current) {
-            blocked.current = true;
-            setError(`${message(e)} 输入结果可能未知，已暂停输入。请关闭此终端。`);
-          }
-        } finally {
-          queuedBytes.current -= bytes;
-        }
-      });
+      // Coalesce only unsent input of the same owned PTY while a prior RPC awaits.
+      // A failed write is never replayed, and queued input keeps the 64 KiB bound.
+      const last = inputBatches.at(-1);
+      if (last?.target === target) { last.text += text; last.bytes += bytes; }
+      else inputBatches.push({ target, text, bytes });
+      void drainInput();
     });
     const observer = new ResizeObserver(() => {
       clearTimeout(resizeTimer);
@@ -208,18 +221,15 @@ export function TerminalPanel({
         setEnded(true);
         setError('连接已断开，此终端由服务器结束。重新连接后可手动打开新终端。');
       }
-      term.current?.clear();
+      // Keep bounded scrollback available after disconnection for diagnosis.
     } else if (changedProject) {
-      term.current?.clear();
       blocked.current = true;
       closeOnly.current = true;
       if (opening.current) {
         opening.current.closeOnly = true;
         setError('先前项目或程序的终端启动仍待确认；请查询并关闭原终端后再打开新终端。');
       }
-      const target = terminalId.current,
-        owner = activeOperation.current;
-      if (target && owner) void closeTerminal(target, owner);
+      if (terminalId.current) setError('原终端仍在运行，输入已暂停。切换项目或程序不会终止它；请明确关闭原终端后再打开所选终端。');
     }
   }, [api, projectId, epoch, connected, program, runtimeEpoch]);
   const applyEvent = useCallback((event: HarnessEvent) => {
@@ -305,8 +315,13 @@ export function TerminalPanel({
       current.projectId !== attempt.operation.projectId ||
       current.program !== (attempt.operation.program ?? 'shell');
     blocked.current = closeOnly.current;
-    if (closeOnly.current) {
+    if (attempt.overflow || attempt.closeRequested) {
       await closeTerminal(result.terminalId, attempt.operation);
+      return;
+    }
+    if (closeOnly.current) {
+      setError('原终端已启动，因项目或程序已切换而暂停输入。请明确关闭原终端后继续。');
+      await acknowledge(attempt.operation);
       return;
     }
     setError('');
@@ -328,6 +343,9 @@ export function TerminalPanel({
     setBusy(true);
     setError('');
     blocked.current = true;
+    // RIS is queued after every prior output write and before the new PTY can
+    // produce output, resetting alternate-screen, paste and mouse modes too.
+    term.current?.write('\x1bc');
     let attempt: OpenAttempt | undefined;
     try {
       const size =
@@ -379,7 +397,7 @@ export function TerminalPanel({
   const recover = async (close: boolean) => {
     const attempt = opening.current;
     if (!attempt || busy || !connected) return;
-    if (close) attempt.closeOnly = true;
+    if (close) { attempt.closeOnly = true; attempt.closeRequested = true; }
     setBusy(true);
     setError('');
     try {
@@ -416,6 +434,7 @@ export function TerminalPanel({
                 ? '官方 Codex 交互终端，可输入 /hooks 管理钩子。使用期间暂停其他任务，退出后自动恢复。'
                 : '使用当前执行模式的账号权限，独立于当前回合的沙箱设置。断线后结束。'}
           </p>
+          <p className="muted small">单个终端最长运行 1 小时；输出历史有容量上限。请及时保存需要保留的内容。</p>
         </div>
         {id ? (
           <button
@@ -514,7 +533,7 @@ export function TerminalPanel({
         </p>
       )}
       <div className="terminal-surface">
-        <div ref={container} className="terminal-mount" aria-label="交互终端" />
+        <div ref={container} className="terminal-mount" role="region" aria-label="交互终端" />
       </div>
     </section>
   );

@@ -73,12 +73,42 @@ class System:
 
     def logs(self, unit: str, lines: int) -> str:
         require(type(lines) is int and 1 <= lines <= 500, "Log lines must be between 1 and 500")
-        result = run(["/usr/bin/journalctl", "--unit", unit, "--lines", str(lines), "--no-pager", "--output=cat"], timeout=15)
-        return result.stdout[-131072:]
+        import selectors
+        import time
+        process = subprocess.Popen(["/usr/bin/journalctl", "--unit", unit, "--lines", str(lines), "--no-pager", "--output=cat"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+            env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "HOME": "/nonexistent"}, cwd="/", close_fds=True)
+        data = bytearray()
+        selector = selectors.DefaultSelector()
+        try:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            deadline = time.monotonic() + 15
+            while True:
+                require(time.monotonic() < deadline, "日志读取超时；未返回可能包含不完整凭据的片段。", "timeout")
+                if not selector.select(min(1, max(0, deadline - time.monotonic()))):
+                    continue
+                chunk = os.read(process.stdout.fileno(), 65536)
+                if not chunk:
+                    break
+                data.extend(chunk)
+                require(len(data) <= 2 * 1024 * 1024, "日志超过安全读取上限；请减少行数或在服务器查看。", "budget")
+            require(process.wait(timeout=2) == 0, "journalctl failed", "command_failed")
+            return data.decode("utf-8", "replace")
+        finally:
+            selector.close()
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=2)
+            process.stdout.close()
 
     def isolated(self, layout: Layout, name: str, argv: list[str], cwd: Path, writable: Path,
-                 *, network: bool, timeout: int = 900) -> None:
+                 *, network: bool, timeout: int = 900, toolchain: Path | None = None) -> None:
         require(bool(re.fullmatch(r"[a-z0-9-]+", name)), "Invalid isolated stage")
+        search_path = "/usr/bin:/bin"
+        if toolchain is not None:
+            require(toolchain.parent.parent == layout.work / "toolchains" and toolchain.name == "runtime" and
+                    bool(re.fullmatch(r"[0-9a-f]{64}", toolchain.parent.name)), "Invalid selected toolchain", "integrity")
+            search_path = str(toolchain / "node/bin") + ":" + search_path
         unit = f"codex-harness-{layout.instance}-{name}.service"
         properties = {
             "User": layout.prefix + "-build", "Group": layout.prefix + "-build",
@@ -106,7 +136,7 @@ class System:
             command += ["--property=" + key + "=" + value]
         command += ["--", "/usr/bin/env", "-i", f"HOME={writable}/home", "CI=1", "LANG=C.UTF-8",
                     "NPM_CONFIG_USERCONFIG=/dev/null", "NPM_CONFIG_GLOBALCONFIG=/dev/null",
-                    f"PNPM_HOME={writable}/pnpm-home", f"PATH={layout.work}/toolchain/node/bin:/usr/bin:/bin", *argv]
+                    f"PNPM_HOME={writable}/pnpm-home", f"PATH={search_path}", *argv]
         failure = None
         try:
             run(command, timeout=timeout + 45)

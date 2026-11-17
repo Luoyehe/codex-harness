@@ -9,7 +9,7 @@ function setup() { const sent: WorkflowMutation[] = []; let before: (() => void)
 async function capture(guardian: Guardian, notification = event) { guardian.notification('item/autoApprovalReview/completed', notification); return object((object(await guardian.call('thread/guardian/list', { threadId: notification.threadId! }, owner)).data as JsonObject[]).at(-1)); }
 afterEach(() => vi.useRealTimers());
 test('only native captured denials produce opaque retry capabilities and browser assessments are refused', async () => {
-  const { guardian, sent } = setup(); guardian.notification('item/autoApprovalReview/completed', { ...event, review: { ...object(event.review), status: 'approved' } }); expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toEqual({ data: [], captureExhausted: false });
+  const { guardian, sent } = setup(); guardian.notification('item/autoApprovalReview/completed', { ...event, review: { ...object(event.review), status: 'approved' } }); expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toEqual({ data: [], captureExhausted: false, captureIssues: [] });
   const row = await capture(guardian); expect(row).toMatchObject({ action: event.action, review: event.review, state: 'available' }); expect(row).not.toHaveProperty('event');
   const params = { threadId: 'thread', approvalId: row.approvalId!, confirm: true };
   await expect(guardian.call('thread/approveGuardianDeniedAction', { ...params, event }, owner)).rejects.toMatchObject({ code: 'invalid_params' });
@@ -37,7 +37,7 @@ test('expiry, per-thread retention and changed duplicate event identities fail c
   for (let index = 0; index < 12; index++) await capture(guardian, { ...event, reviewId: `review-${index}` });
   expect(object(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).data).toHaveLength(10);
   guardian.notification('item/autoApprovalReview/completed', { ...event, reviewId: 'review-11', action: { ...object(event.action), command: 'changed' } });
-  expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toEqual({ data: [], captureExhausted: true });
+  expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toEqual({ data: [], captureExhausted: true, captureIssues: [] });
 });
 test('fixed action adapter rejects mixed identity keys and receipt contains no command or assessment', () => {
   expect(() => guardianEvent({ ...event, review_id: 'injected' })).toThrow(); expect(() => guardianEvent({ ...event, action: { ...object(event.action), additionalAuthorization: true } })).toThrow();
@@ -48,4 +48,14 @@ test('filesystem retry preserves canonical entries and rejects conflicting legac
   const notification = { ...event, action: { type: 'requestPermissions', reason: 'fixture', permissions: { network: null, fileSystem: { read: ['/fixture'], write: null, entries, globScanMaxDepth: 2 } } } };
   expect(object(guardianEvent(notification).action).permissions).toEqual({ network: null, file_system: { entries, glob_scan_max_depth: 2 } });
   expect(() => guardianEvent({ ...notification, action: { ...notification.action, permissions: { network: null, fileSystem: { read: ['/different'], write: null, entries } } } })).toThrow('projections disagree');
+});
+test('optional and null permission fields remain valid while oversized auxiliary capture is scoped', async () => {
+  const { guardian } = setup();
+  for (const permissions of [{}, { network: null, fileSystem: null }, { fileSystem: { entries: null, read: null, write: null, globScanMaxDepth: null } }]) {
+    expect(() => guardianEvent({ ...event, action: { type: 'requestPermissions', reason: null, permissions } })).not.toThrow();
+  }
+  const oversized = { ...event, action: { ...object(event.action), command: 'x'.repeat(1024 * 1024) } };
+  expect(() => guardian.notification('item/autoApprovalReview/completed', oversized)).not.toThrow();
+  expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toMatchObject({ data: [], captureIssues: [{ reason: 'capacity' }] });
+  expect(await capture(guardian, { ...event, threadId: 'another', reviewId: 'another' })).toMatchObject({ state: 'available' });
 });

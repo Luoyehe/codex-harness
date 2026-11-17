@@ -91,6 +91,24 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
         environment = json.loads((directory / "native-env.json").read_text())
         self.assertEqual(environment["HARNESS_PROVIDER_KEY_" + ident.upper()], "fixture-registry-bearer")
 
+    def test_legacy_saved_profile_restores_an_independent_complete_runtime_registry(self):
+        from deploy.provider_lifecycle import Profiles
+        profiles = Profiles(self.layout)
+        profiles.save('Legacy single provider', self.selected)
+        saved = profiles.public()[0]['id']
+        newer = change({'expectedRevision': self.selected['revision'], 'providerId': 'new', 'kind': 'responses',
+                        'baseUrl': 'https://fixture.invalid/v1', 'apiKey': 'newer-fixture-key'}, self.selected)
+        action, restored = self.store.validate_change({'expectedRevision': newer['revision'], 'profileId': saved}, newer)
+        self.assertEqual(action, 'provider')
+        self.assertEqual([row['id'] for row in entries(restored)], ['default'])
+        generation = self.store.prepare(restored, layered=True)
+        directory = self.store.root / generation
+        runtime = json.loads((directory / 'runtime.json').read_text())
+        self.assertEqual([row['id'] for row in runtime['connections']], ['default'])
+        self.assertNotIn('newer-fixture-key', (directory / 'native-env.json').read_text())
+        self.assertEqual((directory / 'runtime.json').stat().st_uid, 0)
+        self.assertEqual(self.store.read()['revision'], self.selected['revision'])
+
     def test_zhipu_helper_passes_only_its_selected_key_to_the_local_mcp(self):
         registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "zhipu-coding",
                            "apiKey": "fixture-zhipu-key"}, self.selected)

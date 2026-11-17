@@ -1,6 +1,7 @@
 import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { downloadBlob } from '../lib/download';
 
 export const RENDER_LIMITS = {
   markdownChars: 80_000,
@@ -48,15 +49,11 @@ export function boundedMarkdownTree() {
 }
 
 function downloadText(text: string, name: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // Keep the URL alive until the browser has consumed the click.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), name);
+}
+function linkDomain(href?: string) {
+  try { const url = new URL(href ?? '', location.href); return ['http:', 'https:'].includes(url.protocol) && url.origin !== location.origin ? url.hostname : ''; }
+  catch { return ''; }
 }
 
 export function PlainText({ text, name = 'message.txt' }: { text: string; name?: string }) {
@@ -155,6 +152,7 @@ export function SafeMarkdown({ text }: { text: string }) {
             a: ({ children, href }) => (
               <a href={href} target="_blank" rel="noreferrer">
                 {children}
+                {linkDomain(href) && <small className="external-domain">（{linkDomain(href)}）</small>}
               </a>
             ),
             img: ({ alt }) => (

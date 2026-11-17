@@ -84,6 +84,7 @@ def change(params: dict, current: dict) -> dict:
         return combine(current, rows, ident)
     ident = params.get("providerId", default)
     if ident == "new":
+        require(params.get("kind") in KINDS, "Choose a supported provider kind", "invalid_input")
         require(len(rows) < MAX_CONNECTIONS, "At most 16 model providers can be saved", "budget")
         ident = secrets.token_hex(16)
         existing = {"kind": params.get("kind"), "revision": current["revision"], "models": []}

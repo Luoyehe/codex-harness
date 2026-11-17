@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync } from 'node:fs';
@@ -11,7 +12,7 @@ function home(): string { const parent = path.resolve('.work/terminal-cleanup');
 test('native capacity during gateway loss closes the whole process instead of orphaning terminal sessions', async () => {
   const root = home();
   const service = await RuntimeService.create({ bin: process.execPath, args: [path.resolve('tests/runtime/terminal-cleanup-fixture.mjs')], home: root, workerHome: root, cwd: root, env: {}, requestTimeoutMs: 2000 });
-  const pid = service.native.processId!; const events: RuntimeEvent[] = []; let fatalObserved = false; let mainClosing: Promise<void> | undefined;
+  const events: RuntimeEvent[] = []; let fatalObserved = false; let mainClosing: Promise<void> | undefined;
   service.on('event', event => events.push(event)); service.on('fatal', () => { fatalObserved = true; mainClosing ??= service.close(); });
   try {
     await service.call('conversation/start', { cwd: root, text: 'Local protocol fixture only' }, { clientId: 'another-owner', eventChannelId: 'another-channel' });
@@ -25,7 +26,7 @@ test('native capacity during gateway loss closes the whole process instead of or
     expect(events.some(event => event.type === 'notification' && object(event.data).method === 'turn/completed')).toBe(false);
     expect(outcomes.some(result => result.status === 'rejected' && (result.reason as DeliveryError).delivery === 'unknown')).toBe(true);
     await expect(service.call('thread/start', { cwd: root }, { clientId: 'another-owner' })).rejects.toMatchObject({ code: 'runtime_unavailable' });
-    expect(() => process.kill(pid, 0)).toThrow();
+    expectNativeClosed(service.native);
   } finally { await service.close(); }
 });
 

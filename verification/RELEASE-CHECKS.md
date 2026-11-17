@@ -146,17 +146,26 @@ exit 1. Python requires 3.11 or newer and can be located with
 `HARNESS_TEST_PYTHON`; every selected Python file must collect at least one test.
 
 `.github/workflows/affected.yml` runs source security, pinned dependency install,
-type/build checks and selected JavaScript/Python tests on branch push and pull request.
+type/build checks and selected JavaScript/Python tests on main pushes, pull requests, and reviewed manual dispatch.
 The exact selected inventory runs on Linux and Windows; privileged fixtures run
 separately as root on a disposable hosted Linux runner. A final job checks each
 case identity, source digest and outcome: every skipped case needs a pass on an
 appropriate platform, and missing or failed artifacts block completion. Actions
-are pinned by commit; Node is 24.15.0 and pnpm is 11.22.0. A zero/missing base
+are pinned by commit; Node is 24.22.1 and pnpm is 11.22.0 (verified archive integrity before installation). A zero/missing base
 requires an explicit reviewed comparison or the base from the source-bound
 closeout authorization. It never silently substitutes `HEAD~1`. Tag pushes do
 not start an invalid zero-base comparison. CI does not create audit records,
 call a paid model or access a personal Codex home. Separate workflows run CodeQL,
 dependency vulnerability checks and read-only upstream version detection.
+
+Future release evidence is layered: commit a small immutable manifest, item-level
+dispositions, failure lessons and the exact source digest; store bulky raw logs,
+screenshots and repeated machine reports as CI/release artifacts with SHA-256,
+byte count and retrieval URL in that manifest. Archive artifacts before their
+host retention expires. Keep historical committed evidence unchanged. JSON is
+not automatically excluded from source hashing: authorization and audit records
+retain their explicit classification and checksum checks. Do not remove old
+evidence or rewrite history merely to reduce repository size.
 
 Native jobs fetch official platform packages for CLI 0.164.0 into ignored
 `reference/runtime`, verify pinned SHA-512 archive integrity, extract them and

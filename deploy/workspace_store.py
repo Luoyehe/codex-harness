@@ -80,15 +80,52 @@ def read_record(directory: int) -> dict:
     return value
 
 
+def recover_pending(directory: int) -> None:
+    """Publish only a complete matching receipt under the caller's store lock."""
+    try:
+        fd = os.open(".state-next", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+    except FileNotFoundError:
+        return
+    try:
+        data, info = read_file(fd, 16384)
+        require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Unsafe retained workspace state", "unsafe_path")
+    finally:
+        os.close(fd)
+    try:
+        candidate = json.loads(data)
+    except (ValueError, UnicodeError) as exc:
+        raise DeployError("recovery_required", "Incomplete unpublished workspace state retained for inspection") from exc
+    require(isinstance(candidate, dict) and re.fullmatch(r"[0-9a-f]{64}", str(candidate.get("requestDigest", ""))) and
+            candidate.get("state") in ("running", "completed", "failed"), "Unrecognized unpublished workspace receipt", "recovery_required")
+    try:
+        current = read_record(directory)
+    except FileNotFoundError:
+        current = None
+    require(current is None and candidate["state"] == "running" or current is not None and
+            current.get("requestDigest") == candidate["requestDigest"] and (current.get("state") == "running" or current == candidate),
+            "Unpublished workspace receipt conflicts with its published terminal state", "recovery_required")
+    os.replace(".state-next", "state.json", src_dir_fd=directory, dst_dir_fd=directory)
+    os.fsync(directory)
+
+
 class Record:
     def __init__(self, fd: int, identity: str):
         self.fd, self.identity = fd, identity
         self.failure_details = {}
+        self.side_effects = True
 
     def save(self, value: dict):
         data = canonical(value) + b"\n"
         require(len(data) <= 16384, "Workspace receipt exceeds budget", "budget")
-        write_new(self.fd, ".state-next", data)
+        try:
+            write_new(self.fd, ".state-next", data)
+        except FileExistsError:
+            fd = os.open(".state-next", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=self.fd)
+            try:
+                retained, _ = read_file(fd, 16384)
+            finally:
+                os.close(fd)
+            require(retained == data, "Unpublished workspace state differs; inspect retained record", "recovery_required")
         os.replace(".state-next", "state.json", src_dir_fd=self.fd, dst_dir_fd=self.fd)
         os.fsync(self.fd)
 
@@ -134,22 +171,34 @@ class Store:
                 os.close(global_store)
             parent.close()
 
-    def read(self, identity: str) -> dict:
+    def read(self, identity: str, *, recover: bool = False) -> dict:
+        import fcntl
         operation_id(identity)
         try:
             store = self.open()
         except FileNotFoundError:
             return {"operationId": identity, "state": "not_received"}
+        lock = None
         try:
+            # Querying a lost receipt must be sufficient to finish publishing
+            # its already-written outcome. Never resend the project mutation.
+            if recover:
+                lock = os.open("lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=store)
+                info = regular(lock)
+                require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Unsafe workspace lock", "unsafe_path")
+                try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as exc: raise DeployError("busy", "Another workspace mutation is running") from exc
             try:
                 directory = private_directory(store, identity)
             except FileNotFoundError:
                 return {"operationId": identity, "state": "not_received"}
             try:
+                if recover: recover_pending(directory)
                 return {"operationId": identity, **read_record(directory)}
             finally:
                 os.close(directory)
         finally:
+            if lock is not None: os.close(lock)
             os.close(store)
 
     def external_payload(self, identity: str) -> bool:
@@ -168,8 +217,12 @@ class Store:
             if project is not None: os.close(project)
 
     def reclaim_acknowledged(self, store: int, identity: str, directory: int) -> bool:
-        saved = read_record(directory)
-        if saved.get("acknowledged") is not True or saved.get("state") != "completed" or saved.get("response", {}).get("ok") is not True:
+        try:
+            saved = read_record(directory)
+        except (FileNotFoundError, ValueError):
+            return False
+        no_effect = saved.get("state") == "failed" and saved.get("response", {}).get("error", {}).get("delivery") == "not_sent"
+        if not no_effect and (saved.get("acknowledged") is not True or saved.get("state") != "completed" or saved.get("response", {}).get("ok") is not True):
             return False
         with os.scandir(directory) as children:
             names = [entry.name for entry in children]
@@ -283,6 +336,7 @@ class Store:
             except FileNotFoundError:
                 pass
             if directory is not None:
+                recover_pending(directory)
                 saved = read_record(directory)
                 require(saved.get("requestDigest") == request_digest, "Workspace operation ID reused with different input", "operation_conflict")
                 yield saved.get("response", {"ok": False, "error": {"code": "unknown", "message": "Workspace operation needs recovery inspection", "delivery": "unknown"}})
@@ -297,11 +351,30 @@ class Store:
             try:
                 yield record
             except Exception as exc:
-                error = {"code": exc.code if isinstance(exc, DeployError) else "workspace_error",
+                # A failed final fsync must not overwrite a published success.
+                recover_pending(directory)
+                published = read_record(directory)
+                if published.get("state") == "completed":
+                    raise
+                no_effect = record.side_effects is False and getattr(exc, "code", "") not in ("cleanup_unknown", "stop_unknown") and not self.external_payload(identity)
+                if no_effect:
+                    with os.scandir(directory) as files:
+                        names = {entry.name for entry in files}
+                    no_effect = names <= {"state.json", "next"}
+                    if no_effect and "next" in names:
+                        fd = os.open("next", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+                        try: regular(fd)
+                        finally: os.close(fd)
+                        os.unlink("next", dir_fd=directory)
+                        os.fsync(directory)
+                code = exc.code if isinstance(exc, DeployError) else "already_exists" if isinstance(exc, FileExistsError) else "not_found" if isinstance(exc, FileNotFoundError) else "workspace_error"
+                error = {"code": code,
                          "message": str(exc) if isinstance(exc, DeployError) else "Workspace operation failed; inspect recovery record",
-                         "delivery": "unknown"}
+                         "delivery": "not_sent" if no_effect else "unknown"}
                 record.save({**saved, **record.failure_details, "state": "failed", "response": {"ok": False, "error": error}})
-                raise DeployError(error["code"], error["message"]) from exc
+                failure = DeployError(error["code"], error["message"])
+                failure.delivery = error["delivery"]
+                raise failure from exc
         finally:
             if directory is not None:
                 os.close(directory)

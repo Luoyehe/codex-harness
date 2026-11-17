@@ -87,11 +87,13 @@ export function FileEditor({
     }
   }, [remote, projectId, path, initial.error]);
   const publish = (next: FileDraft) => {
-    cache.set(key, next);
+    if (!next.pending && next.baseRevision !== null && next.text === next.baseText) cache.delete(key);
+    else cache.set(key, next);
     current.current = next;
     setDraft(next);
     try {
       persistFileDraft(next);
+      window.dispatchEvent(new Event('harness-file-drafts'));
       setStorageError('');
     } catch (e) {
       setStorageError(
@@ -142,6 +144,7 @@ export function FileEditor({
       running.current ||
       !enabled ||
       original.pending ||
+      (original.baseRevision !== null && original.text === original.baseText) ||
       initial.error ||
       fileDraftProblem(original) ||
       (observed && original.baseRevision !== observed.revision)
@@ -411,7 +414,7 @@ export function FileEditor({
         >
           {busy ? '正在核对…' : draft?.baseRevision === null ? '创建文件' : '保存文件'}
         </button>
-        {dirty && observed?.text !== undefined && (
+        {dirty && (
           <button
             className={`button ${discard ? 'danger' : ''}`}
             disabled={busy || Boolean(draft?.pending)}
@@ -421,14 +424,18 @@ export function FileEditor({
                 return;
               }
               try {
-                clear(observed);
+                if (observed?.text !== undefined && observed.revision) clear(observed);
+                else {
+                  discardFileDraft(projectId, path); cache.delete(key);
+                  current.current = undefined; setDraft(undefined); setDiscard(false); onChanged();
+                }
                 setError('');
               } catch (e) {
                 setError(message(e));
               }
             }}
           >
-            {discard ? '确认放弃草稿，采用服务器版本' : '放弃我的修改'}
+            {discard ? observed?.text !== undefined ? '确认放弃草稿，采用服务器版本' : '确认丢弃本地草稿' : draft?.baseRevision === null ? '取消创建 / 丢弃草稿' : '放弃我的修改'}
           </button>
         )}
         <span className="small muted">UTF-8 文本 · 最大 512 KiB · Ctrl / ⌘ + S 保存</span>

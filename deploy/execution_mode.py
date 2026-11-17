@@ -1,6 +1,8 @@
 """Journaled native/root selection; root authorization is operator-only."""
 from __future__ import annotations
 
+from .config_layer import edge_running
+
 import base64
 import json
 import os
@@ -158,7 +160,7 @@ def recover(manager, journal_path, journal, *, candidate=False):
         manager.system.reload()
     try:
         restore_activity(manager, journal["active"])
-        manager.verify(https_probe={"gateway", "worker"} <= set(journal["active"]))
+        manager.verify(https_probe=({"gateway", "worker"} <= set(journal["active"])) and edge_running(manager))
     except Exception:
         barriers(manager)
         stop(manager)
@@ -197,7 +199,7 @@ def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
             "Update control tools before sharing ChatGPT login across execution modes", "shared_auth_unsupported")
     require_mode_stores(manager.layout, manager.config)
     require_idle(manager)
-    manager.verify(https_probe={"gateway", "worker"} <= set(active_services(manager)))
+    manager.verify(https_probe=({"gateway", "worker"} <= set(active_services(manager))) and edge_running(manager))
     require(sum(read_json(p).get("kind") == "execution-mode" for p in (manager.layout.state / "transactions").glob("*/state.json")) < 128,
             "Execution transaction retention budget reached", "budget")
     config = {**manager.config, "executionMode": mode, "rootAllowed": allowed, "executionGeneration": uuid.uuid4().hex}
@@ -222,7 +224,7 @@ def change(manager, params=None, *, root_allowed=None, confirm_restart=False):
         journal["phase"] = "selected"
         write_json(transaction / "state.json", journal)
         restore_activity(manager, active)
-        manager.verify(https_probe=set(active) == set(ROLES))
+        manager.verify(https_probe=(set(active) == set(ROLES)) and edge_running(manager))
     except Exception:
         recover(manager, transaction / "state.json", journal)
         raise

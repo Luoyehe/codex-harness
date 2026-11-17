@@ -19,10 +19,10 @@ function fixture() {
   mkdirSync(fixtureRoot, { recursive: true }); const base = realpathSync(mkdtempSync(path.join(fixtureRoot, 'case-'))); fixtures.push(base);
   git(base, 'init', '-q'); git(base, 'config', 'core.autocrlf', 'false');
   put(base, '.gitignore', '.work/\nnode_modules/\ndist/\nweb/dist/\n');
-  const pkg = { type: 'module', version: '2.2.0', packageManager: 'pnpm@11.22.0', codexVersion: '0.164.0', devDependencies: { typescript: '7.0.2', vite: '8.3.5' } };
+  const pkg = { type: 'module', version: '2.2.0', packageManager: 'pnpm@11.22.0', codexVersion: '0.169.0', devDependencies: { typescript: '7.0.2', vite: '8.3.5' } };
   put(base, 'package.json', JSON.stringify(pkg));
-  put(base, 'deploy/common.py', 'NODE_VERSION = "24.22.1"\nPNPM_VERSION = "11.22.0"\nCODEX_VERSION = "0.164.0"\n');
-  for (const name of ['affected', 'security', 'compatibility']) put(base, `.github/workflows/${name}.yml`, readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
+  put(base, 'deploy/common.py', 'NODE_VERSION = "24.22.1"\nPNPM_VERSION = "11.22.0"\nCODEX_VERSION = "0.169.0"\n');
+  for (const name of ['affected', 'security', 'compatibility', 'release']) put(base, `.github/workflows/${name}.yml`, readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
   const files = ['tests/core/example.test.ts', 'tests/core/other.test.ts', 'tests/deploy/test_example.py', 'tests/deploy/root/test_example.py'];
   for (const name of files) put(base, name, '// Inert inventory fixture; never executed.\n');
   put(base, 'web/tsconfig.json', '{}'); put(base, 'tsconfig.server.json', '{}'); put(base, 'web/vite.config.ts', '// Inert configuration fixture.\n');
@@ -108,6 +108,16 @@ test('tool pin drift and a selected-only release PR are explicit blockers', () =
   put(base, name, readFileSync(path.join(base, name), 'utf8').replaceAll('24.15.0', '24.22.1'));
   const affected = '.github/workflows/affected.yml'; put(base, affected, readFileSync(path.join(base, affected), 'utf8').replace('branches: [main]', "branches: ['**']"));
   expect(() => toolPins(base)).toThrow(/workflow triggers differ/);
+});
+
+test('a release candidate must incorporate the current target baseline before its audit can authorize integration', () => {
+  const { base, options } = fixture();
+  git(base, 'checkout', '--detach', options.prBase);
+  put(base, 'baseline-change.ts', 'export const baseline = true;');
+  const advancedBase = commit(base, 'target advanced independently');
+  git(base, 'checkout', '--detach', options.head);
+  expect(() => releasePreflight({ ...options, prBase: advancedBase }, base)).toThrow(/current target branch; integrate it/);
+  expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
 });
 
 test('CLI rejects unknown, duplicate and missing values and retains explicit build opt-in', () => {

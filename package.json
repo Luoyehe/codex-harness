@@ -1,22 +1,23 @@
 {
   "name": "codex-harness",
-  "version": "2.3.3",
+  "version": "2.4.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=24.15.0 <25"
   },
   "packageManager": "pnpm@11.22.0",
-  "codexVersion": "0.164.0",
+  "codexVersion": "0.169.0",
   "harnessAuthentication": "account-v1",
   "codexHarnessExecutionMode": 1,
   "codexHarnessThreadHistory": 2,
   "scripts": {
     "release:preflight": "node scripts/release-preflight.mjs",
-    "build:server": "tsc -p tsconfig.server.json",
+    "build:server": "node scripts/build-server.mjs",
     "build:web": "vite build --config web/vite.config.ts",
     "build": "pnpm build:server && pnpm build:web",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "test:targeted": "node scripts/run-tests.mjs --targeted",
     "test:full": "node scripts/run-tests.mjs --full",
     "snapshot": "node scripts/snapshot.mjs",

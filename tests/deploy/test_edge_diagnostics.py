@@ -117,6 +117,20 @@ class EdgeDiagnosticsTests(unittest.TestCase):
         self.assertFalse(result['ok'])
         self.manager.system.logs.assert_not_called()
 
+    def test_secrets_are_removed_before_taking_the_visible_log_tail(self):
+        atomic_write(self.layout.config / 'gateway-token', b'fixture-token')
+        profiles = self.layout.state / 'providers'; profiles.mkdir(parents=True)
+        self.manager.providers = SimpleNamespace(root=profiles)
+        secret = 'retained-dns-secret-fixture'
+        # The old implementation sliced through this credential before masking.
+        self.manager.system.logs.return_value = 'prefix' + secret + 'x' * (131072 - 8)
+        with patch('deploy.diagnostic_secrets.retained_secrets', return_value=[secret]):
+            result = self.manager.dispatch({'method': 'logs', 'params': {'lines': 1}})
+        self.assertTrue(result['ok'])
+        self.assertNotIn('fixture', result['result']['text'])
+        self.assertNotIn(secret[-8:], result['result']['text'])
+        self.assertTrue(result['result']['truncated'])
+
 
 if __name__ == '__main__':
     unittest.main()

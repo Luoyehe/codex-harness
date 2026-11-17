@@ -16,6 +16,12 @@ from .dns_providers import PROVIDERS
 from .edge_defaults import DEFAULT_HTTP_PORT, DEFAULT_HTTPS_PORT
 
 
+
+def diagnostic_message(error):
+    messages = {"budget": "超出安全容量，请查看保留材料并按恢复说明整理后重试。", "integrity": "材料完整性或身份校验失败，请检查状态与恢复记录。", "stop_unknown": "无法确认服务已停止，请先检查服务状态。", "busy": "仍有执行中的任务，请等待结束或使用明确的停止功能。", "recovery_required": "存在未完成事务，请进入修复与恢复菜单选择原事务。", "not_installed": "实例尚未安装，请安装或恢复初始化。", "command_failed": "系统操作未完成，请查看服务日志和恢复记录。"}
+    text = str(error)
+    return messages.get(error.code, text if any('\u4e00' <= c <= '\u9fff' for c in text) else "操作条件不满足，请查看状态与恢复说明；可使用此错误码定位问题。")
+
 class Cancelled(Exception):
     pass
 
@@ -142,6 +148,9 @@ class Console:
             self.output(f"保持 SSH 连接后打开 http://127.0.0.1:{port}；可随时从本菜单配置 HTTPS。")
 
     def update(self) -> None:
+        from .transactions import require_initialization_complete
+        require_initialization_complete(Layout(self.instance))
+        require((Layout(self.instance).config / "instance.json").is_file(), "实例尚未安装，请选择安装或恢复初始化。", "not_installed")
         self.output(f"将使用当前源码目录：{self.source}")
         self.output("请先在这个独立目录取得并检查要升级的版本。应用、账号、项目和证书数据会保留。")
         require(len(list(Layout(self.instance).work.glob("candidate-*"))) < 8,
@@ -154,6 +163,7 @@ class Console:
             # must never be followed by an application activation.
             self.command("control-update")
             self.command("config-layer-migrate")
+            self.command("https-refresh-client-identity")
             self.command("update", "--source", str(archive))
         self.output("升级完成。")
         self.status()
@@ -240,9 +250,16 @@ class Console:
         if not self.confirm("按以上方案配置 HTTPS"):
             return
         if mode == "3":
-            arguments += ["--certificate", self.prompt("证书 PEM 绝对路径"), "--private-key", self.prompt("私钥 PEM 绝对路径")]
-            ca = self.prompt("自定义 CA PEM 绝对路径（留空使用系统信任）")
-            arguments += ["--tls-ca-certificate", ca] if ca else ["--tls-system-ca"]
+            retain = settings.get("tls") == "provided" and self.confirm("保留当前证书和私钥", default=True)
+            if not retain:
+                arguments += ["--certificate", self.prompt("证书 PEM 绝对路径"), "--private-key", self.prompt("私钥 PEM 绝对路径")]
+            ca_mode = self.choice("证书信任来源", {"1": "保留当前信任设置", "2": "系统信任库", "3": "新的自定义 CA 文件"}, "1" if retain else "2")
+            if ca_mode == "2": arguments += ["--tls-system-ca"]
+            elif ca_mode == "3": arguments += ["--tls-ca-certificate", self.prompt("自定义 CA PEM 绝对路径")]
+        proxy = self.prompt("组件下载代理（可选，仅本机 HTTP URL；留空直连）")
+        if proxy:
+            from .dns_caddy_build import validate_download_proxy
+            arguments += ["--download-proxy", validate_download_proxy(proxy)]
         arguments += ["--username", username or self.prompt("管理员用户名", "admin")]
         if self.confirm("管理员已开启两步验证"):
             arguments.append("--two-factor")
@@ -311,18 +328,23 @@ class Console:
 
     def recover(self) -> None:
         choice = self.choice("按发生中断的阶段恢复", {"1": "修复未完成的应用、供应商或 HTTPS 更新", "2": "恢复中断的控制工具更新",
-                            "3": "继续首次安装初始化", "4": "恢复卸载后保留的服务", "5": "回滚到上一个应用版本", "6": "归档已完成构建（释放升级名额）"})
+                            "3": "继续首次安装初始化", "4": "恢复卸载后保留的服务", "5": "回滚到上一个应用版本", "6": "归档已完成构建（释放升级名额）", "7": "恢复中断的配置层迁移"})
         if choice == "6":
             self.archive_candidates()
             return
-        command = {"1": "repair", "2": "control-recover", "3": "install-resume", "4": "restore-services", "5": "rollback"}[choice]
+        command = {"1": "repair", "2": "control-recover", "3": "install-resume", "4": "restore-services", "5": "rollback", "7": "config-layer-recover"}[choice]
+        self.output("恢复会按保留事务短暂停启相关服务；可能中断任务。不会重放原任务或删除未知回执。")
+        arguments = []
+        if command in ("repair", "control-recover", "config-layer-recover"):
+            direction = self.choice("恢复方向（前向仅适用于该类型支持的原候选）", {"1": "恢复原版本 / 原配置", "2": "完成原候选版本 / 配置"}, "1")
+            arguments = ["--target", "old" if direction == "1" else "candidate"]
         if not self.confirm("执行恢复操作 " + command):
             return
         if command == "install-resume":
             with self.source_archive() as archive:
                 self.command(command, "--source", str(archive))
         else:
-            self.command(command)
+            self.command(command, *arguments)
         self.output("恢复操作完成，请查看状态并在网页确认。")
 
     def loop(self) -> None:
@@ -362,13 +384,13 @@ class Console:
             except Cancelled:
                 self.output("已取消，返回主菜单。")
             except DeployError as exc:
-                self.output(f"操作未完成 [{exc.code}]：{exc}")
+                self.output(f"操作未完成 [{exc.code}]：" + diagnostic_message(exc))
                 self.output("保留现有数据和恢复记录。请先查看状态/日志，按提示修复；不会自动重试或重复提交。")
             except (EOFError, KeyboardInterrupt):
                 self.output("\n已退出；已执行的步骤不会自动撤销。")
                 return
             except Exception:
-                self.output("操作未完成。请查看状态和日志、检查保留的恢复记录；不会自动重试。")
+                self.output("操作未完成 [unexpected_error]。请运行状态与诊断，检查本实例保留的恢复记录；不会自动重试，也不会显示可能包含密钥的异常详情。")
 
     def execution_permissions(self) -> None:
         current = self.command("execution-mode-read")
@@ -382,7 +404,8 @@ class Console:
         if choice in ("1", "2"):
             self.command("root-access", "--allow" if choice == "1" else "--revoke", "--confirm-restart")
         elif choice == "5":
-            self.command("execution-mode-recover")
+            direction = self.choice("恢复方向", {"1": "原执行身份", "2": "完成原候选身份"}, "1")
+            self.command("execution-mode-recover", "--target", "old" if direction == "1" else "candidate")
         else:
             mode = "native" if choice == "3" else "root"
             arguments = ["--mode", mode, "--expected-revision", current["revision"], "--confirm-restart"]
@@ -472,6 +495,9 @@ class Console:
             self.output("已有实例：" + "、".join(known))
         value = self.prompt("实例名称（小写字母开头，最多 20 个字母/数字/连字符）",
                             known[0] if len(known) == 1 and not prefer_current else self.instance)
+        while not INSTANCE.fullmatch(value):
+            self.output("实例名称无效 [invalid_input]：请用小写字母开头，仅含字母、数字和连字符，最多 20 个字符。")
+            value = self.prompt("请重新输入实例名称", self.instance)
         Layout(value)
         self.instance = value
 

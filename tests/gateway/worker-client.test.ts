@@ -68,6 +68,15 @@ async function fixture(response: JsonValue = { ok: true, result: {} }) {
   const socket = await connect();
   return { worker, socket, requests, events, connect, handshake, loseRegistration: () => { loseRegistration = true; }, close: async () => { worker.close(); for (const socket of wss.clients) socket.terminate(); await new Promise<void>(resolve => wss.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); } };
 }
+it('a definite registration refusal does not disconnect other owners on the shared worker channel', async () => {
+  const f = await fixture({ ok: false, error: { code: 'capacity', message: 'Registration capacity', delivery: 'not_sent' } });
+  try {
+    await f.handshake(f.socket, randomUUID()); const owner = randomUUID();
+    await expect(f.worker.clientConnected(owner)).rejects.toMatchObject({ code: 'capacity', delivery: 'not_sent' });
+    expect(f.worker.connected).toBe(true); await f.worker.clientDisconnected(owner);
+    expect(f.requests.map(row => row.path)).toEqual(['/connect']);
+  } finally { await f.close(); }
+});
 it('requires a channel handshake, binds registration/RPC/revocation headers and hides the credential', async () => {
   const f = await fixture(), channel = randomUUID(), owner = randomUUID();
   try {

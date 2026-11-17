@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -53,8 +54,8 @@ test('official CLI sends discovered skill input, untrusted context and structure
   const provider = await loopbackProvider('{"answer_code":"local-fixture"}'); defer(() => provider.close());
   const catalog = path.join(workerHome, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'); let runtime: RuntimeService | undefined;
-  defer(() => { if (runtime?.native.processId) expect(() => process.kill(runtime!.native.processId!, 0)).toThrow(); });
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'); let runtime: RuntimeService | undefined;
+  defer(() => { if (runtime) expectNativeClosed(runtime.native); });
   defer(() => runtime?.close());
     runtime = await RuntimeService.create({ bin, home, workerHome, cwd: project, env, dev: true }); const context = { clientId: 'input-native', beforeWrite: () => {} };
     const skills = object(await runtime.call('skills/list', { cwd: project, forceReload: true }, context)); const skill = (skills.data as JsonValue[]).flatMap(entry => object(entry).skills as JsonValue[]).map(entry => object(entry)).find(entry => entry.name === 'fixture-skill')!; expect(skill).toBeTruthy();

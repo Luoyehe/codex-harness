@@ -32,7 +32,7 @@ function fixture() {
   }
   return base;
 }
-function events() {
+function events(): { Package: string; Action: string; Test?: string }[] {
   return [{ Package: packageName, Action: 'start' }, ...[...names, ...subtests].flatMap(Test => [{ Package: packageName, Action: 'run', Test }, { Package: packageName, Action: 'pass', Test }]), { Package: packageName, Action: 'pass' }];
 }
 const json = (items: any[]) => items.map(item => JSON.stringify(item)).join('\n') + '\n';

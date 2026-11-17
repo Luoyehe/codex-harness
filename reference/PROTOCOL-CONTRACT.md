@@ -1,15 +1,15 @@
 # Codex App Server 协议契约
 
-核验日期：2026-10-25。固定实现基线：官方 npm `@openai/codex@0.164.0`，独立 Windows x64 二进制报告 `codex-cli 0.164.0`。这是当次 npm `latest`，不代表永久最新。没有读取旧项目、旧 schema、真实用户 CODEX_HOME，也没有调用模型推理。
+核验日期：2026-11-17。固定实现基线：官方 npm `@openai/codex@0.169.0`，独立 Windows x64 二进制报告 `codex-cli 0.169.0`。这是当次 npm `latest`，不代表永久最新。协议从校验过的官方分发重新生成；测试使用隔离 home 和本地协议替身，不读取真实用户 CODEX_HOME、不调用商业模型推理。
 
 ## 来源和可复现生成
 
 - [官方 App Server 文档](https://learn.chatgpt.com/docs/app-server) 提供流程说明。
-- [官方 npm latest](https://registry.npmjs.org/@openai/codex/latest) 和 [固定 Windows 包元数据](https://registry.npmjs.org/@openai/codex/0.164.0-win32-x64) 提供版本、下载地址、完整性校验。
-- Windows 包：`https://registry.npmjs.org/@openai/codex/-/codex-0.164.0-win32-x64.tgz`。
-- 包 SHA-512（npm integrity）：`sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==`，下载后已验证。
-- 二进制：`reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe`。
-- 在独立子进程环境中将 `CODEX_HOME` 指向 `reference/runtime/codex-0.164.0/generation-home`，以新项目为 cwd，运行：
+- [官方 npm latest](https://registry.npmjs.org/@openai/codex/latest) 和 [固定 Windows 包元数据](https://registry.npmjs.org/@openai/codex/0.169.0-win32-x64) 提供版本、下载地址、完整性校验。
+- Windows 包：`https://registry.npmjs.org/@openai/codex/-/codex-0.169.0-win32-x64.tgz`。
+- 包 SHA-512（npm integrity）：`sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg==`，下载后已验证。
+- 二进制：`reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe`。
+- 在独立子进程环境中将 `CODEX_HOME` 指向 `reference/runtime/codex-0.169.0/generation-home`，以新项目为 cwd，运行：
 
 ```text
 codex.exe --version
@@ -23,7 +23,7 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 
 - 启动固定二进制 `app-server --listen stdio://`；stdin/stdout 是逐行 JSON RPC，stderr 使用独立管道排空，不保留或转发。wire 不带 `jsonrpc` 属性。
 - 每条新连接只发一次 `initialize`，成功后发无 id 的 `initialized`，再放行普通请求。
-- 最小 capabilities：`{ experimentalApi: true, requestAttestation: false }`。不要宣称尚未实现的 MCP 扩展；不要接管外部 ChatGPT token 刷新或 attestation。
+- 当前 capabilities：`{ experimentalApi: true, requestAttestation: false, explicitGatewayOauth: true }`。网关授权必须由用户明确发起；0.169.0 的 `GatewayOAuthLoginResponse.prompt` 可为空，非空时按实际 prompt 类型显示授权网址或设备码，并保持 loginId 所有权。不宣称尚未实现的 MCP 扩展，不接管外部 ChatGPT token 刷新或 attestation。
 - 请求 `{ id, method, params }`；响应 `{ id, result }` 或 `{ id, error }`；通知无 id。服务端反向请求也有 id 和 method，必须与普通 RPC 响应分开处理。
 - 保留请求 id 的 string/number 类型。RPC 错误保留 code/message/data；进程退出必须拒绝全部等待中的 RPC、标记终端结束，并清除该连接待答请求。
 - 断线重连重新握手；不要重放未确定成功的 turn/start 或审批。先刷新 thread/read、状态和历史，再由用户继续。
@@ -33,12 +33,12 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 - `account/read { refreshToken:false }` 读取状态；`account/login/start { type:"chatgptDeviceCode" }` 返回 `loginId / verificationUrl / userCode`。前端显示这三者并等待 `account/login/completed`，只有 `success:true` 才表示成功；`account/updated` 后刷新账户。取消用 `account/login/cancel { loginId }`，退出用 `account/logout`。
 - 第三方 provider 的 key 使用该子进程环境变量和独立 config，不能误发给 OpenAI 的 `account/login/start {type:"apiKey"}`。配置使用独立 provider id、`base_url`、`env_key`、`wire_api="responses"`；避免占用内置 provider id。[配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)
 - 自定义地址必须支持 Responses 的请求、增量 SSE、结束事件和工具往返。只有 Chat Completions / Anthropic Messages 的地址不够；Coding Plan 如使用此类地址，需要明确实现并测试本地兼容桥。[网关兼容要求](https://learn.chatgpt.com/docs/enterprise/gateway-compatibility)
-- `model/list` 提供可选模型及 effort/inputModalities；自定义 provider 的模型 id 允许用户显式指定，不能把内置列表当作第三方可用性证明。能力 UI 采用 server/provider 实际返回值。
+- `model/list` 提供可选模型及 effort/inputModalities，0.169.0 可用 `modelProvider` 指定已配置供应商，无需另启目录探测进程；自定义 provider 的模型 id 允许用户显式指定，不能把内置列表当作第三方可用性证明。能力 UI 采用 server/provider 实际返回值。
 - 不把 key、auth token、设备登录状态写进浏览器持久存储、日志或导出诊断。测试只用独立临时 home 和本地模拟 provider。
 
 ## 项目、线程和历史
 
-| 目标 | 0.164.0 方法与要点 |
+| 目标 | 0.169.0 方法与要点 |
 | --- | --- |
 | 项目 | schema 含 `project/list/read/create/import/update/move/delete`。`project/create` 需要 `name, roots, idempotencyKey`；若应用自管目录项目，线程仍明确传 cwd。不要把项目 id 当作路径。 |
 | 列表 | `thread/list` 分页；明确 `sourceKinds:["cli","vscode","appServer","exec"]`，防止默认过滤掉 app-server 会话。展示全部供应商时须显式传 `modelProviders:[]`，省略会按当前默认供应商过滤。按需传 cwd / projectId / archived，持续读取 nextCursor。 |
@@ -53,6 +53,8 @@ codex.exe app-server generate-ts --experimental --out protocol/ts
 本版本 `ThreadListParams` 支持 `projectId/sectionId`，但没有网页部分示例中的 `isPinned`；不要凭网页示例添加该字段。`Thread.turns=[]` 不等于没有历史。新历史以分页为主；完整 `includeTurns` 仅用于兼容。
 
 `thread/unsubscribe` 的成功回包不证明写入器已经关闭。需要修改持久历史时，须先订阅并等待对应 `thread/closed`，再通过上游 `thread-writer-locks` 协调锁排除旧写入器与新写入器。受管 app-server 固定 `thread_unload_delay_secs=0`，普通活动任务仍由上游决定何时允许卸载；网页断开不等于中断模型任务。
+
+0.169.0 的会话恢复保留供应商绑定，不能在 `thread/resume` 上给同一会话换供应商。跨供应商转换从一开始便以目标供应商创建独立新会话，随后只在新副本中导入并规范化历史；原会话的历史、供应商、名称均不修改。实际本地 Responses 验收覆盖压缩历史、双向转换、删除原会话和重启后继续副本。
 
 ## 输入、流式事件和状态
 
@@ -94,6 +96,6 @@ MCP 普通 form 校验覆盖 required、string/number/integer/boolean、enum/one
 
 ## 已核验及边界
 
-独立空 home 下通过：版本、两种 schema 生成、初始化握手、未登录 account/read、空 thread/list、空 project/list、cmd.exe echo 的流式输出；Windows PTY 的创建、resize、stdin 写入、echo 输出和 exitCode:0 也通过。未调用 `turn/start`、未登录真实账户、未调用付费模型。
+独立 home 下通过：版本、两种 schema 生成、初始化握手、未登录 account/read、thread/project 列表及终端创建、resize、stdin、输出和退出。进一步的原生验收调用 `turn/start` 时仅连接本地 Responses 替身，覆盖会话转换、队列、目标、审批与附件继承；未登录真实账户、未调用付费模型。具体平台、通过项、首次失败及后续修正证据以 `PROVENANCE.json` 与版本审计记录为准，平台跳过不计为通过。
 
 CLI 稳定发布不等于每项 app-server 能力稳定；官方将 app-server/部分接口标为实验性。隔离 smoke 不能证明真实 ChatGPT 登录、智谱计费/套餐权益或自定义 provider 的全部工具行为。真实联调用用户明确选择的 provider，不能后台偷偷调用付费推理探测。

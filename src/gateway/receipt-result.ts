@@ -33,7 +33,7 @@ function endpoint(value: JsonValue | undefined, https = false): string {
   if (!(https ? url.protocol === 'https:' : ['https:', 'http:'].includes(url.protocol)) || !url.hostname || url.username || url.password || url.search || url.hash) throw new Error('Invalid management URL');
   return text;
 }
-function providerReceipt(input: JsonValue): JsonObject {
+function providerPreviewReceipt(input: JsonValue): JsonObject {
   object(input);
   if (typeof input.kind !== 'string' || !providerKinds.includes(input.kind) || typeof input.hasApiKey !== 'boolean' || !Array.isArray(input.models) || input.models.length > 1000) throw new Error('Invalid provider receipt');
   const result: JsonObject = { kind: input.kind!, revision: hex(input.revision, 32), hasApiKey: input.hasApiKey };
@@ -53,7 +53,7 @@ function providerReceipt(input: JsonValue): JsonObject {
       const id = providerId(value.id);
       if (seen.has(id) || value.connections !== undefined || typeof value.enabled !== 'boolean') throw new Error('Invalid provider record');
       seen.add(id);
-      return { ...providerReceipt(value), id, name: managementText(value.name, 256), enabled: value.enabled,
+      return { ...providerPreviewReceipt(value), id, name: managementText(value.name, 256), enabled: value.enabled,
         modelProvider: managementText(value.modelProvider, 80) };
     });
   }
@@ -127,6 +127,16 @@ function providerReceipt(input: JsonValue): JsonObject {
   }
   return result;
 }
+/** Publication receipts retain identity and outcome, not a second copy of every model. */
+function providerReceipt(input: JsonValue): JsonObject {
+  object(input); const result: JsonObject = { revision: hex(input.revision, 32) };
+  if (typeof input.kind !== 'string' || !providerKinds.includes(input.kind)) throw new Error('Invalid provider kind'); result.kind = input.kind;
+  for (const key of ['providerId', 'defaultProviderId', 'savedProfileId', 'deletedProfileId', 'restoredProfileId']) if (input[key] !== undefined) {
+    const id = managementText(input[key], 32); if (id !== 'default' && !/^[a-f0-9]{32}$/.test(id)) throw new Error('Invalid provider identity'); result[key] = id;
+  }
+  if (input.modelProvider !== undefined) result.modelProvider = managementText(input.modelProvider, 80);
+  return result;
+}
 /** The initial response and every replay share this projection; native history owns message bodies. */
 export function receiptResult(method: string, input: JsonValue): JsonValue {
   try { return projectResult(method, input); }
@@ -137,7 +147,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
   if (method === 'account/sendAddCreditsNudgeEmail') { object(input); if (!['sent', 'cooldown_active'].includes(String(input.status)) || !['credits', 'usage_limit'].includes(String(input.creditType))) throw new Error('Invalid nudge acknowledgement'); return { status: input.status!, creditType: input.creditType!, accountId: identifier(input.accountId) }; }
   if (method === 'account/login') { object(input); if (input.type !== 'chatgptDeviceCode') throw new Error('Invalid login type'); return { type: input.type, loginId: identifier(input.loginId) }; }
   if (method === 'account/login/cancel') { object(input); if (!['canceled', 'notFound'].includes(String(input.status))) throw new Error('Invalid cancellation result'); return { status: input.status! }; }
-  if (method === 'diagnostics/cli/run') { object(input); if (!['doctor', 'models-bundled'].includes(String(input.kind)) || !['completed', 'failed'].includes(String(input.status))) throw new Error('Invalid diagnostic result'); return { resultId: identifier(input.resultId), kind: input.kind!, status: input.status! }; }
+  if (method === 'diagnostics/cli/run') { object(input); if (!['doctor', 'models-bundled'].includes(String(input.kind)) || !['completed', 'failed', 'canceled'].includes(String(input.status)) || input.status === 'canceled' && input.cleanupConfirmed !== true) throw new Error('Invalid diagnostic result'); return { resultId: identifier(input.resultId), kind: input.kind!, status: input.status!, ...(input.status === 'canceled' ? { cleanupConfirmed: true } : {}) }; }
   if (method === 'thread/approveGuardianDeniedAction') { object(input); if (input.registered !== true) throw new Error('Retry authorization was not registered'); return { threadId: identifier(input.threadId), approvalId: identifier(input.approvalId), registered: true }; }
   if (['workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore'].includes(method)) {
     object(input); const sha = /^[a-f0-9]{64}$/;
@@ -170,7 +180,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     object(input); if (!['disabled', 'connecting', 'connected', 'errored'].includes(String(input.status))) throw new Error('Invalid remote status');
     return { status: input.status!, serverName: validText(input.serverName, 4096), installationId: identifier(input.installationId), environmentId: input.environmentId === null ? null : identifier(input.environmentId) };
   }
-  if (method === 'remoteControl/pairing/start') { object(input); if (!Number.isSafeInteger(input.expiresAt)) throw new Error('Invalid pairing expiry'); return { pairingId: identifier(input.pairingId), environmentId: identifier(input.environmentId), expiresAt: input.expiresAt! }; }
+  if (method === 'remoteControl/pairing/start') { object(input); if (!Number.isSafeInteger(input.expiresAt) || input.secretAvailable !== undefined && typeof input.secretAvailable !== 'boolean') throw new Error('Invalid pairing expiry'); return { pairingId: identifier(input.pairingId), environmentId: identifier(input.environmentId), expiresAt: input.expiresAt!, ...(typeof input.secretAvailable === 'boolean' ? { secretAvailable: input.secretAvailable } : {}) }; }
   if (method === 'remoteControl/client/revoke') { object(input); if (input.revoked !== true) throw new Error('Revocation not confirmed'); return { environmentId: identifier(input.environmentId), clientId: identifier(input.clientId), revoked: true }; }
   if (method === 'skills/extraRoots/set') { object(input); if (!Array.isArray(input.roots) || input.roots.length > 16 || input.persistence !== 'current_runtime') throw new Error('Invalid skill roots'); return { roots: input.roots.map(root => validText(root, 4096)), persistence: 'current_runtime' }; }
   if (method === 'thread/realtime/start' || method === 'thread/realtime/stop') {
@@ -197,11 +207,11 @@ function projectResult(method: string, input: JsonValue): JsonValue {
   if (method === 'plugin/share/checkout') {
     object(input); return { remotePluginId: identifier(input.remotePluginId), pluginId: validText(input.pluginId, 1024), pluginName: validText(input.pluginName, 256), pluginPath: validText(input.pluginPath, 4096), marketplaceName: validText(input.marketplaceName, 256), marketplacePath: validText(input.marketplacePath, 4096), remoteVersion: input.remoteVersion === null ? null : validText(input.remoteVersion, 256) };
   }
-  if (['workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore'].includes(method)) {
-    object(input); const flag = method.endsWith('/create') ? 'created' : method.endsWith('/attach') ? 'attached' : method.endsWith('/archive') ? 'archived' : 'restored';
-    if (input[flag] !== true || input.phase !== (flag === 'archived' ? 'archived' : 'active') || typeof input.revision !== 'string' || !/^[a-f0-9]{64}$/.test(input.revision) || typeof input.head !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(input.head)) throw new Error('Invalid worktree receipt');
-    if (typeof input.worktreeVersion !== 'number' || !Number.isSafeInteger(input.worktreeVersion) || input.worktreeVersion < 1) throw new Error('Missing supervisor generation');
-    return { worktreeId: identifier(input.worktreeId), worktreeVersion: input.worktreeVersion, path: validText(input.path, 4096), phase: input.phase!, head: input.head, revision: input.revision, [flag]: true };
+  if (['workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/worktree/retire'].includes(method)) {
+    object(input); const flag = method.endsWith('/create') ? 'created' : method.endsWith('/attach') ? 'attached' : method.endsWith('/archive') ? 'archived' : method.endsWith('/retire') ? 'retired' : 'restored';
+    if (input[flag] !== true || input.phase !== (flag === 'retired' ? 'retired' : flag === 'archived' ? 'archived' : 'active') || typeof input.revision !== 'string' || !/^[a-f0-9]{64}$/.test(input.revision) || typeof input.head !== 'string' || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(input.head)) throw new Error('Invalid worktree receipt');
+    if (typeof input.worktreeVersion !== 'number' || !Number.isSafeInteger(input.worktreeVersion) || input.worktreeVersion < 1 || flag === 'retired' && input.retained !== true) throw new Error('Missing supervisor generation or retained files confirmation');
+    return { worktreeId: identifier(input.worktreeId), worktreeVersion: input.worktreeVersion, path: validText(input.path, 4096), phase: input.phase!, head: input.head, revision: input.revision, [flag]: true, ...(flag === 'retired' ? { retained: input.retained === true } : {}) };
   }
   if (method === 'import/apply') {
     object(input); if (input.completed !== true || !Array.isArray(input.itemTypeResults)) throw new Error('Import completion missing');
@@ -333,7 +343,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     }
     return result;
   }
-  if (method === 'project/add' || method === 'project/create' || method === 'project/rename') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096) }; }
+  if (method === 'project/add' || method === 'project/create' || method === 'project/rename') { object(input); return { id: identifier(input.id), name: validText(input.name, 128), path: validText(input.path, 4096), ...(input.existing === true ? { existing: true } : {}) }; }
   if (method === 'mcp/oauth') {
     object(input); return { handoffId: identifier(input.handoffId), epoch: identifier(input.epoch), name: identifier(input.name), threadId: input.threadId === null ? null : identifier(input.threadId) };
   }
@@ -358,7 +368,7 @@ function projectResult(method: string, input: JsonValue): JsonValue {
       ...(input.changed ? { transaction: input.transaction! } : {}) };
   }
   if (method === 'system/models/refresh') {
-    const result = providerReceipt(input); object(input);
+    object(input); const result = input.requiresConfirmation === true ? providerPreviewReceipt(input) : providerReceipt(input);
     if (typeof input.applied !== 'boolean' || typeof input.requiresConfirmation !== 'boolean' || input.applied && input.requiresConfirmation) throw new Error('Invalid catalog confirmation');
     result.applied = input.applied; result.requiresConfirmation = input.requiresConfirmation;
     if (input.source !== undefined) {

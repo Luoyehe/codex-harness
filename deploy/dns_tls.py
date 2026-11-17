@@ -124,6 +124,8 @@ def dns_unit_settings(layout, metadata: dict) -> tuple[Path, Path]:
 def validate_dns_caddy(layout, metadata: dict, binary: Path, config: Path, uid: int, gid: int) -> None:
     credentials = _environment(_read_private(dns_credentials_path(layout, metadata)), metadata.get("dnsProvider", "alidns"))
     environment = {"PATH": "/usr/bin:/bin", "HOME": str(layout.state / "caddy"), "LANG": "C.UTF-8", **credentials}
+    if metadata.get("clientIdentity") == 1:
+        environment["HARNESS_EDGE_PROXY_TOKEN"] = "validation-only"
     # Values travel only in the child's environment, never argv or output.
     try:
         result = subprocess.run(["/usr/bin/setpriv", "--reuid", str(uid), "--regid", str(gid), "--clear-groups", "--no-new-privs",

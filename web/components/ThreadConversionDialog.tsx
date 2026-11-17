@@ -74,7 +74,7 @@ export function ThreadConversionDialog({ api, threadId, sourceProvider, epoch, m
         <p>新会话的供应商专用推理上下文会转换，正文和工具记录保留。目标供应商仍可能不接受全部上下文；转换也可能失败。长历史需要等待，请勿重复提交。</p>
         <p>这不会撤销已经发生的命令、文件修改或外部操作。转换完成后打开新会话；你仍可回到原会话。</p>
       </>}
-      {!enabled && <p role="status">原会话必须已加载且空闲。若原供应商已停用或删除，请先恢复其配置并加载会话；转换不会替你加载或继续任务。</p>}
+      {!enabled && !action.busy && !unresolved && <p role="status">原会话必须已加载且空闲。若原供应商已停用或删除，请先恢复其配置并加载会话；转换不会替你加载或继续任务。</p>}
       {error && <p role="alert" className="error">{error}</p>}
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原转换操作回执" />
       <div className="inline wrap">

@@ -128,12 +128,12 @@ export class ManagedProviders {
   }
 }
 
-export async function readNativeCatalog(native: NativeCall, usesChatgpt: boolean, includeHidden = false): Promise<JsonObject[]> {
+export async function readNativeCatalog(native: NativeCall, usesChatgpt: boolean, includeHidden = false, modelProvider?: string): Promise<JsonObject[]> {
   if (usesChatgpt && object(object(await native('account/read', { refreshToken: false })).account ?? {}).type !== 'chatgpt') return [];
   const rows: JsonObject[] = [], seen = new Set<string>();
   let cursor: string | undefined;
   for (let page = 0; page < 10; page++) {
-    const result = object(await native('model/list', { limit: 100, includeHidden, ...(cursor ? { cursor } : {}) }));
+    const result = object(await native('model/list', { limit: 100, includeHidden, ...(modelProvider ? { modelProvider } : {}), ...(cursor ? { cursor } : {}) }));
     if (!Array.isArray(result.data) || result.data.length > 100) throw new DeliveryError('invalid_native_response', 'Invalid model directory');
     rows.push(...result.data.map(row => object(row)));
     if (result.nextCursor == null) return rows;

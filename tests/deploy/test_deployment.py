@@ -824,21 +824,22 @@ class ReadinessTests(unittest.TestCase):
 class NativeLauncherTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "linux", "Linux descriptor registration and process cleanup")
     def test_stream_initialization_failure_reaps_the_already_started_child(self):
-        driver = """import sys
+        driver = """import sys,json
 import deploy.native_launcher as native
+from tests.deploy.process_identity import process_start
 native.security_process()
 original = native.subprocess.Popen
 pids = []
 def spawn(*args, **kwargs):
     child = original(*args, **kwargs)
-    pids.append(child.pid)
+    pids.append({'pid':child.pid,'start':process_start(child.pid)})
     return child
 native.subprocess.Popen = spawn
 try:
     native.supervise([sys.executable, '-c', 'import time; time.sleep(60)'], {'PATH':'/usr/bin:/bin'}, '/', streaming=True)
 except PermissionError:
     assert not native.direct_children()
-    print(pids[0])
+    print(json.dumps(pids[0]))
 else:
     raise AssertionError('Expected epoll rejection of /dev/null')
 """
@@ -847,7 +848,10 @@ else:
             command = ["/usr/bin/setpriv", "--bounding-set=-all", "--inh-caps=-all", "--ambient-caps=-all", *command]
         result = subprocess.run(command, stdin=subprocess.DEVNULL, timeout=10, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr.decode())
-        self.assertFalse(Path("/proc", result.stdout.decode().strip()).exists())
+        from tests.deploy.process_identity import same_process
+        identity = json.loads(result.stdout)
+        self.assertIsNotNone(identity['start'])
+        self.assertFalse(same_process(identity['pid'], identity['start']))
 
     @unittest.skipUnless(sys.platform == "linux", "Linux pipe backpressure and subreaper")
     def test_native_bridge_backpressures_without_losing_large_protocol_frames(self):
@@ -882,14 +886,16 @@ else:
             root = Path(folder)
             pidfile = root / "descendant-pid"
             fixture = root / "native.py"
-            fixture.write_text("import subprocess,sys\nfrom pathlib import Path\nchild=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],start_new_session=True)\nPath(sys.argv[1]).write_text(str(child.pid))\n")
+            fixture.write_text("import json,subprocess,sys\nfrom pathlib import Path\nchild=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],start_new_session=True)\nstart=Path(f'/proc/{child.pid}/stat').read_text().rsplit(')',1)[1].split()[19]\nPath(sys.argv[1]).write_text(json.dumps({'pid':child.pid,'start':start}))\n")
             driver = "from deploy.native_launcher import security_process,supervise\nimport sys\nsecurity_process()\nraise SystemExit(supervise([sys.executable,sys.argv[1],sys.argv[2]], {'PATH':'/usr/bin:/bin'}, sys.argv[3], streaming=False))\n"
             command = [sys.executable, "-c", driver, str(fixture), str(pidfile), str(root)]
             if os.geteuid() == 0:
                 command = ["/usr/bin/setpriv", "--bounding-set=-all", "--inh-caps=-all", "--ambient-caps=-all", *command]
             result = subprocess.run(command, timeout=10, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr.decode())
-            self.assertFalse(Path("/proc", pidfile.read_text()).exists())
+            from tests.deploy.process_identity import same_process
+            identity = json.loads(pidfile.read_text())
+            self.assertFalse(same_process(identity['pid'], identity['start']))
 
 
 class CatalogDiscoveryTests(unittest.TestCase):

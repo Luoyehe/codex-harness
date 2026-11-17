@@ -18,12 +18,13 @@ type Tree = {
 };
 type LiveTree = {
   worktreeId: string;
-  phase: 'active' | 'archived' | 'recovery';
+  phase: 'active' | 'archived' | 'recovery' | 'retired';
   path: string;
   head: string;
-  revision: string;
+  revision: string | null;
+  mutationUnavailable?: { code: string; message: string };
 };
-const phaseLabels = { active: '活动', archived: '已归档', recovery: '需要恢复' };
+const phaseLabels = { active: '活动', archived: '已归档', recovery: '需要恢复', retired: '已退役' };
 export function WorkspaceWorktrees({
   api,
   project,
@@ -53,7 +54,7 @@ export function WorkspaceWorktrees({
       revision?: string;
       ref?: string;
     }>(),
-    [intent, setIntent] = useState<'attach' | 'archive' | 'restore' | ''>(''),
+    [intent, setIntent] = useState<'attach' | 'archive' | 'restore' | 'retire' | ''>(''),
     [revision, setRevision] = useState(0);
   const owner = useMemo(() => ({}), [api, project.id, epoch, connected]);
   const changed = useCallback(() => {
@@ -99,7 +100,7 @@ export function WorkspaceWorktrees({
     connected && Boolean(selected),
   );
   const current =
-      detail.data?.worktreeId === selected && validRevision(detail.data.revision)
+      detail.data?.worktreeId === selected
         ? detail.data
         : undefined,
     cached = list.data?.data.find((tree) => tree.worktreeId === selected);
@@ -118,8 +119,8 @@ export function WorkspaceWorktrees({
     confirmation.action === 'create' &&
     confirmation.ref === (ref === 'custom' ? customRef : ref);
   const allowed = (intent: string) =>
-    current &&
-    (intent === 'restore'
+    current && validRevision(current.revision) &&
+    (intent === 'retire' ? ['active', 'archived'].includes(current.phase) : intent === 'restore'
       ? ['archived', 'recovery'].includes(current.phase)
       : current.phase === 'active');
   const perform = async () => {
@@ -138,13 +139,10 @@ export function WorkspaceWorktrees({
     );
   };
   const selectedRef = ref === 'custom' ? customRef : ref,
-    validRef =
-      /^(?:HEAD|[0-9a-f]{40}|[0-9a-f]{64}|refs\/(?:heads|remotes|tags)\/[A-Za-z0-9][A-Za-z0-9._/-]{0,255})$/.test(
-        selectedRef,
-      ) &&
-      !selectedRef.includes('..') &&
-      !selectedRef.includes('//') &&
-      !/(?:\/|\.|\.lock)$/.test(selectedRef);
+    validRef = /^(?:HEAD|[0-9a-f]{40}|[0-9a-f]{64})$/.test(selectedRef) ||
+      /^refs\/(?:heads|remotes|tags)\//u.test(selectedRef) && new TextEncoder().encode(selectedRef).length <= 1024 &&
+      !/[\x00-\x20\x7f~^:?*\[\\]/u.test(selectedRef) && !selectedRef.includes('..') && !selectedRef.includes('@{') &&
+      !selectedRef.endsWith('.') && selectedRef.split('/').every(part => part && !part.startsWith('.') && !part.endsWith('.lock'));
   return (
     <section className="stack workspace-worktrees">
       <div className="section-heading">
@@ -199,11 +197,12 @@ export function WorkspaceWorktrees({
               <strong>实时状态：{phaseLabels[current.phase]}</strong>
               <p className="small path">{current.path}</p>
               <p className="small path">HEAD：{current.head}</p>
-              <p className="small path">内容版本：{current.revision}</p>
+              <p className="small path">内容版本：{current.revision ?? '无法完整检查'}</p>
+              {current.mutationUnavailable && <p className="workspace-warning">{current.mutationUnavailable.message}</p>}
               {cached && (
                 <p className="small muted">
                   上次登记版本 {cached.worktreeVersion} ·{' '}
-                  {new Date(cached.updatedAt).toLocaleString()}
+                  {new Date(cached.updatedAt).toLocaleString('zh-CN')}
                 </p>
               )}
               <div className="inline wrap">
@@ -219,7 +218,7 @@ export function WorkspaceWorktrees({
                     )}
                     <button
                       className="button small"
-                      disabled={action.disabled}
+                      disabled={action.disabled || !validRevision(current.revision)}
                       onClick={() => {
                         setCreating(false);
                         setIntent('attach');
@@ -230,7 +229,7 @@ export function WorkspaceWorktrees({
                     </button>
                     <button
                       className="button small"
-                      disabled={action.disabled}
+                      disabled={action.disabled || !validRevision(current.revision)}
                       onClick={() => {
                         setCreating(false);
                         setIntent('archive');
@@ -244,7 +243,7 @@ export function WorkspaceWorktrees({
                 {['archived', 'recovery'].includes(current.phase) && (
                   <button
                     className="button small"
-                    disabled={action.disabled}
+                    disabled={action.disabled || !validRevision(current.revision)}
                     onClick={() => {
                       setCreating(false);
                       setIntent('restore');
@@ -254,11 +253,12 @@ export function WorkspaceWorktrees({
                     {current.phase === 'recovery' ? '修复并恢复工作树…' : '恢复工作树…'}
                   </button>
                 )}
+                {['active', 'archived'].includes(current.phase) && <button className="button small danger" disabled={action.disabled || !validRevision(current.revision)} onClick={() => { setCreating(false); setIntent('retire'); setConfirmation(undefined); }}>退役工作树（保留文件）…</button>}
               </div>
               {intent && (
                 <div className="workspace-warning stack">
                   <p>
-                    {intent === 'archive'
+                    {intent === 'retire' ? '仅当没有未提交、未跟踪或忽略的文件时，将工作树退役并取消项目登记，释放活动工作树名额。文件移入服务器保留目录；网页不再提供恢复入口，原始项目保持不变。' : intent === 'archive'
                       ? '将整个工作树移到受管归档位置，保留包括未提交和忽略文件在内的全部内容，并取消该工作树项目登记。原始项目保留。'
                       : intent === 'restore'
                         ? '将工作树恢复到固定受管位置，保留当前内容，并重新登记为项目。'
@@ -268,15 +268,16 @@ export function WorkspaceWorktrees({
                     <input
                       type="checkbox"
                       checked={confirmed}
+                      disabled={!validRevision(current.revision)}
                       onChange={(e) =>
                         setConfirmation(
-                          e.target.checked
+                          e.target.checked && validRevision(current.revision)
                             ? {
                                 owner,
                                 action: intent,
                                 worktreeId: selected,
                                 phase: current?.phase,
-                                revision: current?.revision,
+                                revision: current.revision,
                               }
                             : undefined,
                         )
@@ -290,7 +291,7 @@ export function WorkspaceWorktrees({
                     onClick={() => void perform()}
                   >
                     确认
-                    {intent === 'archive'
+                    {intent === 'retire' ? '退役工作树' : intent === 'archive'
                       ? '归档工作树'
                       : intent === 'restore'
                         ? '恢复工作树'

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AdminSettings } from './AdminSettings';
 import { InputPreferences } from './InputPreferences';
 import type { Api } from '../lib/api';
@@ -16,6 +16,7 @@ import { CliDiagnosticsPanel } from './CliDiagnosticsPanel';
 import { SecuritySettings } from './SecuritySettings';
 import { OperationHistory } from './OperationHistory';
 import type { DraftMode } from '../lib/drafts';
+import { SettingsDrafts, useSettingsNavigation } from '../hooks/useSettingsDraft';
 export function Settings({
   api,
   epoch,
@@ -43,6 +44,7 @@ export function Settings({
   initialTab = 'general',
   onOpenNativeTerminal,
   draftMode = 'native',
+  navigationError = '',
 }: {
   initialTab?: 'general' | 'admin' | 'provider';
   onOpenNativeTerminal?: (projectId: string) => void;
@@ -70,8 +72,15 @@ export function Settings({
   onOpenDraft: (key: string) => void;
   onOpenThread?: (id: string) => void;
   draftMode?: DraftMode;
+  navigationError?: string;
 }) {
   const [visited, setVisited] = useState<string[]>([initialTab]);
+  const logoutRunning = useRef(false);
+  const drafts = useRef(new Set<() => boolean>());
+  const projectScopes = JSON.stringify(projects.map(({ id, cwd }) => [id, cwd]));
+  const navigationOwner = useMemo(() => ({}), [api, api.csrf, epoch, runtimeEpoch, connectionId, projectId, threadId, projectScopes]);
+  const navigation = useSettingsNavigation(drafts.current, navigationOwner);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [tab, setTab] = useState<string>(initialTab),
     [error, setError] = useState('');
   const tabs = [
@@ -87,7 +96,8 @@ export function Settings({
     ['admin', '服务管理'],
   ];
   return (
-    <Dialog title="设置" onClose={onClose} wide>
+    <Dialog title="设置" onClose={() => navigation.request(onClose, '放弃编辑并关闭')} wide>
+      <SettingsDrafts.Provider value={drafts.current}>
       <div className="settings-layout">
         <nav className="settings-tabs" aria-label="设置类别">
           {tabs.map(([id, name]) => (
@@ -105,6 +115,7 @@ export function Settings({
           ))}
         </nav>
         <div className="settings-content">
+          {navigationError && <p className="error" role="alert">{navigationError}</p>}
           {tab === 'general' && (
             <section className="stack">
               <h3>外观</h3>
@@ -128,19 +139,24 @@ export function Settings({
                   <strong>{p.name}</strong>
                   <p className="small path">{p.cwd}</p>
                   <div className="inline">
-                    <button className="button small" onClick={() => onProjectAction(p, 'rename')}>重命名项目</button>
-                    <button className="button small" onClick={() => onProjectAction(p, 'remove')}>移除项目</button>
+                    <button className="button small" onClick={() => navigation.request(() => onProjectAction(p, 'rename'), '放弃编辑并重命名项目')}>重命名项目</button>
+                    <button className="button small" onClick={() => navigation.request(() => onProjectAction(p, 'remove'), '放弃编辑并移除项目')}>移除项目</button>
                   </div>
                 </div>
               ))}
             </section>
           )}
-          {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={onOpenDraft} draftMode={draftMode} />}
+          {tab === 'drafts' && <DraftsSettings projects={projects} onOpen={(key) => navigation.request(() => onOpenDraft(key), '放弃编辑并打开草稿')} draftMode={draftMode} />}
           {tab === 'operations' && <OperationHistory api={api} runtimeReady={configurationReady && connected}
-            recoveryEpoch={epoch} openThread={onOpenThread ?? (() => {})} />}
+            recoveryEpoch={epoch} openThread={(id) => { if (onOpenThread) navigation.request(() => onOpenThread(id), '放弃编辑并打开会话'); }} />}
           {tab === 'security' && <section className="stack">
             <SecuritySettings key={api.csrf} api={api} authenticated={Boolean(api.csrf)} />
-            <button className="button" onClick={() => void onLogout().catch((e) => setError(message(e)))}>退出工作台登录</button>
+            <button className="button" disabled={loggingOut} onClick={() => navigation.request(() => { void (async () => {
+              if (logoutRunning.current) return;
+              logoutRunning.current = true; setLoggingOut(true); setError('');
+              try { await onLogout(); } catch (e) { setError(message(e)); }
+              finally { logoutRunning.current = false; setLoggingOut(false); }
+            })(); }, '放弃编辑并退出登录')}>{loggingOut ? '正在退出…' : '退出工作台登录'}</button>
             {error && <p className="error" role="alert">{error}</p>}
           </section>}
           {visited.includes('provider') && (
@@ -167,7 +183,7 @@ export function Settings({
             <div hidden={tab !== 'extensions'} inert={tab !== 'extensions'}>
               <ExtensionsPanel
                 visible={tab === 'extensions'}
-                onOpenNativeTerminal={onOpenNativeTerminal}
+                onOpenNativeTerminal={onOpenNativeTerminal ? (id) => navigation.request(() => onOpenNativeTerminal(id), '放弃编辑并打开终端') : undefined}
                 threadId={threadId}
                 api={api}
                 projects={projects}
@@ -224,6 +240,14 @@ export function Settings({
           )}
         </div>
       </div>
+      </SettingsDrafts.Provider>
+      {navigation.intent && <Dialog title="放弃未保存的设置？" onClose={navigation.cancel}>
+        <p>{navigation.intent.detail}</p>
+        <div className="inline wrap">
+          <button className="button primary" onClick={navigation.cancel}>继续编辑</button>
+          <button className="button danger" onClick={navigation.confirm}>{navigation.intent.label}</button>
+        </div>
+      </Dialog>}
     </Dialog>
   );
 }

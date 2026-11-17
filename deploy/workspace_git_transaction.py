@@ -15,7 +15,7 @@ from .workspace_git_view import directory
 
 @contextmanager
 def prepared_refs(root, paths, current, lease, environment, *, new_commit=None, hash_length=40):
-    from .native_launcher import clean_children, direct_children
+    from .native_launcher import clean_children, direct_children, wait_child_exit
     metadata, common = lease.metadata, directory(paths[1])
     child = selector = None
     try:
@@ -58,7 +58,7 @@ def prepared_refs(root, paths, current, lease, environment, *, new_commit=None, 
         send(b"commit\n" if new_commit else b"abort\n")
         ack(b"commit" if new_commit else b"abort")
         with contextlib.suppress(OSError): child.stdin.close()
-        require(child.wait(timeout=max(0.1, deadline - time.monotonic())) == 0, "Git ref transaction failed", "git_unavailable")
+        require(wait_child_exit(child, timeout=max(0.1, deadline - time.monotonic())) == 0, "Git ref transaction failed", "git_unavailable")
     finally:
         try:
             if selector is not None: selector.close()

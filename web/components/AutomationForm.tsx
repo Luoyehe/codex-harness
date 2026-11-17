@@ -699,7 +699,7 @@ function AutomationEditor({
                   )}
                 {fixedEffort && <option value={fixedEffort}>模型固定强度（{effortName(fixedEffort)}）</option>}
                 {efforts.map((entry) => (
-                  <option key={entry.reasoningEffort}>{entry.reasoningEffort}</option>
+                  <option key={entry.reasoningEffort} value={entry.reasoningEffort}>{effortName(entry.reasoningEffort)}</option>
                 ))}
               </select>
             </label>
@@ -731,7 +731,7 @@ function AutomationEditor({
                 onChange={(e) => setOption('approvalPolicy', e.target.value)}
               >
                 <option value="">执行时使用项目默认值</option>
-                <option value="untrusted">仅信任安全操作</option>
+                <option value="untrusted">不受信任的操作请求审批</option>
                 <option value="on-request">模型请求时审批</option>
                 <option value="never">不请求审批</option>
               </select>
@@ -763,6 +763,7 @@ function AutomationEditor({
         >
           {previewBusy ? '正在计算…' : '预览接下来五次执行时间'}
         </button>
+        {preview?.key === planKey && !preview.next.some(at => at > Date.now()) && <p role="status">此计划没有未来执行时间。请把一次性日期或计划范围调整到未来，再重新预览。</p>}
         {currentPreview && (
           <div className="info-card">
             <strong>执行时间 · {draft.timeZone}</strong>
@@ -790,6 +791,11 @@ function AutomationEditor({
             : '确认保存计划：默认暂停，启用后会自动执行并可能使用模型额度、修改文件'}
         </label>
         <div className="inline file-editor-actions">
+          {!original && <button className="button" disabled={disabled} onClick={() => {
+            if (current.current.pending) return;
+            publish(initial(projectId)); cache.delete(key.current);
+            setConfirmed(false); setPreview(undefined); setError('');
+          }}>清空新建草稿</button>}
           <button
             className="button primary"
             disabled={disabled || Boolean(settingsIssue) || !currentPreview || !confirmed}

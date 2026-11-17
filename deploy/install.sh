@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
-cd -- "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-exec sh ./harness.sh "$@"
+harness_source=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec sh "$harness_source/harness.sh" "$@"

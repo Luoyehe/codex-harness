@@ -98,6 +98,10 @@
       ],
       "description": "Override where approval requests are routed for review on this thread and subsequent turns."
     },
+    "attachToSource": {
+      "description": "Persist the fork as an attached thread of its resolved source, hidden from ordinary lists. The source cannot be deleted while attached threads exist. Requires a paginated source and local storage; incompatible with ephemeral and deferGoalContinuation. Omitted or false creates an ordinary fork.",
+      "type": "boolean"
+    },
     "baseInstructions": {
       "type": [
         "string",

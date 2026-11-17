@@ -29,6 +29,7 @@ BACKUP_COUNT_LIMIT = 4096
 ANCESTOR_LIMIT = 16
 LOOKUP_ENTRY_LIMIT = 10000
 COPY_METADATA_LIMIT = 2 * 1024 * 1024
+ATTACHMENT_REFERENCE_LIMIT = 32768
 
 
 class HistoryError(DeployError):
@@ -139,6 +140,89 @@ def _read_witness(path: Path, uid: int) -> dict:
     return _witness(before, digest.hexdigest())
 
 
+def _rollout_index(home: Path, uid: int) -> dict[str, list[Path]]:
+    """One bounded directory pass, reused for every ancestor in an inspection."""
+    index = {}; count = 0
+    _safe(home.lstat(), uid, directory=True)
+    for root in (home / "sessions", home / "archived_sessions"):
+        if not root.exists(): continue
+        pending = [root]
+        while pending:
+            directory = pending.pop(); _safe(directory.lstat(), uid, directory=True)
+            with os.scandir(directory) as listing:
+                for entry in listing:
+                    count += 1
+                    check(count <= LOOKUP_ENTRY_LIMIT, "History directory lookup exceeds 10000 entries; attachment reconciliation remains incomplete", "thread_history_limit")
+                    if entry.is_dir(follow_symlinks=False): pending.append(Path(entry.path))
+                    else:
+                        match = re.search(r"([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\.jsonl(?:\.zst)?$", entry.name)
+                        if match: index.setdefault(match[1], []).append(Path(entry.path))
+                        else: check(not entry.name.endswith((".jsonl", ".jsonl.zst")), "Unrecognized history filename; attachment reconciliation remains incomplete", "thread_history_unsupported")
+    return index
+
+
+def _attachment_paths(home: Path, uid: int, path: Path, thread_id: str, root: str, index: dict, budget: list[int]) -> list[str]:
+    """Collect exact managed paths in persisted records, including frozen fork prefixes.
+
+    This does not open attachment paths or grant arbitrary filesystem access.
+    The supervisor subsequently matches them against its private immutable index.
+    """
+    found = set(); seen = set()
+    attachment_root = _local_path(root)
+    check(attachment_root.is_absolute() and ".." not in attachment_root.parts, "Invalid attachment root")
+    def collect(value, depth=0):
+        check(depth <= 64, "Attachment record nesting exceeds budget", "thread_history_limit")
+        if isinstance(value, dict):
+            for item in value.values(): collect(item, depth + 1)
+        elif isinstance(value, list):
+            for item in value: collect(item, depth + 1)
+        elif isinstance(value, str):
+            candidates = [value]
+            match = re.fullmatch(r'Attached file "(?:[^"\\]|\\.)*" is available at ("(?:[^"\\]|\\.)*")\.', value)
+            if match: candidates.append(json.loads(match[1]))
+            for candidate in candidates:
+                if not candidate or "\x00" in candidate: continue
+                name = _local_path(candidate)
+                if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg))?", name.name):
+                    found.add(str(name)); check(len(found) <= 128, "Attachment reference budget exceeded", "thread_history_limit")
+    def scan(filename, identity, cutoff=None):
+        check(identity not in seen and len(seen) < ANCESTOR_LIMIT, "Attachment ancestor lineage exceeds budget", "thread_history_limit")
+        seen.add(identity); filename = _path(home, str(filename), uid)
+        with os.fdopen(_open(filename, os.O_RDONLY, uid), "rb") as stream:
+            before = os.fstat(stream.fileno()); maximum = before.st_size if cutoff is None else cutoff
+            check(type(maximum) is int and 0 < maximum <= before.st_size and budget[0] + maximum <= ROLLOUT_LIMIT, "Attachment history inspection exceeds budget", "thread_history_limit")
+            size = count = 0; base = None
+            while size < maximum:
+                raw = stream.readline(min(LINE_LIMIT + 1, maximum - size)); size += len(raw); count += 1
+                check(raw.endswith(b"\n") and len(raw) <= LINE_LIMIT and count <= LINE_COUNT_LIMIT, "Incomplete attachment history", "thread_history_changed")
+                value = _decode(raw); check(isinstance(value, dict) and isinstance(value.get("payload"), dict), "Invalid attachment record")
+                if count == 1:
+                    check(value.get("type") == "session_meta" and value["payload"].get("id") == identity, "Attachment history identity mismatch")
+                    base = value["payload"].get("history_base")
+                else: collect(value["payload"])
+            check(_identity(before) == _identity(os.fstat(stream.fileno())) and os.path.samestat(before, filename.lstat()), "Attachment history changed", "thread_history_changed")
+            budget[0] += size
+        if base is not None:
+            check(isinstance(base, dict) and isinstance(base.get("thread_id"), str) and type(base.get("end_byte_offset")) is int, "Unsupported attachment ancestor")
+            matches = index.get(base["thread_id"], [])
+            check(len(matches) == 1 and matches[0].suffix == ".jsonl", "Attachment ancestor unavailable or compressed", "thread_history_inherited")
+            scan(matches[0], base["thread_id"], base["end_byte_offset"])
+    scan(path, thread_id)
+    return sorted(found)
+
+
+def _attachment_index(home: Path, uid: int, root: str) -> dict:
+    index = _rollout_index(home, uid); references = []; unresolved = []; budget = [0]; count = 0
+    for identity, paths in index.items():
+        if len(paths) != 1 or paths[0].suffix != ".jsonl": unresolved.append(identity); continue
+        try: matches = _attachment_paths(home, uid, paths[0], identity, root, index, budget)
+        except (HistoryError, OSError, ValueError, TypeError, KeyError): unresolved.append(identity); continue
+        if matches:
+            count += len(matches); check(count <= ATTACHMENT_REFERENCE_LIMIT, "Attachment index exceeds reference budget", "thread_history_limit")
+            references.append({"threadId": identity, "paths": matches})
+    return {"threadIds": sorted(index), "references": references, "unresolvedThreadIds": sorted(unresolved)}
+
+
 def _transform_line(line: bytes, thread_id: str, mode: str, index: int) -> tuple[bytes, int, int, str | None, bool, bool]:
     value = _decode(line)
     check(isinstance(value, dict) and isinstance(value.get("payload"), dict), "Invalid rollout record")
@@ -229,17 +313,7 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
             base = _decode(source.readline(LINE_LIMIT + 1))["payload"].get("history_base")
         if base is None:
             return result
-        entries = []
-        for root in (home / "sessions", home / "archived_sessions"):
-            if not root.exists(): continue
-            pending = [root]
-            while pending:
-                directory = pending.pop(); _safe(directory.lstat(), uid, directory=True)
-                with os.scandir(directory) as listing:
-                    for entry in listing:
-                        entries.append(Path(entry.path))
-                        check(len(entries) <= LOOKUP_ENTRY_LIMIT, "Ancestor lookup exceeds budget")
-                        if entry.is_dir(follow_symlinks=False): pending.append(Path(entry.path))
+        index = _rollout_index(home, uid)
         seen = set(); consumed = 0; found = False
         while base is not None:
             check(isinstance(base, dict) and isinstance(base.get("thread_id"), str) and
@@ -250,7 +324,7 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
             identity = base["thread_id"]; cutoff = base["end_byte_offset"]
             check(identity not in seen and len(seen) < ANCESTOR_LIMIT, "Ancestor lineage exceeds budget")
             seen.add(identity)
-            matches = [entry for entry in entries if entry.name.endswith((identity + ".jsonl", identity + ".jsonl.zst"))]
+            matches = index.get(identity, [])
             check(len(matches) == 1 and matches[0].suffix == ".jsonl", "Ancestor is unavailable or compressed")
             ancestor = _path(home, str(matches[0]), uid)
             with os.fdopen(_open(ancestor, os.O_RDONLY, uid), "rb") as source:
@@ -277,8 +351,9 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
                       os.path.samestat(before, ancestor.lstat()), "Ancestor changed during inspection")
                 consumed += size; base = next_base
         result["hasInheritedPlaintext"] = found
-    except (OSError, ValueError, TypeError, KeyError, HistoryError):
+    except (OSError, ValueError, TypeError, KeyError, HistoryError) as error:
         result["inspectionUnsupported"] = True
+        if isinstance(error, HistoryError): result["inspectionIssue"] = {"code": error.code, "message": str(error)}
     return result
 
 
@@ -460,8 +535,9 @@ def _recovery_copy(home: Path, uid: int, request: dict, source_path: Path) -> di
     target_id = target["threadId"]
     check(isinstance(target_id, str) and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", target_id) and
           target_id != request["threadId"], "Recovery copy requires a new native thread identity")
-    provider = request.get("sourceProvider"); cwd = request.get("cwd")
+    provider = request.get("sourceProvider"); target_provider = request.get("targetProvider", provider); cwd = request.get("cwd")
     check(isinstance(provider, str) and 0 < len(provider) <= 128 and "\x00" not in provider and
+          isinstance(target_provider, str) and 0 < len(target_provider) <= 128 and "\x00" not in target_provider and
           isinstance(cwd, str) and 0 < len(cwd) <= 4096 and "\x00" not in cwd and _local_path(cwd).is_absolute(),
           "Invalid recovery source settings")
     target_path = _path(home, target["path"], uid)
@@ -476,7 +552,7 @@ def _recovery_copy(home: Path, uid: int, request: dict, source_path: Path) -> di
             check(request.get("expected") == source_witness and target["expected"] == target_witness,
                   "History identity or content changed after inspection", "thread_history_changed")
             check(count == 1, "Recovery target is no longer empty", "thread_history_target_not_empty")
-            check(target_header.get("model_provider") == provider and target_header.get("cwd") == cwd and
+            check(target_header.get("model_provider") == target_provider and target_header.get("cwd") == cwd and
                   latest.get("model_provider_id", source_header.get("model_provider")) == provider and
                   latest.get("cwd", source_header.get("cwd")) == cwd,
                   "Recovery source settings changed", "thread_history_changed")
@@ -514,14 +590,21 @@ def operate(home: Path, uid: int, request: object) -> dict:
     temporary = None
     try:
         check(isinstance(request, dict), "Invalid history request")
+        if request.get("action") == "attachment-index":
+            check(set(request) == {"action", "attachmentRoot"} and isinstance(request["attachmentRoot"], str), "Invalid attachment reconciliation request")
+            return _attachment_index(_local_path(str(home)), uid, request["attachmentRoot"])
         allowed = {"action", "threadId", "path", "mode", "expected"}
-        if request.get("action") == "recovery-copy": allowed |= {"target", "sourceProvider", "cwd"}
+        if request.get("action") == "recovery-copy": allowed |= {"target", "sourceProvider", "targetProvider", "cwd"}
+        if request.get("action") == "attachment-inspect": allowed |= {"attachmentRoot"}
         check(set(request) <= allowed, "Invalid history request")
-        check(request.get("action") in ("inspect", "repair", "copy-inspect", "recovery-copy") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
+        check(request.get("action") in ("inspect", "repair", "copy-inspect", "recovery-copy", "attachment-inspect") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
         thread_id = request.get("threadId")
         check(isinstance(thread_id, str) and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", thread_id) is not None, "Invalid history thread identity")
         home = _local_path(str(home))
         path = _path(home, request.get("path"), uid, inspect_compressed=request["action"] == "inspect")
+        if request["action"] == "attachment-inspect":
+            check(isinstance(request.get("attachmentRoot"), str), "Invalid attachment root")
+            return {"paths": _attachment_paths(home, uid, path, thread_id, request["attachmentRoot"], _rollout_index(home, uid), [0])}
         if request["action"] == "copy-inspect":
             check("expected" not in request, "Inspection does not accept replacement proof")
             witness, _, metadata, _, _ = _copy_scan(path, uid, thread_id)

@@ -50,6 +50,9 @@ export function ReceiptMaintenance({ api, onChanged }: { api: Api; onChanged: ()
     running.current = true;
     setBusy(true);
     setError('');
+    setNotice('');
+    setProgress(0);
+    setPreview(undefined);
     setConfirmed(false);
     setVerified('');
     setAttemptedExport('');
@@ -106,7 +109,7 @@ export function ReceiptMaintenance({ api, onChanged }: { api: Api; onChanged: ()
       document.body.append(link);
       link.click();
       link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
       setVerified(preview.digest);
       setNotice('完整归档已校验并交给浏览器下载。请确认文件已保存后再继续。');
     } catch (error) {
@@ -227,7 +230,7 @@ export function ReceiptMaintenance({ api, onChanged }: { api: Api; onChanged: ()
           )}
           {progress > 0 && (
             <p role="status">
-              已读取 {progress.toLocaleString()} / {preview.bytes.toLocaleString()} 字节
+              已读取 {progress.toLocaleString('zh-CN')} / {preview.bytes.toLocaleString('zh-CN')} 字节
             </p>
           )}
           <label className="check-row">

@@ -107,7 +107,7 @@ def verify_system_layers(layout: Layout) -> dict:
 def toml_value(value, depth: int = 0) -> str:
     require(depth <= 32, "Host TOML nesting exceeds budget", "budget")
     if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False)
+        return json.dumps(value, ensure_ascii=False).replace(chr(127), "\\u007f")
     if type(value) is bool:
         return "true" if value else "false"
     if type(value) in (int, float):

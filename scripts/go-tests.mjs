@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { isolatedTestEnvironment } from './test-environment.mjs';
+import { beginTestWorkspace, finishTestWorkspace } from './test-retention.mjs';
 
 export const goTestFile = 'deploy/caddy_dns_source/main_test.go';
 export const goTestPattern = /^deploy\/caddy_dns_source\/[^/]+_test\.go$/;
@@ -117,11 +118,12 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
   const ready = (dependencies.goPrerequisite ?? goPrerequisite)(base, inherited);
   if (ready.status !== 'ready') return { ...result, ...ready, exitCode: ready.status === 'skipped' ? 3 : 1 };
   const invoke = dependencies.spawnSync ?? spawnSync;
+  let directory;
   try {
     result.sources = goSources(base); result.expectedTopLevel = goExpectedTests(base);
     result.runtime = { version: '1.26.10', platform: ready.manifest.platform, architecture: 'amd64' };
     const parent = path.join(base, '.work/go-test-runs'); mkdirSync(parent, { recursive: true });
-    const directory = mkdtempSync(path.join(parent, 'run-'));
+    directory = mkdtempSync(path.join(parent, 'run-')); beginTestWorkspace(directory);
     const source = path.join(directory, 'source'); mkdirSync(source);
     for (const name of sourceNames) cpSync(path.join(base, 'deploy/caddy_dns_source', name), path.join(source, name));
     const cache = path.join(directory, 'modules');
@@ -163,5 +165,6 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
     result.status = parsed.status; result.exitCode = parsed.exitCode;
     validateGoResult(result, base);
     return result;
-  } catch (error) { return { ...result, status: 'failed', exitCode: 1, reason: error.message }; }
+  } catch (error) { result.status = 'failed'; result.exitCode = 1; return { ...result, reason: error.message }; }
+  finally { if (directory) { try { finishTestWorkspace(directory, result.exitCode === 0); } catch { result.cleanup = 'retained-unconfirmed'; } } }
 }

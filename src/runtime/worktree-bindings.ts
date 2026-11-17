@@ -32,9 +32,9 @@ export class WorktreeBindings {
     if (binding.version !== 1 || binding.worktreeId !== id || binding.originRoot !== root) throw new DeliveryError('worktree_unbound', 'Worktree binding identity mismatch', 'unknown');
     for (const key of ['commonDir', 'gitDir']) absolute(binding[key]);
     for (const key of ['commonDevice', 'commonInode', 'gitDirDevice', 'gitDirInode', 'worktreeDevice', 'worktreeInode']) if (typeof binding[key] !== 'number' || !Number.isSafeInteger(binding[key]) || binding[key] < 0) throw new DeliveryError('worktree_unbound', 'Invalid worktree inode binding', 'unknown');
-    const archived = action === 'worktree/archive', phase = archived ? 'archived' : 'active';
-    const expected = archived ? path.posix.join(home, 'worktree-state', id, 'checkout') : path.posix.join(home, 'worktrees', id);
-    if (result.phase !== phase || result.path !== expected || result[creating ? 'created' : action.slice(9) === 'attach' ? 'attached' : archived ? 'archived' : 'restored'] !== true) throw new DeliveryError('worktree_unbound', 'Worktree phase or fixed location mismatch', 'unknown');
+    const retired = action === 'worktree/retire', archived = action === 'worktree/archive', phase = retired ? 'retired' : archived ? 'archived' : 'active';
+    const expected = retired ? path.posix.join(home, 'worktree-state', 'retired', id, 'checkout') : archived ? path.posix.join(home, 'worktree-state', id, 'checkout') : path.posix.join(home, 'worktrees', id);
+    if (result.phase !== phase || result.path !== expected || result[creating ? 'created' : action.slice(9) === 'attach' ? 'attached' : retired ? 'retired' : archived ? 'archived' : 'restored'] !== true || retired && result.retained !== true) throw new DeliveryError('worktree_unbound', 'Worktree phase or fixed location mismatch', 'unknown');
     if (creating) {
       if (Number(this.db.prepare('SELECT count(*) AS n FROM managed_worktrees').get()!.n) >= 32) throw new DeliveryError('capacity', 'Managed worktree retention budget reached', 'unknown');
       this.db.prepare('INSERT INTO managed_worktrees(id,root,project_id,binding,generation) VALUES(?,?,?,?,1)').run(id, root, projectId, canonical(binding));
@@ -42,7 +42,9 @@ export class WorktreeBindings {
     } else {
       const prior = this.db.prepare('SELECT * FROM managed_worktrees WHERE id=? AND root=? AND project_id=?').get(id, root, projectId);
       if (!prior || canonical(binding) !== prior.binding || canonical(object(request.binding)) !== prior.binding) throw new DeliveryError('worktree_unbound', 'Worktree acknowledgement differs from the recorded binding', 'unknown');
-      this.db.prepare('UPDATE managed_worktrees SET generation=generation+1 WHERE id=?').run(id); return Number(prior.generation) + 1;
+      if (retired) this.db.prepare('DELETE FROM managed_worktrees WHERE id=?').run(id);
+      else this.db.prepare('UPDATE managed_worktrees SET generation=generation+1 WHERE id=?').run(id);
+      return Number(prior.generation) + 1;
     }
   }
 }

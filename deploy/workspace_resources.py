@@ -41,6 +41,21 @@ def read_skill(root: Root, params: dict, layout: Layout, settings: dict, forbidd
     path = absolute_skill(params["path"])
     bases = [root.path, Path(settings["cwd"]) / ".agents/skills", Path(settings["home"]) / "skills",
              Path(settings["home"]) / "plugins/cache", layout.root / "etc/codex/skills"]
+    # Native discovers ancestor .agents/skills only inside the nearest Git
+    # working tree. Add those precise read-only roots, never the parent tree or
+    # the whole home, and keep descriptor/no-follow checks below.
+    ancestors = []; current = root.path
+    for _ in range(64):
+        ancestors.append(current / ".agents/skills")
+        try:
+            marker = (current / ".git").lstat()
+            if stat.S_ISLNK(marker.st_mode): break
+            if stat.S_ISDIR(marker.st_mode) or stat.S_ISREG(marker.st_mode):
+                bases.extend(ancestors); break
+        except FileNotFoundError: pass
+        except PermissionError: break
+        if current.parent == current: break
+        current = current.parent
     selected = next((base for base in sorted(bases, key=lambda value: len(value.parts), reverse=True)
                      if base in path.parents), None)
     require(selected is not None, "Skill lies outside the registered project and fixed skill roots", "forbidden_path")

@@ -108,7 +108,7 @@ describe('independent operation recovery', () => {
         text: 'secret prompt',
         attachmentIds: ['private-file'],
       }),
-    ).rejects.toThrow('offline');
+    ).rejects.toThrow(/连接中断或请求超时/);
     expect(fetch).toHaveBeenCalledOnce();
     expect((await listOperations())[0]?.state).toBe('unknown');
     expect(JSON.stringify((await listOperations()))).not.toMatch(/secret prompt|private-file/);

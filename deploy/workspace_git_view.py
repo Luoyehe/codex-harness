@@ -54,6 +54,40 @@ def content_view(root, git_dir: Path, common_dir: Path):
             config = b"[core]\nrepositoryFormatVersion = " + (b"1" if algorithm == b"sha256" else b"0") + b"\nbare = false\n"
             if algorithm == b"sha256":
                 config += b"[extensions]\nobjectFormat = sha256\n"
+            common_fd = directory(common_dir)
+            try:
+                try:
+                    raw_config = read_index(common_fd, "config").decode("utf-8", "strict")
+                except FileNotFoundError:
+                    raw_config = ""
+                import configparser
+                parser = configparser.RawConfigParser(strict=False, allow_no_value=True, inline_comment_prefixes=("#", ";"))
+                parser.read_string(raw_config)
+                if parser.has_option("core", "filemode"):
+                    mode = (parser.get("core", "filemode") or "true").strip().strip(chr(34)).lower()
+                    require(mode in ("true", "false", "yes", "no", "on", "off", "1", "0"), "Invalid core.filemode", "git_unavailable")
+                    config += b"[core]\nfileMode = " + (b"true" if mode in ("true", "yes", "on", "1") else b"false") + b"\n"
+                try:
+                    info_fd = os.open("info", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=common_fd)
+                except FileNotFoundError:
+                    info_fd = None
+                if info_fd is not None:
+                    try:
+                        for info_name in ("exclude", "attributes"):
+                            try:
+                                content = read_index(info_fd, info_name)
+                                require(len(content) <= 1024 * 1024, "Git info file exceeds safe view budget", "budget")
+                            except FileNotFoundError:
+                                continue
+                            # Attributes are declarative. Retaining them lets
+                            # staging reject transformations without copying
+                            # or executing the repository's filter commands.
+                            (view / "info").mkdir(mode=0o700, exist_ok=True)
+                            (view / "info" / info_name).write_bytes(content)
+                    finally:
+                        os.close(info_fd)
+            finally:
+                os.close(common_fd)
             (view / "config").write_bytes(config)
             (view / "HEAD").write_bytes(head + b"\n" if head else b"ref: refs/heads/unborn\n")
             names = []

@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "findingId": "FULL3-WEB-01",
+  "status": "fixed-and-targeted-verified",
+  "completedAt": "2026-11-17T15:21:44.876474+00:00",
+  "sourceAudit": "verification/audit-evidence/v240/full3-web.json",
+  "sourceAuditDigest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+  "rootCause": "Missing selected registry row fell back to a default-provider summary without providerId while preserving a different provider catalog draft.",
+  "resolution": [
+    "Pin the first displayed provider ID; external default changes do not silently retarget form or child catalog drafts.",
+    "Resolve exact registry IDs only. Legacy fallback is limited to an actual initial single-provider response, never empty/malformed registries or a known registry becoming legacy-shaped.",
+    "Retain the last exact provider data and child catalog editor when that provider disappears. Display a removed-target warning, clear secret inputs/consent, disable save, directory actions and profile mutations, and hide stale login/default/removal actions.",
+    "Keep existing draft navigation and epoch guards. Explicit selection of another valid provider still asks before discarding catalog edits; known removed destinations cannot be selected.",
+    "When the exact same ID returns, retained catalog requires new capability consent and submits that ID/current revision. Explicit own removal selects a known remaining provider instead of reusing stale default metadata."
+  ],
+  "sourceFiles": [
+    {
+      "path": "web/components/ProviderSettings.tsx",
+      "sha256": "2dcd1db7976be2b37400ba63d83cc3a85552de85ff69a01d3e385814088449e9"
+    },
+    {
+      "path": "web/tests/provider-target-ownership.test.tsx",
+      "sha256": "f90b924e6be936025f497874579eff750c3184f2646e1d3dd5ffc6f935da0356"
+    }
+  ],
+  "validation": {
+    "method": "Isolated jsdom React UI with actual Api and IndexedDB operation persistence; intercepted fetch transport only. Includes submit events and stale retained buttons, no live backend/provider requests. Existing provider/catalog/profile/draft suites cover unknown results, late results and accepted own saves.",
+    "testFiles": 7,
+    "independentCases": 64,
+    "failed": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "file": "web/tests/provider-advanced.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 10,
+        "cases": [
+          "gateway credential consent binds every displayed destination and keeps gateway configuration separate from API keys",
+          "unknown provider changes clear secrets and recover their original receipt without a second write",
+          "gateway catalog stays native and configuration readiness prevents writes",
+          "changing the Bedrock region clears an unsent key and submits the selected native provider without an arbitrary endpoint",
+          "initial provider read keeps editors unavailable until their baseline exists",
+          "the first exposed provider editor binds immediate input to its initialized revision",
+          "an initial provider read failure keeps retry reachable outside the disabled editors",
+          "keeps a provider save owned across its own maintenance and runtime restart",
+          "distinguishes accepted settings from a failed follow-up read and retries only the read",
+          "does not apply an old authenticated editor completion to a new login"
+        ]
+      },
+      {
+        "file": "web/tests/provider-catalog.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 14,
+        "cases": [
+          "retains discovered rows in ProviderSettings until explicit capability application refreshes the provider",
+          "queries an unknown discovery by original identity, retaining recovered rows without replay or parent refresh",
+          "refreshes once after an unknown application has an explicit applied receipt, without applying again",
+          "does not publish a late discover receipt into a replacement provider revision",
+          "does not publish a late apply receipt into a replacement provider revision",
+          "does not refresh from a late direct application acknowledgement after provider replacement",
+          "keeps discovery gated when an accepted receipt carries a different configuration revision",
+          "rejects a recovered catalog receipt with the wrong identity",
+          "rejects a recovered catalog receipt with the wrong method",
+          "does not treat a successful RPC without applied proof as an applied catalog",
+          "locks directory edits while a deferred discover can replace them",
+          "locks directory edits while a deferred apply can replace them",
+          "keeps unknown discover edits frozen and restores the unchanged confirmation after not-sent proof",
+          "keeps unknown apply edits frozen and restores the unchanged confirmation after not-sent proof"
+        ]
+      },
+      {
+        "file": "web/tests/provider-multi.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 9,
+        "cases": [
+          "keeps an existing ChatGPT type fixed while saving its display name",
+          "keeps custom endpoint and key management editable without changing its saved type",
+          "allows choosing a type only for a new provider and fixes it after creation",
+          "keeps model login beside its saved provider and hides it when the editor switches to an API provider",
+          "saves a Coding Plan with a blank optional model without making the user type an ID",
+          "an explicit refresh synchronizes exactly the selected provider",
+          "does not revive an old directory write after leaving and returning to the same provider",
+          "refreshing a logged-in native provider does not restart or rewrite provider configuration",
+          "recognizes a historical ChatGPT provider alias during directory refresh"
+        ]
+      },
+      {
+        "file": "web/tests/provider-profiles.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 4,
+        "cases": [
+          "allows 64 Unicode characters in a profile name and rejects a longer draft before sending",
+          "saves only the current complete profile and prevents restoration while local edits exist",
+          "binds confirmation to an immutable profile identity and never sends displayed endpoint/key fields",
+          "clears unsubmitted profile confirmation after hiding while keeping the authenticated operation owner"
+        ]
+      },
+      {
+        "file": "web/tests/provider-target-ownership.test.tsx",
+        "report": ".work/test-results/run-UkBz8Z/vitest.json",
+        "passed": 11,
+        "cases": [
+          "keeps a removed provider catalog bound to its original ID and sends no request to the default",
+          "retains form and catalog ownership when a restored profile replaces the whole registry",
+          "pins the initially displayed provider when the default changes in another client",
+          "hides login controls when the selected ChatGPT provider disappears",
+          "revokes a pending selection if its destination is removed before confirmation",
+          "continues to support an actual legacy single-provider response",
+          "keeps restored same-ID drafts and requires fresh capability consent before applying to that ID",
+          "selects a known remaining provider after the user explicitly removes the default",
+          "does not reinterpret an already selected registry default as an unidentified legacy provider",
+          "does not treat an empty or invalid registry as a legacy default: undefined",
+          "does not treat an empty or invalid registry as a legacy default: null"
+        ]
+      },
+      {
+        "file": "web/tests/provider.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 4,
+        "cases": [
+          "provider configuration intent preserves edits made while native catalog refresh is pending",
+          "provider configuration intent preserves a dirty draft on external revision change and requires explicit reload",
+          "provider configuration intent requires separate capability confirmation after discovering model IDs",
+          "provider configuration intent can explicitly configure a Responses service without authentication"
+        ]
+      },
+      {
+        "file": "web/tests/settings-internal-drafts.test.tsx",
+        "report": ".work/test-results/run-jLbW3Q/vitest.json",
+        "passed": 12,
+        "cases": [
+          "changes clean MCP selection without asking and preserves a dirty editor until explicit discard",
+          "asks before replacing MCP edits with removal and only prepares the selected removal after consent",
+          "revokes a pending MCP selection on hide and clears secrets without discarding ordinary edits",
+          "finishes an explicitly saved MCP edit without a redundant discard question",
+          "guards only replaced shared-object edits, retaining cancellation and clearing after explicit selection",
+          "keeps edits for a vanished remote share visible but disables stale mutation targets",
+          "revokes pending shared-object navigation when the selected destination disappears",
+          "does not mark newer recipient edits as saved when an earlier share update completes",
+          "allows changing shares immediately after the exact audience edit was saved",
+          "asks before changing provider with unsaved child catalog edits and blocks whole-registry restore",
+          "retains model edits on registry refresh, clears old capability consent and revokes pending selection",
+          "preserves catalog drafts through a provider save without treating its own acknowledgement as discard"
+        ]
+      }
+    ],
+    "logs": [
+      {
+        "path": ".work/v240/full3-provider-targeted.log",
+        "sha256": "3285c1a4a5b122fd8ceb1207f65ef83070a985b70f58875e1617044ba01f2d45"
+      },
+      {
+        "path": ".work/v240/full3-provider-targeted-final.log",
+        "sha256": "38ddb38b8791cc67ea1ec97b51f2e62117a2c1b38c6365a4f3e76f00cc781c52"
+      }
+    ],
+    "reports": [
+      {
+        "path": ".work/test-results/run-jLbW3Q/vitest.json",
+        "sha256": "cebde9c8dd4105fdf469731e9ad14e8952b308f6f44e3ff711251e5cf30854f8"
+      },
+      {
+        "path": ".work/test-results/run-UkBz8Z/vitest.json",
+        "sha256": "c48a94fcb14d6a62040e2327a29166b29098c5444bf2a8f5fbb63a0de71c5de1"
+      }
+    ],
+    "strictChecks": [
+      {
+        "command": "tsc -p web/tsconfig.json --noEmit",
+        "exitCode": 0,
+        "path": ".work/v240/full3-provider-web-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": "tsc -p tsconfig.tests.json --noEmit",
+        "exitCode": 0,
+        "path": ".work/v240/full3-provider-test-types-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "counting": "Use the latest result per file; 61 initial cases with 8 new ownership cases, then ownership file extended to 11 cases: 64 unique final cases, not 72 summed executions."
+  },
+  "limitations": [
+    "No full-suite run before next clean full audit.",
+    "No production or external model invocation.",
+    "No real mobile browser run for this behavior-only change; existing styles/components reused."
+  ],
+  "remaining": []
+}

@@ -41,7 +41,7 @@ export function ProjectDialog({
   if (owner.current.api !== api || owner.current.identityKey !== identityKey)
     owner.current = { api, identityKey, generation: owner.current.generation + 1 };
   const scope = owner.current;
-  const [handoff, setHandoff] = useState<{ owner: object; error: string }>();
+  const [handoff, setHandoff] = useState<{ owner: object; error: string; existingId?: string }>();
   const running = useRef<object | undefined>(undefined);
   const identity = executionIdentity(executionMode);
   // Keep the user's text through reconnection or an identity change, but never
@@ -80,6 +80,10 @@ export function ProjectDialog({
           setHandoff({ owner: scope, error: '项目已受理，但未收到项目编号。请关闭窗口后在项目列表中核对，不要重复添加。' });
           return;
         }
+        if (result.existing === true) {
+          setHandoff({ owner: scope, existingId: result.id, error: `该目录已经属于项目「${typeof result.name === 'string' ? result.name : '已有项目'}」，已保留原名称。可打开项目，或在项目菜单中重命名。` });
+          return;
+        }
         onOpen(result.id); onClose();
       }
     } finally { if (running.current === scope) running.current = undefined; }
@@ -115,7 +119,8 @@ export function ProjectDialog({
         {defaultsIssue && <div role="alert" className="error">{defaultsIssue}<button type="button" className="button small" disabled={!enabled || defaults.loading} onClick={defaults.refresh}>重试读取目录</button></div>}
       </fieldset>
       {action.error && <p role="alert" className="error">{action.error}</p>}
-      {reconciliation && <p role="alert" className="error">{reconciliation}</p>}
+      {reconciliation && <p role={handoff?.existingId ? 'status' : 'alert'} className={handoff?.existingId ? 'small muted' : 'error'}>{reconciliation}</p>}
+      {handoff?.owner === scope && handoff.existingId && <button type="button" className="button" onClick={() => { onOpen(handoff.existingId!); onClose(); }}>打开已有项目</button>}
       {action.notice && <p className="small muted" role="status">{action.notice}</p>}
       <button className="button primary" type="submit" disabled={action.disabled || Boolean(reconciliation) || !ready}>
         {action.busy ? '正在添加…' : mode === 'create' ? '创建项目' : '添加项目'}

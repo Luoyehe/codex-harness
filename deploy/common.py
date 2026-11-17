@@ -13,7 +13,7 @@ from pathlib import Path
 
 NODE_VERSION = "24.22.1"
 PNPM_VERSION = "11.22.0"
-CODEX_VERSION = "0.164.0"
+CODEX_VERSION = "0.169.0"
 INSTANCE = re.compile(r"[a-z][a-z0-9-]{0,19}\Z")
 
 

@@ -138,6 +138,7 @@ class HttpsTransactionTests(unittest.TestCase):
         self.config = {"port": 3300, "origin": "https://work.example.test:18443", "workerGid": 1,
                        "gatewayUid": 1, "gatewayGid": 1, "codexRelative": "vendor/fixture/codex"}
         write_json(self.layout.config / "instance.json", self.config)
+        atomic_write(self.layout.config / "gateway-token", b"offline-edge-token-fixture", 0o600)
         self.metadata = {"host": "work.example.test", "authHost": "auth.example.test", "domain": "example.test",
                          "authPort": 19091, "tls": "provided", "httpPort": 18080, "httpsPort": 18443,
                          "identityId": "fixture-identity", "phase": "active"}
@@ -170,7 +171,7 @@ class HttpsTransactionTests(unittest.TestCase):
         self.validated_config = []
         self.validation_failure = False
         self.stack = ExitStack()
-        self.stack.enter_context(patch("deploy.https.edge_binary", side_effect=lambda layout, kind: self.root / kind))
+        self.stack.enter_context(patch("deploy.https.edge_binary", side_effect=lambda layout, kind, **kwargs: self.root / kind))
         self.stack.enter_context(patch("deploy.https.ensure_account", return_value=(0, 0)))
         self.stack.enter_context(patch("deploy.https.render_caddy", side_effect=self.render))
         self.stack.enter_context(patch("deploy.https.run", side_effect=self.command))
@@ -183,8 +184,7 @@ class HttpsTransactionTests(unittest.TestCase):
             if not hasattr(os, name):
                 self.stack.enter_context(patch.object(os, name, 0, create=True))
         old_paths = tls_paths(self.layout, self.metadata)
-        atomic_write(self.layout.config / "Caddyfile", self.render(self.kwargs["host"], self.kwargs["auth_host"], 3300, 19091,
-                     tls="provided", http_port=18080, https_port=18443, certificate=str(old_paths[0]), private_key=str(old_paths[1])).encode(), 0o644)
+        atomic_write(self.layout.config / "Caddyfile", caddy_configuration(self.layout, self.config, self.metadata).encode(), 0o644)
         self.before = {name: file.read_bytes() for name, file in transaction_paths(self.layout).items()}
 
     def tearDown(self):
@@ -214,7 +214,7 @@ class HttpsTransactionTests(unittest.TestCase):
         return setup_https(self.manager, **self.kwargs, certificate=self.new_cert_path, private_key=self.new_key_path)
 
     def menu_https(self, *, host="", public=""):
-        answers = iter([host, "", "", public, "3", "y", str(self.new_cert_path), str(self.new_key_path), "", "n"])
+        answers = iter([host, "", "", public, "3", "y", *(["n"] if (self.layout.config / "https.json").exists() else []), str(self.new_cert_path), str(self.new_key_path), "2", "", "n"])
         calls = []
         def dispatch(args):
             calls.append(args)
@@ -257,13 +257,11 @@ class HttpsTransactionTests(unittest.TestCase):
         self.validation_failure = True
         with self.assertRaisesRegex(DeployError, "validation failure"):
             self.menu_https(host="work.example.test")
-        prepared = read_json(self.layout.config / "https.json")
-        self.assertEqual(prepared["phase"], "prepared")
+        self.assertFalse((self.layout.config / "https.json").exists())
         self.assertEqual(self.manager.config["origin"], "http://127.0.0.1:3300")
         self.validation_failure = False
-        calls = self.menu_https()
+        calls = self.menu_https(host="work.example.test")
         self.assertEqual(calls[-1].command, "https")
-        self.assertEqual(calls[-1].public_origin, prepared["publicOrigin"])
         self.assertEqual(read_json(self.layout.config / "https.json")["phase"], "active")
         origin = self.manager.config["origin"]
         revision = https_revision(read_json(self.layout.config / "https.json"))
@@ -527,6 +525,54 @@ class HttpsTransactionTests(unittest.TestCase):
         self.assertEqual(list((self.layout.config / "https-recovery").iterdir()), [])
         self.assert_builtin_data_preserved()
 
+    def test_client_identity_upgrade_preserves_stopped_edge_and_persisted_state(self):
+        from deploy.https import refresh_client_identity
+        self.builtin()
+        self.system.active = {"worker", "gateway"}
+        before_enabled = set(self.system.enabled)
+        with patch("deploy.candidate_archive.require_idle"), patch.object(self.manager, "verify") as verify:
+            result = refresh_client_identity(self.manager)
+        self.assertTrue(result["changed"])
+        self.assertEqual(read_https_metadata(self.layout)["clientIdentity"], 1)
+        self.assertEqual(self.system.active, {"worker", "gateway"})
+        self.assertEqual(self.system.enabled, before_enabled)
+        self.assertEqual(verify.call_args.kwargs, {"https_probe": False})
+        self.assertEqual((self.layout.config / "edge-proxy.env").stat().st_mode & 0o777, 0o600)
+        self.assert_builtin_data_preserved()
+        self.assertEqual(self.journal()[1]["phase"], "committed")
+
+    def test_client_identity_upgrade_failure_restores_exact_edge_bytes(self):
+        from deploy.https import refresh_client_identity
+        self.builtin()
+        self.system.fail = "start"
+        with patch("deploy.candidate_archive.require_idle"), patch.object(self.manager, "verify"), self.assertRaises(DeployError):
+            refresh_client_identity(self.manager)
+        self.assert_builtin_restored()
+
+    def test_legacy_prepared_reset_requires_matching_recovered_evidence(self):
+        from deploy.https import reset_prepared, snapshot_configuration
+        self.system.active = {"worker", "gateway"}
+        for name in ("caddyConfig", "caddy", "authelia"):
+            transaction_paths(self.layout)[name].unlink()
+        self.metadata["phase"] = "prepared"
+        write_json(self.layout.config / "https.json", self.metadata)
+        self.manager.config["origin"] = "http://127.0.0.1:3300"
+        write_json(self.layout.config / "instance.json", self.manager.config)
+        revision = https_revision(self.metadata)
+        before = snapshot_configuration(self.layout)
+        with self.assertRaises(DeployError) as caught:
+            reset_prepared(self.manager, expected_revision=revision, confirm=True)
+        self.assertEqual(caught.exception.code, "recovery_required")
+        self.assertTrue((self.layout.config / "https.json").is_file())
+        journal = self.layout.state / "transactions" / ("a" * 32) / "state.json"
+        mkdir(journal.parent)
+        write_json(journal, {"kind": "https", "phase": "recovered", "before": before})
+        result = reset_prepared(self.manager, expected_revision=revision, confirm=True)
+        self.assertTrue(result["reset"])
+        self.assertFalse((self.layout.config / "https.json").exists())
+        self.assertEqual((self.layout.config / "tls/certificate.pem").read_bytes(), self.old_cert)
+        self.assertTrue(journal.is_file())
+
     def test_builtin_internal_to_public_acme_changes_only_origin_and_edge_selection(self):
         args = self.builtin()
         old_stop = self.system.stop
@@ -601,6 +647,30 @@ class HttpsTransactionTests(unittest.TestCase):
         setup_https(self.manager, **args)
         self.assertEqual(self.system.enabled, {"gateway", "caddy"})
         self.assertNotIn("enable", self.system.events)
+        self.assert_builtin_data_preserved()
+
+    def test_public_to_internal_migration_clears_inherited_hsts_and_preserves_state(self):
+        args = self.builtin(mode='acme')
+        self.metadata['hsts'] = True
+        write_json(self.layout.config / 'https.json', self.metadata)
+        atomic_write(self.layout.config / 'Caddyfile', caddy_configuration(self.layout, self.config, self.metadata).encode(), 0o644)
+        result = setup_https(self.manager, **{**args, 'tls': 'internal', 'expected_https_revision': https_revision(self.metadata)})
+        selected = read_https_metadata(self.layout)
+        self.assertEqual(selected['tls'], 'internal')
+        self.assertIs(selected['hsts'], False)
+        self.assertIs(json.loads((self.layout.config / 'Caddyfile').read_text())['hsts'], False)
+        self.assertEqual(result['httpsRevision'], https_revision(selected))
+        self.assertEqual(self.journal()[1]['phase'], 'committed')
+        self.assertEqual(self.system.active, {'worker', 'gateway', 'caddy'})
+        self.assert_builtin_data_preserved()
+
+    def test_public_migration_retains_existing_explicit_hsts(self):
+        args = self.builtin(mode='acme')
+        self.metadata['hsts'] = True
+        write_json(self.layout.config / 'https.json', self.metadata)
+        atomic_write(self.layout.config / 'Caddyfile', caddy_configuration(self.layout, self.config, self.metadata).encode(), 0o644)
+        setup_https(self.manager, **{**args, 'expected_https_revision': https_revision(self.metadata)})
+        self.assertIs(read_https_metadata(self.layout)['hsts'], True)
         self.assert_builtin_data_preserved()
 
     def test_https_proof_failure_restores_original_address_and_all_persistent_state(self):
@@ -816,20 +886,21 @@ class HttpsTransactionTests(unittest.TestCase):
         self.dns_validator.return_value = subprocess.CompletedProcess([], 1)
         with self.assertRaisesRegex(DeployError, "validation failed"):
             setup_https(self.manager, **args)
-        prepared = read_json(self.layout.config / "https.json")
-        credentials = dns_credentials_path(self.layout, prepared)
-        self.assertEqual(prepared["phase"], "prepared")
+        self.assertFalse((self.layout.config / "https.json").exists())
+        retained = list((self.layout.config / "dns").glob("*/credentials.env"))
+        self.assertEqual(len(retained), 1)
+        credential_bytes = retained[0].read_bytes()
         self.assertEqual(self.system.events, [])
         self.assertFalse((self.layout.units / self.layout.unit("caddy")).exists())
         self.assertEqual(list((self.layout.state / "transactions").iterdir()), [])
         self.dns_validator.return_value = subprocess.CompletedProcess([], 0)
         self.https_health.side_effect = DeployError("https_health", "Injected DNS readiness failure")
-        retry = {key: value for key, value in args.items() if key not in ("dns_provider", "dns_credentials")}
+        retry = dict(args)
         with self.assertRaisesRegex(DeployError, "DNS readiness failure"):
             setup_https(self.manager, **retry)
         self.assertEqual(read_json(self.layout.config / "instance.json")["origin"], "http://127.0.0.1:3300")
-        self.assertEqual(read_json(self.layout.config / "https.json"), prepared)
-        self.assertEqual(dns_credentials_path(self.layout, prepared), credentials)
+        self.assertFalse((self.layout.config / "https.json").exists())
+        self.assertEqual(retained[0].read_bytes(), credential_bytes)
         self.assertEqual(self.system.active, {"worker", "gateway"})
         self.assertEqual(self.system.enabled, {"worker", "gateway"})
         self.assertFalse((self.layout.units / self.layout.unit("caddy")).exists())
@@ -838,7 +909,9 @@ class HttpsTransactionTests(unittest.TestCase):
         self.assert_builtin_data_preserved()
         self.https_health.side_effect = None
         setup_https(self.manager, **retry)
-        self.assertEqual(read_json(self.layout.config / "https.json")["dnsCredentialsRevision"], prepared["dnsCredentialsRevision"])
+        selected = read_json(self.layout.config / "https.json")
+        self.assertEqual(dns_credentials_path(self.layout, selected).read_bytes(), credential_bytes)
+        self.assertEqual(selected["phase"], "active")
 
     def test_new_provider_activation_binds_only_its_private_credentials(self):
         from deploy.dns_tls import dns_credentials_path

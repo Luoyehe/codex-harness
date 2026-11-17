@@ -135,6 +135,19 @@ class ThreadHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(history.HistoryError, "changed"): self.repair(proof)
         self.assertFalse((self.home / "harness-history-backups").exists())
 
+    def test_bounded_ancestor_index_reports_capacity_without_claiming_complete_inspection(self):
+        self.header = line("session_meta", {"id": THREAD, "history_mode": "paginated", "history_base": {
+            "thread_id": "00000000-0000-4000-8000-000000000002", "end_byte_offset": 1, "end_ordinal_exclusive": 1}})
+        self.save(self.user)
+        for name in ("first-marker", "second-marker"): (self.home / "sessions" / name).touch()
+        with patch.object(history, "LOOKUP_ENTRY_LIMIT", 2):
+            result = self.inspect("plaintext")
+            self.assertTrue(result["inspectionUnsupported"])
+            self.assertEqual(result["inspectionIssue"]["code"], "thread_history_limit")
+            self.assertIn("10000", result["inspectionIssue"]["message"])
+            with self.assertRaises(history.HistoryError) as caught: history._rollout_index(self.home, self.uid)
+            self.assertEqual(caught.exception.code, "thread_history_limit")
+
     def test_competing_writer_and_coordinator_locks_refuse_before_any_history_write(self):
         raw = self.save(line("response_item", self.plain)); proof = self.inspect()
         directory = self.home / "thread-writer-locks"; directory.mkdir(mode=0o700)
@@ -226,6 +239,34 @@ class ThreadHistoryTests(unittest.TestCase):
             with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, self.request(path=invalid))
 
 
+    def test_attachment_scan_inherits_only_frozen_prefix_and_compacted_references(self):
+        attachment_root = self.home / "managed-attachments"
+        first = str(attachment_root / "11111111-1111-4111-8111-111111111111")
+        later = str(attachment_root / "22222222-2222-4222-8222-222222222222.wav")
+        prefix = self.header + line("response_item", {"type": "message", "role": "user", "content": [{"type": "localImage", "path": first}]})
+        self.path.write_bytes(prefix + line("response_item", {"type": "message", "role": "user", "content": [{"type": "localAudio", "path": later}]})); self.path.chmod(0o600)
+        target_id = "00000000-0000-4000-8000-000000000002"
+        target = self.home / "sessions" / ("rollout-" + target_id + ".jsonl")
+        target.write_bytes(line("session_meta", {"id": target_id, "history_mode": "paginated", "history_base": {"thread_id": THREAD, "end_byte_offset": len(prefix), "end_ordinal_exclusive": 2}}))
+        target.chmod(0o600)
+        request = {"action": "attachment-inspect", "threadId": target_id, "path": str(target), "mode": "plaintext", "attachmentRoot": str(attachment_root)}
+        self.assertEqual(history.operate(self.home, self.uid, request)["paths"], [first])
+        target.write_bytes(target.read_bytes() + line("compacted", {"replacement_history": [{"type": "message", "role": "user", "content": [{"type": "localAudio", "path": later}]}]}))
+        self.assertEqual(history.operate(self.home, self.uid, request)["paths"], sorted([first, later]))
+
+    def test_attachment_inventory_keeps_uninspectable_history_distinct_from_confirmed_absence(self):
+        attachment_root = self.home / "attachments"
+        attachment = str(attachment_root / "11111111-1111-4111-8111-111111111111")
+        self.save(line("response_item", {"type": "message", "content": [{"type": "input_text", "text": 'Attached file "a.txt" is available at ' + json.dumps(attachment) + '.'}]}))
+        compressed_id = "00000000-0000-4000-8000-000000000003"
+        compressed = self.home / "sessions" / ("rollout-" + compressed_id + ".jsonl.zst")
+        compressed.write_bytes(b"opaque"); compressed.chmod(0o600)
+        result = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(attachment_root)})
+        self.assertEqual(result["references"], [{"threadId": THREAD, "paths": [attachment]}])
+        self.assertEqual(result["unresolvedThreadIds"], [compressed_id])
+        self.assertEqual(result["threadIds"], sorted([THREAD, compressed_id]))
+
+
 class RecoveryCopyTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
@@ -284,6 +325,13 @@ class RecoveryCopyTests(unittest.TestCase):
         with self.assertRaises(history.HistoryError) as caught: history.operate(self.home, self.uid, request)
         self.assertEqual(caught.exception.code, "thread_history_target_not_empty")
         self.assertEqual(self.target.read_bytes(), published); self.assertEqual(self.source.read_bytes(), self.source_raw)
+
+    def test_conversion_uses_native_target_provider_header_without_changing_source_provider_or_history(self):
+        target_raw = self.record(0, "session_meta", {**self.settings, "id": self.target_id, "model_provider": "fixture_b"})
+        self.write(self.target, target_raw); request = self.request(); request["targetProvider"] = "fixture_b"
+        result = history.operate(self.home, self.uid, request)
+        self.assertTrue(result["sourcePreserved"]); self.assertEqual(self.source.read_bytes(), self.source_raw)
+        self.assertEqual(self.target.read_bytes(), target_raw + self.source_raw.split(b"\n", 1)[1])
 
     def test_source_or_target_changed_inode_or_bytes_refuses_before_backup(self):
         for path, data in ((self.source, self.source_raw), (self.target, self.target_raw)):

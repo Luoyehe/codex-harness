@@ -6,8 +6,8 @@ import { root } from './snapshot.mjs';
 
 const encoded = script => ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')];
 const bounded = value => String(value ?? '').slice(-32768);
-const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
+/** @returns {NodeJS.ProcessEnv} */
 export function preflightEnvironment(home, inherited = process.env) {
   const env = {};
   for (const key of ['PATH', 'PATHEXT', 'SystemRoot', 'WINDIR', 'COMSPEC', 'SystemDrive']) {
@@ -45,6 +45,12 @@ export function instrumentController(args) {
 function launch(bin, args, cwd, env) {
   const start = Date.now();
   const process = spawn(bin, args, { cwd, env, windowsHide: true, stdio: 'pipe' });
+  /** @type {{ spawned: boolean, pid: number | undefined, exitCode: number | null,
+   * signal: NodeJS.Signals | null, stdout: string, stderr: string, elapsedMs: number,
+   * error?: { code: string | null, message: string }, failure?: string,
+   * powershellStartedMs?: number, compileStartedMs?: number, lastBootstrapStage?: string, compileMs?: number,
+   * childReady?: boolean, childReadyMs?: number, signalAcknowledged?: boolean, signalElapsedMs?: number,
+   * childExitCode?: number, cleanupConfirmed?: boolean }} */
   const result = { spawned: false, pid: process.pid, exitCode: null, signal: null, stdout: '', stderr: '', elapsedMs: 0 };
   const closed = new Promise(resolve => {
     process.once('spawn', () => { result.spawned = true; });
@@ -80,7 +86,7 @@ async function basicPowerShell(bin, home, env, stage, bootstrap = '') {
   return { stage, status: !run.result.failure && run.result.exitCode === 0 ? 'passed' : 'failed', ...run.result };
 }
 
-async function controllerProbe(kind, command, home, env, job) {
+export async function controllerProbe(kind, command, home, env, job) {
   const instrumented = instrumentController(command.args);
   const run = launch(command.bin, instrumented.args, home, { ...env, ...command.env });
   let childPid;
@@ -101,13 +107,14 @@ async function controllerProbe(kind, command, home, env, job) {
     if (job.exited) run.result.childExitCode = await deadline(job.exited, 6000, `${kind}-cleanup-proof`);
     await deadline(run.closed, 6000, `${kind}-controller-exit`);
     if (run.result.exitCode !== 0) throw Error(`Controller exit code ${run.result.exitCode}`);
-    if (alive(childPid)) throw Error('Owned fixture child survived confirmed controller exit');
+    // Successful controller exit follows its kernel Job Object empty check.
+    // The standalone controller additionally proves exit over its bound pipe.
+    // A former numeric PID may already belong to an unrelated process here.
     run.result.cleanupConfirmed = true;
   } catch (error) { run.result.failure = bounded(error.message); }
   finally {
     if (run.process.exitCode === null) run.process.kill();
     await deadline(run.closed, 2000, `${kind}-kill`).catch(() => {});
-    if (childPid && alive(childPid)) { try { process.kill(childPid); run.result.forcedChildCleanup = true; } catch {} }
     job.dispose?.();
   }
   return { stage: kind, status: run.result.cleanupConfirmed && !run.result.failure ? 'passed' : 'failed', checks: instrumented.checks, ...run.result };

@@ -1,0 +1,9 @@
+/* Explicit cascade order: feature rules, shared foundation, responsive layout, usability overrides. */
+@import './styles-workflows.css';
+@import './styles-workspace.css';
+@import './styles-extensions.css';
+@import './styles-automations.css';
+@import './styles-input-context.css';
+@import './styles.css';
+@import './styles-responsive.css';
+@import './styles-usability.css';

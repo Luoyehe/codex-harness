@@ -37,6 +37,8 @@ export class ManagerClient implements ManagerPort {
         !operationId || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(operationId)))
       return Promise.reject(new HarnessError('invalid', '强制恢复需要明确确认和固定操作编号。'));
     if (urgent && this.recovery) return Promise.reject(new HarnessError('recovery_pending', '已有强制恢复请求尚未退出，请查询原操作记录。'));
+    if (!urgent && (this.active?.settled || this.recovery?.settled))
+      return Promise.reject(new HarnessError('manager_unconfirmed', '先前管理程序超时后仍未退出，本次请求未发送。可尝试强制恢复；若管理事务仍持锁，请服务器管理员检查，不要重复提交原操作。'));
     const payload = JSON.stringify({ method, params, ...(operationId ? { operationId } : {}) });
     const bytes = Buffer.byteLength(payload);
     if (bytes > 1024 * 1024) return Promise.reject(new HarnessError('capacity', '管理参数过大。'));
@@ -49,7 +51,7 @@ export class ManagerClient implements ManagerPort {
       entry.timer = setTimeout(() => {
         this.settle(entry, new HarnessError('manager_timeout', entry.wrote
           ? '管理操作未得到完整确认，请查询操作记录与服务状态。' : '管理请求等待超时，本次请求尚未发送。', entry.wrote ? 'unknown' : 'not_sent'));
-        if (this.active === entry || this.recovery === entry) this.terminate(entry);
+        if (this.active === entry || this.recovery === entry) this.terminate(entry, true);
         else { this.queue = this.queue.filter(value => value !== entry); this.release(entry); }
       }, DEADLINE_MS);
       // A stuck ordinary helper must not starve the sole emergency request.
@@ -63,7 +65,13 @@ export class ManagerClient implements ManagerPort {
     entry.settled = true; clearTimeout(entry.timer); entry.payload = null; entry.beforeWrite = undefined;
     if (error) entry.reject(error); else entry.resolve(value ?? null);
   }
-  private terminate(entry: Pending): void {
+  private terminate(entry: Pending, failWaiters = false): void {
+    // Reject unsent waiters promptly; a root transaction must not be declared
+    // stopped merely because sudo was asked to terminate. Its slot stays fenced.
+    for (const queued of failWaiters ? this.queue.splice(0) : []) {
+      this.settle(queued, new HarnessError('manager_unconfirmed', '先前管理程序未确认退出，本次排队请求未发送；请检查原操作并恢复服务。'));
+      this.release(queued);
+    }
     try { entry.child?.kill('SIGTERM'); } catch { /* Only close can release the live helper slot. */ }
   }
   private release(entry: Pending): void {

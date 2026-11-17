@@ -9,7 +9,7 @@ interface Host { bin: string; native(method: string, params: JsonValue, options?
 export class CliTerminals {
   private entries = new Map<string, Entry>(); private processes: Processes;
   constructor(private host: Host) {
-    this.processes = new Processes({ ...host, start: (operation, context) => {
+    this.processes = new Processes({ ...host, rollingOutput: true, start: (operation, context) => {
       const entry = [...this.entries.values()][0]; if (!entry || entry.revoked) throw new DeliveryError('client_disconnected', 'CLI terminal owner disconnected');
       entry.processHandle = string(operation.params.processHandle, 'processHandle'); const before = operation.beforeWrite;
       return host.start({ ...operation, idle: true, beforeWrite: () => { if (entry.revoked) throw new DeliveryError('client_disconnected', 'CLI terminal owner disconnected'); before?.(); entry.dispatched = true; } }, context);
@@ -35,7 +35,7 @@ export class CliTerminals {
     const entry: Entry = { terminalId: randomUUID(), clientId: context.clientId, channel: context.eventChannelId, revoked: false, dispatched: false }; this.entries.set(entry.terminalId, entry); this.host.changed();
     try {
       await this.processes.call('process/spawn', { cwd, command: params.program === 'codex-cloud' ? [this.host.bin, 'cloud'] : [this.host.bin, '--no-alt-screen'], env: { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, tty: true, streamStdin: true, size, timeoutMs: 3600000, outputBytesCap: 1024 * 1024 }, context);
-      return { terminalId: entry.terminalId };
+      return { terminalId: entry.terminalId, maxLifetimeMs: 3600000, outputHistoryBytes: 1024 * 1024 };
     } catch (error) { if (error instanceof DeliveryError && error.delivery === 'not_sent') { entry.dispatched = false; this.finish(entry); } throw error; }
   }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {

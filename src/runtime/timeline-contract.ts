@@ -10,8 +10,9 @@ function item(value: JsonValue): JsonObject {
   onlyKeys(entry, ['type', 'id', 'realtimeSessionId', 'turnId', 'itemId', 'presentation']);
   return { ...entry, turn_id: string(entry.turnId, 'turnId', 256), item_id: string(entry.itemId, 'itemId', 256) };
 }
-/** Pinned 0.164.0 JSON schema has snake_case for three enum variants, while
- * its generated TS and observed native wire use camelCase. Adapt only the
+/** Regenerated 0.169.0 JSON schema still has snake_case for three enum variants,
+ * while its TS uses camelCase, matching the earlier 0.164.0 native observation.
+ * This schema comparison is not a live 0.169.0 paid realtime acceptance. Adapt only the
  * validator input; never rewrite upstream generated files or public results. */
 export function validateTimelineContract(schema: string, value: JsonValue): void {
   const response = object(value); jsonBytes(response);

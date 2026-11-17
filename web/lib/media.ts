@@ -114,7 +114,7 @@ export function externalMediaUrl(value: string): string | undefined {
   return undefined;
 }
 export function mediaBytes(value: string, allowEmpty = false): Uint8Array {
-  const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(value),
+  const match = /^data:([^;,]+)(?:;[A-Za-z0-9_-]+=[A-Za-z0-9._-]+)*;base64,([\s\S]*)$/.exec(value),
     base64 = match ? match[2]! : value;
   if (
     base64.length > Math.ceil(MEDIA_BYTES / 3) * 4 ||
@@ -133,12 +133,14 @@ export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): 
   if (kind === 'audio') {
     if (text(0, 4) === 'RIFF' && text(8, 12) === 'WAVE') return 'audio/wav';
     if (text(0, 4) === 'OggS') return 'audio/ogg';
-    if (text(0, 3) === 'ID3' || (bytes[0] === 255 && ((bytes[1] ?? 0) & 224) === 224))
+    if (bytes.length >= 7 && bytes[0] === 255 && ((bytes[1] ?? 0) & 0xf6) === 0xf0)
+      return 'audio/aac';
+    if (text(0, 3) === 'ID3' || (bytes[0] === 255 && ((bytes[1] ?? 0) & 224) === 224 && ((bytes[1] ?? 0) & 6) !== 0))
       return 'audio/mpeg';
-    if (text(4, 8) === 'ftyp') return 'audio/mp4';
+    if (text(4, 8) === 'ftyp' && ['M4A ', 'M4B '].includes(text(8, 12))) return 'audio/mp4';
     if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3)
       return 'audio/webm';
-    throw new Error('不支持此音频格式。支持 WAV、MP3、M4A、WebM 和 Ogg。');
+    throw new Error('不支持或无法确认此音频格式。支持 WAV、AAC、MP3、M4A、WebM 和 Ogg。');
   }
   return mediaImageInfo(bytes).mime;
 }
@@ -179,7 +181,9 @@ export function mediaImageInfo(bytes: Uint8Array): { mime: string; width: number
   } else if (bytes[0] === 255 && bytes[1] === 216) {
     mime = 'image/jpeg';
     let at = 2;
-    while (at + 4 < bytes.length && at < 131072) {
+    // Segment lengths let us skip metadata in constant time, bounded by the
+    // already admitted total image size rather than an arbitrary APP window.
+    while (at + 4 < bytes.length && at < GENERATED_MEDIA_BYTES) {
       if (bytes[at++] !== 255) break;
       while (bytes[at] === 255) at++;
       const marker = bytes[at++];

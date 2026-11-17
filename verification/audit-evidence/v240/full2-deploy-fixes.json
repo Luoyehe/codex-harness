@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-2-fixes",
+  "reviewerId": "v240_runtime",
+  "completedAt": "2026-11-17T14:38:26.915957+00:00",
+  "findingsResolved": [
+    "FULL2-DEPLOY-01",
+    "FULL2-DEPLOY-02",
+    "FULL2-DEPLOY-03",
+    "FULL2-DEPLOY-04"
+  ],
+  "resolutions": {
+    "FULL2-DEPLOY-01": "All three owners (supervise, workspace Git query, prepared ref transaction) observe leader exit using waitid WNOWAIT. Group leader remains an owned un-reaped child through all group signals; cleanup refuses an already-reaped leader, clears adopted descendants then reaps only after no other direct child remains. EOF/TERM escalation and unknown cleanup failure remain intact.",
+    "FULL2-DEPLOY-02": "Reject invalid explicit HSTS before credentials/staging. Resolve inherited setting against target TLS: internal always false; public TLS preserves an existing explicit flag. Root migration tests verify metadata, published Caddy configuration, terminal receipt, service activity and untouched identity/application state.",
+    "FULL2-DEPLOY-03": "Updated original uninstall and recovery entry points to --confirm-stop, added actual HTTPS identity refresh to opening upgrade sequence, distinguished historic platform references from current pins, documented cached-browser HSTS expiry.",
+    "FULL2-DEPLOY-04": "All four historical PID absence assertions use a captured birth identity; shutdown fixture uses its existing pidfd when available. Synthetic reuse regression proves a reused numeric PID is not the original process. Complete tests/deploy search found no remaining post-reap numeric PID absence assertion."
+  },
+  "targeted": {
+    "windows": {
+      "cases": 26,
+      "passed": 12,
+      "skipped": 14,
+      "failures": 0,
+      "command": "python -m unittest tests.deploy.test_https tests.deploy.test_native_shutdown tests.deploy.test_deployment.NativeLauncherTests -v"
+    },
+    "linuxOrdinary": {
+      "uid": 65534,
+      "cases": 83,
+      "passed": 83,
+      "skipped": 0,
+      "failures": 0,
+      "command": "python3 -m unittest tests.deploy.test_native_shutdown tests.deploy.test_deployment.NativeLauncherTests tests.deploy.test_https tests.deploy.test_workspace tests.deploy.test_workspace_commit tests.deploy.test_workspace_worktrees -v",
+      "finalDeltaCases": 22,
+      "finalDeltaCommand": "python3 -m unittest tests.deploy.test_native_shutdown tests.deploy.test_https -v"
+    },
+    "linuxRoot": {
+      "uid": 0,
+      "cases": 61,
+      "passed": 61,
+      "skipped": 0,
+      "failures": 0,
+      "command": "python3 -m unittest tests.deploy.root.test_https tests.deploy.test_native_shutdown -v",
+      "finalDeltaCases": 61
+    }
+  },
+  "logs": [
+    {
+      "path": ".work/v240/full2-deploy-windows.log",
+      "sha256": "6cab933489d7757fbdd271c7cebc29988c1861dc5c06cd5244da90e6a142011d"
+    },
+    {
+      "path": ".work/v240/full2-deploy-linux-ordinary.log",
+      "sha256": "681cdbe68d024c4a5c751822cde8d4e4333b8630f57c447d208effabfb5f46ae"
+    },
+    {
+      "path": ".work/v240/full2-deploy-linux-root.log",
+      "sha256": "37cbf422ec111dda6b018b15bb9ed3c2aa212493741e5a3c780dd793e9562bd6"
+    },
+    {
+      "path": ".work/v240/full2-deploy-linux-final-ordinary.log",
+      "sha256": "e990fe41ac0c1e639b361cb13602f064c10a66eee22fd44a2f84a50596a482da"
+    },
+    {
+      "path": ".work/v240/full2-deploy-linux-final-root.log",
+      "sha256": "057c98d3f4ad38bf005958acf9be62be3eeb8e821425f8fb8c86b2f4733601c8"
+    }
+  ],
+  "validatedUploadManifest": ".work/v240/full2-deploy-delta.json",
+  "finalSourceFiles": {
+    "deploy/native_launcher.py": "283c75bec3237e9d16706f36efb81ca45629cc2312b46228acd93ae2a2910227",
+    "deploy/workspace_git.py": "9c86ec3868b90964dc233ccdd7d2784f533b8583cbfa24e5de49fab648c1a8f1",
+    "deploy/workspace_git_transaction.py": "37ed0dae9fc6335cbbc60e6124292b694fe8229f10063ab7e95cfa9b5f79faa7",
+    "deploy/https.py": "3326e6b2af6fbb678f14881bb264e2f8755cad8e9f36398bba99cca390af13d6",
+    "deploy/README.md": "7a4ed9338d5a9d97e49dab5741a9372c75ff1e0839749d8acb5fbd3fef72f6b0",
+    "deploy/RECOVERY.md": "9997e192cf4439ee6b3b1cd0951b96f3f8a342501d3a658cb8be89d60ee6a207",
+    "tests/deploy/process_identity.py": "60bfbdeda9c8bcbe62c1fae3a79db692ed04a7194695d7b1c2f9a66d814d6050",
+    "tests/deploy/test_native_shutdown.py": "3126dfb29b4b710af64ba2a5e9eae1624ef3925f98a483b7d4bff02d458ef7ee",
+    "tests/deploy/test_deployment.py": "aa658342d10f15bf77ab2260d9feb359754b0ecb00786015f62f96e98bd3acd9",
+    "tests/deploy/linux_isolation.py": "8e1eb0ec2ed7e944d9ee7e7a830d2307234d423f3fd95b72122b60ab8b2f2a7a",
+    "tests/deploy/test_https.py": "cae764391696e2343eea3b1b24b400dbf9b6ed0641d66167ef8a78202fe374fa",
+    "tests/deploy/root/test_https.py": "761712478c635027fbcb068a4b12b73e0ee4825a2c3116c53e988027c59a7138"
+  },
+  "limitations": [
+    "No actual PID reuse or unrelated process kill was forced. Identity-preserving behavior and rejection of already-reaped leaders were verified with real isolated Linux children and signal interception.",
+    "Root HTTPS fixture uses real relocated root files/ownership but substitutes OS service and external edge calls; no production TLS transaction occurred.",
+    "The standalone linux_isolation installed-instance probe was updated and its identity predicate tested; it was not run because no disposable installed crtest instance was provisioned in this task.",
+    "Ordinary native_shutdown child drivers intentionally drop capabilities under root when exercising ordinary security_process; direct leader cleanup tests additionally execute as UID 0.",
+    "The final minor recovery prose edits follow successful tests and do not change executable sources. No full suite, commit, push or deployment was performed."
+  ]
+}

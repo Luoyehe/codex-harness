@@ -20,6 +20,7 @@ export class Authentication extends EventEmitter {
   readonly #tokenHash: Buffer | undefined;
   readonly origin: URL;
   readonly cookieName: string;
+  #bootstrapIdentity: string | undefined;
   constructor(options: AuthOptions | string, origin: string, readonly now: () => number = Date.now) {
     super();
     this.#options = typeof options === 'string' ? { database: ':memory:', bootstrapToken: options } : options;
@@ -68,20 +69,30 @@ export class Authentication extends EventEmitter {
     let descriptor: number;
     try { descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT' && !this.account()?.bootstrap_revision) return; throw new HarnessError('authentication_unavailable', '管理员认证配置不可用，请通过服务器检查或恢复。'); }
-    let raw: string;
+    let raw: string, identity: string;
     try {
       const info = fstatSync(descriptor);
       if (!info.isFile() || info.size > 8192 || this.#options.strictFiles && (info.uid !== 0 || info.gid !== process.getgid?.() || info.nlink !== 1 || (info.mode & 0o027) !== 0)) throw new Error('Invalid bootstrap permissions');
+      const precise = fstatSync(descriptor, { bigint: true });
+      identity = [precise.dev, precise.ino, precise.size, precise.mtimeNs, precise.ctimeNs,
+        precise.mode, precise.uid, precise.gid, precise.nlink].join(':');
+      // Check the opened file on every authorization, including replacement,
+      // permissions and nanosecond change time. Never grant a TTL after reset.
+      if (identity === this.#bootstrapIdentity) return;
       raw = readFileSync(descriptor, 'utf8');
+      const after = fstatSync(descriptor, { bigint: true });
+      if ([after.dev, after.ino, after.size, after.mtimeNs, after.ctimeNs, after.mode, after.uid, after.gid, after.nlink].join(':') !== identity)
+        throw new Error('Bootstrap changed during read');
     } finally { closeSync(descriptor); }
     const value = JSON.parse(raw) as Input;
     if (value.schemaVersion !== 1) throw new Error('Invalid bootstrap schema');
     const revision = uuid(value.revision), name = username(value.username), passwordHash = parsePassword(value.passwordHash), fingerprint = digest(raw), account = this.account();
-    if (account?.bootstrap_revision === revision) { if (account.bootstrap_digest !== fingerprint) throw new Error('Bootstrap revision changed content'); return; }
+    if (account?.bootstrap_revision === revision) { if (account.bootstrap_digest !== fingerprint) throw new Error('Bootstrap revision changed content'); this.#bootstrapIdentity = identity; return; }
     this.transaction(() => {
       this.#db.prepare('INSERT INTO auth_account(id,username,password,version,totp_secret,totp_counter,bootstrap_revision,bootstrap_digest) VALUES(1,?,?,?,NULL,-1,?,?) ON CONFLICT(id) DO UPDATE SET username=excluded.username,password=excluded.password,version=excluded.version,totp_secret=NULL,totp_counter=-1,bootstrap_revision=excluded.bootstrap_revision,bootstrap_digest=excluded.bootstrap_digest').run(name, JSON.stringify(passwordHash), randomUUID(), revision, fingerprint);
       this.#db.exec('DELETE FROM auth_sessions; DELETE FROM auth_recovery; DELETE FROM auth_pending; DELETE FROM auth_attempts;');
     });
+    this.#bootstrapIdentity = identity;
     this.emit('revoked');
   }
   private cleanup(): void {
@@ -123,7 +134,7 @@ export class Authentication extends EventEmitter {
     this.capacity();
     if (account.totp_secret) {
       if (input.otp === undefined || input.otp === '') throw new HarnessError('mfa_required', '请输入两步验证码或恢复码。');
-      this.secondFactor(account, input.otp, 'unauthorized');
+      this.secondFactor(account, input.otp, 'mfa_invalid');
     }
     return this.issue(account, input.remember === true, label, peer);
   }
@@ -147,7 +158,7 @@ export class Authentication extends EventEmitter {
     const session = this.session(cookie); if (!session) throw new HarnessError('unauthorized', '请先登录管理入口。');
     if (csrf !== undefined && csrf !== session.csrf) throw new HarnessError('csrf', '会话已过期，请重新加载页面。'); return session;
   }
-  client(session: Session, clientId: unknown): string { return digest(session.id + '\0' + uuid(clientId)); }
+  client(session: Session, clientId: unknown): string { return digest(session.id + '\0' + uuid(clientId, '客户端编号')); }
   logout(cookie: string | undefined): string {
     const key = this.key(cookie); if (key) this.#db.prepare('DELETE FROM auth_sessions WHERE token_hash=?').run(digest(key));
     this.emit('revoked'); return this.cookie('', 0);
@@ -195,7 +206,8 @@ export class Authentication extends EventEmitter {
     const account = await this.challenge(session, input, peer); this.current(session, account.version); if (account.totp_secret) throw new HarnessError('already_enabled', '两步验证已启用。');
     const secret = newTotpSecret(), enrollmentId = randomUUID(), expiresAt = this.now() + 5 * 60_000;
     this.#db.prepare('INSERT INTO auth_pending(session_id,enrollment_id,secret,expires_at) VALUES(?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET enrollment_id=excluded.enrollment_id,secret=excluded.secret,expires_at=excluded.expires_at').run(session.id, enrollmentId, secret, expiresAt);
-    const issuer = 'Codex Harness'; return { enrollmentId, secret, expiresAt, uri: `otpauth://totp/${encodeURIComponent(issuer + ':' + account.username)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30` };
+    const issuer = 'Codex Harness', label = `${issuer}:${account.username} (${this.origin.host})`;
+    return { enrollmentId, secret, expiresAt, uri: `otpauth://totp/${encodeURIComponent(label)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30` };
   }
   confirmTotp(session: Session, input: Input, peer: string): string[] {
     const account = this.current(session, this.expected(input)); this.attempt(peer, session);

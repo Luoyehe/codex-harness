@@ -12,6 +12,7 @@ type Process = {
   tty: boolean;
   status: 'starting' | 'running' | 'exited';
   timedOut: boolean;
+  outputDrainTimedOut?: boolean;
   exitCode?: number;
   stdoutCapReached: boolean;
   stderrCapReached: boolean;
@@ -391,7 +392,7 @@ function ProcessSession({
           <option value="">选择进程</option>
           {list.data?.data.map((item) => (
             <option key={item.processHandle} value={item.processHandle}>
-              {item.processHandle.slice(0, 8)} · {item.status} · {item.cwd}
+              {item.processHandle.slice(0, 8)} · {({ starting: '正在启动', running: '运行中', exited: '已退出' })[item.status]} · {item.cwd}
             </option>
           ))}
         </select>
@@ -407,20 +408,21 @@ function ProcessSession({
           {selectedProcess && (
             <>
               <p role="status">
-                状态：{selectedProcess.status}
+                状态：{({ starting: '正在启动', running: '运行中', exited: '已退出' })[selectedProcess.status]}
                 {selectedProcess.exitCode !== undefined
                   ? ` · 退出码 ${selectedProcess.exitCode}`
                   : ''}
                 {selectedProcess.timedOut ? ' · 达到时限后停止' : ''}
               </p>
               <p className="small path">{selectedProcess.cwd}</p>
+              {selectedProcess.outputDrainTimedOut && <p className="workspace-warning">进程已结束，部分输出未能完整收集。</p>}
               {(selectedProcess.stdoutCapReached || selectedProcess.stderrCapReached) && (
                 <p className="workspace-warning">输出已达到保留上限，以下内容可能不完整。</p>
               )}
               <label className="field">
                 标准输出
                 <pre
-                  className="code"
+                  className="code" role="region" tabIndex={0} aria-label={'进程输出'}
                   style={{ maxHeight: '20rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}
                 >
                   {output.stdout ?? ''}
@@ -429,7 +431,7 @@ function ProcessSession({
               <label className="field">
                 标准错误
                 <pre
-                  className="code"
+                  className="code" role="region" tabIndex={0} aria-label={'进程输出'}
                   style={{ maxHeight: '12rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}
                 >
                   {output.stderr ?? ''}
@@ -445,6 +447,7 @@ function ProcessSession({
                       onChange={(e) => editInput(e.target.value)}
                     />
                   </label>
+                  <p className="small muted">此处按“发送输入”提交整段输入；连续键盘交互可使用项目终端。</p>
                   <label className="check-row">
                     <input
                       type="checkbox"

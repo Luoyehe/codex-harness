@@ -50,6 +50,8 @@ it('does not let a timed-out ordinary helper that ignores termination starve rec
   const first = manager.call('status', {}).catch(error => error); helpers[0]!.start();
   await vi.advanceTimersByTimeAsync(120000);
   expect(await first).toMatchObject({ code: 'manager_timeout', delivery: 'unknown' });
+  await expect(manager.call('status', {})).rejects.toMatchObject({ code: 'manager_unconfirmed', delivery: 'not_sent' });
+  expect(helpers).toHaveLength(1);
   const recovery = manager.call('recover', { confirmStop: true }, recoveryId);
   expect(helpers).toHaveLength(2); helpers[1]!.start(); helpers[1]!.finish({ ok: true, result: { restarted: true } });
   expect(await recovery).toEqual({ restarted: true });
@@ -185,10 +187,11 @@ it('expires queued requests as not_sent and does not release a sent timed-out he
   await vi.advanceTimersByTimeAsync(60000);
   expect(await first).toMatchObject({ code: 'manager_timeout', delivery: 'unknown' });
   expect(helpers[0]!.kill).toHaveBeenCalledWith('SIGTERM'); expect(helpers).toHaveLength(1);
-  await vi.advanceTimersByTimeAsync(60000);
-  expect(await second).toMatchObject({ code: 'manager_timeout', delivery: 'not_sent' });
-  const third = manager.call('status', {}); expect(helpers).toHaveLength(1);
-  helpers[0]!.emit('close', null, 'SIGTERM'); expect(helpers).toHaveLength(2);
+  expect(await second).toMatchObject({ code: 'manager_unconfirmed', delivery: 'not_sent' });
+  await expect(manager.call('status', {})).rejects.toMatchObject({ code: 'manager_unconfirmed', delivery: 'not_sent' });
+  expect(helpers).toHaveLength(1);
+  helpers[0]!.emit('close', null, 'SIGTERM');
+  const third = manager.call('status', {}); expect(helpers).toHaveLength(2);
   helpers[1]!.start(); helpers[1]!.finish(); expect(await third).toEqual({});
   expect(spawn).toHaveBeenCalledTimes(2);
 });

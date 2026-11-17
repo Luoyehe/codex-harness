@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import net from 'node:net';
-import type { ServerResponse } from 'node:http';
+import { IncomingMessage, type ServerResponse } from 'node:http';
 import WebSocket from 'ws';
 import { Authentication } from '../../src/gateway/auth.js';
 import { totp } from '../../src/gateway/auth-crypto.js';
@@ -11,10 +11,14 @@ import { Dispatcher } from '../../src/gateway/dispatch.js';
 import { Ledger } from '../../src/core/ledger.js';
 import type { CallContext, JsonObject, JsonValue } from '../../src/core/contracts.js';
 import { LIMITS } from '../../src/core/contracts.js';
+import { MAX_EVENT_BYTES } from '../../src/shared/event-limits.js';
 import { HarnessError } from '../../src/core/errors.js';
 import type { WorkerClient } from '../../src/gateway/worker-client.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { httpErrorStatus, startupFailure } from '../../src/gateway/http-errors.js';
 
-async function fixture(now: () => number = Date.now, openBrowser = true, staticDir?: string) {
+async function fixture(now: () => number = Date.now, openBrowser = true, staticDir?: string, options: { trustedProxyToken?: string } = {}) {
   const token = randomBytes(32).toString('hex'); const auth = new Authentication(token, 'http://127.0.0.1:0', now);
   const ledger = new Ledger(':memory:'); let forwarded = 0; let disconnected = 0; const owners: string[] = [];
   const backend = {
@@ -25,7 +29,7 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   };
   const dispatcher = new Dispatcher(ledger, backend, { call: async () => ({}) });
   dispatcher.event({ type: 'state', data: { connected: true, epoch: 'one', activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
-  const server = new GatewayServer(auth, dispatcher, backend as unknown as WorkerClient, staticDir);
+  const server = new GatewayServer(auth, dispatcher, backend as unknown as WorkerClient, staticDir, options);
   const port = await server.listen(0); auth.origin.port = String(port); const origin = auth.origin.origin;
   const post = (pathname: string, data: unknown, headers: Record<string, string> = {}) => fetch(origin + pathname, { method: 'POST', headers: { origin, 'content-type': 'application/json', ...headers }, body: JSON.stringify(data) });
   const loginResponse = await post('/api/account/setup', { token, username: 'admin', password: 'isolated-test-password' });
@@ -36,6 +40,96 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   return { token, auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); auth.close(); } };
 }
 describe('real HTTP and WebSocket authorization boundary', () => {
+  it('keeps authenticated reads available while anonymous slow request bodies exhaust their separate allowance', async () => {
+    const f = await fixture(), clients: net.Socket[] = [];
+    let received = 0;
+    f.server.server.on('request', req => { if (req.url === '/api/session' && req.method === 'POST') received++; });
+    const request = ['POST /api/session HTTP/1.1', `Host: ${new URL(f.origin).host}`, `Origin: ${f.origin}`,
+      'Content-Type: application/json', 'Content-Length: 8192', '', '{'].join('\r\n');
+    try {
+      for (let index = 0; index < 8; index++) {
+        const socket = net.createConnection({ host: '127.0.0.1', port: Number(new URL(f.origin).port) });
+        clients.push(socket); socket.on('error', () => {}); await once(socket, 'connect'); socket.write(request);
+      }
+      await expect.poll(() => received).toBe(8);
+      expect(await (await fetch(f.origin + '/health')).json()).toMatchObject({ error: { code: 'capacity' } });
+      expect((await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).status).toBe(200);
+      const response = await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'available' } }, f.headers);
+      expect(response.status).toBe(200); expect(f.forwarded).toBe(1);
+      for (const client of clients) client.destroy();
+      await expect.poll(async () => (await fetch(f.origin + '/health')).status).toBe(200);
+    } finally { for (const client of clients) client.destroy(); await f.close(); }
+  });
+  it('identifies an invalid browser client UUID without mislabeling it as an operation receipt', async () => {
+    const f = await fixture();
+    try {
+      const response = await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 't' } }, { ...f.headers, 'x-harness-client': 'malformed-client' });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { message: expect.stringContaining('客户端编号'), delivery: 'not_sent' } });
+      expect(f.forwarded).toBe(0);
+      expect((await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 't' } }, f.headers)).status).toBe(200);
+    } finally { await f.close(); }
+  });
+  it.each([false, true])('trusts only a signed loopback managed proxy client address when configured=%s', async configured => {
+    const proxyToken = randomBytes(32).toString('hex');
+    const f = await fixture(Date.now, false, undefined, configured ? { trustedProxyToken: proxyToken } : {});
+    const peers: string[] = [];
+    const login = vi.spyOn(f.auth, 'login').mockImplementation(async (_value, peer) => { peers.push(peer); throw new HarnessError('unauthorized', 'Fixture rejected'); });
+    try {
+      for (const headers of [
+        { 'x-harness-proxy-token': proxyToken, 'x-harness-client-ip': '198.51.100.10' },
+        { 'x-harness-proxy-token': 'f'.repeat(proxyToken.length), 'x-harness-client-ip': '198.51.100.11' },
+        { 'x-harness-proxy-token': proxyToken, 'x-harness-client-ip': '198.51.100.12, 127.0.0.1' },
+        { 'x-harness-proxy-token': '', 'x-harness-client-ip': '198.51.100.13' },
+      ]) expect((await f.post('/api/session', {}, headers)).status).toBe(401);
+      expect(peers).toEqual([configured ? '198.51.100.10' : '127.0.0.1', '127.0.0.1', '127.0.0.1', '127.0.0.1']);
+      // Even possession of a header value cannot make a non-loopback hop a trusted edge.
+      const socket = new net.Socket(); Object.defineProperty(socket, 'remoteAddress', { value: '198.51.100.40' });
+      const nonlocal = new IncomingMessage(socket);
+      nonlocal.headers = { 'x-harness-proxy-token': proxyToken, 'x-harness-client-ip': '198.51.100.10' };
+      try { expect(f.server['peer'](nonlocal)).toBe('198.51.100.40'); } finally { socket.destroy(); }
+    } finally { login.mockRestore(); await f.close(); }
+  });
+  it('delivers a bounded resync notice for oversized UTF-8 events while preserving subsequent event delivery', async () => {
+    const f = await fixture(Date.now, false); let ws: WebSocket | undefined;
+    try {
+      ws = new WebSocket(f.origin.replace('http:', 'ws:') + '/api/events?clientId=' + f.clientId, { headers: { origin: f.origin, cookie: f.cookie } });
+      const initial = once(ws, 'message'); await once(ws, 'open'); await initial;
+      const frames: string[] = []; ws.on('message', value => frames.push(value.toString()));
+      const text = '中'.repeat(Math.ceil(MAX_EVENT_BYTES / 3));
+      expect(text.length).toBeLessThan(MAX_EVENT_BYTES);
+      f.dispatcher.event({ type: 'notification', data: { text } });
+      await expect.poll(() => frames.length).toBe(1);
+      expect(JSON.parse(frames[0]!)).toMatchObject({ type: 'resync', data: { reason: 'event_capacity' } });
+      expect(Buffer.byteLength(frames[0]!)).toBeLessThan(1024);
+      f.dispatcher.event({ type: 'notification', data: { text: 'next' } });
+      await expect.poll(() => frames.length).toBe(2);
+      expect(JSON.parse(frames[1]!)).toMatchObject({ type: 'notification', data: { text: 'next' } });
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+    } finally { ws?.terminate(); await f.close(); }
+  });
+  it('returns method/media semantics and caches only hashed build assets', async () => {
+    mkdirSync('.work/http-fixtures', { recursive: true });
+    const directory = mkdtempSync(path.resolve('.work/http-fixtures/run-'));
+    mkdirSync(path.join(directory, 'assets'));
+    writeFileSync(path.join(directory, 'index.html'), '<html>fixture</html>');
+    writeFileSync(path.join(directory, 'assets/app-aB234567.js'), 'fixture');
+    writeFileSync(path.join(directory, 'assets/settings.js'), 'fixture');
+    const f = await fixture(Date.now, false, directory);
+    try {
+      const wrongMethod = await fetch(f.origin + '/api/rpc');
+      expect(wrongMethod.status).toBe(405); expect(wrongMethod.headers.get('allow')).toBe('POST');
+      const wrongMedia = await fetch(f.origin + '/api/rpc', { method: 'POST', headers: { ...f.headers, origin: f.origin, 'content-type': 'text/plain' }, body: '{}' });
+      expect(wrongMedia.status).toBe(415);
+      expect(await wrongMedia.json()).toMatchObject({ error: { code: 'content_type', delivery: 'not_sent' } });
+      for (const resource of ['/', '/assets/settings.js', '/api/account/status'])
+        expect((await fetch(f.origin + resource)).headers.get('cache-control')).toBe('no-store');
+      expect((await fetch(f.origin + '/assets/app-aB234567.js')).headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+      expect(httpErrorStatus('unavailable')).toBe(503);
+      expect(startupFailure({ code: 'EADDRINUSE', message: 'synthetic-secret' }, 'listen')).toContain('listen; EADDRINUSE');
+      expect(startupFailure({ code: 'synthetic-secret', message: 'synthetic-secret' }, 'authentication')).not.toContain('synthetic-secret');
+    } finally { await f.close(); rmSync(directory, { recursive: true, force: true }); }
+  });
   it.each(['capacity', 'encoding'] as const)('keeps a committed RPC recoverable when response %s fails after acceptance', async cause => {
     const f = await fixture(Date.now, false);
     try {
@@ -227,7 +321,7 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       const unfinished = responses.filter(res => !res.writableFinished && !res.destroyed);
       expect(unfinished.length).toBeGreaterThan(0);
       expect(unfinished.reduce((bytes, res) => bytes + res.writableLength, 0)).toBeLessThanOrEqual(LIMITS.retainedResponseBytes + 8192);
-      expect(responses.some(res => res.statusCode === 400)).toBe(true);
+      expect(responses.some(res => res.statusCode === 503)).toBe(true);
       // A paused client has unread TCP data. A normal destroy may leave a FIN
       // behind that data until the server's separate write deadline expires.
       // Explicitly reset these aborted connections and observe server cleanup;
@@ -263,9 +357,10 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       f.backend.call = async () => new Promise<JsonValue>(resolve => { completions.push(() => resolve({ data: [] })); });
       for (let i = 0; i < LIMITS.concurrentRequests - 1; i++) held.push(f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'held' } }, f.headers));
       await expect.poll(() => completions.length).toBe(LIMITS.concurrentRequests - 1);
-      expect((await fetch(f.origin + '/health')).status).toBe(400);
+      expect((await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).status).toBe(503);
+      expect((await fetch(f.origin + '/health')).status).toBe(200);
       first();
-      await expect.poll(async () => (await fetch(f.origin + '/health')).status).toBe(200);
+      await expect.poll(async () => (await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).status).toBe(200);
       completions.forEach(done => done());
       expect((await Promise.all(held)).every(response => response.status === 200)).toBe(true);
     } finally { f.backend.call = async () => ({ data: [] }); first?.(); completions.forEach(done => done()); socket?.destroy(); await Promise.allSettled(held); await f.close(); }
@@ -284,9 +379,10 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       }
       await expect.poll(() => complete.length).toBe(LIMITS.concurrentRequests);
       for (const client of clients) client.destroy();
-      expect(await (await fetch(f.origin + '/health')).json()).toMatchObject({ ok: false, error: { code: 'capacity' } });
+      expect(await (await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).json()).toMatchObject({ ok: false, error: { code: 'capacity' } });
+      expect((await fetch(f.origin + '/health')).status).toBe(200);
       complete.forEach(done => done());
-      await expect.poll(async () => (await fetch(f.origin + '/health')).status).toBe(200);
+      await expect.poll(async () => (await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).status).toBe(200);
     } finally { complete.forEach(done => done()); for (const client of clients) client.destroy(); await f.close(); }
   });
   it.each(['accepted', 'not_sent', 'unknown', 'pending', 'dispatching'] as const)('replays a durable %s identity without a browser lease, keeping conflicts and new dispatch fenced', async state => {

@@ -19,7 +19,7 @@ beforeEach(() => { fixture.calls.length = fixture.bodies.length = fixture.kills.
 
 test('workspace requires a fixed native launcher and never uses configured generic binary', () => {
   expect(nativeCommand(config, 'workspace')).toEqual({ bin: '/usr/bin/sudo', args: ['-n', '-u', 'ch-test-worker', '--', config.launcher.path, 'workspace'], env: { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8' }, cwd: '/' });
-  expect(() => nativeCommand({ ...config, launcher: undefined }, 'workspace')).toThrow('identity launcher');
+  const { launcher: _launcher, ...unmanaged } = config; expect(() => nativeCommand(unmanaged, 'workspace')).toThrow('identity launcher');
 });
 test('read requests cannot smuggle a root, command, environment or mutation identity', () => {
   for (const params of [{ path: 'a', root: '/other' }, { path: 'a', command: 'anything' }, { path: 'a', env: {} }]) expect(() => workspaceRequest(root, 'read', params, { clientId: 'c' })).toThrow();

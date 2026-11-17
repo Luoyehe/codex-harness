@@ -4,6 +4,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, st
 import path from 'node:path';
 import { executePlan } from '../../scripts/run-tests.mjs';
 import { isolatedPaths, isolatedTestEnvironment } from '../../scripts/test-environment.mjs';
+import { finishTestWorkspace } from '../../scripts/test-retention.mjs';
 
 const fixtures: string[] = [];
 function fixture() {
@@ -24,7 +25,7 @@ test('the shared local and CI allowlist replaces host paths and removes configur
   expect(env).toMatchObject({ PATH: 'fixture-path', SystemRoot: 'fixture-system', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', GIT_CONFIG_NOSYSTEM: '1', PYTHONNOUSERSITE: '1' });
   for (const key of forbidden) expect(env[key]).toBeUndefined();
   for (const key of ['HOME', 'USERPROFILE', 'CODEX_HOME', 'TMPDIR', 'XDG_CONFIG_HOME']) expect(env[key]).not.toBe(oldHome);
-  expect(env.HOME).toBe(env.USERPROFILE); expect(env.CODEX_HOME).toBe(path.join(env.HOME, 'codex'));
+  expect(env.HOME).toBe(env.USERPROFILE); expect(env.CODEX_HOME).toBe(path.join(env.HOME!, 'codex'));
   expect(env.GIT_CONFIG_GLOBAL).toBe(process.platform === 'win32' ? 'NUL' : '/dev/null');
   expect(env.GIT_CONFIG_SYSTEM).toBe(env.GIT_CONFIG_GLOBAL);
 });
@@ -65,6 +66,21 @@ test('root temporary ancestors stay outside private homes even with an inherited
   } else expect(paths.temporary).toBe(path.join(paths.home, 'tmp'));
 });
 
+test('owned root temporary output follows the same success cleanup and failed evidence retention', () => {
+  const base = fixture(), passed = isolatedPaths(base, true), failed = isolatedPaths(base, true);
+  if (process.platform === 'win32') {
+    finishTestWorkspace(passed.home, true); expect(existsSync(passed.temporary)).toBe(false);
+    finishTestWorkspace(failed.home, false); expect(existsSync(failed.temporary)).toBe(true);
+  } else {
+    fixtures.push(failed.temporary);
+    const active = isolatedPaths(base, true); fixtures.push(active.temporary);
+    finishTestWorkspace(passed.temporary, true); expect(existsSync(passed.temporary)).toBe(false);
+    finishTestWorkspace(failed.temporary, false); expect(existsSync(failed.temporary)).toBe(true);
+    expect(existsSync(active.temporary)).toBe(true);
+    expect(JSON.parse(readFileSync(path.join(failed.temporary, 'run.json'), 'utf8'))).toMatchObject({ status: 'failed' });
+  }
+});
+
 test('the real targeted CLI isolates JavaScript and Python Git fixtures from artificial host hooks and injected Git overrides', () => {
   const base = fixture(); const oldHome = path.join(base, 'artificial-home'); const hooks = path.join(oldHome, 'hooks');
   put(oldHome, 'hooks/pre-commit', '#!/bin/sh\nprintf "fixture-hook-ran\\n" >> hook-marker\n'); chmodSync(path.join(hooks, 'pre-commit'), 0o755);
@@ -72,14 +88,14 @@ test('the real targeted CLI isolates JavaScript and Python Git fixtures from art
   put(oldHome, 'codex/auth.json', '{"fixture":"must-remain-unread"}');
   // Start from the same allowlist, then add only artificial hostile state. The
   // positive control never reads the developer's HOME or system Git config.
-  const inherited = { ...isolatedTestEnvironment(base), HOME: oldHome, USERPROFILE: oldHome, CODEX_HOME: path.join(oldHome, 'codex'), OPENAI_API_KEY: 'fixture-only', AWS_SECRET_ACCESS_KEY: 'fixture-only' };
+  const inherited: NodeJS.ProcessEnv = { ...isolatedTestEnvironment(base), HOME: oldHome, USERPROFILE: oldHome, CODEX_HOME: path.join(oldHome, 'codex'), OPENAI_API_KEY: 'fixture-only', AWS_SECRET_ACCESS_KEY: 'fixture-only' };
   const controlEnv = { ...inherited }; delete controlEnv.GIT_CONFIG_GLOBAL;
   const control = path.join(base, 'control'); mkdirSync(control);
   const git = (cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) => execFileSync('git', args, { cwd, env, encoding: 'utf8', stdio: 'pipe', windowsHide: true });
   git(control, controlEnv, 'init', '-q'); put(control, 'fixture.txt', 'fixture'); git(control, controlEnv, 'add', '.');
   git(control, controlEnv, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'positive-control');
   expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\n');
-  for (const file of ['run-tests.mjs', 'select-tests.mjs', 'test-environment.mjs', 'go-tests.mjs', 'snapshot.mjs', 'release-audit.mjs', 'release-authorization.mjs', 'python-tests.py']) put(base, 'scripts/' + file, readFileSync(path.resolve('scripts', file), 'utf8'));
+  for (const file of ['run-tests.mjs', 'select-tests.mjs', 'test-environment.mjs', 'go-tests.mjs', 'snapshot.mjs', 'release-audit.mjs', 'git-object-reader.mjs', 'test-paths.mjs', 'test-retention.mjs', 'release-authorization.mjs', 'python-tests.py']) put(base, 'scripts/' + file, readFileSync(path.resolve('scripts', file), 'utf8'));
   put(base, 'package.json', JSON.stringify({ type: 'module', scripts: { 'test:targeted': 'node scripts/run-tests.mjs --targeted' } }));
   put(base, 'vitest.config.mjs', "export default { test: { include: ['tests/**/*.test.ts'], maxWorkers: 1 } };\n");
   put(base, 'tests/tooling/unselected.test.ts', "throw Error('unselected fixture must not run');\n");

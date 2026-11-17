@@ -21,7 +21,7 @@ test('plugin saving binds fresh file inventory and explicit audience without acc
   f.change(); await expect(f.service.mutate('plugin/share/save', params, f.write)).rejects.toHaveProperty('code', 'share_changed'); expect(f.writes).toHaveLength(1);
 });
 test('share mutations require a fresh existing remote identity and distinct principals', async () => {
-  const f = sharing(); const selected = object((await f.service.list({})).data![0]);
+  const f = sharing(); const selected = object(((await f.service.list({})).data as JsonValue[])[0]);
   const params = { remotePluginId: 'remote', previewHash: selected.previewHash!, confirm: true };
   await expect(f.service.mutate('plugin/share/updateTargets', { ...params, discoverability: 'PRIVATE', shareTargets: [{ principalId: 'u', principalType: 'user', role: 'reader' }, { principalId: 'u', principalType: 'user', role: 'editor' }] }, f.write)).rejects.toHaveProperty('code', 'invalid_params');
   expect(await f.service.mutate('plugin/share/delete', params, f.write)).toEqual({ remotePluginId: 'remote', deleted: true });

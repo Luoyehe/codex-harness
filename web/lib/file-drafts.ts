@@ -11,6 +11,19 @@ export type FileDraft = {
   pending?: { operationId: string; submittedRevision: string; submittedText: string };
 };
 const prefix = 'harness.file-draft.v1.';
+// Always read current storage bytes; cache only UTF-8 lengths of unchanged
+// values, so another writer cannot bypass the combined budget.
+const sizeCache = new WeakMap<Storage, Map<string, { raw: string; bytes: number }>>();
+function storedBytes(storage: Storage, key: string, raw: string) {
+  let cache = sizeCache.get(storage);
+  if (!cache) { cache = new Map(); sizeCache.set(storage, cache); }
+  const previous = cache.get(key);
+  if (previous?.raw === raw) return previous.bytes;
+  const bytes = byteLength(raw);
+  if (cache.size >= 10) cache.delete(cache.keys().next().value!);
+  cache.set(key, { raw, bytes });
+  return bytes;
+}
 export const fileDraftKey = (projectId: string, path: string) => JSON.stringify([projectId, path]);
 const key = (projectId: string, path: string) =>
   prefix + encodeURIComponent(fileDraftKey(projectId, path));
@@ -42,13 +55,19 @@ const valid = (value: unknown): value is FileDraft => {
 export function readFileDraft(projectId: string, path: string, storage = sessionStorage) {
   const raw = storage.getItem(key(projectId, path));
   if (raw === null) return undefined;
-  const draft: unknown = JSON.parse(raw);
+  let draft: unknown;
+  try { draft = JSON.parse(raw); }
+  catch { throw new Error('文件草稿格式损坏。请到设置 → 本地草稿导出原始内容或仅移除此条损坏记录。'); }
   if (!valid(draft) || draft.projectId !== projectId || draft.path !== path)
-    throw new Error('文件草稿已损坏，未自动覆盖。');
+    throw new Error('文件草稿已损坏，未自动覆盖。请到设置 → 本地草稿处理此条记录。');
   return draft;
 }
 export function persistFileDraft(draft: FileDraft, storage = sessionStorage) {
   if (!valid(draft)) throw new Error('文件草稿格式无效。');
+  if (!draft.pending && draft.baseRevision !== null && draft.text === draft.baseText) {
+    discardFileDraft(draft.projectId, draft.path, storage);
+    return;
+  }
   const target = key(draft.projectId, draft.path),
     value = JSON.stringify(draft);
   let bytes = byteLength(value),
@@ -57,7 +76,7 @@ export function persistFileDraft(draft: FileDraft, storage = sessionStorage) {
     const other = storage.key(i);
     if (other?.startsWith(prefix) && other !== target) {
       count++;
-      bytes += byteLength(storage.getItem(other) ?? '');
+      bytes += storedBytes(storage, other, storage.getItem(other) ?? '');
     }
   }
   if (count > 10 || bytes > 8 * 1024 * 1024)
@@ -73,13 +92,36 @@ export function listFileDrafts(storage = sessionStorage) {
   for (let i = 0; i < storage.length; i++) {
     const entry = storage.key(i);
     if (!entry?.startsWith(prefix)) continue;
-    const value: unknown = JSON.parse(storage.getItem(entry) ?? 'null');
-    if (!valid(value) || entry !== key(value.projectId, value.path))
-      throw new Error('文件草稿目录损坏，未覆盖原记录。');
-    drafts.push(value);
+    try {
+      const raw = storage.getItem(entry) ?? 'null';
+      const value: unknown = JSON.parse(raw);
+      if (!valid(value) || entry !== key(value.projectId, value.path)) continue;
+      if (!value.pending && value.baseRevision !== null && value.text === value.baseText) {
+        if (storage.getItem(entry) === raw) { storage.removeItem(entry); i--; }
+        continue;
+      }
+      drafts.push(value);
+    } catch { /* Damage is isolated and remains exportable in draft settings. */ }
     if (drafts.length > 10) throw new Error('文件草稿数量超过上限。');
   }
   return drafts.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+export function damagedFileDrafts(storage = sessionStorage) {
+  const damaged: { storageKey: string; raw: string }[] = [];
+  for (const storageKey of Object.keys(storage).filter(value => value.startsWith(prefix))) {
+    const raw = storage.getItem(storageKey) ?? '';
+    try {
+      const value: unknown = JSON.parse(raw);
+      if (!valid(value) || storageKey !== key(value.projectId, value.path)) throw new Error();
+    } catch { damaged.push({ storageKey, raw }); }
+  }
+  return damaged;
+}
+export function discardDamagedFileDraft(storageKey: string, expectedRaw: string, storage = sessionStorage) {
+  if (!storageKey.startsWith(prefix) || storage.getItem(storageKey) !== expectedRaw)
+    throw new Error('文件草稿已变化，请重新检查后再处理。');
+  storage.removeItem(storageKey);
+  window.dispatchEvent(new Event('harness-drafts'));
 }
 export function newFileDraft(
   projectId: string,

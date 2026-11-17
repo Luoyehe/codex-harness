@@ -14,7 +14,7 @@ function fileSystem(value: JsonValue): JsonObject {
   const f = object(value); onlyKeys(f, ['read', 'write', 'globScanMaxDepth', 'entries']);
   // The public notification includes legacy path projections alongside entries.
   // The internal serde union accepts either legacy lists OR entries, never both.
-  const entries = f.entries as JsonObject[] | undefined;
+  const entries = f.entries == null ? undefined : f.entries as JsonObject[];
   for (const entry of entries ?? []) {
     onlyKeys(entry, ['path', 'access']); const path = object(entry.path);
     if (path.type === 'path') onlyKeys(path, ['type', 'path']);
@@ -22,11 +22,11 @@ function fileSystem(value: JsonValue): JsonObject {
     else { onlyKeys(path, ['type', 'value']); const special = object(path.value); onlyKeys(special, special.kind === 'unknown' ? ['kind', 'path', 'subpath'] : special.kind === 'project_roots' ? ['kind', 'subpath'] : ['kind']); }
   }
   if (entries !== undefined) for (const access of ['read', 'write']) {
-    const legacy = f[access]; if (legacy === null) continue;
+    const legacy = f[access]; if (legacy == null) continue;
     const projected = entries.filter(entry => entry.access === access && object(entry.path).type === 'path').map(entry => object(entry.path).path!);
     if (canonical([...(legacy as JsonValue[])].sort()) !== canonical(projected.sort())) throw new DeliveryError('guardian_action_unsupported', 'Native filesystem permission projections disagree');
   }
-  return { entries: entries ?? ['read', 'write'].flatMap(access => (f[access] === null ? [] : f[access] as JsonValue[]).map(path => ({ path: { type: 'path', path }, access }))), ...(f.globScanMaxDepth !== undefined ? { glob_scan_max_depth: f.globScanMaxDepth } : {}) };
+  return { entries: entries ?? ['read', 'write'].flatMap(access => (f[access] == null ? [] : f[access] as JsonValue[]).map(path => ({ path: { type: 'path', path }, access }))), ...(f.globScanMaxDepth != null ? { glob_scan_max_depth: f.globScanMaxDepth } : {}) };
 }
 function action(value: JsonValue): JsonObject {
   const a = object(value), source = a.source === 'unifiedExec' ? 'unified_exec' : a.source;
@@ -39,9 +39,9 @@ function action(value: JsonValue): JsonObject {
     case 'mcpToolCall': onlyKeys(a, ['type', 'server', 'toolName', 'connectorId', 'connectorName', 'toolTitle']); return { type: 'mcp_tool_call', server: a.server!, tool_name: a.toolName!, connector_id: a.connectorId!, connector_name: a.connectorName!, tool_title: a.toolTitle! };
     case 'requestPermissions': {
       onlyKeys(a, ['type', 'reason', 'permissions']); const p = object(a.permissions); onlyKeys(p, ['network', 'fileSystem']); let fs: JsonValue = null;
-      if (p.network !== null) onlyKeys(object(p.network), ['enabled']);
-      if (p.fileSystem !== null) fs = fileSystem(p.fileSystem!);
-      return { type: 'request_permissions', reason: a.reason!, permissions: { network: p.network!, file_system: fs } };
+      if (p.network != null) onlyKeys(object(p.network), ['enabled']);
+      if (p.fileSystem != null) fs = fileSystem(p.fileSystem);
+      return { type: 'request_permissions', reason: a.reason ?? null, permissions: { network: p.network ?? null, file_system: fs } };
     }
     default: throw new DeliveryError('guardian_action_unsupported', 'This native guardian action has no verified retry adapter');
   }
@@ -56,12 +56,25 @@ export function guardianEvent(notification: JsonObject): JsonObject {
 /** Captured native denials are epoch-local capabilities, not editable assessments. */
 export class Guardian {
   private entries = new Map<string, Denial>(); private seen = new Map<string, string>(); private exhausted = false;
+  private issues = new Map<string, { reviewId: string; reason: string }>();
   constructor(private host: Host) {}
   notification(method: string, params: JsonObject) {
     if (method === 'turn/started') { const turnId = object(params.turn).id; for (const [id, entry] of this.entries) if (entry.threadId === params.threadId && entry.notification.turnId !== turnId) this.entries.delete(id); return; }
     if (['thread/reverted', 'thread/closed', 'thread/deleted', 'thread/archived', 'thread/settings/updated'].includes(method) && typeof params.threadId === 'string') { this.invalidate(params.threadId); return; }
     if (method !== 'item/autoApprovalReview/completed' || object(params.review).status !== 'denied') return;
-    const event = guardianEvent(params), threadId = string(params.threadId, 'threadId', 256), reviewId = string(params.reviewId, 'reviewId', 256), key = canonical([threadId, reviewId]), fingerprint = createHash('sha256').update(canonical(event)).digest('hex');
+    // Invalid native lifecycle data still fails closed. Only the local retry
+    // adapter's bounded representation may be omitted without killing the epoch.
+    validateOfficial('ItemGuardianApprovalReviewCompletedNotification', params);
+    const threadId = string(params.threadId, 'threadId', 256), reviewId = string(params.reviewId, 'reviewId', 256);
+    let event: JsonObject;
+    try { event = guardianEvent(params); }
+    catch (error) {
+      if (!(error instanceof DeliveryError) || !['capacity', 'guardian_action_unsupported'].includes(error.code)) throw error;
+      this.invalidate(threadId);
+      if (this.issues.size >= 64 && !this.issues.has(threadId)) this.issues.delete(this.issues.keys().next().value!);
+      this.issues.set(threadId, { reviewId, reason: error.code }); return;
+    }
+    const key = canonical([threadId, reviewId]), fingerprint = createHash('sha256').update(canonical(event)).digest('hex');
     if (this.seen.has(key)) { if (this.seen.get(key) !== fingerprint) { this.invalidate(threadId); this.exhausted = true; } return; }
     if (this.seen.size >= 2048 || this.exhausted) { this.exhausted = true; return; }
     this.seen.set(key, fingerprint); this.prune();
@@ -72,10 +85,10 @@ export class Guardian {
   invalidate(threadId: string) { for (const [id, entry] of this.entries) if (entry.threadId === threadId) this.entries.delete(id); }
   invalidateAll() { this.entries.clear(); }
   private prune() { const now = Date.now(); for (const [id, entry] of this.entries) if (entry.expiresAt <= now && entry.state !== 'pending') this.entries.delete(id); }
-  reset() { this.entries.clear(); this.seen.clear(); this.exhausted = false; }
+  reset() { this.entries.clear(); this.seen.clear(); this.issues.clear(); this.exhausted = false; }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     this.prune(); const threadId = string(params.threadId, 'threadId');
-    if (method === 'thread/guardian/list') { onlyKeys(params, ['threadId']); return { data: [...this.entries.values()].filter(entry => entry.threadId === threadId).map(entry => ({ ...entry.notification, approvalId: entry.approvalId, createdAt: entry.createdAt, expiresAt: entry.expiresAt, state: entry.state })), captureExhausted: this.exhausted }; }
+    if (method === 'thread/guardian/list') { onlyKeys(params, ['threadId']); return { data: [...this.entries.values()].filter(entry => entry.threadId === threadId).map(entry => ({ ...entry.notification, approvalId: entry.approvalId, createdAt: entry.createdAt, expiresAt: entry.expiresAt, state: entry.state })), captureExhausted: this.exhausted, captureIssues: this.issues.has(threadId) ? [this.issues.get(threadId)!] : [] }; }
     onlyKeys(params, ['threadId', 'approvalId', 'confirm']); if (params.confirm !== true) throw new DeliveryError('confirmation_required', 'Explicitly approve one retry of this exact denied action');
     const entry = this.entries.get(string(params.approvalId, 'approvalId', 36)); if (!entry || entry.threadId !== threadId) throw new DeliveryError('not_found', 'This denial expired, changed context, or belongs to another runtime epoch');
     if (entry.state !== 'available') throw new DeliveryError('guardian_already_used', 'This retry authorization was already dispatched; read its original receipt');

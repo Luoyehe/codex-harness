@@ -37,8 +37,17 @@ export class Organization {
     if (method.startsWith('threadSection/')) return this.sections(method.slice('threadSection/'.length), params, context);
     if (method === 'thread/attachmentOwner/list') {
       onlyKeys(params, ['cwd', 'attachmentType', 'identityKey', 'archived', 'cursor', 'limit']); const cwd = this.host.cwd(params.cwd!); const { cwd: _cwd, ...rest } = params; this.attachmentIdentity(rest);
-      const p = page(rest); const result = pageResult('ThreadAttachmentOwnerListResponse', await this.request(method, p, 'ThreadAttachmentOwnerListParams', 'ThreadAttachmentOwnerListResponse'), p.cursor); const data: JsonValue[] = [];
-      for (const item of result.data as JsonValue[]) { const owner = object(item); const thread = await this.thread(string(owner.threadId, 'threadId')); if (samePath(String(thread.cwd), cwd)) data.push(owner); } return { ...result, data };
+      const p = page(rest); const result = pageResult('ThreadAttachmentOwnerListResponse', await this.request(method, p, 'ThreadAttachmentOwnerListParams', 'ThreadAttachmentOwnerListResponse'), p.cursor); const data: JsonValue[] = []; let listChanged = false;
+      const entries = result.data as JsonValue[];
+      for (let offset = 0; offset < entries.length; offset += 4) {
+        const batch = await Promise.all(entries.slice(offset, offset + 4).map(async item => {
+          const owner = object(item);
+          try { const thread = await this.thread(string(owner.threadId, 'threadId')); return samePath(String(thread.cwd), cwd) ? owner : null; }
+          catch (error) { if (error instanceof DeliveryError && error.code === 'not_found' && error.delivery === 'not_sent') { listChanged = true; return null; } throw error; }
+        }));
+        data.push(...batch.filter((item): item is JsonObject => item !== null));
+      }
+      return { ...result, data, ...(listChanged ? { listChanged: true } : {}) };
     }
     const threadId = string(params.threadId, 'threadId');
     if (method === 'thread/attachment/list') { onlyKeys(params, ['threadId', 'cursor', 'limit']); const p = page(params); return pageResult('ThreadAttachmentListResponse', await this.request(method, p, 'ThreadAttachmentListParams', 'ThreadAttachmentListResponse'), p.cursor); }

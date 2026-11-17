@@ -1,6 +1,6 @@
 import { DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { options, validateOfficial } from './validation.js';
-import type { PreparedAttachments } from './attachments.js';
+import type { Attachments, PreparedAttachments } from './attachments.js';
 import type { NativeOptions } from './native.js';
 import { threadSettingsKeys, turnSettingsKeys } from './workflow-methods.js';
 import type { PreparedInputContext } from './input-context.js';
@@ -18,8 +18,9 @@ export interface WorkflowHost {
   native(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue>;
   mutate(operation: WorkflowMutation, context: CallContext): Promise<JsonValue>;
   call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue>;
+  historyTraversal(context: CallContext): { read(params: JsonObject): Promise<JsonValue>; close(): void };
   prepare(ids: JsonValue | undefined, threadId: string): PreparedAttachments;
-  describeInput(input: JsonValue, threadId: string): { text: string; attachmentIds: string[]; attachments: JsonObject[]; retainedInput: JsonValue[]; retainedAttachments: JsonValue[]; retainedReferences: JsonValue[]; hasOpaqueInput: boolean };
+  describeInput(input: JsonValue, threadId: string): ReturnType<Attachments['describeInput']>;
   contextInput(cwd: string, references: JsonValue | undefined, extraContext: JsonValue | undefined, context: CallContext, threadId: string): Promise<PreparedInputContext>;
   checkHistory(turns: JsonValue[]): void;
   cwd(value: JsonValue | undefined): string;
@@ -86,10 +87,16 @@ export class Workflows {
         const field = adding ? 'clientUserMessageId' : 'queuedSubmissionId'; const id = string(params[field], field, 256);
         let input: JsonValue[], prepared: PreparedAttachments;
         ({ input, prepared } = this.input(params, threadId));
-        if (!adding && (params.attachmentIds === undefined || params.references === undefined)) {
+        if (!adding && (params.text === undefined || params.attachmentIds === undefined || params.references === undefined || params.extraContext === undefined)) {
           const original = await this.findQueued(threadId, id); const retained = this.host.describeInput(original.input!, threadId);
+          if (params.text === undefined) input[0] = { type: 'text', text: retained.text, text_elements: [] };
           if (params.attachmentIds === undefined) input.push(...retained.retainedAttachments);
           if (params.references === undefined) input.push(...retained.retainedReferences);
+          if (params.extraContext === undefined) input.push(...retained.retainedExtras);
+          if (retained.retainedLegacyContext.length) {
+            if (params.references === undefined && params.extraContext === undefined) input.push(...retained.retainedLegacyContext);
+            else if (params.references === undefined || params.extraContext === undefined) throw new DeliveryError('legacy_context_ambiguous', '旧版排队内容无法区分文件引用与说明；请同时提供 references 和 extraContext 进行整体替换，或保留这两项。');
+          }
         }
         const p = { threadId, input, [field]: id };
         return mutate(adding ? 'ThreadQueueAddParams' : 'ThreadQueueUpdateParams', adding ? 'ThreadQueueAddResponse' : 'ThreadQueueUpdateResponse', 'any', p, { prepared, directInput: true, history: true, preflight: this.inputPreflight(input, params, context, threadId), project: result => ({ queuedSubmission: this.queued(object(object(result).queuedSubmission), threadId) }) });
@@ -158,7 +165,7 @@ export class Workflows {
     }
   }
   private queued(item: JsonObject, threadId: string): JsonObject {
-    const { retainedInput: _retained, retainedAttachments: _attachments, retainedReferences: _references, ...display } = this.host.describeInput(item.input!, threadId); return { ...item, ...display };
+    const { retainedInput: _retained, retainedAttachments: _attachments, retainedReferences: _references, retainedExtras: _extras, retainedLegacyContext: _legacy, ...display } = this.host.describeInput(item.input!, threadId); return { ...item, ...display };
   }
   private async findQueued(threadId: string, id?: string): Promise<JsonObject> {
     let cursor: JsonValue = null, bytes = 0; const seen = new Set<string>();
@@ -191,12 +198,13 @@ export class Workflows {
   private async export(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['threadId', 'format']); const threadId = string(params.threadId, 'threadId'); if (params.format !== 'json' && params.format !== 'markdown') throw new DeliveryError('invalid_params', 'Choose json or markdown export');
     const thread = object(object(await this.host.call('thread/read', { threadId }, context)).thread); let cursor: JsonValue = null; const turns: JsonValue[] = []; const timeline: JsonValue[] = []; let size = 0;
-    for (let page = 0; ; page++) {
+    const traversal = this.host.historyTraversal(context);
+    try { for (let page = 0; ; page++) {
       if (page >= 128) throw new DeliveryError('capacity', 'Export exceeds 128 pages');
-      const result = object(await this.host.call('thread/history', { threadId, cursor, limit: 100 }, context)); const batch = result.turns as JsonValue[];
+      const result = object(await traversal.read({ threadId, cursor, limit: 100 })); const batch = result.turns as JsonValue[];
       const canonical = result.timeline as JsonValue[]; size += Buffer.byteLength(jsonBytes({ turns: batch, timeline: canonical })); if (size > LIMITS.historyBytes) throw new DeliveryError('capacity', 'Complete export exceeds 8 MiB'); turns.unshift(...batch); timeline.unshift(...canonical);
       if (result.complete === true) break; cursor = result.nextCursor!;
-    }
+    } } finally { traversal.close(); }
     // Markdown retains every structured item as JSON, including tool results and
     // approval records; exporting only assistant prose would lose the transcript.
     timeline.sort((a, b) => Number(object(a).position) - Number(object(b).position));

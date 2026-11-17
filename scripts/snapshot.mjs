@@ -5,6 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pathFindings, validateRelative } from './release-audit.mjs';
 export const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+export function sourceExecutableBits(info, indexMode, platform = process.platform) {
+  // Windows cannot represent POSIX executable bits. Use the tracked Git mode
+  // there; on POSIX the working mode still detects uncommitted chmod changes.
+  return platform === 'win32' ? (indexMode === '100755' ? 0o111 : 0) : info.mode & 0o111;
+}
 export function evidencePath(name) {
   return ['verification/audits.json', 'verification/WORKLOG.md', 'verification/RELEASE-CHECKS.md'].includes(name)
     || /^verification\/audit-evidence\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.json$/.test(name)
@@ -15,6 +20,9 @@ export function snapshot(base = root, includeNames = false) {
   const git = args => execFileSync('git', args, { cwd: currentRoot, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   if (realpathSync(git(['rev-parse', '--show-toplevel']).trim()) !== currentRoot) throw new Error('Snapshot root must be its own repository');
   const deleted = new Set(git(['ls-files', '--deleted', '-z']).split('\0'));
+  const modes = new Map(git(['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(row => {
+    const tab = row.indexOf('\t'); return [row.slice(tab + 1), row.slice(0, 6)];
+  }));
   const names = [...new Set(git(['ls-files', '-z', '--cached', '--others', '--exclude-standard']).split('\0').filter(name => name && !deleted.has(name)))].sort();
   const files = [];
   for (const name of names) {
@@ -22,7 +30,7 @@ export function snapshot(base = root, includeNames = false) {
     // Only declared non-executable evidence is outside its own digest. New
     // scripts/configuration under verification remain part of the source.
     if (pathFindings(name).length || name.split('/').includes('.git'))
-      throw new Error('Private or generated runtime path entered the source inventory');
+      throw new Error(`Private or generated runtime path entered the source inventory: ${JSON.stringify(name)}`);
     let full = currentRoot; let info;
     const segments = name.split('/');
     for (let index = 0; index < segments.length; index++) {
@@ -30,7 +38,7 @@ export function snapshot(base = root, includeNames = false) {
       if (info.isSymbolicLink() || (index < segments.length - 1 ? !info.isDirectory() : !info.isFile())) throw new Error('Source inventory must contain regular files');
     }
     if (evidencePath(name)) continue;
-    files.push([name, info.mode & 0o111, createHash('sha256').update(readFileSync(full)).digest('hex')]);
+    files.push([name, sourceExecutableBits(info, modes.get(name)), createHash('sha256').update(readFileSync(full)).digest('hex')]);
   }
   if (!files.length) throw new Error('An empty source snapshot cannot authorize full tests');
   return { files: files.length, digest: createHash('sha256').update(JSON.stringify(files)).digest('hex'), ...(includeNames ? { names: files.map(file => file[0]) } : {}) };

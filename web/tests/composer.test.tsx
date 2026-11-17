@@ -219,7 +219,7 @@ describe('composer keyboard ownership', () => {
     );
     fireEvent.keyDown(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { key: 'Enter' });
     expect(send).not.toHaveBeenCalled();
-    expect(screen.getByRole('status').textContent).toBe('同步历史中');
+    expect(screen.getByText('同步历史中').getAttribute('role')).toBe('status');
   });
   it('announces the first upload before any attachment exists and retains a failed draft', async () => {
     let rejectUpload!: (e: Error) => void;

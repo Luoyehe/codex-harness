@@ -18,14 +18,14 @@ MAX_INPUT = 1024 * 1024
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_DOWNLOAD = 8 * 1024 * 1024
 READS = {"list", "read", "download", "search", "metadata", "git/status", "git/diff", "git/refs", "operation/read", "recovery/list", "recovery/read", "worktree/read", "resource/skill/read", "resource/directory/resolve", "resource/plugin/preview"}
-WRITES = {"write", "mkdir", "copy", "remove", "git/commit", "recovery/restore", "recovery/discard", "worktree/create", "worktree/attach", "worktree/archive", "worktree/restore"}
+WRITES = {"write", "mkdir", "copy", "remove", "git/commit", "recovery/restore", "recovery/discard", "worktree/create", "worktree/attach", "worktree/archive", "worktree/restore", "worktree/retire"}
 READS |= {"git/index/recovery/list", "git/index/recovery/read"}
 # Internal supervisor housekeeping. It is deliberately absent from public RPC
 # methods; an acknowledgement does not return or attest an operation result.
 READS |= {"operation/ack"}
 WRITES |= {"git/stage", "git/unstage", "git/index/recovery/restore", "git/index/recovery/discard"}
 FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevision"}, "metadata": {"path"}, "write": {"path", "text", "expectedRevision"},
-          "search": {"path", "query", "mode", "caseSensitive", "limit"},
+          "search": {"path", "query", "mode", "caseSensitive", "limit", "excludeNames"},
           "mkdir": {"path"}, "copy": {"path", "destination", "expectedRevision"},
           "remove": {"path", "expectedRevision", "confirm", "recursive"}, "git/status": set(), "git/diff": {"staged"},
           "git/commit": {"expectedHead", "expectedHeadRevision", "expectedIndexRevision", "author", "message"},
@@ -33,7 +33,7 @@ FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevi
           "recovery/restore": {"recoveryOperationId", "slot", "path", "sourceRevision", "expectedRevision"},
           "recovery/discard": {"recoveryOperationId", "expectedManifest", "confirm"}, "worktree/create": {"ref"}, "worktree/read": {"worktreeId"},
           "worktree/attach": {"worktreeId", "expectedRevision"}, "worktree/archive": {"worktreeId", "expectedRevision", "confirm"},
-          "worktree/restore": {"worktreeId", "expectedRevision", "confirm"}, "resource/skill/read": {"path"}, "resource/directory/resolve": {"path"}, "resource/plugin/preview": {"path"}}
+          "worktree/restore": {"worktreeId", "expectedRevision", "confirm"}, "worktree/retire": {"worktreeId", "expectedRevision", "confirm"}, "resource/skill/read": {"path"}, "resource/directory/resolve": {"path"}, "resource/plugin/preview": {"path"}}
 FIELDS.update(INDEX_FIELDS)
 FIELDS["operation/ack"] = {"operationId", "requestDigest"}
 
@@ -111,7 +111,7 @@ def validate(value: object) -> dict:
             validate_binding(value.get("binding"), identity, value.get("root"))
             if action != "worktree/read":
                 valid_revision(params.get("expectedRevision"))
-            if action in ("worktree/archive", "worktree/restore"):
+            if action in ("worktree/archive", "worktree/restore", "worktree/retire"):
                 require(params.get("confirm") is True, "Worktree movement requires explicit confirmation")
     else:
         require("binding" not in value, "This action cannot accept a worktree binding")
@@ -138,9 +138,9 @@ class Workspace:
             return {"path": path, "kind": "directory", "revision": revision(info)}
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Unsupported workspace file type or hardlink", "unsafe_path")
         if info.st_size > MAX_DOWNLOAD:
-            return {"path": path, "kind": "file", "bytes": info.st_size, "editable": False, "downloadable": False, "reason": "file_too_large"}
+            return {"path": path, "kind": "file", "bytes": info.st_size, "editable": False, "downloadable": False, "copyable": False, "removable": False, "reason": "file_too_large", "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_FILE, "downloadBytes": MAX_DOWNLOAD}}
         data, info = self.root.file(path, MAX_DOWNLOAD)
-        result = {"path": path, "kind": "file", "bytes": len(data), "revision": revision(info, data), "downloadable": True}
+        result = {"path": path, "kind": "file", "bytes": len(data), "revision": revision(info, data), "downloadable": True, "copyable": len(data) <= MAX_FILE, "removable": len(data) <= MAX_FILE, "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_FILE, "downloadBytes": MAX_DOWNLOAD}}
         return {**result, "editable": False, "reason": "preview_too_large"} if len(data) > MAX_FILE else result
 
     def read(self, action: str, params: dict) -> dict:
@@ -148,7 +148,7 @@ class Workspace:
             from .workspace_recovery import read
             return read(self, action, params)
         if action == "operation/read":
-            return self.store.read(params["operationId"])
+            return self.store.read(params["operationId"], recover=True)
         if action == "operation/ack":
             return self.store.acknowledge(params["operationId"], params["requestDigest"])
         if action in INDEX_FIELDS:
@@ -199,6 +199,7 @@ class Workspace:
             data, info = self.root.file(path)
             require(revision(info, data) == expected, "Workspace file changed before mutation", "conflict")
         with self.root.parent(path) as (parent, name):
+            record.side_effects = True
             rename_absent(parent, name, record.fd, "before")
             # Validate the actual inode captured by the atomic rename, rather
             # than trusting a check followed by an overwrite race.
@@ -234,6 +235,7 @@ class Workspace:
         if action == "mkdir":
             with self.root.parent(path) as (parent, name):
                 os.mkdir(name, 0o755, dir_fd=parent)
+                record.side_effects = True
                 os.fsync(parent)
             return {"path": path, "created": True}
         if action == "remove":
@@ -256,7 +258,16 @@ class Workspace:
         if action == "write" and params["expectedRevision"] is not None:
             self.capture(record, path, params["expectedRevision"])
         with self.root.parent(destination) as (parent, name):
-            rename_absent(record.fd, "next", parent, name)
+            # renameat2 NOREPLACE failure leaves both namespaces unchanged.
+            try:
+                rename_absent(record.fd, "next", parent, name)
+            except FileExistsError:
+                raise
+            except Exception as exc:
+                if not getattr(exc, "no_effect", False):
+                    record.side_effects = True
+                raise
+            record.side_effects = True
         return {"path": destination, "revision": revision(written, data), "bytes": len(data), "recoveryOperationId": record.identity}
 
     def dispatch(self, request: dict) -> dict:
@@ -273,6 +284,7 @@ class Workspace:
             if isinstance(record, dict):
                 return record
             self.dispatched = True
+            record.side_effects = action not in ("write", "copy", "mkdir", "remove")
             if action in INDEX_FIELDS:
                 from .workspace_index import run
                 result = run(self, action, params, record)
@@ -296,7 +308,7 @@ def failure(exc: Exception, *, dispatched: bool) -> dict:
         code, message = "not_found", "Workspace resource does not exist"
     else:
         code, message = "workspace_error", "Workspace operation failed"
-    return {"ok": False, "error": {"code": code, "message": message, "delivery": "unknown" if dispatched else "not_sent"}}
+    return {"ok": False, "error": {"code": code, "message": message, "delivery": getattr(exc, "delivery", "unknown" if dispatched else "not_sent")}}
 
 
 def workspace_main(layout: Layout, settings: dict) -> None:
@@ -323,6 +335,7 @@ def workspace_main(layout: Layout, settings: dict) -> None:
         else:
             workspace = Workspace(root, forbidden, Path(settings["cwd"]) / "workspace-state")
             response = workspace.dispatch(request)
+        require(len(canonical(response)) + 1 <= output_limit, "Workspace result exceeds byte budget", "budget")
     except Exception as exc:
         response = failure(exc, dispatched=workspace is not None and workspace.dispatched)
     finally:

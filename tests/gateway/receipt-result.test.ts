@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { receiptResult } from '../../src/gateway/receipt-result.js';
 describe('durable receipt data minimization', () => {
+  it('bounded publication proof stays recoverable even when the legacy model catalog exceeds receipt capacity', () => {
+    const input = { kind: 'responses', revision: 'a'.repeat(32), providerId: 'b'.repeat(32), modelProvider: 'harness_responses', applied: true, requiresConfirmation: false, source: 'provider', models: Array.from({ length: 650 }, (_, i) => ({ id: 'model-' + i, instructions: 'private'.repeat(700) })) };
+    const receipt = receiptResult('system/models/refresh', input);
+    expect(receipt).toEqual({ kind: 'responses', revision: input.revision, providerId: input.providerId, modelProvider: input.modelProvider, applied: true, requiresConfirmation: false, source: 'provider' });
+    expect(Buffer.byteLength(JSON.stringify(receipt))).toBeLessThan(512);
+    expect(receiptResult('remoteControl/pairing/start', { pairingId: 'pairing', environmentId: 'environment', expiresAt: 1, secretAvailable: false, pairingCode: 'private' })).toEqual({ pairingId: 'pairing', environmentId: 'environment', expiresAt: 1, secretAvailable: false });
+  });
   it('retains a distinct converted conversation identity without its private history or title', () => {
     const result = { thread: { id: 'converted', modelProvider: 'provider-b' }, sourceThreadId: 'source', sourceProvider: 'provider-a', targetProvider: 'provider-b' };
     expect(receiptResult('thread/convert', { ...result, thread: { ...result.thread, name: 'private', turns: [{ text: 'private' }] }, path: '/private/history' }))
@@ -17,7 +24,7 @@ describe('durable receipt data minimization', () => {
     const actual = { ...expected, apiKey: 'private', futureToken: 'private', nativeCatalog: { secret: 'private' },
       gatewayOAuth: { ...oauth, clientSecret: 'private' }, models: [{ ...model, apiKey: 'private' }], profiles: [{ ...profile, apiKey: 'private', settings: { apiKey: 'private' } }],
       retention: { ...expected.retention, secrets: 'private' } };
-    expect(receiptResult('system/provider/write', actual)).toEqual(expected);
+    expect(receiptResult('system/provider/write', actual)).toEqual({ kind: expected.kind, revision: expected.revision });
     expect(receiptResult('system/models/refresh', { ...actual, applied: false, requiresConfirmation: true, source: 'provider' })).toEqual({ ...expected, applied: false, requiresConfirmation: true, source: 'provider' });
     expect(receiptResult('system/restart', { restarted: true, release: 'd'.repeat(64), privatePath: '/private' })).toEqual({ restarted: true, release: 'd'.repeat(64) });
   });
@@ -26,7 +33,7 @@ describe('durable receipt data minimization', () => {
     for (const change of [{ revision: 'invalid' }, { kind: ['chatgpt'] }, { hasApiKey: 'false' }, { profiles: Array(17).fill({}) },
       { retention: { generations: 129, limit: 128, retainedHistory: 3 } }, { baseUrl: ['https://', 'user', ':', 'secret', '@', 'provider.invalid/v1'].join('') },
       { models: [{ id: 'model', defaultEffort: null, efforts: [], inputModalities: ['text', ['image']] }] }])
-      expect(() => receiptResult('system/provider/write', { ...provider, ...change })).toThrow(expect.objectContaining({ code: 'receipt_contract', delivery: 'unknown' }));
+      expect(() => receiptResult('system/models/refresh', { ...provider, applied: false, requiresConfirmation: true, ...change })).toThrow(expect.objectContaining({ code: 'receipt_contract', delivery: 'unknown' }));
     expect(() => receiptResult('system/restart', { restarted: true })).toThrow();
     expect(() => receiptResult('system/models/refresh', { ...provider, applied: true, requiresConfirmation: true })).toThrow();
     expect(() => receiptResult('system/models/refresh', { ...provider, applied: false, requiresConfirmation: true, source: ['provider'] })).toThrow();
@@ -37,9 +44,9 @@ describe('durable receipt data minimization', () => {
     const profile = { id: 'b'.repeat(32), kind: 'chatgpt', revision: 'c'.repeat(32), hasApiKey: false };
     const provider = { kind: 'chatgpt', revision: 'a'.repeat(32), hasApiKey: false, models: [] };
     for (const name of ['中'.repeat(64), '🌟'.repeat(64)])
-      expect(receiptResult('system/provider/write', { ...provider, profiles: [{ ...profile, name }] })).toMatchObject({ profiles: [{ name }] });
+      expect(receiptResult('system/models/refresh', { ...provider, applied: false, requiresConfirmation: true, profiles: [{ ...profile, name }] })).toMatchObject({ profiles: [{ name }] });
     for (const name of ['中'.repeat(65), '🌟'.repeat(65), ' '.repeat(3)])
-      expect(() => receiptResult('system/provider/write', { ...provider, profiles: [{ ...profile, name }] })).toThrow();
+      expect(() => receiptResult('system/models/refresh', { ...provider, applied: false, requiresConfirmation: true, profiles: [{ ...profile, name }] })).toThrow();
   });
   it('account receipts preserve redemption outcome and OAuth handoff identity without private authorization links', () => {
     expect(receiptResult('account/gatewayOAuth/login', { handoffId: 'handoff', providerId: 'enterprise', started: true, authUrl: 'https://private' })).toEqual({ handoffId: 'handoff', providerId: 'enterprise', started: true });

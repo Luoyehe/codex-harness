@@ -52,7 +52,7 @@ def browser_origin(host: str, https_port: int, public_origin: str | None = None)
 
 def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port: int, *, tls: str = "acme",
                  http_port: int = DEFAULT_HTTP_PORT, https_port: int = DEFAULT_HTTPS_PORT, certificate: str | None = None, private_key: str | None = None,
-                 public_origin: str | None = None, explicit_redirect: bool = False, dns_provider: str | None = None) -> str:
+                 public_origin: str | None = None, explicit_redirect: bool = False, dns_provider: str | None = None, client_identity: bool = False, hsts: bool = False) -> str:
     domain_name(host)
     if auth_host is not None:
         domain_name(auth_host)
@@ -82,6 +82,10 @@ def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port:
     trust_line = "    skip_install_trust\n" if tls == "internal" else ""
     redirect_option = "    auto_https disable_redirects\n" if redirected else ""
     redirect_site = (f"http://{host}:{http_port} {{\n    redir {origin}{{uri}} 308\n}}\n" if redirected else "")
+    identity_headers = ('        header_up X-Harness-Client-IP {remote_host}\n'
+                        '        header_up X-Harness-Proxy-Token {$HARNESS_EDGE_PROXY_TOKEN}\n') if client_identity else ''
+    proxy = ('reverse_proxy 127.0.0.1:' + str(gateway_port) + ' {\n' + identity_headers + '        }') if client_identity else 'reverse_proxy 127.0.0.1:' + str(gateway_port)
+    hsts_header = '    header Strict-Transport-Security "max-age=86400"\n' if hsts else ''
     if auth_host is None:
         return f"""{{
     admin off
@@ -89,12 +93,12 @@ def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port:
     https_port {https_port}
 {trust_line}{redirect_option}}}
 {site_origin(host, https_port)} {{
-{tls_line}    route {{
+{tls_line}{hsts_header}    route {{
         request_header -Remote-User
         request_header -Remote-Groups
         request_header -Remote-Email
         request_header -Remote-Name
-        reverse_proxy 127.0.0.1:{gateway_port}
+        {proxy}
     }}
 }}
 {redirect_site}\
@@ -123,7 +127,7 @@ def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port:
 """
 
 
-def edge_binary(layout: Layout, kind: str) -> Path:
+def edge_binary(layout: Layout, kind: str, *, download_proxy: str | None = None) -> Path:
     require(kind == "caddy", "Only Caddy is provisioned for built-in account authentication")
     arch = "amd64" if architecture() == "x64" else "arm64"
     root = layout.control / "edge" / kind
@@ -143,7 +147,9 @@ def edge_binary(layout: Layout, kind: str) -> Path:
     url = f"https://github.com/{repository}/releases/download/v{version}/{asset}"
     archive = layout.work / asset
     require(not archive.exists() and not root.exists(), "Partial edge preparation retained; inspect before retry", "recovery_required")
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    from .dns_caddy_build import validate_download_proxy
+    proxy = validate_download_proxy(download_proxy)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
     sha = hashlib.sha256()
     total = 0
     with opener.open(url, timeout=60) as response, archive.open("xb") as output:
@@ -192,7 +198,7 @@ def snapshot_configuration(layout: Layout) -> dict:
     result = {}
     for name, path in transaction_paths(layout).items():
         if not path.exists() and not path.is_symlink():
-            require(name in ("caddyConfig", "authelia", "caddy"), "Required configuration is absent", "recovery_required")
+            require(name in ("metadata", "caddyConfig", "authelia", "caddy"), "Required configuration is absent", "recovery_required")
             result[name] = None
             continue
         details = path.lstat()
@@ -274,7 +280,7 @@ def recover_https_transaction(manager, journal_path: Path, journal: dict) -> Non
     decoded = {}
     for name, value in before.items():
         if value is None:
-            require(name in ("caddyConfig", "authelia", "caddy"), "Missing required HTTPS snapshot", "corrupt_state")
+            require(name in ("metadata", "caddyConfig", "authelia", "caddy"), "Missing required HTTPS snapshot", "corrupt_state")
             decoded[name] = None
         else:
             require(isinstance(value, dict) and set(value) == {"data", "mode"} and type(value["mode"]) is int and
@@ -427,7 +433,7 @@ def read_https(manager) -> dict:
     from .https_guidance import certificate_guidance
     return {"origin": manager.config["origin"], "httpsRevision": https_revision(metadata),
             "settings": {key: metadata.get(key) for key in
-                         ("host", "tls", "httpPort", "httpsPort", "publicOrigin", "redirectPolicy", "authentication", "phase", "dnsProvider")},
+                         ("host", "tls", "httpPort", "httpsPort", "publicOrigin", "redirectPolicy", "authentication", "phase", "dnsProvider", "hsts", "clientIdentity")},
             **certificate_guidance(tls=metadata.get("tls"), dns_provider=metadata.get("dnsProvider"),
                                    http_port=metadata.get("httpPort", 80), https_port=metadata.get("httpsPort", 443))}
 
@@ -441,6 +447,8 @@ def caddy_configuration(layout: Layout, config: dict, metadata: dict) -> str:
         translated["explicit_redirect"] = True
     if metadata.get("dnsProvider") is not None:
         translated["dns_provider"] = metadata["dnsProvider"]
+    translated["client_identity"] = metadata.get("clientIdentity") == 1
+    translated["hsts"] = metadata.get("hsts") is True
     return render_caddy(metadata["host"], identity_host, config["port"], metadata.get("authPort", 9091),
                         tls=metadata["tls"], http_port=metadata["httpPort"], https_port=metadata["httpsPort"],
                         certificate=str(certificate) if certificate else None,
@@ -455,12 +463,14 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
                 public_origin: str | None = None, tls_ca_certificate: Path | None = None, tls_system_ca: bool = False,
                 dns_provider: str | None = None, dns_credentials: Path | None = None,
                 download_proxy: str | None = None, progress=None,
-                expected_origin: str | None = None, expected_https_revision: str | None = None) -> dict:
+                expected_origin: str | None = None, expected_https_revision: str | None = None, hsts: bool | None = None) -> dict:
     layout = manager.layout
     manager.require_recovered_transactions(None)
     manager.require_service_ownership()
     domain_name(host)
     require(tls in ("acme", "internal", "provided"), "Unknown TLS mode")
+    require(hsts is None or type(hsts) is bool and (not hsts or tls in ("acme", "provided")),
+            "HSTS requires trusted public TLS")
     require(type(tls_system_ca) is bool and not (tls_system_ca and tls_ca_certificate is not None),
             "Choose either the system trust store or an explicit TLS CA certificate")
     require(type(http_port) is int and type(https_port) is int and 1 <= http_port <= 65535 and 1 <= https_port <= 65535 and
@@ -472,6 +482,7 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         wanted["publicOrigin"] = origin
     reused = present(metadata_path)
     metadata = read_https_metadata(layout) if reused else {**wanted, "authentication": "builtin", "phase": "prepared"}
+    selected_hsts = False if tls == "internal" else (metadata.get("hsts") is True if hsts is None else hsts)
     from .dns_tls import (SELECTION_FIELDS, read_dns_credentials, stage_dns_credentials,
                           validate_dns_caddy, validate_dns_selection)
     require(dns_provider is None or isinstance(dns_provider, str) and dns_provider in (*PROVIDERS, "none"), "Unknown DNS validation provider")
@@ -480,7 +491,6 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         selected_dns = None
     require(selected_dns is None or tls == "acme", "DNS validation applies only to ACME TLS")
     require(dns_credentials is None or selected_dns is not None, "Choose --dns-provider before supplying DNS credentials")
-    require(download_proxy is None or selected_dns is not None, "Download proxy applies only to the DNS component build")
     if selected_dns is not None:
         wanted["dnsProvider"] = selected_dns
     if not reused:
@@ -550,10 +560,12 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
     # before removing the external gate, then revoke that temporary session.
     require(password is not None, "Account password verification is required before HTTPS activation", "account_required")
     verify_account_login(manager, username, password, otp)
-    caddy = edge_binary(layout, "caddy")
+    caddy = edge_binary(layout, "caddy", download_proxy=download_proxy) if selected_dns is None else None
     caddy_uid, caddy_gid = ensure_account(layout.prefix + "-edge", layout.state / "caddy")
     mkdir(layout.state / "caddy", 0o700, caddy_uid, caddy_gid)
-    selected_metadata = {**metadata, **wanted, "authentication": "builtin", "redirectPolicy": "origin-v1"}
+    selected_metadata = {**metadata, **wanted, "authentication": "builtin", "redirectPolicy": "origin-v1", "clientIdentity": 1}
+    if hsts is not None or "hsts" in metadata:
+        selected_metadata["hsts"] = selected_hsts
     if selected_dns is None:
         for field in SELECTION_FIELDS:
             selected_metadata.pop(field, None)
@@ -579,10 +591,13 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         if tls_system_ca:
             selected_metadata.pop("tlsCaRevision", None)
             selected_metadata.pop("tlsCaSha256", None)
-    if not reused:
-        # Persist first-setup TLS selection before validators create any state.
-        metadata = dict(selected_metadata)
-        write_json(metadata_path, metadata)
+    proxy_token = hashlib.sha256(("codex-harness-edge-client-v1\0" + (layout.config / "gateway-token").read_text().strip()).encode()).hexdigest()
+    proxy_environment = ("HARNESS_EDGE_PROXY_TOKEN=" + proxy_token + "\n").encode()
+    proxy_path = layout.config / "edge-proxy.env"
+    if proxy_path.exists() or proxy_path.is_symlink():
+        regular(proxy_path, {proxy_environment})
+    else:
+        atomic_write(proxy_path, proxy_environment, 0o600)
     rendered = caddy_configuration(layout, manager.config, selected_metadata)
     pending_caddy = layout.config / "Caddyfile.pending"
     atomic_write(pending_caddy, rendered.encode(), 0o644)
@@ -590,12 +605,12 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
         validate_dns_caddy(layout, selected_metadata, caddy, pending_caddy, caddy_uid, caddy_gid)
     else:
         run(["/usr/bin/setpriv", "--reuid", str(caddy_uid), "--regid", str(caddy_gid), "--clear-groups", "--no-new-privs",
-             "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin",
+             "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin", "HARNESS_EDGE_PROXY_TOKEN=validation-only",
              str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
     require_edge_ports_available(manager, http_port=http_port, https_port=https_port)
     old_config = dict(manager.config)
     new_config = {**old_config, "origin": origin}
-    edge_units = render_edge_units(layout, builtin=True, dns_metadata=selected_metadata if selected_dns is not None else None)
+    edge_units = render_edge_units(layout, builtin=True, dns_metadata=selected_metadata if selected_dns is not None else None, client_identity=True)
     active, enabled = prior_service_state(manager)
     before = snapshot_configuration(layout)
     transaction = layout.state / "transactions" / uuid.uuid4().hex
@@ -676,3 +691,103 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
                 selected_metadata.get("privateKeySha256") != metadata.get("privateKeySha256")),
             "internalCaFile": str(layout.state / "caddy/.local/share/caddy/pki/authorities/local/root.crt") if tls == "internal" else None,
             "tlsAcceptance": "Verify DNS/host mappings, client certificate trust and real browser login from the intended client network."}
+
+
+def reset_prepared(manager, *, expected_revision: str, confirm: bool) -> dict:
+    """Retire only the exact recovered, never-active legacy first-setup metadata."""
+    require(confirm, "Confirm retiring the retained first-setup HTTPS metadata")
+    manager.require_recovered_transactions(None)
+    metadata = read_https_metadata(manager.layout)
+    require(https_revision(metadata) == expected_revision and metadata.get("phase") == "prepared" and
+            manager.config["origin"].startswith("http://"), "Only an unchanged recovered first HTTPS setup can be reset", "conflict")
+    paths = transaction_paths(manager.layout)
+    require(all(not path.exists() and not path.is_symlink() for name, path in paths.items() if name in ("caddyConfig", "authelia", "caddy")),
+            "HTTPS service definitions are still present; recover their original transaction first", "recovery_required")
+    require(all(manager.system.state(manager.layout.unit(role))["stopped"] for role in ("caddy", "authelia")),
+            "HTTPS services must be confirmed stopped", "stop_unknown")
+    raw = (manager.layout.config / "https.json").read_bytes()
+    matched = False
+    for journal_path in (manager.layout.state / "transactions").glob("*/state.json"):
+        journal = read_json(journal_path, 16 * 1024 * 1024)
+        before = journal.get("before", {})
+        if journal.get("kind") != "https" or journal.get("phase") != "recovered" or not isinstance(before, dict):
+            continue
+        old_meta, old_instance = before.get("metadata"), before.get("instance")
+        if not isinstance(old_meta, dict) or not isinstance(old_instance, dict):
+            continue
+        if all(before.get(name) is None for name in ("caddyConfig", "authelia", "caddy")) and base64.b64decode(old_meta["data"], validate=True) == raw and json.loads(base64.b64decode(old_instance["data"], validate=True)) == manager.config:
+            matched = True
+            break
+    require(matched, "No exact recovered first-setup transaction attests this metadata; nothing removed", "recovery_required")
+    (manager.layout.config / "https.json").unlink()
+    fsync_directory(manager.layout.config)
+    return {"reset": True, "dataPreserved": True, "message": "已解除旧首次 HTTPS 准备状态；证书、密钥和恢复记录均已保留，可重新配置。"}
+
+
+def refresh_client_identity(manager) -> dict:
+    """Upgrade an existing managed edge without asking for account credentials."""
+    layout = manager.layout
+    if not present(layout.config / "https.json"):
+        return {"changed": False, "configured": False}
+    manager.require_recovered_transactions(None)
+    metadata = read_https_metadata(layout)
+    require(metadata.get("phase") == "active", "Recover the existing HTTPS transaction first", "recovery_required")
+    if metadata.get("authentication") != "builtin":
+        return {"changed": False, "configured": True, "requiresAuthenticationMigration": True}
+    if metadata.get("clientIdentity") == 1:
+        manager.verify_https(probe=False)
+        return {"changed": False, "configured": True}
+    from .candidate_archive import require_idle
+    require_idle(manager)
+    manager.verify(https_probe=False)
+    candidate = {**metadata, "clientIdentity": 1}
+    rendered = caddy_configuration(layout, manager.config, candidate)
+    token = (layout.config / "gateway-token").read_text().strip()
+    environment = ("HARNESS_EDGE_PROXY_TOKEN=" + hashlib.sha256(("codex-harness-edge-client-v1\0" + token).encode()).hexdigest() + "\n").encode()
+    env_path = layout.config / "edge-proxy.env"
+    if present(env_path): regular(env_path, {environment})
+    else: atomic_write(env_path, environment, 0o600)
+    pending = layout.config / "Caddyfile.client-identity.pending"
+    atomic_write(pending, rendered.encode(), 0o644)
+    if metadata.get("dnsProvider"):
+        import pwd
+        from .dns_tls import validate_dns_caddy
+        from .dns_caddy_build import dns_caddy_path
+        account = pwd.getpwnam(layout.prefix + "-edge")
+        validate_dns_caddy(layout, candidate, dns_caddy_path(layout, candidate), pending, account.pw_uid, account.pw_gid)
+    else:
+        binary = edge_binary(layout, "caddy")
+        run(["/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin", "HARNESS_EDGE_PROXY_TOKEN=validation-only", str(binary), "validate", "--config", str(pending), "--adapter", "caddyfile"])
+    active, enabled = prior_service_state(manager)
+    before = snapshot_configuration(layout)
+    journal_path = layout.state / "transactions" / uuid.uuid4().hex / "state.json"
+    mkdir(journal_path.parent, 0o700)
+    journal = {"kind": "https", "phase": "prepared", "before": before, "active": active, "enabled": enabled,
+               "candidateConfig": dict(manager.config), "candidateHttps": candidate}
+    write_json(journal_path, journal)
+    try:
+        recovery_barriers(manager)
+        manager.system.stop([layout.unit(role) for role in EDGE_ROLES])
+        manager.recover_control()
+        journal["phase"] = "stopped"; write_json(journal_path, journal)
+        atomic_write(layout.config / "Caddyfile", rendered.encode(), 0o644)
+        units = render_edge_units(layout, builtin=True, dns_metadata=candidate if candidate.get("dnsProvider") else None, client_identity=True)
+        for name, content in units.items(): atomic_write(layout.units / name, content.encode(), 0o644)
+        write_json(layout.config / "https.json", candidate)
+        journal["phase"] = "selected"; write_json(journal_path, journal)
+        manager.system.reload()
+        recovery_barriers(manager, active)
+        if active: manager.system.start([layout.unit(role) for role in active])
+        confirm_service_state(manager, active)
+        _, actual_enabled = prior_service_state(manager)
+        require(set(actual_enabled) == set(enabled), "Edge identity refresh changed enablement", "health")
+        manager.verify(https_probe="caddy" in active and "gateway" in active)
+        for role in EDGE_ROLES: (layout.config / "https-recovery" / role).unlink(missing_ok=True)
+        fsync_directory(layout.config / "https-recovery")
+    except Exception:
+        recover_https_transaction(manager, journal_path, journal)
+        raise
+    journal["phase"] = "committed"; write_json(journal_path, journal)
+    pending.unlink(missing_ok=True)
+    fsync_directory(layout.config)
+    return {"changed": True, "configured": True, "clientIdentity": 1, "transaction": journal_path.parent.name}

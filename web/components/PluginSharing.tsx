@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PluginListResponse } from '../../protocol/ts/v2/PluginListResponse';
 import type { PluginShareListItem } from '../../protocol/ts/v2/PluginShareListItem';
 import type { PluginShareTarget } from '../../protocol/ts/v2/PluginShareTarget';
 import type { Api } from '../lib/api';
 import { safeUrl, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
+import { SettingsDrafts, hasSettingsDrafts, useSettingsDraft, useSettingsNavigation } from '../hooks/useSettingsDraft';
+import { SettingsDraftDialog } from './SettingsDraftDialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 type Shared = PluginShareListItem & { previewHash: string };
 type Preview = {
@@ -155,6 +157,8 @@ function SharedDetails({
   const [confirmed, setConfirmed] = useState(false),
     [remove, setRemove] = useState(''),
     [checkout, setCheckout] = useState(false);
+  const savedAudience = useRef(JSON.stringify(audience));
+  useSettingsDraft(JSON.stringify(audience) !== savedAudience.current);
   useEffect(() => { setConfirmed(false); setRemove(''); setCheckout(false); },
     [visible, row.previewHash, action.disabled]);
   const id = remoteId(row),
@@ -216,8 +220,10 @@ function SharedDetails({
                   discoverability: audience.discoverability,
                   shareTargets: audience.targets,
                 })
-              )
+              ) {
+                savedAudience.current = JSON.stringify(audience);
                 setConfirmed(false);
+              }
             }}
           >
             保存共享范围
@@ -312,6 +318,12 @@ export function PluginSharing({
     [destination, setDestination] = useState(''),
     [audience, setAudience] = useState<AudienceValue>({ discoverability: 'PRIVATE', targets: [] }),
     [confirmed, setConfirmed] = useState(false);
+  useSettingsDraft(Boolean(destination || selected || audience.targets.length || audience.discoverability !== 'PRIVATE'));
+  const remoteDrafts = useRef(new Set<() => boolean>());
+  useSettingsDraft(() => hasSettingsDrafts(remoteDrafts.current));
+  const remoteTargets = JSON.stringify(shared.data?.data.map(item => [remoteId(item), item.previewHash]));
+  const navigationOwner = useMemo(() => ({}), [api, api.csrf, project?.id, epoch, visible, enabled, selectedRemote, remoteTargets]);
+  const navigation = useSettingsNavigation(remoteDrafts.current, navigationOwner);
   const preview = useResource(
     `${key}:${selected}`,
     (signal) =>
@@ -326,12 +338,14 @@ export function PluginSharing({
       catalog.data?.marketplaces
         .flatMap((market) => market.plugins)
         .filter((plugin) => plugin.source.type === 'local') ?? [],
-    currentRow = shared.data?.data.find((item) => remoteId(item) === selectedRemote),
-    replace = shared.data?.data.find((item) => remoteId(item) === destination);
+    currentRow = selectedRemote ? shared.data?.data.find((item) => remoteId(item) === selectedRemote) : undefined,
+    replace = destination ? shared.data?.data.find((item) => remoteId(item) === destination) : undefined;
   const confirmationKey = `${preview.data?.previewHash}:${destination}:${replace?.previewHash}:${JSON.stringify(audience)}`,
     [confirmedKey, setConfirmedKey] = useState('');
   const retainedRow = useRef<{ selected: string; row?: Shared } | undefined>(undefined);
-  if (shared.data || retainedRow.current?.selected !== selectedRemote)
+  // A refresh or a remote deletion must not erase the local editor. Missing
+  // current identity disables its actions until the directory confirms it again.
+  if (currentRow || retainedRow.current?.selected !== selectedRemote)
     retainedRow.current = { selected: selectedRemote, row: currentRow };
   const row = currentRow ?? retainedRow.current?.row;
   useEffect(() => { setConfirmed(false); setConfirmedKey(''); }, [visible, enabled]);
@@ -353,18 +367,25 @@ export function PluginSharing({
       <div className="extension-cards">
         {shared.data?.data.map((item) => (
           <button
-            className={`button plugin-card ${remoteId(item) === selectedRemote ? 'selected' : ''}`}
+            className={`button plugin-card ${selectedRemote && remoteId(item) === selectedRemote ? 'selected' : ''}`}
             key={item.plugin.id}
-            onClick={() => setSelectedRemote(remoteId(item))}
+            disabled={!remoteId(item)} title={!remoteId(item) ? '此目录项未提供远程标识，无法管理共享，请刷新目录' : undefined}
+            aria-pressed={Boolean(selectedRemote && remoteId(item) === selectedRemote)} onClick={() => {
+              if (remoteId(item) !== selectedRemote)
+                navigation.request(() => setSelectedRemote(remoteId(item)), '放弃编辑并切换共享');
+            }}
           >
             {item.plugin.interface?.displayName ?? item.plugin.name} ·{' '}
-            {item.plugin.shareContext?.discoverability ?? '范围未提供'}
+            {({ PRIVATE: '私有', UNLISTED: '不列入目录', LISTED: '列入工作区目录' } as Record<string, string>)[item.plugin.shareContext?.discoverability ?? ''] ?? '范围未提供'}
           </button>
         ))}
       </div>
       {row && (
-        <SharedDetails key={remoteId(row)} row={row} visible={visible}
-          action={{ ...action, disabled: action.disabled || !shared.data || shared.loading }} />
+        <SettingsDrafts.Provider value={remoteDrafts.current}>
+          {!currentRow && shared.data && <p className="workspace-warning">此共享已不在当前目录中，未保存的编辑仍保留。请重新读取目录或选择其他共享。</p>}
+          <SharedDetails key={remoteId(row)} row={row} visible={visible}
+            action={{ ...action, disabled: action.disabled || !currentRow || shared.loading }} />
+        </SettingsDrafts.Provider>
       )}{' '}
       {shared.data?.data.length === 0 && <p className="muted">当前共享目录为空。</p>}
       <details className="info-card">
@@ -398,14 +419,14 @@ export function PluginSharing({
             <>
               <p className="small path">{preview.data.pluginPath}</p>
               <p>
-                {preview.data.files.length} 个文件 · {preview.data.totalBytes.toLocaleString()} 字节
+                {preview.data.files.length} 个文件 · {preview.data.totalBytes.toLocaleString('zh-CN')} 字节
               </p>
               <details>
                 <summary>查看待发送文件清单</summary>
                 <ul>
                   {preview.data.files.map((file) => (
                     <li className="small path" key={file.path}>
-                      {file.path} · {file.bytes.toLocaleString()} 字节
+                      {file.path} · {file.bytes.toLocaleString('zh-CN')} 字节
                     </li>
                   ))}
                 </ul>
@@ -421,7 +442,7 @@ export function PluginSharing({
                 >
                   <option value="">创建新的远程共享</option>
                   {shared.data?.data.map((item) => (
-                    <option key={item.plugin.id} value={remoteId(item)}>
+                    <option key={item.plugin.id} value={remoteId(item)} disabled={!remoteId(item)}>
                       更新：{item.plugin.name}
                     </option>
                   ))}
@@ -489,6 +510,7 @@ export function PluginSharing({
           )}
         </div>
       </details>
+      <SettingsDraftDialog navigation={navigation} />
     </section>
   );
 }

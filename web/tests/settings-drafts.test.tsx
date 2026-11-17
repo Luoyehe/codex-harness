@@ -7,6 +7,8 @@ import { Settings } from '../components/Settings';
 import { ProviderSettings } from '../components/ProviderSettings';
 import { McpConfiguration } from '../components/McpConfiguration';
 import { RemoteSettings } from '../components/RemoteSettings';
+import { emptyDraft, writeDraft } from '../lib/drafts';
+import { createOperation, updateOperation } from '../lib/operations';
 
 const provider = {
   revision: 'provider-1', kind: 'responses', baseUrl: 'https://saved.example/v1',
@@ -33,7 +35,7 @@ function fixture(savedProvider = provider) {
     api, events: new Events(), epoch: 'epoch', runtimeEpoch: 'runtime', connectionId: 'connection',
     projects: [{ id: 'project', name: 'Project', cwd: '/project' }], projectId: 'project',
     theme: 'system', onTheme: vi.fn(), onClose: vi.fn(), onChanged: vi.fn(),
-    onProjectAction: vi.fn(), onLogout: vi.fn(), onOpenDraft: vi.fn(),
+    onProjectAction: vi.fn(), onLogout: vi.fn(), onOpenDraft: vi.fn(), onOpenThread: vi.fn(), onOpenNativeTerminal: vi.fn(),
   };
   return { api, call, props };
 }
@@ -237,4 +239,74 @@ it('does not close a retained MCP draft when a prior visibility owner save finis
   await act(async () => pending.resolve({}));
   expect(value('服务名称')).toBe('retained');
   expect(props.onChanged).not.toHaveBeenCalled();
+});
+
+it('asks before discarding an edited provider when settings closes and permits continued editing', async () => {
+  const f = fixture(); render(<Settings {...f.props} />); tab('模型供应商');
+  await waitFor(() => expect(value('默认模型 ID')).toBe('saved-model'));
+  change('默认模型 ID', 'pending model');
+  fireEvent.click(screen.getByRole('button', { name: '关闭对话框' }));
+  expect(screen.getByRole('dialog', { name: '放弃未保存的设置？' })).toBeTruthy();
+  expect(f.props.onClose).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }));
+  expect(value('默认模型 ID')).toBe('pending model');
+  fireEvent.click(screen.getByRole('button', { name: '关闭对话框' }));
+  fireEvent.click(screen.getByRole('button', { name: '放弃编辑并关闭' }));
+  expect(f.props.onClose).toHaveBeenCalledOnce(); expect(f.api.mutate).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['rename', '项目目录', '重命名项目', '放弃编辑并重命名项目'],
+  ['remove', '项目目录', '移除项目', '放弃编辑并移除项目'],
+  ['draft', '本地草稿', '打开草稿', '放弃编辑并打开草稿'],
+  ['thread', '操作记录', '打开', '放弃编辑并打开会话'],
+  ['terminal', '扩展与配置', '打开原生 Hooks 管理终端', '放弃编辑并打开终端'],
+  ['logout', '账号与安全', '退出工作台登录', '放弃编辑并退出登录'],
+])('guards %s internal navigation and confirms only its exact destination once', async (kind, category, button, confirm) => {
+  const f = fixture();
+  writeDraft({ ...emptyDraft('new:project'), text: 'Retained conversation draft' });
+  const operation = await createOperation('conversation/start', { projectId: 'project' });
+  await updateOperation(operation.id, 'accepted', 'exact-history-thread');
+  render(<Settings {...f.props} />); tab('模型供应商');
+  await waitFor(() => expect(value('默认模型 ID')).toBe('saved-model'));
+  change('默认模型 ID', 'pending settings model');
+  tab(category);
+  fireEvent.click(await screen.findByRole('button', { name: button }));
+  const callbacks = [f.props.onClose, f.props.onProjectAction, f.props.onOpenDraft, f.props.onOpenThread, f.props.onOpenNativeTerminal, f.props.onLogout];
+  for (const callback of callbacks) expect(callback).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: '放弃未保存的设置？' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }));
+  tab('模型供应商'); expect(value('默认模型 ID')).toBe('pending settings model');
+  tab(category); fireEvent.click(await screen.findByRole('button', { name: button }));
+  const proceed = screen.getByRole('button', { name: confirm });
+  fireEvent.click(proceed); fireEvent.click(proceed);
+  if (kind === 'rename' || kind === 'remove') expect(f.props.onProjectAction).toHaveBeenCalledExactlyOnceWith(f.props.projects[0], kind);
+  else if (kind === 'draft') expect(f.props.onOpenDraft).toHaveBeenCalledExactlyOnceWith('new:project');
+  else if (kind === 'thread') expect(f.props.onOpenThread).toHaveBeenCalledExactlyOnceWith('exact-history-thread');
+  else if (kind === 'terminal') expect(f.props.onOpenNativeTerminal).toHaveBeenCalledExactlyOnceWith('project');
+  else await waitFor(() => expect(f.props.onLogout).toHaveBeenCalledOnce());
+  expect(callbacks.reduce((count, callback) => count + callback.mock.calls.length, 0)).toBe(1);
+  expect(f.api.mutate).not.toHaveBeenCalled();
+});
+
+it('propagates nested unprepared skill edits to the settings exit guard', async () => {
+  const f = fixture(); render(<Settings {...f.props} />); tab('扩展与配置');
+  fireEvent.click(screen.getByText('在项目中新建或导入 SKILL.md', { selector: 'summary' }));
+  change('技能说明', 'Unsaved skill body'); tab('项目目录');
+  fireEvent.click(screen.getByRole('button', { name: '重命名项目' }));
+  expect(f.props.onProjectAction).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }));
+  tab('扩展与配置'); expect(value('技能说明')).toBe('Unsaved skill body');
+});
+
+it.each(['csrf', 'runtime', 'project'])('invalidates a pending settings destination after %s changes', async transition => {
+  const f = fixture(), view = render(<Settings {...f.props} />); tab('模型供应商');
+  await waitFor(() => expect(value('默认模型 ID')).toBe('saved-model'));
+  change('默认模型 ID', 'pending'); tab('项目目录');
+  fireEvent.click(screen.getByRole('button', { name: '重命名项目' }));
+  const staleConfirm = screen.getByRole('button', { name: '放弃编辑并重命名项目' });
+  if (transition === 'csrf') f.api.csrf = 'other-account';
+  view.rerender(<Settings {...f.props} {...(transition === 'runtime' ? { runtimeEpoch: 'other' } : transition === 'project' ? { projects: [] } : {})} />);
+  expect(screen.queryByRole('dialog', { name: '放弃未保存的设置？' })).toBeNull();
+  fireEvent.click(staleConfirm); expect(f.props.onProjectAction).not.toHaveBeenCalled();
 });

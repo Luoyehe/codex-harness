@@ -10,7 +10,7 @@ export interface WorkspaceRoot { path: string; worktreeBinding?: JsonObject }
 const fields: Record<string, readonly string[]> = {
   ...indexFields,
   list: ['path'], read: ['path'], download: ['path', 'expectedRevision'], metadata: ['path'], write: ['path', 'text', 'expectedRevision'], mkdir: ['path'],
-  search: ['path', 'query', 'mode', 'caseSensitive', 'limit'],
+  search: ['path', 'query', 'mode', 'caseSensitive', 'limit', 'excludeNames'],
   copy: ['path', 'destination', 'expectedRevision'], remove: ['path', 'expectedRevision', 'confirm', 'recursive'],
   'git/status': [], 'git/diff': ['staged'], 'git/refs': [], 'operation/read': ['operationId'],
   'git/commit': ['expectedHead', 'expectedHeadRevision', 'expectedIndexRevision', 'author', 'message'],
@@ -19,9 +19,10 @@ const fields: Record<string, readonly string[]> = {
   'recovery/discard': ['recoveryOperationId', 'expectedManifest', 'confirm'],
   'worktree/create': ['ref'], 'worktree/read': ['worktreeId'], 'worktree/attach': ['worktreeId', 'expectedRevision'],
   'worktree/archive': ['worktreeId', 'expectedRevision', 'confirm'], 'worktree/restore': ['worktreeId', 'expectedRevision', 'confirm'],
+  'worktree/retire': ['worktreeId', 'expectedRevision', 'confirm'],
   'resource/skill/read': ['path'], 'resource/directory/resolve': ['path'], 'resource/plugin/preview': ['path'],
 };
-export const workspaceMutations = new Set([...indexMutations, 'write', 'mkdir', 'copy', 'remove', 'git/commit', 'recovery/restore', 'recovery/discard', 'worktree/create', 'worktree/attach', 'worktree/archive', 'worktree/restore']);
+export const workspaceMutations = new Set([...indexMutations, 'write', 'mkdir', 'copy', 'remove', 'git/commit', 'recovery/restore', 'recovery/discard', 'worktree/create', 'worktree/attach', 'worktree/archive', 'worktree/restore', 'worktree/retire']);
 function relative(value: JsonValue | undefined, empty = false): void {
   const name = string(value, 'workspace path', 4096, empty);
   if (name.startsWith('/') || name.includes('\\') || /[\u0000-\u001f\u007f]/.test(name) || (name !== '' && name.split('/').some(part => !part || part === '.' || part === '..' || part === '.git' || part === '.harness-workspace' || Buffer.byteLength(part) > 255))) throw new DeliveryError('invalid_params', 'Workspace path must remain relative to its registered root');
@@ -50,6 +51,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
     relative(params.path ?? '', true);
     const query = string(params.query, 'literal search query', 512);
     if (/[\u0000-\u001f\u007f]/.test(query) || (params.mode !== undefined && params.mode !== 'path' && params.mode !== 'text') || (params.caseSensitive !== undefined && typeof params.caseSensitive !== 'boolean') || (params.limit !== undefined && (typeof params.limit !== 'number' || !Number.isInteger(params.limit) || params.limit < 1 || params.limit > 100))) throw new DeliveryError('invalid_params', 'Invalid bounded literal search');
+    if (params.excludeNames !== undefined && (!Array.isArray(params.excludeNames) || params.excludeNames.length > 32 || params.excludeNames.some(value => typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,128}$/.test(value) || value === '.' || value === '..'))) throw new DeliveryError('invalid_params', 'Choose at most 32 directory names to exclude');
   }
   if (action === 'resource/skill/read') {
     const name = string(params.path, 'catalog skill path', 4096);
@@ -97,7 +99,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
       for (const key of ['commonDevice', 'commonInode', 'gitDirDevice', 'gitDirInode', 'worktreeDevice', 'worktreeInode']) if (typeof binding[key] !== 'number' || !Number.isSafeInteger(binding[key]) || binding[key] < 0) throw new DeliveryError('worktree_unbound', 'Invalid bound directory identity');
       request.binding = { ...binding };
       if (action !== 'worktree/read' && (typeof params.expectedRevision !== 'string' || !/^[0-9a-f]{64}$/.test(params.expectedRevision))) throw new DeliveryError('invalid_params', 'Read the current worktree revision before changing it');
-      if ((action === 'worktree/archive' || action === 'worktree/restore') && params.confirm !== true) throw new DeliveryError('invalid_params', 'Worktree movement requires explicit confirmation');
+      if (['worktree/archive', 'worktree/restore', 'worktree/retire'].includes(action) && params.confirm !== true) throw new DeliveryError('invalid_params', 'Worktree movement requires explicit confirmation');
     }
   }
   if (workspaceMutations.has(action)) request.operationId = operationId(context.operationId);

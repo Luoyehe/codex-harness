@@ -16,9 +16,9 @@ export function identifier(value: unknown, label = '标识'): string {
   if (!text || /[\x00-\x1f\x7f]/u.test(text)) throw new HarnessError('invalid', `${label}不能为空或包含控制字符。`);
   return text;
 }
-export function uuid(value: unknown): string {
+export function uuid(value: unknown, label = '操作编号'): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
-    throw new HarnessError('invalid', '操作编号必须是 UUID。');
+    throw new HarnessError('invalid', `${label}必须是 UUID。`);
   return value.toLowerCase();
 }
 export function canonical(value: unknown, maxBytes = LIMITS.requestBytes): string {

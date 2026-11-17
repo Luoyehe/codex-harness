@@ -8,6 +8,8 @@ import { McpPanel, McpEventBridge } from '../components/McpPanel';
 import { McpConfiguration } from '../components/McpConfiguration';
 import { McpContent } from '../components/McpContent';
 import { acceptMcpIdentity, appendMcpLog, mcpSession, type McpAttempt } from '../lib/mcp-session';
+import { listOperations } from '../lib/operations';
+const transportNotice = '连接中断或请求超时，请检查网络后重新读取状态。已提交操作的结果可能未知，请查询原回执，勿重复提交。';
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
 const server = {
   name: 'local',
@@ -102,6 +104,30 @@ it('describes the selector as inspection/manual use and never toggles Agent conf
   expect(screen.queryByText('Local service')).toBeNull();
   expect(calls.every(call => call.operationId === undefined)).toBe(true);
   expect(calls.some(call => ['mcp/config/write', 'mcp/tool/call', 'mcp/oauth/login'].includes(call.method))).toBe(false);
+});
+it.each(['unknown', 'not_sent'] as const)('keeps real Api MCP %s delivery distinct without resending or losing argument edits', async state => {
+  const { api, events, calls } = setup(), original = globalThis.fetch;
+  vi.stubGlobal('fetch', vi.fn(async (url, init: RequestInit) => {
+    const call = JSON.parse(String(init.body)) as Call;
+    if (call.method !== 'mcp/tool/call') return original(url, init);
+    calls.push(call);
+    if (state === 'unknown') throw new Error('fixture-private-transport-detail');
+    return { ok: false, status: 409, json: async () => ({ ok: false,
+      error: { code: 'mcp_unavailable', message: '工具尚未就绪，请重新读取状态。', delivery: 'not_sent' },
+    }) } as Response;
+  }));
+  render(<McpPanel {...panelProps(api, events)} />);
+  await invoke();
+  await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
+    state, server: 'local', threadId: 'thread-one',
+    error: state === 'unknown' ? transportNotice : '工具尚未就绪，请重新读取状态。',
+  }));
+  const attempt = mcpSession(api, 'lease').attempts[0]!;
+  expect((await listOperations()).find(row => row.id === attempt.operationId)?.state).toBe(state);
+  expect(screen.getByRole('textbox', { name: /Text/ })).toHaveProperty('value', 'hello');
+  expect(screen.queryByText(/fixture-private-transport-detail/)).toBeNull();
+  expect(calls.filter(call => call.method === 'mcp/tool/call')).toHaveLength(1);
+  expect(calls.some(call => call.method === 'mcp/result/read')).toBe(false);
 });
 it('calls only a discovered tool with explicit confirmation and renders MCP isError separately', async () => {
   const { api, events, calls } = setup((call) =>
@@ -794,11 +820,14 @@ it.each(['accepted', 'unknown'] as const)(
     await waitFor(() => expect(mcpSession(api, 'lease').attempts[0]).toMatchObject({
       state: outcome,
       server: 'local',
-      ...(outcome === 'accepted' ? { resultId: 'old-result' } : { error: 'OLD_MUTATION_UNKNOWN' }),
+      ...(outcome === 'accepted' ? { resultId: 'old-result' } : { error: transportNotice }),
     }));
     expect(calls.filter((call) => call.method === 'mcp/tool/call')).toHaveLength(1);
     expect(calls.filter((call) => call.method === 'mcp/result/read')).toHaveLength(0);
-    if (outcome === 'unknown') expect(screen.getAllByText('OLD_MUTATION_UNKNOWN')).toHaveLength(1); // Original record only, not the new request's alert.
+    if (outcome === 'unknown') {
+      expect(screen.getAllByText(transportNotice)).toHaveLength(1); // Original record only, not the new request's alert.
+      expect(screen.queryByText('OLD_MUTATION_UNKNOWN')).toBeNull();
+    }
     await act(async () =>
       finishResource({ contents: [{ uri: 'file:///discovered', text: 'CURRENT_RESOURCE' }] }),
     );
@@ -907,7 +936,10 @@ it.each(['success', 'failure'] as const)(
     expect(selector).toHaveProperty('disabled', outcome === 'failure');
     expect(screen.getByRole('textbox', { name: /Text/ })).toHaveProperty('value', 'retained draft');
     expect(calls.some(call => call.operationId)).toBe(false);
-    if (outcome === 'failure') expect(screen.getByText('DIRECTORY_UNAVAILABLE')).toBeTruthy();
+    if (outcome === 'failure') {
+      expect(screen.getByText(transportNotice)).toBeTruthy();
+      expect(screen.queryByText('DIRECTORY_UNAVAILABLE')).toBeNull();
+    }
   },
 );
 

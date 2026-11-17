@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { once } from 'node:events';
@@ -38,10 +39,10 @@ function streamResponse(res: ServerResponse, number: number): void {
 test('real gateway/worker/CLI chain sends to loopback Responses only, stores history, and replays receipts without resending', async () => {
   const parent = path.resolve('.work/gateway-native'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'run-'));
   const codexHome = path.join(root, 'codex'); const projectPath = path.join(root, 'project'); mkdirSync(codexHome); mkdirSync(projectPath);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const temporary = path.join(root, 'tmp'); mkdirSync(temporary);
   const env = nativeTestEnvironment({ home: root, codexHome, temporary, fixtureApiKey: 'local-protocol-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.164.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
   let providerRequests = 0; const received: JsonObject[] = []; const providerErrors: string[] = []; const unexpectedPaths: string[] = [];
   let holdNextResponse = false; const held = new Set<ServerResponse>();
   const provider = createServer((req, res) => { void (async () => {
@@ -111,7 +112,7 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
     for (const close of [async () => gateway?.close(), async () => worker?.close(), async () => workerHandle?.close(), async () => runtime?.close(), async () => ledger?.close(), async () => auth?.close()]) { try { await close(); } catch (error) { cleanupErrors.push(error); } }
     for (const response of held) response.destroy();
     await new Promise<void>(resolve => { provider.close(() => resolve()); provider.closeAllConnections(); });
-    if (runtime?.native.processId !== undefined) expect(() => process.kill(runtime!.native.processId!, 0)).toThrow();
+    if (runtime) expectNativeClosed(runtime.native);
     expect(provider.listening).toBe(false); if (gateway) expect(gateway.server.listening).toBe(false); if (workerHandle) expect(workerHandle.server.listening).toBe(false);
     if (cleanupErrors.length) throw new AggregateError(cleanupErrors, 'Integration cleanup was not fully confirmed');
   }

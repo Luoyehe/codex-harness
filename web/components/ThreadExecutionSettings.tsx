@@ -316,7 +316,7 @@ function ExecutionForm({
             >
               <option value="">保持不变</option>
               {changes.effort && !efforts.some(row => row.reasoningEffort === changes.effort) && (
-                <option value={changes.effort} disabled>{changes.effort}（原强度已不可用）</option>
+                <option value={changes.effort} disabled>{changes.effort}（{modelsLoading ? '正在核对目录' : '原强度已不可用'}）</option>
               )}
               {efforts.map((row) => (
                 <option key={row.reasoningEffort} value={row.reasoningEffort}>
@@ -349,7 +349,7 @@ function ExecutionForm({
               <option value="__clear__">清除覆盖，使用默认档位</option>
               {changes.serviceTier && changes.serviceTier !== '__clear__' &&
                 !tiers.some(row => row.id === changes.serviceTier) && (
-                  <option value={changes.serviceTier} disabled>{changes.serviceTier}（原档位已不可用）</option>
+                  <option value={changes.serviceTier} disabled>{changes.serviceTier}（{modelsLoading ? '正在核对目录' : '原档位已不可用'}）</option>
                 )}
               {tiers.map((row) => (
                 <option key={row.id} value={row.id}>
@@ -430,7 +430,7 @@ function ExecutionForm({
             所选设置可能让操作由自动审阅方处理或不再向你请求审批；沙箱和权限规则仍由原生服务执行。
           </p>
         )}
-        {!valid && (
+        {!valid && !modelsLoading && !profilesLoading && (
           <p className="error" role="alert">
             所选设置已不在当前目录中，请重新选择。
           </p>

@@ -226,7 +226,7 @@ it('queries the original uncertain save and never repeats the file write', async
     target: { value: 'saved' },
   });
   fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
-  await screen.findByText('HTTP response lost');
+  await screen.findByText(/连接中断或请求超时/);
   expect(readFileDraft(project.id, 'file.txt')?.pending?.operationId).toBe(identity);
   expect((screen.getByRole('button', { name: '保存文件' }) as HTMLButtonElement).disabled).toBe(
     true,
@@ -259,7 +259,7 @@ it('does not turn an unknown native outcome or missing receipt into retry permis
     target: { value: 'keep me' },
   });
   fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
-  await screen.findByText('lost');
+  await screen.findByText(/连接中断或请求超时/);
   fireEvent.click(screen.getByRole('button', { name: '查询原保存回执并核对文件' }));
   await screen.findByText(/原保存结果仍未确认/);
   expect(readFileDraft(project.id, 'file.txt')?.text).toBe('keep me');

@@ -6,6 +6,7 @@ import { useResource } from '../hooks/useResource';
 import { acknowledgeOperation, reconcileOperation } from '../lib/operations';
 import { message, object, safeUrl } from '../lib/types';
 import { useOperations } from './Recovery';
+import { AccountLimits } from './AccountLimits';
 type Attempt = {
   id: string;
   method: 'account/login' | 'account/login/cancel' | 'account/logout';
@@ -446,6 +447,10 @@ function OwnedAccountSettings({
         <div className="device-login">
           <p>打开验证页面，输入设备码；打开链接不代表登录成功：</p>
           <code>{handoff.userCode}</code>
+          <button className="button small" onClick={async () => {
+            try { await navigator.clipboard.writeText(handoff.userCode); setError(''); }
+            catch { setError('无法自动复制设备码，请选中上方完整代码进行复制。'); }
+          }}>复制设备码</button>
           <a
             href={handoff.verificationUrl}
             target="_blank"
@@ -454,7 +459,7 @@ function OwnedAccountSettings({
           >
             打开验证页面 ↗
           </a>
-          <p className="small">本地登录交接保留至 {new Date(handoff.expiresAt).toLocaleString()}。设备码是否有效以验证页面为准。</p>
+          <p className="small">本地登录交接保留至 {new Date(handoff.expiresAt).toLocaleString('zh-CN')}。设备码是否有效以验证页面为准。</p>
         </div>
       )}
       {identity.loginId && (
@@ -488,7 +493,7 @@ function OwnedAccountSettings({
         {limits.error ? (
           <p className="error">{limits.error}</p>
         ) : (
-          <pre className="raw">{JSON.stringify(limits.data, null, 2)}</pre>
+          limits.data && <AccountLimits value={limits.data} />
         )}
       </>}
     </section>

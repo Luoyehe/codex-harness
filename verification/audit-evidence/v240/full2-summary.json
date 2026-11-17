@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-2",
+  "status": "findings-require-repair-and-new-full-audit",
+  "complete": true,
+  "source": {
+    "files": 2117,
+    "digest": "4bc22e8045d38350c0fca8264ce080bcd0a4c5225dff1b398da5ec7c04c0f256",
+    "baseCommit": "historical-commit-077"
+  },
+  "startedAt": "2026-11-17T14:01:12.502Z",
+  "recordedAt": "2026-11-17T14:31:02.420Z",
+  "reports": [
+    {
+      "path": "verification/audit-evidence/v240/full2-runtime-gateway.json",
+      "sha256": "534c4d92a3c2b43ed34f80181a1d1ac4c9ed54c9c8c59b94b52a74ab6d3af502",
+      "findings": 4
+    },
+    {
+      "path": "verification/audit-evidence/v240/full2-deploy.json",
+      "sha256": "50872ce1e5abfe576f26b0712bebc00a3f637a4451206a4730ed77f2abd3d262",
+      "findings": 4
+    },
+    {
+      "path": "verification/audit-evidence/v240/full2-web.json",
+      "sha256": "70e7dd18e9490e6b25dda60f6ba62f413d7311d922e3e6c45c903c99d092cf59",
+      "findings": 2
+    },
+    {
+      "path": "verification/audit-evidence/v240/full2-tooling-protocol.json",
+      "sha256": "001147fb0e26823b12e95ae9c96493515d199e9607cb1f447f7745d40c0b53ca",
+      "findings": 2
+    },
+    {
+      "path": "verification/audit-evidence/v240/full2-workspace-web-tests.json",
+      "sha256": "7cd292df2600243d439e1800a1e6578e63535cfac8628f939d7987b4f9769964",
+      "findings": 0
+    }
+  ],
+  "reportedFindings": 12,
+  "findings": [
+    {
+      "id": "FULL2-RUNTIME-01",
+      "priority": 2,
+      "description": "The public RPC route captures #browsers.get(clientId) after awaiting the body. A request started under socket A can finish after the same tab clientId was replaced by socket B; it then obtains B workerClientId and passes requireConnection. An old request therefore dispatches a new mutation under authority that did not exist when the request entered."
+    },
+    {
+      "id": "FULL2-RUNTIME-02",
+      "priority": 2,
+      "description": "In no-launcher POSIX isolatedGroup mode, stop retains the numeric child PID, signals -pid even if the child already exited, then waits for exitPromise and uses kill(-pid,0)/SIGKILL after the leader is reaped. If the old group is empty, that ID may be recycled for an unrelated group. This can falsely block cleanup or signal an unrelated same-user process group. Defaults/account probes use isolatedGroup in development and acceptance environments. The managed launcher branch is separately reviewed by the deployment reviewer."
+    },
+    {
+      "id": "FULL2-RUNTIME-03",
+      "priority": 2,
+      "description": "Several finally blocks first await owned Job/controller cleanup, then check alive(oldPid) and call process.kill(oldPid). At that point the intended child may already be dead and its PID reused. The fallback can terminate an unrelated process; the surrounding old-PID existence checks can also cause false reviewed-check failures. Actual controller/Job ownership is already available and should be the cleanup proof."
+    },
+    {
+      "id": "FULL2-RUNTIME-04",
+      "priority": 3,
+      "description": "The README says responses/events retain full content within 12 MiB, but RuntimeService.emitEvent now enforces the shared 4 MiB event limit. Native wire/HTTP response frame limits remain 12 MiB and the private worker WebSocket buffered cap remains 16 MiB; those separate values are correct."
+    },
+    {
+      "id": "FULL2-DEPLOY-01",
+      "priority": "P1",
+      "description": "The supervisor polls/reaps the child before entering clean_children. clean_children unconditionally sends signals to the numeric historical process group, and its own poll also reaps before later escalation. Successful workspace Git calls explicitly wait/reap then invoke the same cleanup. Once an empty group leader is reaped, Linux can reuse that numeric ID for an unrelated process group; root-mode cleanup can then signal unrelated host processes. Existing group descendants still require termination, so removing group cleanup is not a valid fix."
+    },
+    {
+      "id": "FULL2-DEPLOY-02",
+      "priority": "P2",
+      "description": "setup_https copies existing metadata including hsts:true. When changing from public TLS to internal TLS and omitting the optional hsts argument, the validation is skipped and the inherited flag renders Strict-Transport-Security for the internal CA. This contradicts the explicit trusted-public-TLS restriction and can make a browser certificate-trust failure non-bypassable. Explicit internal+hsts:true validation also occurs after preparation side effects."
+    },
+    {
+      "id": "FULL2-DEPLOY-03",
+      "priority": "P3",
+      "description": "The main uninstall and offline-backup command examples omit the new required --confirm-stop flag, so following the documented workflow now fails before backup. The opening upgrade sequence also omits the actual https-refresh-client-identity step. Later addenda contain parts of the new contract but do not correct these entry-point examples; the compatibility-check date is not clearly distinguished from the current changed tool pins."
+    },
+    {
+      "id": "FULL2-DEPLOY-04",
+      "priority": "P2",
+      "description": "After cleanup/reaping, these checks require /proc/<old pid> to be absent. PID reuse can make correct termination appear to fail; native_shutdown already obtains pidfds and start times but does not use them for its final assertion. This is a validation reliability issue, separate from the production stale-group signal defect."
+    },
+    {
+      "id": "FULL2-WEB-01",
+      "priority": 2,
+      "description": "Internal object replacements bypass the settings draft guard. Selecting another MCP server or removal clears the current edit; selecting another remote share unmounts SharedDetails and drops unsaved audience/recipients; provider selection and provider revision changes remount ModelCatalog and drop its separately registered manual-model/capability edits. Outer settings navigation protection does not guard these transitions."
+    },
+    {
+      "id": "FULL2-WEB-02",
+      "priority": 3,
+      "description": "The retire confirmation button repeats the entire warning paragraph after the word Confirm, instead of a short action label. The same warning is already displayed directly above. This creates an excessively tall, wrapping mobile action and an unwieldy accessible name."
+    },
+    {
+      "id": "FULL2-AUTH-01",
+      "priority": 2,
+      "description": "M074 server error now returns mfa_invalid with HTTP 401, but Api.readSession recognizes only unauthorized/mfa_required as local login errors. The real Api and Login offline reproduction treats invalid OTP as external authentication loss, hides the OTP form and displays an unrelated external-auth handoff. The same 401 code from authenticated security settings also clears an otherwise valid session through authenticationError; a second real Api probe confirms this sibling path. Classify local MFA rejections separately from session loss, preserve the known MFA stage and authenticated security session, and cover username changes, unknown delivery and secret clearing."
+    },
+    {
+      "id": "FULL2-VALIDATION-01",
+      "priority": 2,
+      "description": "M015 has a shared byte budget and gateway coverage, but lacks the direct frontend regression for formerly rejected legal >2 MB ASCII events and UTF-8 byte-vs-character boundary. Add exact boundary tests without treating source inspection as execution."
+    }
+  ],
+  "coverageGaps": [],
+  "note": "Every source path is covered by declared semantic/content review or independent generated-protocol comparison. Some unchanged modules retain explicitly recorded prior full semantic review with current call-path re-evaluation. This is a complete audit with findings, not a clean audit or authorization for full tests."
+}

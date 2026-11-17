@@ -105,6 +105,7 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'workspace/worktree/create': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
   'workspace/worktree/attach': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
   'workspace/worktree/archive': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
+  'workspace/worktree/retire': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
   'workspace/worktree/restore': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
 });
 export function featureMethod(method: string): FeatureMethod | undefined {

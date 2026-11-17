@@ -19,9 +19,6 @@
   :root:not([data-theme='light']) .thread-link.selected {
     background: #303a30;
   }
-  :root:not([data-theme='light']) .composer {
-    border-color: #485547;
-  }
   :root:not([data-theme='light']) .approval-card {
     background: #272e22;
     border-color: #4f5a40;
@@ -58,9 +55,6 @@
 :root[data-theme='dark'] .nav-item.selected,
 :root[data-theme='dark'] .thread-link.selected {
   background: #303a30;
-}
-:root[data-theme='dark'] .composer {
-  border-color: #485547;
 }
 :root[data-theme='dark'] .approval-card {
   background: #272e22;
@@ -132,8 +126,8 @@
     gap: 0;
   }
   .topbar .icon-button {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
   }
   .welcome {
     padding: 25px 20px 10px;
@@ -327,9 +321,6 @@
     padding: 12px 9px;
     gap: 6px;
   }
-  .suggestions small {
-    font-size: 8px;
-  }
   .suggestions strong {
     font-size: 10px;
   }
@@ -339,7 +330,7 @@
   }
   .welcome-project {
     margin-top: 15px;
-    font-size: 8px;
+    font-size: 12px;
   }
   .composer-wrap {
     padding: 8px 11px 10px;

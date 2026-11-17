@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildCiPlan } from './ci-checks.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
-import { evidencePath, root, snapshot } from './snapshot.mjs';
+import { evidencePath, root, snapshot, sourceExecutableBits } from './snapshot.mjs';
 
 const authorizationPath = 'verification/audit-evidence/release-closeout/authorization.json';
 const buildRecord = '.work/release-preflight-build.json';
@@ -35,10 +35,11 @@ export function committedSource(base, head) {
   const names = entries.map(entry => entry.name).sort();
   if (JSON.stringify(names) !== JSON.stringify(current.names)) throw Error('Source inventory differs from the expected commit');
   const byName = new Map(entries.map(entry => [entry.name, entry]));
+  const indexModes = new Map(git(base, ['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(row => [row.slice(row.indexOf('\t') + 1), row.slice(0, 6)]));
   const hashes = git(base, ['hash-object', '--no-filters', '--stdin-paths'], current.names.map(name => JSON.stringify(name)).join('\n') + '\n').trim().split('\n');
   if (hashes.length !== current.names.length) throw Error('Incomplete committed-source hash check');
   current.names.forEach((name, index) => {
-    const entry = byName.get(name), bits = lstatSync(path.join(base, name)).mode & 0o111;
+    const entry = byName.get(name), bits = sourceExecutableBits(lstatSync(path.join(base, name)), indexModes.get(name));
     if (entry.type !== 'blob' || !['100644', '100755'].includes(entry.mode) || entry.oid !== hashes[index] || bits !== (entry.mode === '100755' ? 0o111 : 0))
       throw Error(`Source bytes or executable bits differ from commit: ${name}`);
   });
@@ -51,7 +52,7 @@ export function toolPins(base, nodeVersion = process.versions.node) {
   const node = pin('NODE_VERSION'), pnpm = pin('PNPM_VERSION'), codex = pin('CODEX_VERSION');
   if (!node || !pnpm || !codex || nodeVersion !== node || pkg.packageManager !== `pnpm@${pnpm}` || pkg.codexVersion !== codex) throw Error('Local Node/package/deployment tool pins disagree');
   const workflows = {};
-  for (const name of ['affected', 'security', 'compatibility']) {
+  for (const name of ['affected', 'security', 'compatibility', 'release']) {
     const text = readFileSync(path.join(base, `.github/workflows/${name}.yml`), 'utf8');
     const versions = [...text.matchAll(/^\s*node-version:\s*['"]?([^'"\s]+)['"]?\s*$/gm)].map(match => match[1]);
     if (!versions.length || versions.some(value => value !== node)) throw Error(`Workflow Node pin disagrees: ${name}`);
@@ -136,6 +137,8 @@ export function releasePreflight(options, base = root) {
   base = realpathSync(base);
   const { head, pushBase, prBase, authorizationSha256, build = false } = options;
   if (![head, pushBase, prBase].every(commit)) throw Error('Exact nonzero --head, --push-base and --pr-base commits are required');
+  try { git(base, ['merge-base', '--is-ancestor', prBase, head]); }
+  catch { throw Error('Release head must include the current target branch; integrate it and review the resulting source before release'); }
   const source = committedSource(base, head);
   const authorization = releaseAuthorization(base, authorizationPath, authorizationSha256);
   if (sha(Buffer.from(git(base, ['show', `${head}:${authorizationPath}`]), 'utf8')) !== authorization.sha256) throw Error('Authorization must match the expected committed bytes');

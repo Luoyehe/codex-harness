@@ -41,7 +41,9 @@ function expectDraft() {
   for (const [name, value] of Object.entries(draft)) expect((screen.getByRole('textbox', { name }) as HTMLInputElement).value).toBe(value);
 }
 async function preview() {
-  fireEvent.click(screen.getByRole('button', { name: '核对 HEAD 与已暂存修改' }));
+  const inspect = screen.getByRole('button', { name: '核对 HEAD 与已暂存修改' });
+  await waitFor(() => expect(inspect).toHaveProperty('disabled', false));
+  fireEvent.click(inspect);
   fireEvent.click(await screen.findByRole('checkbox', { name: /确认以上暂存修改/ }));
 }
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });

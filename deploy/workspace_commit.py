@@ -43,12 +43,11 @@ def state(root, paths: list[Path], *, locked_head=UNRESOLVED) -> dict:
     metadata = directory(paths[0])
     try:
         head_bytes, head_info = file_data(metadata, "HEAD", 8192)
-        text = head_bytes.decode("ascii", "strict").strip()
+        text = head_bytes.decode("utf-8", "strict").strip()
         symbolic = text[5:] if text.startswith("ref: ") else None
         if symbolic is not None:
-            require(re.fullmatch(r"refs/heads/[A-Za-z0-9][A-Za-z0-9._/-]{0,255}", symbolic) is not None and
-                    ".." not in symbolic and "//" not in symbolic and not symbolic.endswith(("/", ".", ".lock")),
-                    "Unsupported symbolic HEAD", "git_unavailable")
+            from .git_refs import valid_ref
+            valid_ref(symbolic, heads_only=True)
         else:
             require(OID.fullmatch(text) is not None, "Invalid Git HEAD", "git_unavailable")
         # During a prepared ref transaction Git already holds the expected-old
@@ -93,7 +92,7 @@ def safe_metadata(metadata, common, *, allow_in_progress=False):
     def walk(parent, name, depth=0):
         nonlocal count
         count += 1
-        require(count <= 4096 and depth <= 32, "Git write metadata exceeds scan budget", "budget")
+        require(count <= 4096 and depth <= 32, "Git 写入元数据超过 4096 项或 32 层上限；请在终端审查 refs/reflog 并按 Git 官方方式整理后重试，未执行写入", "budget")
         info = os.stat(name, dir_fd=parent, follow_symlinks=False)
         require(info.st_uid == os.geteuid() and not info.st_mode & 0o022, "Git write metadata is shared or not native-owned", "unsafe_path")
         if stat.S_ISDIR(info.st_mode):
@@ -125,10 +124,11 @@ def safe_metadata(metadata, common, *, allow_in_progress=False):
 
 
 class IndexLease:
-    def __init__(self, metadata, identity):
+    def __init__(self, metadata, identity, record=None):
         self.metadata, self.safe, self.fd = metadata, True, None
         self.token = ("harness-commit:" + identity + "\n").encode()
         self.fd = os.open("index.lock", os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=metadata)
+        if record is not None: record.side_effects = True
         os.write(self.fd, self.token)
         os.fsync(self.fd)
         os.fsync(metadata)
@@ -163,11 +163,13 @@ def run(workspace, params, record, request_digest):
     paths = repository_paths(root, workspace.forbidden)
     metadata, common = directory(paths[0]), directory(paths[1])
     lease = None
+    record.side_effects = False
     try:
         safe_metadata(metadata, common)
-        lease = IndexLease(metadata, record.identity)
+        lease = IndexLease(metadata, record.identity, record)
         current = state(root, paths)
         expected(current, params)
+        record.side_effects = True
         author = params["author"]
         identity = {"GIT_AUTHOR_NAME": author["name"], "GIT_AUTHOR_EMAIL": author["email"],
                     "GIT_COMMITTER_NAME": author["name"], "GIT_COMMITTER_EMAIL": author["email"]}

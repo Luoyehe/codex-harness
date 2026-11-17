@@ -24,7 +24,7 @@ const controls = vi.hoisted(() => ({
   settings: undefined as ComponentProps<typeof Settings> | undefined,
   recovery: undefined as ComponentProps<typeof Recovery> | undefined,
   workspace: undefined as ComponentProps<typeof WorkspacePanel> | undefined,
-  data: { projects: [{ id: 'p', name: 'Project', cwd: '/project' }], data: [] },
+  data: { projects: [{ id: 'p', name: 'Project', cwd: '/project' }, { id: 'other-project', name: 'Other project', cwd: '/other-project' }], data: [] },
   empty: [],
 }));
 vi.mock('../hooks/useEvents', () => ({ useEvents: () => ({
@@ -38,7 +38,7 @@ vi.mock('../hooks/usePaged', () => ({ usePaged: (_api: unknown, _method: unknown
   items: controls.empty, snapshotKey: key, refresh: controls.refresh, loading: false, hasMore: false,
 }) }));
 vi.mock('../hooks/useConversation', () => ({ useConversation: () => ({
-  ready: true, turns: controls.empty, active: controls.activeTurn,
+  ready: true, turns: controls.empty, active: controls.activeTurn, thread: { id: 'thread', cwd: '/project' },
   activeTurn: controls.activeTurn ? { id: 'active-turn' } : undefined,
   refresh: controls.refresh,
 }) }));
@@ -119,7 +119,10 @@ it.each(['workspace', 'recovery-files', 'recovery-thread', 'settings-draft', 'se
     render(<Workspace api={new Api()} logout={async () => {}} active />);
     await waitFor(() => expect(controls.composer?.value).toBe('saved A'));
     fireEvent.click(screen.getByRole('button', { name: '打开项目文件' }));
-    if (route.startsWith('settings')) fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    if (route.startsWith('settings')) {
+      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      await screen.findByTestId('settings-open');
+    }
     rejectDraftWrites();
     act(() => controls.composer!.onChange('memory only'));
     const url = location.href;

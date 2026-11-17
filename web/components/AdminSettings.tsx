@@ -108,7 +108,7 @@ export function AdminSettings({ api, epoch, configurationReady = true, onRecover
         <div className="info-card stack" aria-label="当前回执容量">
           <h3>当前回执容量</h3>
           <p>
-            回执 {usage.receipts.toLocaleString()} / {usage.receiptCountLimit.toLocaleString()} 条
+            回执 {usage.receipts.toLocaleString('zh-CN')} / {usage.receiptCountLimit.toLocaleString('zh-CN')} 条
           </p>
           {typeof usage.receiptBytes === 'number' && typeof usage.receiptByteLimit === 'number' && (
             <p>

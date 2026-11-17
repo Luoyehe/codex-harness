@@ -83,8 +83,8 @@ export function checkedPage(
   };
 }
 export function boundedCombined(turns: Turn[], timeline: TimelineEntry[]): void {
-  bounded(turns);
   if (
+    turns.length > HISTORY_LIMIT.turns ||
     turns.reduce((sum, turn) => sum + turn.items.length, 0) + timeline.length >
       HISTORY_LIMIT.items ||
     JSON.stringify({ turns, timeline }).length > HISTORY_LIMIT.chars
@@ -152,7 +152,11 @@ export function applyNotification(
   turns: Turn[],
   method: string,
   p: JsonObject,
+  combinedBudget = false,
 ): { turns: Turn[]; touched?: string; diff?: string } {
+  // The conversation owner checks the complete text+voice budget immediately.
+  // Standalone consumers retain the default bounded result contract.
+  const check = combinedBudget ? (value: Turn[]) => value : bounded;
   if (method === 'turn/diff/updated')
     return { turns, diff: typeof p.diff === 'string' ? p.diff : '' };
   const provided = object(p.turn),
@@ -160,8 +164,9 @@ export function applyNotification(
   const turnId =
     typeof p.turnId === 'string' ? p.turnId : typeof provided.id === 'string' ? provided.id : '';
   if (!turnId || (!method.startsWith('turn/') && !method.startsWith('item/'))) return { turns };
-  const next = turns.map((t) => ({ ...t, items: [...t.items] }));
-  let turn = next.find((t) => t.id === turnId);
+  const next = [...turns], turnIndex = next.findIndex(t => t.id === turnId);
+  let turn = turnIndex >= 0 ? { ...next[turnIndex]!, items: [...next[turnIndex]!.items] } : undefined;
+  if (turn) next[turnIndex] = turn;
   if (!turn) {
     turn = { id: turnId, status: 'inProgress', items: [] };
     next.push(turn);
@@ -187,15 +192,15 @@ export function applyNotification(
     const index = turn.items.findIndex((i) => i.id === plan.id);
     if (index < 0) turn.items.push(plan);
     else turn.items[index] = plan;
-    return { turns: bounded(next), touched: `${turnId}:${plan.id}` };
+    return { turns: check(next), touched: `${turnId}:${plan.id}` };
   }
   const itemId =
     typeof item.id === 'string' ? item.id : typeof p.itemId === 'string' ? p.itemId : '';
-  if (!itemId) return { turns: bounded(next) };
+  if (!itemId) return { turns: check(next) };
   const index = turn.items.findIndex((i) => i.id === itemId);
   const previous = turn.items[index];
   if (method !== 'item/completed' && (previous?.streamComplete || finalStatus(turn.status)))
-    return { turns: bounded(next) };
+    return { turns: check(next) };
   let updated: Item;
   if (method === 'item/completed')
     updated = {
@@ -205,7 +210,7 @@ export function applyNotification(
       streamComplete: true,
     };
   else if (method === 'item/started') {
-    if (previous && !previous.historySync) return { turns: bounded(next) };
+    if (previous && !previous.historySync) return { turns: check(next) };
     updated = { ...item, id: itemId, type: String(item.type ?? previous?.type ?? 'unknown') };
     if (previous?.historySync)
       updated.historySync = {
@@ -228,7 +233,7 @@ export function applyNotification(
   }
   if (index < 0) turn.items.push(updated);
   else turn.items[index] = updated;
-  return { turns: bounded(next), touched: `${turnId}:${itemId}` };
+  return { turns: check(next), touched: `${turnId}:${itemId}` };
 }
 export function textContent(item: Item): string {
   if (typeof item.text === 'string') return item.text;

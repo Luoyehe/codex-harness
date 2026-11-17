@@ -2,16 +2,19 @@ import { operationId } from './ids';
 import { INPUT_METHODS } from './workflows';
 import { clearDraftSnapshot } from './drafts';
 import { operationTransaction, stored } from './operation-store';
+import { captureEmergencyOperations } from './emergency-recovery';
 export type OperationState = 'pending' | 'unknown' | 'accepted' | 'not_sent';
 export type TerminalResult = { terminalId: string };
 export type TerminalOwner = { clientId: string; connectionId: string };
 export type RecoveryOperation = Readonly<{ id: string; method: string }>;
+export type RecoveryResult = { restarted: true; release: string };
 export type Operation = {
   id: string; method: string; threadId?: string; projectId?: string; resourceId?: string;
   draftKey?: string; draftRevision?: string; createdAt: number; state: OperationState;
   resolvedThreadId?: string; terminalOwner?: TerminalOwner; terminalResult?: TerminalResult;
   /** Captured atomically before a force recovery, without message bodies or credentials. */
   recoveryOperations?: RecoveryOperation[];
+  recoveryResult?: RecoveryResult;
   /** The destination thread has been loaded after this receipt was observed. */
   consumed?: true;
   /** Legacy JavaScript cannot join our transactions; retain its draft conservatively. */
@@ -86,6 +89,9 @@ function checkedOperation(value: unknown, id?: string): Operation {
         typeof record.terminalOwner.connectionId !== 'string' || !record.terminalOwner.connectionId)))
     throw new Error('操作恢复记录损坏，已暂停新操作。');
   if (record.terminalResult !== undefined) checkedTerminalResult(record.terminalResult);
+  if (record.recoveryResult !== undefined && (record.method !== 'system/recover' || record.state !== 'accepted'))
+    throw new Error('恢复成功证明与操作身份不一致。');
+  if (record.recoveryResult !== undefined) checkedRecoveryResult(record.recoveryResult);
   if (record.recoveryOperations !== undefined && (record.method !== 'system/recover' ||
       !Array.isArray(record.recoveryOperations) || record.recoveryOperations.length > 200 ||
       new Set(record.recoveryOperations.map(row => row?.id)).size !== record.recoveryOperations.length ||
@@ -94,6 +100,13 @@ function checkedOperation(value: unknown, id?: string): Operation {
         typeof row.method !== 'string' || !row.method || row.method.length > 256 || row.method === 'system/recover')))
     throw new Error('强制恢复的操作清单损坏，已保留原记录。');
   return record;
+}
+export function checkedRecoveryResult(value: unknown): RecoveryResult {
+  const result = value as RecoveryResult | undefined;
+  if (!result || typeof result !== 'object' || Array.isArray(result) || Object.keys(result).length !== 2 ||
+      result.restarted !== true || typeof result.release !== 'string' || !/^[a-f0-9]{64}$/.test(result.release))
+    throw new Error('恢复结果尚未完整确认，请查询原恢复回执；不会自动重新提交。');
+  return { restarted: true, release: result.release };
 }
 const legacyPrefix = 'harness.operation.v1.';
 const acceptedPrefix = 'harness.accepted.v1.';
@@ -301,9 +314,7 @@ export async function createOperation(
       (method !== 'terminal/open' || (r.terminalOwner?.clientId === scope.terminalOwner?.clientId &&
         r.terminalOwner?.connectionId === scope.terminalOwner?.connectionId))))
       throw new Error('此操作还有待确认的请求。请先查询回执。');
-    if (method === 'system/recover') record.recoveryOperations = records
-      .filter(row => row.method !== 'system/recover' && ['pending', 'unknown'].includes(row.state))
-      .map(({ id: previousId, method: previousMethod }) => ({ id: previousId, method: previousMethod }));
+    if (method === 'system/recover') record.recoveryOperations = [...captureEmergencyOperations(records)];
     checkedOperation(record);
     await stored(store.add(record));
     if (JSON.stringify(await stored(store.get(id))) !== JSON.stringify(record))
@@ -313,7 +324,7 @@ export async function createOperation(
   return record;
 }
 export async function updateOperation(
-  id: string, state: OperationState, resolvedThreadId?: string, terminalResult?: TerminalResult,
+  id: string, state: OperationState, resolvedThreadId?: string, terminalResult?: TerminalResult, recoveryResult?: unknown,
 ) {
   const updated = await transact(async (records) => {
     const value: unknown = await stored(records.get(id));
@@ -325,7 +336,10 @@ export async function updateOperation(
       ? checkedTerminalResult(terminalResult) : undefined;
     if (terminal && record.terminalResult && terminal.terminalId !== record.terminalResult.terminalId)
       throw new Error('同一操作返回了不同的终端标识，已保留原回执。');
+    const proof = state === 'accepted' && record.method === 'system/recover' && recoveryResult !== undefined
+      ? checkedRecoveryResult(recoveryResult) : undefined;
     const next = { ...record, state, ...(resolvedThreadId ? { resolvedThreadId } : {}),
+      ...(proof ? { recoveryResult: proof } : {}),
       ...(terminal ? { terminalResult: terminal } : {}) };
     await stored(records.put(next));
     return next;
@@ -334,6 +348,20 @@ export async function updateOperation(
     if (updated?.state === 'accepted' && !updated.legacy && updated.draftKey && updated.draftRevision)
       clearDraftSnapshot(updated.draftKey, updated.draftRevision);
   } finally { changed(); }
+}
+/** Retire this document's accepted handoffs from an older connection. No process is stopped. */
+export async function retireOldTerminalHandoffs(owner: TerminalOwner) {
+  let count = 0;
+  await transact(async (records, metadata) => {
+    for (const value of await stored(records.getAll())) {
+      const record = checkedOperation(value);
+      if (record.method !== 'terminal/open' || record.state !== 'accepted' || !record.terminalOwner ||
+        record.terminalOwner.clientId !== owner.clientId || record.terminalOwner.connectionId === owner.connectionId) continue;
+      await archiveOperations(metadata, [historyEntry(record, 'collected')]);
+      await stored(records.delete(record.id)); count++;
+    }
+  });
+  if (count) changed();
 }
 export async function acknowledgeOperation(id: string) {
   const removed = await transact(async (records, metadata) => {
@@ -368,7 +396,8 @@ export async function reconcileOperation(id: string, result: Record<string, unkn
   const thread = details?.thread as { id?: string } | undefined;
   if (state === 'accepted') await updateOperation(id, 'accepted',
     thread?.id ?? (typeof details?.threadId === 'string' ? details.threadId : undefined),
-    details && Object.hasOwn(details, 'terminalId') ? checkedTerminalResult(details) : undefined);
+    details && Object.hasOwn(details, 'terminalId') ? checkedTerminalResult(details) : undefined,
+    result.method === 'system/recover' ? details : undefined);
   else if (state === 'not_sent') await updateOperation(id, 'not_sent');
   else {
     const error = result.error as Record<string, unknown> | undefined;

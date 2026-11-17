@@ -1,13 +1,13 @@
 import { expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { extractArchive, prepareCiNative, validatePackageMetadata } from '../../scripts/prepare-ci-native.mjs';
+import { extractArchive, nativePreparationDirectory, prepareCiNative, validatePackageMetadata } from '../../scripts/prepare-ci-native.mjs';
 
 const packages = [
-  { platform: 'linux', version: '0.164.0-linux-x64', integrity: 'sha512-XLAoaWsGOT2khzl+P4FYDPTkzAr9W0VFXFaVkqlFdkM0soa1gH/4S0wSD57Ek3HHwkirAEGz2/Mwehseh+l5Mg==' },
-  { platform: 'win32', version: '0.164.0-win32-x64', integrity: 'sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg==' },
+  { platform: 'linux', version: '0.169.0-linux-x64', integrity: 'sha512-o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww==' },
+  { platform: 'win32', version: '0.169.0-win32-x64', integrity: 'sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg==' },
 ];
 
 test.each(packages)('accepts the exact npm scoped-package filename for $platform', value => {
@@ -15,7 +15,7 @@ test.each(packages)('accepts the exact npm scoped-package filename for $platform
   const entry = { name: '@openai/codex', version: value.version, integrity: value.integrity, filename };
   expect(validatePackageMetadata([entry], value.platform, 'x64')).toEqual({ filename, integrity: value.integrity });
   for (const changed of [
-    { name: 'codex' }, { version: '0.164.0' }, { integrity: 'sha512-other' },
+    { name: 'codex' }, { version: '0.169.0' }, { integrity: 'sha512-other' },
     { filename: `codex-${value.version}.tgz` }, { filename: `../${filename}` }, { filename: `openai-codex-wrong.tgz` },
   ]) expect(() => validatePackageMetadata([{ ...entry, ...changed }], value.platform, 'x64')).toThrow();
   expect(() => validatePackageMetadata([entry, entry], value.platform, 'x64')).toThrow();
@@ -25,6 +25,16 @@ test.each(packages)('accepts the exact npm scoped-package filename for $platform
 test('empty, malformed and unsupported platform packs cannot prepare an independent runtime', () => {
   for (const pack of [null, {}, [], [null]]) expect(() => validatePackageMetadata(pack, 'linux', 'x64')).toThrow();
   for (const platform of ['darwin', '__proto__', 'constructor']) expect(() => validatePackageMetadata([], platform, 'x64')).toThrow();
+});
+
+test('native preparation rejects an ancestor directory link before creating files outside its workspace', () => {
+  const directory = mkdtempSync(path.join(os.tmpdir(), 'ci native linked archive-'));
+  try {
+    const outside = path.join(directory, 'outside'), base = path.join(directory, 'workspace'); mkdirSync(outside); mkdirSync(base);
+    symlinkSync(outside, path.join(base, 'reference'), process.platform === 'win32' ? 'junction' : 'dir');
+    expect(() => nativePreparationDirectory(base)).toThrow('ordinary directories');
+    expect(existsSync(path.join(outside, 'runtime'))).toBe(false);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
 test('extracts a real archive from its native working directory without passing a drive-qualified archive to tar', () => {

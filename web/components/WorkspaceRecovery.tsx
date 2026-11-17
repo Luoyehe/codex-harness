@@ -261,7 +261,7 @@ export function WorkspaceRecovery({
                   <p className="small">
                     {entry.kind === 'directory'
                       ? '空目录'
-                      : `文件 · ${(entry.bytes ?? 0).toLocaleString()} 字节`}{' '}
+                      : `文件 · ${(entry.bytes ?? 0).toLocaleString('zh-CN')} 字节`}{' '}
                     · 版本 <code className="path">{entry.revision}</code>
                   </p>
                   {entry.text !== undefined ? (

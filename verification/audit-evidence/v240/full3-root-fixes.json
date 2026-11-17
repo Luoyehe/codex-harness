@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-3-fixes",
+  "reviewerId": "root",
+  "completedAt": "2026-11-17T15:19:15.855Z",
+  "findingsResolved": [
+    "FULL3-RUNTIME-01",
+    "FULL3-DEPLOY-01"
+  ],
+  "changes": [
+    "Account reads validate runtime availability before cache hits; publish managed-probe results/cache only after confirmed cleanup and final account-generation checks. Unknown cleanup remains owned by the service and fails its epoch. Main-process account reads also validate lifecycle/generation after await. Legitimate CLI-owned reads do not use the general execution admission gate.",
+    "Eight service-level concurrency/fault regressions cover failed cleanup after success/failure, account update during cleanup, bounded retries, whole-service close, shared cache/singleflight, generation replacement and main-process reads.",
+    "Document catalog-selected ancestor skill roots only through the nearest real Git worktree boundary, retaining no-link and protected-root restrictions.",
+    "Retain cleanup caller and deleted settings target lessons as local audit findings, without inventing historical CI failures."
+  ],
+  "targeted": {
+    "files": [
+      "tests/runtime/account-probe-lifecycle.test.ts",
+      "tests/runtime/cli-terminals.test.ts",
+      "tests/runtime/defaults-lifecycle.test.ts",
+      "tests/runtime/native-smoke.test.ts",
+      "tests/runtime/providers.test.ts"
+    ],
+    "windows": {
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux": {
+      "passed": 48,
+      "failed": 0,
+      "skipped": 1,
+      "skip": "Windows identity lookup; exact case passed on Windows"
+    },
+    "coverageGaps": []
+  },
+  "types": {
+    "server": "passed",
+    "tests": "passed"
+  },
+  "sourceFiles": [
+    {
+      "path": "src/runtime/service.ts",
+      "sha256": "e9d94b9a78636c18a8da330ee98a79c2f4c5e3379d3cf500d89f31a6b2a238a2"
+    },
+    {
+      "path": "tests/runtime/account-probe-lifecycle.test.ts",
+      "sha256": "4876873271badd05cd65fc480a8ebc3e200043f3aef1f8e30e894894b1a95110"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "a0d5ac94ae4f67542ba37f98b1d5a1e74608b181d3ed8e1b5e69f59482b68daf"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "c0e6be153c2340aed38858e759e82923fb637f6aaea9f07bc6e2e1ac29903b52"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v240/full3-account-targeted.log",
+      "sha256": "c852ad2c6be957bc3c36aa9a99c0f4b9df915949b78fe75c645cc882b40c85f9"
+    },
+    {
+      "path": ".work/v240/full3-account-linux.log",
+      "sha256": "0176d17937a4101f8c21c960e3c61a0a87b31b1afb961caa48409582786c15f0"
+    },
+    {
+      "path": ".work/v240/full3-account-manifest.json",
+      "sha256": "a737f970cbc599b10b442b9c5d08f2c163bef88925931b6f79f5eb19dae0a293"
+    },
+    {
+      "path": ".work/v240/full3-account-prerequisite-missing.log",
+      "sha256": "9e85d2e946b4185741bea59220866c6bb38a0887914c7da81b5c96d6ef797e80"
+    }
+  ],
+  "limits": [
+    "The initial targeted invocation omitted the explicit isolated CLI path and ran no tests (prerequisite skipped); retained separately. The corrected invocation passed.",
+    "Linux runner correctly returns nonzero for a platform skip; no failed assertion occurred.",
+    "Native CLI fixtures use isolated homes and loopback services only, not personal credentials, paid inference or live external MCP.",
+    "No full-suite run or production mutation."
+  ]
+}

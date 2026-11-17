@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -11,16 +12,16 @@ import { NativeRpc } from '../../src/runtime/native.js';
 import { object, type JsonObject, type RuntimeEvent } from '../../src/runtime/types.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
 
-test('official 0.164.0 isolated account, probes beyond cache capacity with verified process exit, and interactive PTY without inference', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+test('official 0.169.0 isolated account, probes beyond cache capacity with verified process exit, and interactive PTY without inference', async () => {
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const root = path.resolve('.work/runtime-smoke'); mkdirSync(root, { recursive: true }); const workerHome = mkdtempSync(path.join(root, 'home-')); const home = path.join(workerHome, 'codex'); mkdirSync(home);
   const temporary = path.join(workerHome, 'tmp'); mkdirSync(temporary);
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary });
-  const version = execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }); expect(version.trim()).toBe('codex-cli 0.164.0');
+  const version = execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }); expect(version.trim()).toBe('codex-cli 0.169.0');
   const configText = 'check_for_update_on_startup = false\n'; writeFileSync(path.join(home, 'config.toml'), configText);
   const service = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const events: RuntimeEvent[] = []; service.on('event', event => events.push(event));
   const stopped = new Set<NativeRpc>(); const originalClose = NativeRpc.prototype.close;
-  const closeSpy = vi.spyOn(NativeRpc.prototype, 'close').mockImplementation(async function (this: NativeRpc) { await originalClose.call(this); if (this.processId !== undefined) { expect(() => process.kill(this.processId!, 0)).toThrow(); stopped.add(this); } });
+  const closeSpy = vi.spyOn(NativeRpc.prototype, 'close').mockImplementation(async function (this: NativeRpc) { await originalClose.call(this); expectNativeClosed(this); stopped.add(this); });
   try {
     const account = object(await service.call('account/read', {}, { clientId: 'smoke' })); expect(account.account).toBeNull();
     const list = object(await service.call('thread/list', {}, { clientId: 'smoke' })); expect(list.data).toEqual([]);
@@ -52,7 +53,7 @@ test('official 0.164.0 isolated account, probes beyond cache capacity with verif
 }, 60000);
 
 test('official CLI reports and logs out a shared ChatGPT account while an API-key provider is default', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const base = path.resolve('.work/provider-account-native'); mkdirSync(base, { recursive: true });
   const workerHome = mkdtempSync(path.join(base, 'case-')), home = path.join(workerHome, 'codex'), temporary = path.join(workerHome, 'tmp');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary, fixtureApiKey: 'local-api-fixture' });
@@ -97,7 +98,7 @@ test('official CLI reports and logs out a shared ChatGPT account while an API-ke
 }, 45000);
 
 test('official CLI routes simultaneous equal model IDs to separate providers and resumes after catalog generation replacement', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const base = path.resolve('.work/provider-native'); mkdirSync(base, { recursive: true });
   const workerHome = mkdtempSync(path.join(base, 'case-')), home = path.join(workerHome, 'codex'), temporary = path.join(workerHome, 'tmp');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary });

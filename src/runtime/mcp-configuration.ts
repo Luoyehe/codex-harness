@@ -67,7 +67,11 @@ export class McpConfiguration {
         if (change.command !== undefined || change.args !== undefined || change.env !== undefined) throw new DeliveryError('invalid_params', 'HTTP cannot include stdio fields');
         for (const key of ['command', 'args', 'env', 'env_vars', 'cwd']) delete value[key];
         if (change.url !== undefined) value.url = httpUrl(change.url);
-        if (typeof value.url !== 'string') throw new DeliveryError('invalid_params', 'HTTP requires a URL'); httpUrl(value.url);
+        if (typeof value.url !== 'string') throw new DeliveryError('invalid_params', 'HTTP requires a URL');
+        // Disabling a legacy credential-bearing URL must remain possible. Its
+        // bytes are preserved only in the private layer; enabling still requires
+        // migrating to the supported secret fields.
+        if (!(original && change.enabled === false && change.url === undefined && Object.keys(change).every(key => ['type', 'transport', 'enabled'].includes(key)))) httpUrl(value.url);
         if (change.httpHeaders !== undefined) value.http_headers = map(change.httpHeaders, false);
         if (change.envHttpHeaders !== undefined) value.env_http_headers = map(change.envHttpHeaders, false, true);
         if (change.bearerTokenEnvVar !== undefined) { const key = string(change.bearerTokenEnvVar, 'bearer token environment name', 128); if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new DeliveryError('invalid_params', 'Bearer token must name an environment variable'); value.bearer_token_env_var = key; delete value.bearer_token; }

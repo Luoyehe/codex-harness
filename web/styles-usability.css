@@ -1,6 +1,13 @@
 /* Interaction surfaces stay bounded and never change the top bar's height. */
 .topbar { flex-shrink: 0; position: relative; z-index: 8; }
 .token-usage { position: static; font-size: 12px; flex-shrink: 0; }
+@media (max-width: 420px) {
+  .topbar { gap: 4px; padding-inline: 8px; }
+  .topbar .icon-button { width: 32px; height: 36px; }
+  .topbar .token-usage { font-size: 10px; }
+  .topbar .token-usage > summary { padding: 4px; }
+  .topbar .root-execution-notice button { padding-inline: 4px; }
+}
 .token-usage > summary { cursor: pointer; border-radius: 7px; padding: 8px; }
 .token-usage[open] > summary { background: var(--surface); color: var(--text); }
 .usage-popover {

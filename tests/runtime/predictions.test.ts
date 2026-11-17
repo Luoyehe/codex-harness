@@ -31,6 +31,7 @@ test('predictions require complete history and latest completed source, keep tex
   const f = setup(); await expect(f.request()).rejects.toMatchObject({ code: 'history_incomplete' }); await f.history();
   f.native.source.id = 'newer'; await expect(f.request()).rejects.toMatchObject({ code: 'prediction_stale' }); f.native.source.id = 'turn';
   f.native.early = true; const result = object(await f.request()); expect(result).toMatchObject({ threadId: 'thread', sourceTurnId: 'turn', requested: true }); expect(Object.keys(result)).toHaveLength(4);
+  expect(object(f.service.status()).predictionBudget).toMatchObject({ sourcesUsed: 1, sourceLimit: 2048 });
   const read = object(await f.read(result.predictionId!)); expect(read).toMatchObject({ state: 'completed', result: { type: 'completed', text: 'Private editable suggestion' } });
   expect(receiptResult('thread/prediction/request', { ...read, requested: true })).toEqual(result);
   for (const changed of [{ ...owner, clientId: 'other' }, { ...owner, eventChannelId: 'other' }]) await expect(f.read(result.predictionId!, changed)).rejects.toMatchObject({ code: 'not_found' });

@@ -131,11 +131,16 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Codex Harness Linux installation and transaction manager")
     root.add_argument("--instance", default="main")
     subs = root.add_subparsers(dest="command", required=True)
+    prepared_reset = subs.add_parser("https-reset-prepared", help="Retire exact recovered first-setup HTTPS metadata; retain credentials and journals")
+    prepared_reset.add_argument("--expected-revision", required=True)
+    prepared_reset.add_argument("--confirm", action="store_true")
+    subs.add_parser("https-refresh-client-identity", help="Upgrade existing managed HTTPS client identity with recorded activity restoration")
     subs.add_parser("proxy-status", help="Server-only: inspect this instance's optional service proxy")
     for command in ("proxy-configure", "proxy-enable", "proxy-core-update", "proxy-disable", "proxy-rollback", "proxy-direct-domains"):
         proxy = subs.add_parser(command, help="Server-only, journaled service proxy operation")
         proxy.add_argument("--confirm-restart", action="store_true")
         if command in ("proxy-configure", "proxy-core-update"):
+            proxy.add_argument("--sha256", help="Optional separately reviewed exact official archive SHA-256")
             proxy.add_argument("--version", required=True, help="Exact official Xray release, for example 26.10.31")
             proxy.add_argument("--download-proxy", help="Explicit credential-free loopback HTTP proxy for official preparation only")
         if command == "proxy-configure":
@@ -155,7 +160,7 @@ def parser() -> argparse.ArgumentParser:
     setup = subs.add_parser("install", help="Install a new isolated instance; failure preserves recovery materials")
     setup.add_argument("--source", type=Path, required=True)
     setup.add_argument("--origin")
-    setup.add_argument("--port", type=int, default=3000)
+    setup.add_argument("--port", type=int, default=3300)
     setup.add_argument("--username", default="admin")
     setup.add_argument("--password-stdin", action="store_true", help="Read one password line from stdin; never pass passwords in argv")
     resume = subs.add_parser("install-resume", help="Resume the original interrupted initialization without replacing its identity or credentials")
@@ -167,6 +172,9 @@ def parser() -> argparse.ArgumentParser:
         account.add_argument("--password-stdin", action="store_true")
     for name in ("status", "verify", "restart", "repair", "rollback", "uninstall", "provider-read"):
         command = subs.add_parser(name)
+        if name == "uninstall":
+            command.add_argument("--confirm-stop", action="store_true")
+            command.add_argument("--dry-run", action="store_true")
         if name == "repair":
             command.add_argument("--target", choices=("old", "candidate"), default="old")
     subs.add_parser("provider-prune", help="Retain current and pending-recovery generations plus three recent unused generations")
@@ -176,9 +184,13 @@ def parser() -> argparse.ArgumentParser:
     update = subs.add_parser("update")
     update.add_argument("--source", type=Path, required=True)
     subs.add_parser("control-update", help="Operator only: install trusted control code from this reviewed root-owned checkout")
+    dns_archive = subs.add_parser("dns-build-archive", help="Archive an exact stopped, unmounted DNS build without deleting evidence")
+    dns_archive.add_argument("--build", required=True)
+    dns_archive.add_argument("--confirm-stop", action="store_true")
     subs.add_parser("candidate-list", help="Inspect retained builds eligible for archival without deleting data")
     candidate_archive = subs.add_parser("candidate-archive", help="Archive one verified completed build and restore recorded services")
     candidate_archive.add_argument("--candidate", required=True)
+    candidate_archive.add_argument("--failed", action="store_true", help="Archive a reviewed failed candidate without deleting its evidence")
     candidate_archive.add_argument("--confirm-stop", action="store_true", help="Confirm this instance may briefly stop for archival")
     control_recover = subs.add_parser("control-recover", help="Operator only: recover one original control generation after interrupted maintenance")
     control_recover.add_argument("--target", choices=("old", "candidate"), default="old")
@@ -243,6 +255,7 @@ def parser() -> argparse.ArgumentParser:
         secure.add_argument("--private-key", type=Path)
         secure.add_argument("--tls-ca-certificate", type=Path, help="For provided TLS: import a public PEM trust anchor into an immutable generation")
         secure.add_argument("--tls-system-ca", action="store_true", help="For provided TLS: explicitly replace retained custom CA trust with the system trust store")
+        secure.add_argument("--hsts", action=argparse.BooleanOptionalAction, default=None, help="Opt in/out of one-day HTTPS transport policy; never includes subdomains")
         secure.add_argument("--http-port", type=int, default=DEFAULT_HTTP_PORT,
                             help="Caddy HTTP listener port (default: %(default)s); HTTP-01 still requires public TCP 80 forwarded here")
         secure.add_argument("--https-port", type=int, default=DEFAULT_HTTPS_PORT,
@@ -281,7 +294,7 @@ def execute(args: argparse.Namespace) -> dict:
     elif args.command == "candidate-archive":
         require_linux()
         from .candidate_archive import archive_candidate
-        result = archive_candidate(layout, args.candidate, confirm_stop=args.confirm_stop)
+        result = archive_candidate(layout, args.candidate, confirm_stop=args.confirm_stop, allow_failed=args.failed)
     elif args.command in ("control-update", "control-recover", "control-rollback"):
         require_linux()
         from .transactions import require_initialization_complete
@@ -306,7 +319,7 @@ def execute(args: argparse.Namespace) -> dict:
                 from .proxy_transaction import change
                 result = change(manager, action=args.command.removeprefix("proxy-"), confirm_restart=args.confirm_restart,
                                 input_file=getattr(args, "config_file", None), version=getattr(args, "version", None),
-                                port=getattr(args, "port", 18793), download_proxy=getattr(args, "download_proxy", None),
+                                port=getattr(args, "port", 18793), download_proxy=getattr(args, "download_proxy", None), expected_sha256=getattr(args, "sha256", None),
                                 direct_domains=[] if getattr(args, "clear_direct_domains", False) else getattr(args, "direct_domain", None))
             elif args.command == "proxy-recover":
                 from .proxy_transaction import recover
@@ -332,6 +345,9 @@ def execute(args: argparse.Namespace) -> dict:
                 pending = [(path, value) for path, value in pending if value.get("phase") not in ("committed", "recovered", "failed_first_start")]
                 require(len(pending) == 1 and pending[0][1].get("kind") == "execution-mode", "Expected one pending execution transaction", "recovery_required")
                 result = recover(manager, *pending[0], candidate=args.target == "candidate")
+            elif args.command == "dns-build-archive":
+                from .dns_archive import archive
+                result = archive(manager, args.build, confirm=args.confirm_stop)
             elif args.command == "candidate-list":
                 from .candidate_archive import list_candidates
                 result = list_candidates(manager)
@@ -367,7 +383,19 @@ def execute(args: argparse.Namespace) -> dict:
             elif args.command == "repair":
                 result = manager.repair(target=args.target)
             elif args.command == "uninstall":
-                result = uninstall(layout)
+                require(args.dry_run or args.confirm_stop, "卸载会停止并移除服务，保留数据；先使用 --dry-run 查看，再以 --confirm-stop 确认。")
+                if args.dry_run:
+                    from .service_lifecycle import service_paths
+                    manager.require_service_ownership()
+                    result = {"dryRun": True, "services": [str(path) for path in service_paths(layout, manager.config).values()], "dataPreserved": True, "restoreCommand": "restore-services"}
+                else:
+                    result = uninstall(layout)
+            elif args.command == "https-refresh-client-identity":
+                from .https import refresh_client_identity
+                result = refresh_client_identity(manager)
+            elif args.command == "https-reset-prepared":
+                from .https import reset_prepared
+                result = reset_prepared(manager, expected_revision=args.expected_revision, confirm=args.confirm)
             elif args.command == "restore-services":
                 from .install import restore_services
                 result = restore_services(layout)
@@ -401,7 +429,7 @@ def execute(args: argparse.Namespace) -> dict:
                                      public_origin=args.public_origin,
                                      http_port=args.http_port, https_port=args.https_port,
                                      expected_origin=getattr(args, "expected_origin", None),
-                                     expected_https_revision=getattr(args, "expected_https_revision", None))
+                                     expected_https_revision=getattr(args, "expected_https_revision", None), hsts=args.hsts)
             else:
                 method, params = {
                     "logs": ("logs", {"service": getattr(args, "service", "gateway"), "lines": getattr(args, "lines", 100)}),
@@ -427,6 +455,8 @@ def main(argv: list[str] | None = None) -> None:
             return
         result = execute(args)
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        if isinstance(result, dict) and result.get("ok") is False:
+            raise SystemExit(1)
     except Exception as exc:
         # Operator commands have durable transaction journals, but no single
         # dispatch boundary. An exception may follow selection, startup or

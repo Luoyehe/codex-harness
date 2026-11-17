@@ -142,6 +142,8 @@ export function Composer({
     input = useRef<HTMLTextAreaElement>(null),
     generation = useRef(0),
     composition = useRef(false);
+  const sending = useRef(false), uploadingBatch = useRef(false), removing = useRef(new Set<string>());
+  const [sendingNow, setSendingNow] = useState(false), [removingCount, setRemovingCount] = useState(0);
   useEffect(() => {
     generation.current++;
     setLocalAttachments([]);
@@ -181,6 +183,7 @@ export function Composer({
   const send = async () => {
     if (
       busy ||
+      sending.current || removing.current.size > 0 || uploadingBatch.current ||
       disabled ||
       uploading ||
       (selectedIntent === 'steer' && !canSteer) ||
@@ -189,22 +192,24 @@ export function Composer({
     )
       return;
     const gen = generation.current;
-    if (
-      (await onSend(attachments, selectedIntent)) &&
-      gen === generation.current &&
-      !onAttachmentsChange
-    )
-      setAttachments([]);
+    sending.current = true; setSendingNow(true);
+    try {
+      if ((await onSend(attachments, selectedIntent)) && gen === generation.current && !onAttachmentsChange)
+        setAttachments([]);
+    } finally { sending.current = false; setSendingNow(false); }
   };
-  const upload = async (files: FileList | null) => {
-    if (!files) return;
+  const upload = async (selection: FileList | File[] | null) => {
+    const files = Array.from(selection ?? []);
+    if (fileInput.current) fileInput.current.value = '';
+    if (!files.length || busy || sending.current || uploadingBatch.current) return;
     const gen = generation.current;
     setError('');
     if (files.length + attachments.length > 8) {
       setError('最多 8 个附件；单个文件上限 4 MiB。');
       return;
     }
-    for (const file of Array.from(files)) {
+    uploadingBatch.current = true;
+    try { for (const file of files) {
       if (gen !== generation.current) break;
       if (file.size > 4 * 1024 * 1024) {
         setError('单个文件上限 4 MiB。');
@@ -231,11 +236,14 @@ export function Composer({
       } finally {
         if (gen === generation.current) setUploading((n) => n - 1);
       }
-    }
-    if (fileInput.current) fileInput.current.value = '';
+    } } finally { uploadingBatch.current = false; }
   };
   return (
-    <div className="composer-wrap">
+    <div className="composer-wrap" onDragOver={event => {
+      if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+    }} onDrop={event => {
+      if (event.dataTransfer.files.length) { event.preventDefault(); void upload(event.dataTransfer.files); }
+    }}>
       <div className="composer">
         {(references.length > 0 || extraContext.length > 0 || outputSchema.trim() || options.environments?.length) && <div className="composer-context-summary">
           {references.length + extraContext.length > 0 && <button onClick={() => setExpanded(true)}>已添加 {references.length + extraContext.length} 项引用</button>}
@@ -249,7 +257,10 @@ export function Composer({
                 <AttachmentButton api={api} attachmentId={a.attachmentId} name={a.name} />
                 <button
                   aria-label={`移除 ${a.name}`}
+                  disabled={busy || sendingNow || removingCount > 0}
                   onClick={async () => {
+                    if (busy || sending.current || removing.current.has(a.attachmentId)) return;
+                    removing.current.add(a.attachmentId); setRemovingCount(removing.current.size);
                     const gen = generation.current;
                     try {
                       await api.mutate('attachment/remove', { attachmentId: a.attachmentId });
@@ -260,6 +271,8 @@ export function Composer({
                         );
                     } catch (e) {
                       if (gen === generation.current) setError(message(e));
+                    } finally {
+                      removing.current.delete(a.attachmentId); setRemovingCount(removing.current.size);
                     }
                   }}
                 >
@@ -310,6 +323,10 @@ export function Composer({
           id="message-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onPaste={event => {
+            const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
+            if (files.length) { event.preventDefault(); void upload(files); }
+          }}
           placeholder="输入消息，或添加文件…"
           rows={2}
           onCompositionStart={() => {
@@ -421,6 +438,7 @@ export function Composer({
             disabled={
               disabled ||
               busy ||
+              sendingNow || removingCount > 0 ||
               uploading > 0 ||
               (selectedIntent === 'steer' && !canSteer) ||
               (!hasContent && !attachments.length) ||
@@ -503,7 +521,7 @@ export function Composer({
         </div>
       </div>
       {(error || contextIssue) && (
-        <p className="error small" role="alert">
+        <p className={error || !contextIssue.startsWith('正在') ? 'error small' : 'muted small'} role={error || !contextIssue.startsWith('正在') ? 'alert' : 'status'}>
           {error || contextIssue}
         </p>
       )}

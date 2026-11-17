@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from deploy.build import Builder
 from deploy.common import Layout, mkdir, read_json, require
 from deploy.system import System, require_linux, run
+from tests.deploy.process_identity import same_process
 
 
 PROBE = r'''
@@ -47,6 +48,7 @@ stats = os.statvfs(output)
 result["diskBytes"] = stats.f_blocks * stats.f_frsize
 child = subprocess.Popen(["/usr/bin/sleep", "120"])
 result["childPid"] = child.pid
+result["childStart"] = Path(f"/proc/{child.pid}/stat").read_text().rsplit(')', 1)[1].split()[19]
 Path(output, "result.json").write_text(json.dumps(result))
 '''
 
@@ -84,7 +86,7 @@ def main():
         require(result["tokenOpened"] is False and result["sourceWritable"] is False, "Candidate isolation failed")
         require(result["network"] == network, "Network phase isolation failed")
         require(result["nofile"] <= 4096 and result["diskBytes"] <= 1024**3, "Resource limits missing")
-        require(not Path("/proc", str(result["childPid"])).exists(), "Child process survived completed stage")
+        require(not same_process(result["childPid"], result["childStart"]), "Child process survived completed stage")
         require(not any("KEY" in name or "TOKEN" in name or name.startswith("CODEX") for name in result["environment"]), "Credential environment inherited")
         evidence[label] = result
         run(["/usr/bin/umount", str(writable)])

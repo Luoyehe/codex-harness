@@ -32,8 +32,9 @@ export class RemoteControl {
         const timer = setTimeout(() => { this.pairings.delete(pairingId); }, Math.min(600000, Math.max(1, expiry - Date.now()))); timer.unref();
         const entry = { pairingId, secret, clientId: context.clientId, eventChannelId: context.eventChannelId, revoked: false, timer }; this.pairings.set(pairingId, entry);
         // A lease can disappear while the native account service creates the code.
-        try { context.beforeWrite?.(); } catch { this.remove(entry); }
-        return { pairingId, environmentId: secret.environmentId!, expiresAt: secret.expiresAt! };
+        let secretAvailable = true;
+        try { context.beforeWrite?.(); } catch { this.remove(entry); secretAvailable = false; }
+        return { pairingId, environmentId: secret.environmentId!, expiresAt: secret.expiresAt!, secretAvailable, ...(secretAvailable ? {} : { message: '配对已创建，但连接已失效，临时配对码已清除。请撤销原配对或明确重新发起配对。' }) };
       }, context);
     }
     if (method === 'remoteControl/pairing/read' || method === 'remoteControl/pairing/status') {

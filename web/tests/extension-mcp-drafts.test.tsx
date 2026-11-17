@@ -31,7 +31,10 @@ function setup(route = fallback) {
 }
 const extensionProps = (api: Api) => ({ api, projects: [project], initialProjectId: project.id, epoch: 'one', enabled: true, onChanged: vi.fn() });
 const mcpProps = (api: Api, events: Events) => ({ api, events, projectId: project.id, epoch: 'one', runtimeEpoch: 'runtime-one', lease: 'lease-one', connected: true, threadId: 'thread-one', threadReady: true, threadIdle: true, configurationReady: true });
-beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+beforeEach(() => { localStorage.clear(); sessionStorage.clear();
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+});
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 async function selectTool() {
   await screen.findByRole('option', { name: /local · 已连接/ });
@@ -70,7 +73,7 @@ it('keeps remote recipient edits through hidden and refreshed loading states whi
   const { api, calls } = setup(call => hold && call.method === 'plugin/share/list' ? new Promise(resolve => { finish = resolve; }) : fallback(call));
   render(<ExtensionsPanel {...extensionProps(api)} />);
   fireEvent.click(screen.getByRole('button', { name: '插件共享' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Plugin · PRIVATE' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Plugin · 私有' }));
   fireEvent.click(screen.getByText('修改共享范围', { selector: 'summary' }));
   fireEvent.click(screen.getByRole('button', { name: '添加明确接收者' }));
   fireEvent.change(screen.getByRole('textbox', { name: '接收者 ID' }), { target: { value: 'draft-recipient' } });
@@ -123,14 +126,67 @@ it('pauses extension reads while hidden and preserves only the same owner draft'
   expect(screen.getByLabelText('技能说明')).toHaveProperty('value', '');
 });
 
-it('drops extension drafts when their explicit project selection changes away and back', async () => {
+it('asks before switching extension project scope, keeps canceled edits and discards only after consent', async () => {
   const { api } = setup(), other = { ...project, id: 'other-project', cwd: '/other' };
   render(<ExtensionsPanel {...extensionProps(api)} projects={[project, other]} />);
   fireEvent.click(screen.getByText('在项目中新建或导入 SKILL.md', { selector: 'summary' }));
   fireEvent.change(screen.getByRole('textbox', { name: '技能说明' }), { target: { value: 'old-project text' } });
   fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: other.id } });
+  expect(screen.getByRole('combobox', { name: '扩展与配置的项目范围' })).toHaveProperty('value', project.id);
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }));
+  expect(screen.getByRole('textbox', { name: '技能说明' })).toHaveProperty('value', 'old-project text');
+  fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: other.id } });
+  fireEvent.click(screen.getByRole('button', { name: '放弃编辑并切换项目' }));
+  expect(screen.getByRole('combobox', { name: '扩展与配置的项目范围' })).toHaveProperty('value', other.id);
   fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: project.id } });
   expect(screen.getByLabelText('技能说明')).toHaveProperty('value', '');
+});
+
+it.each(['market', 'sharing'])('protects %s edits during project selection without retaining cross-scope values', async kind => {
+  const { api, calls } = setup(), other = { ...project, id: 'other-project', name: 'Other', cwd: '/other' };
+  render(<ExtensionsPanel {...extensionProps(api)} projects={[project, other]} />);
+  let field: string;
+  if (kind === 'market') {
+    fireEvent.click(screen.getByRole('button', { name: '插件与市场' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加市场' }));
+    fireEvent.change(screen.getByRole('combobox', { name: '市场类型' }), { target: { value: 'git' } });
+    field = '不含凭据的 HTTPS 仓库地址';
+  } else {
+    fireEvent.click(screen.getByRole('button', { name: '插件共享' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Plugin · 私有' }));
+    fireEvent.click(screen.getByText('修改共享范围', { selector: 'summary' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加明确接收者' }));
+    field = '接收者 ID';
+  }
+  fireEvent.change(screen.getByRole('textbox', { name: field }), { target: { value: 'original-project-value' } });
+  fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: other.id } });
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }));
+  expect(screen.getByRole('textbox', { name: field })).toHaveProperty('value', 'original-project-value');
+  fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: other.id } });
+  fireEvent.click(screen.getByRole('button', { name: '放弃编辑并切换项目' }));
+  expect(screen.getByRole('combobox', { name: '扩展与配置的项目范围' })).toHaveProperty('value', other.id);
+  expect(document.body.textContent).not.toContain('original-project-value');
+  expect(calls.some(call => call.operationId)).toBe(false);
+});
+
+it.each(['hidden', 'csrf', 'epoch', 'removed'])('revokes pending extension scope intent when %s changes', async transition => {
+  const { api, calls } = setup(), other = { ...project, id: 'other-project', cwd: '/other' };
+  const props = { ...extensionProps(api), projects: [project, other] };
+  const view = render(<ExtensionsPanel {...props} />);
+  fireEvent.click(screen.getByText('在项目中新建或导入 SKILL.md', { selector: 'summary' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '技能说明' }), { target: { value: 'same-owner draft' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /已查看内容/ }));
+  fireEvent.change(screen.getByRole('combobox', { name: '扩展与配置的项目范围' }), { target: { value: other.id } });
+  const staleConfirm = screen.getByRole('button', { name: '放弃编辑并切换项目' });
+  if (transition === 'csrf') api.csrf = 'different-account';
+  view.rerender(<ExtensionsPanel {...props} {...(transition === 'hidden' ? { visible: false } : transition === 'epoch' ? { epoch: 'two' } : transition === 'removed' ? { projects: [project] } : {})} />);
+  fireEvent.click(staleConfirm);
+  expect(screen.queryByRole('dialog', { name: '放弃当前项目的未保存编辑？' })).toBeNull();
+  view.rerender(<ExtensionsPanel {...props} />);
+  expect(screen.getByRole('combobox', { name: '扩展与配置的项目范围' })).toHaveProperty('value', project.id);
+  expect(screen.getByLabelText('技能说明')).toHaveProperty('value', transition === 'hidden' || transition === 'removed' ? 'same-owner draft' : '');
+  expect(screen.getByLabelText(/已查看内容/)).toHaveProperty('checked', transition === 'removed');
+  expect(calls.some(call => call.operationId)).toBe(false);
 });
 
 it('pauses hidden MCP reads, keeps arguments through returning loading, and rejects hidden submission', async () => {

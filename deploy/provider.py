@@ -173,12 +173,15 @@ def validate_catalog(params: dict, current: dict) -> dict:
 
 def redacted(value: dict) -> dict:
     public = {"kind", "revision", "baseUrl", "model", "effort", "models", "allowInsecureHttp", "gatewayOAuth", "region", "supportsTools", "catalogSource", "catalogError"}
-    return {**{key: item for key, item in value.items() if key in public}, "hasApiKey": bool(value.get("apiKey"))}
+    result = {**{key: item for key, item in value.items() if key in public}, "hasApiKey": bool(value.get("apiKey"))}
+    if "models" in result:
+        result["models"] = [{key: item for key, item in row.items() if key != "instructions"} for row in result["models"]]
+    return result
 
 
 def quote_toml(value: str) -> str:
     import json
-    return json.dumps(value, ensure_ascii=False)
+    return json.dumps(value, ensure_ascii=False).replace(chr(127), "\\u007f")
 
 
 def _single_native_config(value: dict, layout: Layout | None = None) -> bytes:
@@ -235,13 +238,17 @@ class ProviderStore:
         self.gid = worker_gid
 
     def read(self) -> dict:
-        return read_json(self.root / "current/settings.json", 4 * 1024 * 1024)
+        from .provider_lifecycle import PROVIDER_JSON_LIMIT
+        return read_json(self.root / "current/settings.json", PROVIDER_JSON_LIMIT)
 
     def public(self, settings: dict | None = None) -> dict:
         from .provider_lifecycle import Profiles, generations, KEEP_HISTORY, MAX_GENERATIONS
         settings = settings if settings is not None else self.read()
         from .provider_registry import public_registry
-        return {**redacted(settings), **public_registry(settings), "profiles": Profiles(self.layout).public(),
+        summary = redacted(settings)
+        if "connections" in settings:
+            summary.pop("models", None)
+        return {**summary, **public_registry(settings), "profiles": Profiles(self.layout).public(),
                 "retention": {"generations": len(generations(self.root)), "limit": MAX_GENERATIONS, "retainedHistory": KEEP_HISTORY}}
 
     def validate_change(self, params: dict, current: dict) -> tuple[str, dict | str]:
@@ -280,9 +287,14 @@ class ProviderStore:
         restored = validate_provider({**restore, "expectedRevision": settings.get("revision")}, settings)
         if settings.get("nativeCatalog"):
             restored = validate_catalog({"expectedRevision": restored["revision"], "models": restored["models"]}, restored)
-        return "provider", restored
+        from .provider_registry import combine, entries
+        return "provider", combine(current, entries(restored), "default")
 
     def prepare(self, settings: dict, *, layered: bool | None = None) -> str:
+        from .provider_lifecycle import provider_json
+        settings_data = provider_json(settings, "Complete provider settings")
+        require(len(canonical(self.public(settings))) <= 1024 * 1024 - 8192,
+                "Provider summaries exceed transport budget; split or reduce the catalog", "catalog_budget")
         generation = settings["revision"]
         require(bool(re.fullmatch(r"[0-9a-f]{32}", generation)), "Invalid provider generation")
         from .provider_layers import LAYER_MODE, generation_layers
@@ -302,7 +314,7 @@ class ProviderStore:
         require(len([path for path in self.root.iterdir() if re.fullmatch(r"[0-9a-f]{32}", path.name)]) < 128,
                 "Provider generation retention budget reached; inspect old recovery records", "budget")
         mkdir(target, 0o750, 0, self.gid)
-        write_json(target / "settings.json", settings, mode=0o600)
+        atomic_write(target / "settings.json", settings_data, mode=0o600)
         if settings.get("nativeCatalog"):
             write_json(target / "models.json", settings["nativeCatalog"], mode=0o640, uid=0, gid=self.gid)
         if "connections" in settings:

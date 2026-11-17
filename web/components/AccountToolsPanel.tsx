@@ -71,11 +71,12 @@ function AccountToolsSession({
     [outcome, setOutcome] = useState('');
   const [confirmGateway, setConfirmGateway] = useState(false),
     [provider, setProvider] = useState(''),
-    [handoffId, setHandoffId] = useState('');
+    [handoffId, setHandoffId] = useState(''),
+    [copyMessage, setCopyMessage] = useState('');
   const handoff = useResource(
     `${key}:${connected}:${handoffId}`,
     (signal) =>
-      api.call<{ status: string; expiresAt: number; authUrl?: string; error?: string }>(
+      api.call<{ status: string; expiresAt: number; authUrl?: string; userCode?: string; error?: string }>(
         'account/gatewayOAuth/handoff',
         { handoffId },
         signal,
@@ -83,9 +84,10 @@ function AccountToolsSession({
     connected && Boolean(handoffId),
   );
   const completedId = action.operation?.state === 'accepted' ? action.operation.id : '';
-  useEffect(
-    () =>
-      events.subscribe((event) => {
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let accountChanged = false;
+    const unsubscribe = events.subscribe((event) => {
         if (
           event.type === 'notification' &&
           [
@@ -93,11 +95,18 @@ function AccountToolsSession({
             'account/updated',
             'account/rateLimits/updated',
           ].includes(String(event.data.method))
-        )
-          setRevision((value) => value + 1);
-      }),
-    [events],
-  );
+        ) {
+          accountChanged ||= event.data.method !== 'account/rateLimits/updated';
+          if (timer !== undefined) return;
+          timer = setTimeout(() => {
+            timer = undefined;
+            if (accountChanged) setRevision(value => value + 1); else credits.refresh();
+            accountChanged = false;
+          }, 100);
+        }
+      });
+    return () => { unsubscribe(); clearTimeout(timer); };
+  }, [events, credits.refresh]);
   useEffect(() => {
     if (!connected) {
       setHandoffId('');
@@ -203,7 +212,7 @@ function AccountToolsSession({
                   >
                     {credit.title ?? credit.id}
                     {credit.expiresAt
-                      ? ` · ${new Date(credit.expiresAt * 1000).toLocaleString()}到期`
+                      ? ` · ${new Date(credit.expiresAt * 1000).toLocaleString('zh-CN')}到期`
                       : ''}
                   </option>
                 ))}
@@ -326,6 +335,14 @@ function AccountToolsSession({
             <div className="stack">
               <ReadState {...handoff} />
               {handoff.data && <p role="status">授权状态：{handoff.data.status}</p>}
+              {handoff.data?.userCode && <div className="info-card stack">
+                <p>在授权页面输入设备码：</p><code>{handoff.data.userCode}</code>
+                <button className="button" onClick={async () => {
+                  try { await navigator.clipboard.writeText(handoff.data!.userCode!); setCopyMessage('设备码已复制。'); }
+                  catch { setCopyMessage('无法复制，请手动复制上方设备码。'); }
+                }}>复制网关设备码</button>
+                {copyMessage && <p role="status">{copyMessage}</p>}
+              </div>}
               {authUrl?.startsWith('https:') && (
                 <a className="button primary" href={authUrl} target="_blank" rel="noreferrer">
                   打开此连接的网关授权链接 ↗
@@ -336,11 +353,11 @@ function AccountToolsSession({
                 授权链接仅对当前网页连接开放，不写入浏览器持久存储。断线会撤销这次接力；最多保留 10
                 分钟。
               </p>
-              <p className="workspace-warning">
+              {!handoff.data?.userCode && <p className="workspace-warning">
                 原生 OAuth 需要浏览器可达执行服务器上的 loopback
                 回调。如果浏览器在另一台机器，请先将授权链接中 redirect_uri 的 loopback 端口通过 SSH
-                转发到执行服务器同一端口。此流程没有设备码备用方式；不要把回调改成其他地址。
-              </p>
+                转发到执行服务器同一端口。不要把回调改成其他地址。
+              </p>}
               <button
                 className="button"
                 disabled={action.disabled}

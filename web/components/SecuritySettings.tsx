@@ -3,13 +3,14 @@ import { RpcError, type AccountAction, type AccountSecurity, type Api } from '..
 import { composing, message } from '../lib/types';
 
 type Enrollment = { enrollmentId: string; secret: string; uri: string; expiresAt: number };
-const date = (value: number) => new Date(value).toLocaleString();
+const date = (value: number) => new Date(value).toLocaleString('zh-CN');
 
 export function SecuritySettings({ api, authenticated }: { api: Api; authenticated: boolean }) {
   const [account, setAccount] = useState<AccountSecurity>();
   const [loading, setLoading] = useState(false), [busy, setBusy] = useState('');
   const [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [blocked, setBlocked] = useState(false);
+  const [confirmAction, setConfirmAction] = useState('');
   const [password, setPassword] = useState(''), [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState(''), [confirmation, setConfirmation] = useState('');
   const [enrollment, setEnrollment] = useState<Enrollment>(), [enrollmentCode, setEnrollmentCode] = useState('');
@@ -63,7 +64,7 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
     if (locked || pending.current || !account) return;
     pending.current = true;
     const owner = epoch.current;
-    setBusy(action); setError(''); setNotice('');
+    setBusy(action); setError(''); setNotice(''); setConfirmAction('');
     setPassword(''); setOtp(''); setNewPassword(''); setConfirmation(''); setEnrollmentCode('');
     try {
       const result = await api.account<T>(action, { ...params, expectedRevision: account.revision });
@@ -72,7 +73,7 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
       await read();
     } catch (e) {
       if (epoch.current !== owner || !available.current) return;
-      setError(message(e));
+      setError(`${message(e)} 本次输入的密码和验证码已清除，请重新输入后再试。`);
       if (!(e instanceof RpcError) || e.delivery !== 'not_sent' || e.code === 'account_changed') {
         setBlocked(true);
         setNotice('操作结果或账号版本需要核对。请重新读取状态，再决定下一步；不会自动重复提交。');
@@ -107,12 +108,13 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
         <h4>两步验证 · {account.mfaEnabled ? '已开启' : '未开启'}</h4>
         {account.mfaEnabled ? <>
           <p className="small muted">登录时需要密码和验证器验证码，也可以使用一次性恢复码。修改两步验证设置会退出其他设备。如果恢复码响应丢失，重新读取状态后可再次验证身份并生成新码，之前的恢复码会全部失效。</p>
-          <button className="button" disabled={!verified} onClick={() => void act<{ recoveryCodes: string[] }>('totp/recovery', proof(), (result) => {
+          <button className="button" disabled={!verified} onClick={() => { if (confirmAction !== 'recovery') { setConfirmAction('recovery'); return; } void act<{ recoveryCodes: string[] }>('totp/recovery', proof(), (result) => {
             setRecoveryCodes(result.recoveryCodes); setNotice('已生成新的恢复码，旧码已失效；其他设备已退出登录。');
-          })}>重新生成恢复码（旧码失效）</button>
-          <button className="button" disabled={!verified} onClick={() => void act('totp/disable', proof(), () => {
+          }); }}>{confirmAction === 'recovery' ? '确认重新生成并使全部旧恢复码失效' : '重新生成恢复码（旧码失效）'}</button>
+          <button className="button" disabled={!verified} onClick={() => { if (confirmAction !== 'disable') { setConfirmAction('disable'); return; } void act('totp/disable', proof(), () => {
             setNotice('两步验证已关闭，其他设备已退出登录。');
-          })}>关闭两步验证</button>
+          }); }}>{confirmAction === 'disable' ? `确认关闭 ${account.username} 的两步验证` : '关闭两步验证'}</button>
+          {confirmAction && <button className="button small" onClick={() => setConfirmAction('')}>取消安全操作</button>}
         </> : <>
           <p className="small muted">开启后，登录需要密码和手机验证器的验证码。设置分为添加密钥、验证六位码、保存恢复码三步。</p>
           {!enrollment && <button className="button" disabled={!verified} onClick={() => void act<Enrollment>('totp/start', proof(), (result) => {
@@ -121,6 +123,10 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
           {enrollment && <div className="info-card stack">
             <h4>1. 添加到验证器</h4><p>在验证器中手动添加账号：{account.username}，服务名称：Codex Harness；选择基于时间的验证码。</p>
             <label className="field">验证器设置密钥<input readOnly value={enrollment.secret} autoComplete="off" spellCheck={false} /></label>
+            <button className="button small" onClick={async () => {
+              try { await navigator.clipboard.writeText(enrollment.secret); setNotice('设置密钥已复制，请仅粘贴到你信任的验证器；剪贴板可能被其他应用读取。'); }
+              catch { setError('无法复制设置密钥，请从上方手动复制。'); }
+            }}>复制设置密钥</button>
             <p className="small muted">可使用 Microsoft Authenticator、Google Authenticator 或其他支持 TOTP 的验证器。此密钥仅用于添加验证器，请勿分享。设置将在 {date(enrollment.expiresAt)} 过期。</p>
             <h4>2. 输入验证码</h4><label className="field">验证器生成的 6 位验证码<input inputMode="numeric" autoComplete="one-time-code" value={enrollmentCode} maxLength={6} onChange={(e) => setEnrollmentCode(e.target.value)} /></label>
             <button className="button primary" disabled={!/^\d{6}$/.test(enrollmentCode)} onClick={() => void act<{ recoveryCodes: string[] }>('totp/confirm', { enrollmentId: enrollment.enrollmentId, code: enrollmentCode }, (result) => {
@@ -151,9 +157,10 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
       {account.sessions.map((session) => <div className="info-card" key={session.id}>
         <strong>{session.current ? '当前设备 · ' : ''}{session.label || '未命名浏览器'}</strong>
         <p className="small">登录：{date(session.createdAt)}<br />最近访问：{date(session.lastSeenAt)}<br />到期：{date(session.expiresAt)}</p>
-        <button className="button small" disabled={locked} onClick={() => void act('sessions/revoke', { sessionId: session.id }, () => {
+        <button className="button small" disabled={locked} onClick={() => { if (confirmAction !== session.id) { setConfirmAction(session.id); return; } void act('sessions/revoke', { sessionId: session.id }, () => {
           setNotice('已撤销该设备的登录。');
-        })}>{session.current ? '退出当前设备' : '撤销此设备登录'}</button>
+        }); }}>{confirmAction === session.id ? `确认撤销 ${session.label || '此浏览器'} 的登录和终端` : session.current ? '退出当前设备' : '撤销此设备登录'}</button>
+        {confirmAction === session.id && <button className="button small" onClick={() => setConfirmAction('')}>取消撤销</button>}
       </div>)}
     </>}
   </section>;

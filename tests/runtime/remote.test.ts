@@ -47,7 +47,7 @@ test('environment authorization is explicit and remote selection uses only an in
 test('environment errors redact supplied credentials and unknown registration locks later writes', async () => {
   const { service, native } = setup(); native.error = new DeliveryError('lost', 'secret-executor-token failed', 'unknown');
   await expect(add(service)).rejects.toMatchObject({ code: 'lost', message: '[redacted] failed', delivery: 'unknown' });
-  expect(object(object(service.status()).activity).unknown).toBe(true); native.error = undefined;
+  expect(object(object(service.status()).activity).unknown).toBe(true); delete native.error;
   await expect(add(service)).rejects.toMatchObject({ code: 'activity_unknown' }); expect(native.calls.filter(call => call.method === 'environment/add')).toHaveLength(1);
 });
 test('native remote access defaults ephemeral and pairing secrets stay owned and outside mutation identities', async () => {
@@ -100,7 +100,7 @@ test('actual native rejection and a revoked owner remain not_sent before any pos
   const { service, native } = setup(); native.status = 'connected'; native.errorMethod = 'remoteControl/pairing/start'; native.error = new DeliveryError('denied', 'Rejected by fixture');
   await expect(service.call('remoteControl/pairing/start', {}, owner)).rejects.toMatchObject({ code: 'denied', delivery: 'not_sent' });
   expect(object(object(service.status()).activity).unknown).toBe(false);
-  native.error = undefined;
+  delete native.error;
   await expect(service.call('remoteControl/pairing/start', {}, { ...owner, beforeWrite() { throw new DeliveryError('client_disconnected', 'Owner revoked'); } })).rejects.toMatchObject({ code: 'client_disconnected', delivery: 'not_sent' });
   expect(native.calls.filter(call => call.method === 'remoteControl/pairing/start')).toHaveLength(1);
   expect(object(object(service.status()).activity).unknown).toBe(false);

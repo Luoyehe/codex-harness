@@ -2,12 +2,12 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from deploy.common import DeployError, Layout, mkdir, write_json
+from deploy.common import DeployError, Layout, canonical, mkdir, read_json, write_json
 from deploy.manager import Manager
-from deploy.provider import ProviderStore, redacted
-from deploy.provider_lifecycle import Profiles, collect_generations
+from deploy.provider import ProviderStore, redacted, validate_catalog
+from deploy.provider_lifecycle import Profiles, collect_generations, PROVIDER_JSON_LIMIT
 
 
 class ProviderProfilesTests(unittest.TestCase):
@@ -21,6 +21,68 @@ class ProviderProfilesTests(unittest.TestCase):
         self.current = {'revision': 'a' * 32, 'kind': 'responses', 'baseUrl': 'https://example.invalid/v1',
                         'model': 'fixture-model', 'apiKey': 'profile-' + 'opaque', 'models': []}
 
+    def test_aggregate_private_catalog_limit_rejects_before_generation_or_restart(self):
+        from deploy.provider_registry import combine
+        models = [{'id': 'm' + str(i), 'defaultEffort': None, 'efforts': [], 'instructions': '中' * 21000} for i in range(14)]
+        provider = validate_catalog({'expectedRevision': self.current['revision'], 'models': models}, self.current)
+        self.assertLess(len(canonical(provider['nativeCatalog'])), 1024 * 1024)
+        settings = combine(self.current, [{'id': 'default', 'name': 'First', 'enabled': True, 'settings': provider},
+                                          {'id': 'b' * 32, 'name': 'Second', 'enabled': True, 'settings': provider}], 'default')
+        self.assertGreater(len(canonical(settings)), PROVIDER_JSON_LIMIT)
+        system = Mock()
+        write_json(self.layout.config / 'instance.json', {'port': 3300, 'origin': 'http://127.0.0.1:3300'})
+        manager = Manager(self.layout, system, worker_gid=1)
+        manager.require_recovered_transactions = lambda _value: None
+        manager.require_service_ownership = lambda: None
+        manager.providers.read = lambda: self.current
+        before = set(self.layout.root.rglob('*'))
+        with self.assertRaises(DeployError) as raised:
+            manager.provider_change({'expectedRevision': self.current['revision']}, prepared=settings)
+        self.assertEqual(raised.exception.code, 'catalog_budget')
+        self.assertEqual(set(self.layout.root.rglob('*')), before)
+        system.stop.assert_not_called()
+        system.start.assert_not_called()
+
+    def test_provider_settings_exact_utf8_newline_limit_is_checked_before_writes(self):
+        settings = {**self.current, 'privatePadding': ''}
+        room = PROVIDER_JSON_LIMIT - len(canonical(settings)) - 1
+        settings['privatePadding'] = '中' * (room // 3) + 'x' * (room % 3)
+        with patch('deploy.provider.mkdir', side_effect=lambda path, *args: path.mkdir(parents=True, exist_ok=True)), \
+                patch('deploy.common.os.fchown', create=True):
+            generation = self.store.prepare(settings, layered=False)
+        saved = self.store.root / generation / 'settings.json'
+        self.assertEqual(saved.stat().st_size, PROVIDER_JSON_LIMIT)
+        self.assertEqual(read_json(saved, PROVIDER_JSON_LIMIT), settings)
+        before = saved.read_bytes()
+        with self.assertRaises(DeployError) as raised:
+            self.store.prepare({**settings, 'revision': 'b' * 32, 'privatePadding': settings['privatePadding'] + 'x'}, layered=False)
+        self.assertEqual(raised.exception.code, 'catalog_budget')
+        self.assertEqual(saved.read_bytes(), before)
+        self.assertFalse((self.store.root / ('b' * 32)).exists())
+
+    def test_profile_wrapper_and_unicode_name_fit_exact_read_budget_or_write_nothing(self):
+        identity, name = 'c' * 32, '中🌟'
+        settings = {**self.current, 'privatePadding': ''}
+        room = PROVIDER_JSON_LIMIT - len(canonical({'id': identity, 'name': name, 'settings': settings})) - 1
+        settings['privatePadding'] = '中' * (room // 3) + 'x' * (room % 3)
+        with patch('deploy.provider_lifecycle.secrets.token_hex', return_value=identity):
+            self.profiles.save(name, settings)
+        saved = self.profiles.root / (identity + '.json')
+        self.assertEqual(saved.stat().st_size, PROVIDER_JSON_LIMIT)
+        self.assertEqual(self.profiles.records()[0]['settings'], settings)
+        before = saved.read_bytes()
+        with self.assertRaises(DeployError) as raised:
+            self.profiles.save(name + 'x', settings)
+        self.assertEqual(raised.exception.code, 'catalog_budget')
+        self.assertEqual(list(self.profiles.root.iterdir()), [saved])
+        self.assertEqual(saved.read_bytes(), before)
+
+    def test_oversized_first_profile_does_not_create_directory(self):
+        settings = {**self.current, 'privatePadding': 'x' * PROVIDER_JSON_LIMIT}
+        with self.assertRaises(DeployError):
+            self.profiles.save('Oversized', settings)
+        self.assertFalse(self.profiles.root.exists())
+
     def test_profile_restores_entire_bound_endpoint_without_exposing_key(self):
         self.profiles.save('Test endpoint', self.current)
         profile = self.profiles.public()[0]
@@ -32,6 +94,8 @@ class ProviderProfilesTests(unittest.TestCase):
         self.assertEqual(restored['apiKey'], self.current['apiKey'])
         self.assertEqual(restored['baseUrl'], self.current['baseUrl'])
         self.assertNotEqual(restored['revision'], self.current['revision'])
+        self.assertEqual(restored['defaultProviderId'], 'default')
+        self.assertEqual([(row['id'], row['settings']['kind']) for row in restored['connections']], [('default', 'responses')])
         for extra in ({'baseUrl': 'https://different.invalid/v1'}, {'apiKey': ''}, {'kind': 'responses'}, {'saveProfileName': 'Other'}):
             with self.subTest(extra=extra), self.assertRaises(DeployError):
                 self.store.validate_change({'expectedRevision': different['revision'], 'profileId': profile['id'], **extra}, different)

@@ -92,7 +92,7 @@ def main():
         version = run(["/usr/bin/setpriv", "--reuid", str(config["supervisorUid"]), "--regid", str(config["supervisorGid"]),
                        "--groups", f"{config['workerGid']},{ipc_gid}", "/usr/bin/sudo", "-n", "-u", layout.prefix + "-worker", "--",
                        str(layout.control / "native-launch"), "version"], timeout=20)
-        require(version.stdout.strip() == "codex-cli 0.164.0", "Native launcher version failed")
+        require(version.stdout.strip() == "codex-cli 0.169.0", "Native launcher version failed")
         evidence["fixedLauncherVersion"] = version.stdout.strip()
         atomic_write(stage / "evidence.json", json.dumps(evidence, indent=2).encode(), 0o644)
         print(json.dumps({"passed": True, "evidence": str(stage / "evidence.json")}))

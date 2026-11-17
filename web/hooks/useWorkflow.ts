@@ -75,7 +75,7 @@ export function useWorkflow(
           const proof = (await listOperations()).find((op) => op.id === e.operationId);
           if (!current()) return undefined;
           if (proof?.state === 'accepted') {
-            update({ notice: '原操作回执已确认受理，正在重新读取状态。' });
+            update({ error: '', notice: '原操作回执已确认受理，正在重新读取状态。' });
             onChanged();
             if (proof.resolvedThreadId)
               return {
@@ -83,6 +83,8 @@ export function useWorkflow(
                 reviewThreadId: proof.resolvedThreadId,
               };
             if (!['thread/fork', 'review/startNew', 'thread/convert'].includes(method)) return {};
+            update({ notice: '', error: '操作已受理，但回执缺少目标会话标识；请在操作记录中查询，勿重复提交。' });
+            return undefined;
           }
         } catch {
           /* Preserve the original failure and visible recovery record. */
@@ -112,7 +114,8 @@ export function useWorkflowRevision(events: Events, threadId: string) {
   useEffect(
     () =>
       events.subscribe((event) => {
-        if (event.type === 'receipt') {
+        if (event.type === 'receipt' &&
+            (typeof event.data.threadId !== 'string' || event.data.threadId === threadId)) {
           refresh();
           return;
         }

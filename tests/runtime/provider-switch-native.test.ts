@@ -59,7 +59,7 @@ test('explicit conversion creates independent named threads while original histo
   writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "provider_a"', 'approval_policy = "on-request"', 'sandbox_mode = "read-only"', 'developer_instructions = "PRESERVED_GLOBAL_DEVELOPER"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[features]', 'goals = true', ...definitions].join('\n'));
   const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'provider_a', connections: ['a', 'b'].map((id, i) => ({ id: i ? 'b'.repeat(32) : 'default', modelProvider: 'provider_' + id, kind: 'responses', name: id, enabled: true, model: 'harness-loopback-fixture', models: [{ id: 'harness-loopback-fixture', defaultEffort: 'low', efforts: ['low'] }], catalogPath: catalog })) };
   env.HARNESS_DEV_PYTHON = process.env.HARNESS_TEST_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
-  const config = { bin: process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
+  const config = { bin: process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
   let runtime = await RuntimeService.create(config);
   const rpc = runtime.native, context = { clientId: 'provider-switch-native', beforeWrite: () => {} };
   const nativeCall = rpc.call.bind(rpc);
@@ -71,12 +71,17 @@ test('explicit conversion creates independent named threads while original histo
   rpc.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const turn = object(object(message.params).turn); completed.set(String(turn.id), turn); } });
   const created = object(await runtime.call('thread/start', { cwd, options: { model: 'harness-loopback-fixture', modelProvider: 'provider_a', approvalPolicy: 'on-request', sandbox: 'read-only' } }, context));
   const sourceId = String(object(created.thread).id);
-  const send = async (id: string, text: string, provider: string) => {
+  const attachment = object(await runtime.call('attachment/upload', { name: 'fixture.txt', base64: Buffer.from('Independent attachment fixture').toString('base64') }, context));
+  const send = async (id: string, text: string, provider: string, attachmentIds?: string[]) => {
     await runtime.call('thread/history', { threadId: id }, context);
-    const sent = object(await runtime.call('turn/start', { threadId: id, text, options: { modelProvider: provider, model: 'harness-loopback-fixture' } }, context));
+    const sent = object(await runtime.call('turn/start', { threadId: id, text, ...(attachmentIds ? { attachmentIds } : {}), options: { modelProvider: provider, model: 'harness-loopback-fixture' } }, context));
     await expect.poll(() => completed.get(String(object(sent.turn).id)), { timeout: 10000 }).toMatchObject({ status: 'completed' });
   };
-  await send(sourceId, 'first original message', 'provider_a');
+  await send(sourceId, 'first original message', 'provider_a', [String(attachment.attachmentId)]);
+  const forked = object(await runtime.call('thread/fork', { threadId: sourceId }, context)), forkedId = String(object(forked.thread).id);
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: forkedId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
+  await rpc.call('thread/archive', { threadId: forkedId }); await runtime.call('thread/delete', { threadId: forkedId }, context);
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: sourceId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
   await rpc.call('thread/inject_items', { threadId: sourceId, items: [{ type: 'function_call', name: 'fixture_tool', call_id: 'preserved-tool-call', arguments: '{"fixture":true}' }, { type: 'function_call_output', call_id: 'preserved-tool-call', output: 'PRESERVED_TOOL_RESULT' }] });
   const sourceThread = object(object(await rpc.call('thread/read', { threadId: sourceId })).thread), sourcePath = String(sourceThread.path);
   const busy = await compatibility.historyHelper(config, { action: 'inspect', threadId: sourceId, path: sourcePath, mode: 'foreign' });
@@ -112,6 +117,7 @@ test('explicit conversion creates independent named threads while original histo
   };
   const converted = object(await runtime.call('thread/convert', params, context)); rpc.call = guardedCall; rpc.off('notification', freeze);
   const newId = String(object(converted.thread).id); expect(newId).not.toBe(sourceId);
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: newId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
   expect(guardedTarget).toBe(newId);
   expect(converted).toMatchObject({ sourceThreadId: sourceId, sourceProvider: 'provider_a', targetProvider: 'provider_b', thread: { cwd, modelProvider: 'provider_b' } });
   expect(String(object(converted.thread).name)).toMatch(/^\[已转换至 b\]/); expect(readFileSync(sourcePath)).toEqual(frozen); expect(requests).toHaveLength(1);
@@ -140,6 +146,7 @@ test('explicit conversion creates independent named threads while original histo
   expect(JSON.stringify(requests[2]!.body)).toContain('Foreign provider reasoning');
   await rpc.call('thread/archive', { threadId: sourceId }); await rpc.call('thread/delete', { threadId: sourceId });
   await closeInitial(); runtime = await RuntimeService.create(config); defer(trackNativeClose(runtime));
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: newId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
   runtime.native.on('notification', (message: JsonObject) => { if (message.method === 'turn/completed') { const turn = object(object(message.params).turn); completed.set(String(turn.id), turn); } });
   await runtime.call('thread/history', { threadId: newId }, context); await runtime.call('thread/resume', { threadId: newId }, context);
   await send(newId, 'converted survives deletion and restart', 'provider_b');
@@ -154,7 +161,12 @@ test('explicit conversion creates independent named threads while original histo
   expect(readFileSync(newPath, 'utf8')).toContain('OLD_BAD_FOREIGN_REASONING');
   const repairedCopy = object(await runtime.call('thread/convert', { threadId: newId, sourceProvider: 'provider_b', targetProvider: 'provider_b', model: 'harness-loopback-fixture', effort: 'low', confirm: true }, context));
   const repairedId = String(object(repairedCopy.thread).id); expect(repairedId).not.toBe(newId); expect(readFileSync(newPath, 'utf8')).toContain('OLD_BAD_FOREIGN_REASONING');
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: repairedId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
   await send(repairedId, 'explicit same-provider compatibility copy', 'provider_b'); expect(JSON.stringify(requests[4]!.body)).not.toContain('OLD_BAD_FOREIGN_REASONING');
   expect(requests.map(request => request.route)).toEqual(['/a/v1/responses', '/b/v1/responses', '/a/v1/responses', '/b/v1/responses', '/b/v1/responses']);
+  await runtime.native.call('thread/archive', { threadId: newId }); await runtime.call('thread/delete', { threadId: newId }, context);
+  expect(await runtime.call('attachment/read', { attachmentId: attachment.attachmentId!, threadId: repairedId }, context)).toMatchObject({ attachmentId: attachment.attachmentId });
+  await runtime.native.call('thread/archive', { threadId: repairedId }); await runtime.call('thread/delete', { threadId: repairedId }, context);
+  await expect(runtime.call('attachment/read', { attachmentId: attachment.attachmentId! }, context)).rejects.toMatchObject({ code: 'not_found' });
   expect(errors).toEqual([]);
 }), 120000);

@@ -12,6 +12,20 @@ function setup() {
   const result = { worktreeId: id, phase: 'active', path: '/native/worktrees/' + id, head: 'a'.repeat(40), revision: 'b'.repeat(64), binding, created: true };
   return { home, id, projectId, context, request, binding, result, witness: new WorkspaceWitness(home, '/native') };
 }
+test('retirement releases the exact binding only after validating retained files and durable acknowledgement', () => {
+  const f = setup();
+  try {
+    f.witness.reserve('workspace/worktree/create', f.request, f.context); f.witness.complete('workspace/worktree/create', f.request, f.result, f.context);
+    const operationId = randomUUID(), context = { ...f.context, operationId }, request = { ...f.request, action: 'worktree/retire', operationId, binding: f.binding, params: { worktreeId: f.id, expectedRevision: f.result.revision, confirm: true } };
+    f.witness.reserve('workspace/worktree/retire', request, context);
+    const result = { ...f.result, phase: 'retired', path: '/native/worktree-state/retired/' + f.id + '/checkout', retired: true, retained: true };
+    expect(() => f.witness.complete('workspace/worktree/retire', request, { ...result, retained: false }, context)).toThrow();
+    expect(f.witness.worktreeBinding(f.id, '/origin')).toEqual(f.binding);
+    expect(f.witness.complete('workspace/worktree/retire', request, result, context)).toMatchObject({ retired: true, retained: true, worktreeVersion: 2 });
+    expect(() => f.witness.worktreeBinding(f.id, '/origin')).toThrow();
+    expect(f.witness.read({ operationId })).toMatchObject({ state: 'completed', result: { retired: true } });
+  } finally { f.witness.close(); }
+});
 test('only live create proof establishes a private binding and no binding reaches public receipts', () => {
   const f = setup();
   try {

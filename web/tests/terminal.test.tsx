@@ -25,8 +25,9 @@ vi.mock('@xterm/xterm', () => ({
       this.rows = rows;
       terminalState.grid = { rows, cols };
     }
-    write(data: Uint8Array) {
-      terminalState.output.push(new TextDecoder().decode(data));
+    write(data: Uint8Array | string) {
+      if (data === '\x1bc') { terminalState.output = []; return; }
+      terminalState.output.push(typeof data === 'string' ? data : new TextDecoder().decode(data));
     }
     writeln(text: string) {
       terminalState.output.push(text);
@@ -609,4 +610,33 @@ it('keeps a replacement terminal startup intact when an old failure finishes rea
   await act(async () => release([]));
   expect(screen.getByRole('button', { name: '查询并恢复终端' })).toHaveProperty('disabled', true);
   expect(screen.queryByText('old failure')).toBeNull();
+});
+
+it('batches only unsent terminal input while the first write is in flight', async () => {
+  let finish!: (value: unknown) => void;
+  const api = terminalApi({ mutate: vi.fn().mockResolvedValue({ terminalId: 'batched' }),
+    call: vi.fn().mockImplementation((method) => method === 'terminal/write' && !finish
+      ? new Promise(resolve => { finish = resolve; }) : Promise.resolve({})) });
+  render(<TerminalPanel api={api} events={new Events()} projectId="p" connected epoch="a" />);
+  fireEvent.click(screen.getByRole('button', { name: '打开终端' }));
+  await screen.findByRole('button', { name: '关闭终端' });
+  act(() => { terminalState.input('a'); terminalState.input('b'); terminalState.input('c'); });
+  expect(vi.mocked(api.call).mock.calls.filter(call => call[0] === 'terminal/write')).toHaveLength(1);
+  await act(async () => finish({}));
+  expect(vi.mocked(api.call).mock.calls.filter(call => call[0] === 'terminal/write').map(call => call[1])).toEqual([
+    { terminalId: 'batched', text: 'a' }, { terminalId: 'batched', text: 'bc' },
+  ]);
+});
+it('requires explicit close after changing terminal program and never auto-stops its old shell', async () => {
+  const api = terminalApi({ mutate: vi.fn().mockResolvedValue({ terminalId: 'kept' }), call: vi.fn().mockResolvedValue({}) });
+  const props = { api, events: new Events(), projectId: 'p', connected: true, epoch: 'a' };
+  const view = render(<TerminalPanel {...props} program="shell" />);
+  fireEvent.click(screen.getByRole('button', { name: '打开终端' }));
+  await screen.findByRole('button', { name: '关闭终端' });
+  view.rerender(<TerminalPanel {...props} program="codex-cloud" />);
+  expect(vi.mocked(api.call).mock.calls.some(call => call[0] === 'terminal/close')).toBe(false);
+  act(() => terminalState.input('must not reach old shell'));
+  expect(vi.mocked(api.call).mock.calls.some(call => call[0] === 'terminal/write')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '关闭终端' }));
+  await waitFor(() => expect(api.call).toHaveBeenCalledWith('terminal/close', { terminalId: 'kept' }));
 });

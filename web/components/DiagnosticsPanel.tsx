@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ServerDiagnosticsResponse } from '../../protocol/ts/v2/ServerDiagnosticsResponse';
 import type { Api } from '../lib/api';
 import { message, type Project } from '../lib/types';
-import { useResource } from '../hooks/useResource';
+import { useDiagnostics } from '../hooks/useDiagnostics';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { downloadBlob, downloadJson } from '../lib/download';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 
@@ -13,6 +13,7 @@ export function DiagnosticsPanel({
   onChanged,
   project,
   threadId = '',
+  visible = true,
 }: {
   api: Api;
   epoch: string;
@@ -20,11 +21,10 @@ export function DiagnosticsPanel({
   onChanged: () => void;
   project?: Project;
   threadId?: string;
+  visible?: boolean;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
-    diagnostics = useResource(epoch + ':' + action.revision, (signal) =>
-      api.call<ServerDiagnosticsResponse>('server/diagnostics', {}, signal),
-    );
+  const action = useExtensionAction(api, enabled && visible, onChanged),
+    diagnostics = useDiagnostics(api, epoch + ':' + action.revision, visible);
   const [category, setCategory] = useState('bug'),
     [reason, setReason] = useState(''),
     [logs, setLogs] = useState(false),
@@ -38,6 +38,8 @@ export function DiagnosticsPanel({
     current = useRef(identity),
     mounted = useRef(true);
   current.current = identity;
+  useSettingsDraft(Boolean(reason));
+  useEffect(() => { setConfirmed(false); }, [visible, enabled]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -64,7 +66,7 @@ export function DiagnosticsPanel({
     <section className="stack">
       <div className="section-heading">
         <h3>诊断下载与反馈</h3>
-        <button className="button small" onClick={diagnostics.refresh}>
+        <button className="button small" disabled={diagnostics.loading} onClick={diagnostics.refresh}>
           重新读取诊断
         </button>
       </div>
@@ -144,7 +146,7 @@ export function DiagnosticsPanel({
           </label>
           <p className="small muted">
             {destination === 'save'
-              ? '使用新的唯一文件名保存，不覆盖已有文件。之后可下载到本机。'
+              ? '使用新的唯一文件名保存，不覆盖已有文件。反馈包可能包含敏感正文、路径和日志；保存在项目目录后，项目中的 Agent、Git 添加操作或共享工具可能读取它，请在使用后按需移除。'
               : '将向外部反馈服务发送当前会话、反馈说明和所选日志，遵守当前账号与管理策略。'}
           </p>
           <label className="check-row">

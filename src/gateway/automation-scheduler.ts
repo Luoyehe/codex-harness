@@ -14,6 +14,8 @@ export class AutomationScheduler {
   private closed = false;
   private leases = new Set<string>();
   private nextRead = new Map<string, number>();
+  private nextStop = new Map<string, number>();
+  private controls = new Map<string, Promise<void>>();
   private readCursor = 0;
   private readonly onEvent = (event: HarnessEvent): void => { this.event(event); };
   private readonly onChanged = (): void => { void this.tick(); };
@@ -36,12 +38,26 @@ export class AutomationScheduler {
     if (!this.leases.delete(clientId)) return;
     try { await this.worker.clientDisconnected(clientId); } catch { /* WorkerClient fences its exact channel on failed cleanup. */ }
   }
+  private clearCooldowns(runId: string): void { this.nextRead.delete(runId); this.nextStop.delete(runId); }
+  private pruneCooldowns(): void {
+    const outstanding = new Set(this.ledger.automations.outstanding().map(run => run.id));
+    for (const id of new Set([...this.nextRead.keys(), ...this.nextStop.keys()])) if (!outstanding.has(id)) this.clearCooldowns(id);
+  }
+  private async releaseSettled(run: AutomationRun): Promise<void> {
+    // Terminal records may already have been recycled while an older read or
+    // stop awaits its result. Outstanding identity is the retained authority.
+    const latest = this.ledger.automations.outstanding().find(value => value.id === run.id);
+    if (!latest) this.clearCooldowns(run.id);
+    if (!latest || !['running', 'needs_attention', 'stopping'].includes(latest.state)) await this.release(run.clientId);
+  }
   tick(): Promise<void> {
     if (this.closed) return Promise.resolve();
-    if (this.task) return this.task;
+    this.pruneCooldowns();
+    const controls = this.control();
+    if (this.task) return Promise.all([this.task, controls]).then(() => {});
     this.task = this.step().then(() => { this.dispatcher.automationHealth({ running: !this.closed, lastTickAt: this.now(), lastError: null }); }, error => {
       this.dispatcher.automationHealth({ running: !this.closed, lastTickAt: this.now(), lastError: error instanceof HarnessError ? error.code : 'scheduler_failed' });
-    }).finally(() => { this.task = undefined; }); return this.task;
+    }).finally(() => { this.task = undefined; }); return Promise.all([this.task, controls]).then(() => {});
   }
   private async step(): Promise<void> {
     if (this.dispatcher.maintenanceActive()) return;
@@ -56,19 +72,32 @@ export class AutomationScheduler {
       const claimed = this.ledger.transaction(() => this.ledger.automations.claim(value.id));
       if (claimed) { slots--; await this.launch(claimed); }
     }
-    // Bound each read sweep, including a large set of unresolved historical runs.
+  }
+  private async control(): Promise<void> {
+    if (this.closed || !this.worker.connected || this.dispatcher.maintenanceActive()) return;
+    const pending: Promise<void>[] = [];
+    const run = (key: string, operation: () => Promise<void>): void => {
+      const existing = this.controls.get(key); if (existing) return;
+      const work = Promise.resolve().then(operation).finally(() => { this.controls.delete(key); this.pruneCooldowns(); });
+      this.controls.set(key, work); pending.push(work);
+    };
+    // Stop/deadline admission never waits behind a different launch or history
+    // read. One in-flight stop and read per run preserve exact delivery state.
     const candidates = this.ledger.automations.outstanding().filter(value => value.state !== 'queued' && value.state !== 'dispatching');
+    for (const value of candidates) {
+      if (value.state !== 'unknown' && value.startedAt !== null && this.now() - value.startedAt >= value.spec.maxRunMinutes * 60_000) this.ledger.transaction(() => this.ledger.automations.requestStop(value.id));
+      const latest = this.ledger.automations.getRun(value.id);
+      if (latest.stopRequested && !latest.stopSent && latest.threadId && latest.turnId && latest.state !== 'unknown' && (this.nextStop.get(value.id) ?? 0) <= this.now()) run(`stop:${value.id}`, () => this.stop(latest));
+    }
     if (candidates.length) {
       for (let i = 0; i < Math.min(4, candidates.length); i++) {
         const value = candidates[(this.readCursor + i) % candidates.length]!;
         if (this.closed || !this.worker.connected) break;
-        if (value.state !== 'unknown' && value.startedAt !== null && this.now() - value.startedAt >= value.spec.maxRunMinutes * 60_000) this.ledger.transaction(() => this.ledger.automations.requestStop(value.id));
-        const latest = this.ledger.automations.getRun(value.id);
-        if (latest.stopRequested && !latest.stopSent && latest.threadId && latest.turnId && latest.state !== 'unknown') await this.stop(latest);
-        if ((this.nextRead.get(value.id) ?? 0) <= this.now()) { this.nextRead.set(value.id, this.now() + 30_000); await this.reconcile(this.ledger.automations.getRun(value.id)); }
+        if ((this.nextRead.get(value.id) ?? 0) <= this.now()) { this.nextRead.set(value.id, this.now() + 30_000); run(`read:${value.id}`, () => this.reconcile(this.ledger.automations.getRun(value.id))); }
       }
       this.readCursor = (this.readCursor + 4) % candidates.length;
     }
+    await Promise.allSettled(pending);
   }
   private accept(run: AutomationRun, value: JsonValue): void {
     object(value); object(value.thread); object(value.turn);
@@ -89,7 +118,7 @@ export class AutomationScheduler {
         this.ledger.automations.finish(run.id, receipt?.state === 'not_sent' || (!receipt && error instanceof HarnessError && error.delivery === 'not_sent') ? 'not_sent' : 'unknown', receipt?.error?.code ?? 'dispatch_unconfirmed');
       }); this.publish(run.id);
     } finally {
-      if (!['running', 'needs_attention', 'stopping'].includes(this.ledger.automations.getRun(run.id).state)) await this.release(run.clientId);
+      await this.releaseSettled(run);
     }
   }
   private async stop(run: AutomationRun): Promise<void> {
@@ -98,7 +127,10 @@ export class AutomationScheduler {
       if (!this.ledger.transaction(() => this.ledger.automations.claimStop(run.id))) return;
       await this.dispatcher.call({ method: 'turn/interrupt', params: { threadId: run.threadId!, turnId: run.turnId! } }, context);
       // An interrupt acknowledgement is not proof the turn completed or its processes exited.
-    } catch { this.ledger.transaction(() => this.ledger.automations.finish(run.id, 'unknown', 'stop_unconfirmed')); }
+    } catch (error) {
+      if (error instanceof HarnessError && error.delivery === 'not_sent') { this.ledger.transaction(() => this.ledger.automations.stopNotSent(run.id, error.code)); this.nextStop.set(run.id, this.now() + 30_000); }
+      else this.ledger.transaction(() => this.ledger.automations.finish(run.id, 'unknown', 'stop_unconfirmed'));
+    } finally { await this.releaseSettled(run); }
     this.publish(run.id);
   }
   private async reconcile(original: AutomationRun): Promise<void> {
@@ -117,8 +149,7 @@ export class AutomationScheduler {
       if (found && finalStates.has(String(found.status))) { this.ledger.transaction(() => this.ledger.automations.finish(run.id, found.status as RunState)); this.publish(run.id); }
     } catch { /* Only a matching terminal turn is positive completion evidence. No resume or re-dispatch. */ }
     finally {
-      const latest = this.ledger.automations.getRun(original.id);
-      if (!['running', 'needs_attention', 'stopping'].includes(latest.state)) { this.nextRead.delete(original.id); await this.release(original.clientId); }
+      await this.releaseSettled(original);
     }
   }
   private event(event: HarnessEvent): void {
@@ -136,7 +167,7 @@ export class AutomationScheduler {
       object(event.data.params); const params = event.data.params; object(params.turn); const turn = params.turn;
       if (!finalStates.has(String(turn.status))) return;
       for (const run of this.ledger.automations.outstanding()) if (run.threadId === params.threadId && run.turnId === turn.id) {
-        this.ledger.transaction(() => this.ledger.automations.finish(run.id, turn.status as RunState)); this.nextRead.delete(run.id); void this.release(run.clientId); this.publish(run.id);
+        this.ledger.transaction(() => this.ledger.automations.finish(run.id, turn.status as RunState)); this.clearCooldowns(run.id); void this.release(run.clientId); this.publish(run.id);
       }
     } catch { /* Ignore unrelated or malformed event data; read recovery remains available. */ }
   }
@@ -144,6 +175,8 @@ export class AutomationScheduler {
     this.closed = true; if (this.timer) clearInterval(this.timer); this.timer = undefined;
     this.dispatcher.off('event', this.onEvent); this.dispatcher.off('automation-changed', this.onChanged);
     await this.task;
+    await Promise.allSettled(this.controls.values());
+    this.nextRead.clear(); this.nextStop.clear();
     await Promise.allSettled([...this.leases].map(id => this.release(id)));
     this.dispatcher.automationHealth({ running: false, lastTickAt: this.now(), lastError: null });
   }

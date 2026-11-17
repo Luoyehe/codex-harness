@@ -491,6 +491,25 @@ class ControlUpdateTests(unittest.TestCase):
             self.assertFalse((rejected / "manage").exists())
             self.assertFalse((rejected / "capabilities.json").exists())
 
+    def test_identical_control_material_verifies_without_restart_or_generation(self):
+        material = {path.relative_to(self.layout.control).as_posix(): (path.read_bytes(), path.stat().st_mode & 0o777)
+                    for path in self.layout.control.rglob("*") if path.is_file()}
+        with patch("deploy.install.control_material", return_value=material), \
+             patch.object(self.updater, "sudo_policies", return_value={"old": b"same", "candidate": b"same"}), \
+             patch("deploy.manager.Manager") as manager:
+            result = self.updater.update()
+        self.assertFalse(result["changed"])
+        manager.return_value.verify.assert_called_once_with(https_probe=False)
+        self.assertEqual(self.system.events, [])
+        self.assertEqual(list(self.updater.records.iterdir()), [])
+
+    def test_edge_client_identity_blocks_rollback_to_an_older_control(self):
+        write_json(self.layout.config / "https.json", {"authentication": "builtin", "clientIdentity": 1})
+        with self.assertRaises(DeployError) as caught:
+            self.updater.require_dns_guard({})
+        self.assertEqual(caught.exception.code, "configuration_conflict")
+        self.updater.require_dns_guard({"trustedProxyIdentity": 1})
+
     def transaction(self):
         return next(path for path in self.updater.records.iterdir() if (path / "state.json").exists())
 

@@ -83,7 +83,8 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
     } catch (error) {
       // A lost registration response cannot prove the lease was never registered.
       // Closing that exact channel fences a delayed /connect without tombstones.
-      if (channelId && this.#eventChannelId === channelId) this.invalidateConnection();
+      if (error instanceof HarnessError && error.delivery === 'not_sent') this.#clientChannels.delete(clientId);
+      else if (channelId && this.#eventChannelId === channelId) this.invalidateConnection();
       throw error;
     }
   }

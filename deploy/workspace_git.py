@@ -37,7 +37,7 @@ def git(root: Root, arguments: list[str], *, environment: dict[str, str] | None 
         descriptors: tuple[int, ...] = (), allow_missing: bool = False, input_bytes: bytes | None = None,
         output_limit: int = MAX_GIT_OUTPUT, seconds: int = 10, input_limit: int = 1024 * 1024) -> bytes:
     require(0 < output_limit <= 256 * 1024 * 1024 and 0 < seconds <= 60 and 0 < input_limit <= 8 * 1024 * 1024, "Invalid internal Git budget")
-    from .native_launcher import clean_children, direct_children
+    from .native_launcher import clean_children, direct_children, wait_child_exit
     # Cleanup owns this helper's entire native descendant tree, including
     # detached descendants. A one-shot query must never run beside another
     # executor (for example a prepared ref transaction) and reap its children.
@@ -74,7 +74,7 @@ def git(root: Root, arguments: list[str], *, environment: dict[str, str] | None 
                 require(total <= output_limit, "Git query exceeds output budget; narrow the repository view", "budget")
                 if key.data == "out":
                     output.extend(data)
-        code = child.wait(timeout=max(0.1, deadline - time.monotonic()))
+        code = wait_child_exit(child, timeout=max(0.1, deadline - time.monotonic()))
         require(code == 0 or allow_missing and code == 1 and not output, "Git query failed", "git_unavailable")
         return bytes(output)
     finally:
@@ -161,6 +161,6 @@ def query(root: Root, action: str, params: dict, forbidden: list[Path]) -> dict:
             item["originalPath"] = fields[index]
             index += 1
         entries.append(item)
-        require(len(entries) <= 1000, "Git status entry budget exceeded", "budget")
+
     require(state(root, directories) == commit_state, "Git HEAD or index changed during status", "conflict")
-    return {"entries": entries, "complete": True, "commitState": commit_state}
+    return {"entries": entries[:1000], "complete": len(entries) <= 1000, "totalEntries": len(entries), "commitState": commit_state if len(entries) <= 1000 else None}

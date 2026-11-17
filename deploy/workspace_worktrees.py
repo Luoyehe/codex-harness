@@ -39,10 +39,12 @@ def validate_binding(value: object, identity: str, origin: str) -> dict:
 
 
 def ref(value: object) -> str:
-    require(isinstance(value, str) and (value == "HEAD" or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value) or
-            re.fullmatch(r"refs/(?:heads|remotes|tags)/[A-Za-z0-9][A-Za-z0-9._/-]{0,255}", value)), "Select HEAD, a complete Git ref, or a commit id")
-    require(".." not in value and "//" not in value and not value.endswith(("/", ".", ".lock")), "Invalid Git ref")
-    return value
+    require(isinstance(value, str), "Select HEAD, a complete Git ref, or a commit id")
+    if value == "HEAD" or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value):
+        return value
+    from .git_refs import valid_ref
+    require(value.startswith(("refs/heads/", "refs/remotes/", "refs/tags/")), "Select a complete branch or tag reference")
+    return valid_ref(value)
 
 
 def text_file(parent: int, name: str, limit: int = 8192) -> str:
@@ -79,7 +81,7 @@ def storage(workspace, *, create: bool = False):
         with os.scandir(state) as listing:
             names = []
             for entry in listing:
-                if entry.name != "lock":
+                if entry.name not in ("lock", "retired"):
                     names.append(entry.name)
                     require(len(names) <= MAX_WORKTREES, "Managed worktree retention budget reached", "budget")
         for name in names:
@@ -137,7 +139,7 @@ def tree(root: Root, metadata: int, head: str) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creating: bool = False) -> dict:
+def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creating: bool = False, lightweight: bool = False) -> dict:
     common = repository(workspace)
     common_fd = directory(common)
     root = metadata = None
@@ -178,8 +180,15 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
         phase = "active" if location == active and backlink == str(active / ".git") and lock is None else "archived" if location == archived and backlink == str(archived / ".git") and lock == own_lock else "recovery"
         head = git(workspace.root, ["rev-parse", "--verify", "HEAD"], environment={"GIT_DIR": str(git_dir), "GIT_WORK_TREE": str(location)}).decode().strip()
         require(re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", head) is not None, "Worktree HEAD is invalid", "git_unavailable")
-        return {"worktreeId": identity_value, "phase": phase, "path": str(location), "head": head,
-                "revision": tree(root, metadata, head), "binding": actual}
+        result = {"worktreeId": identity_value, "phase": phase, "path": str(location), "head": head, "binding": actual}
+        try:
+            result["revision"] = tree(root, metadata, head)
+        except DeployError as exc:
+            if not lightweight or exc.code not in ("budget", "unsafe_path", "worktree_nested"):
+                raise
+            result.update(revision=None, mutationUnavailable={"code": exc.code,
+                "message": "工作树身份已验证；生成目录或特殊文件超出完整保护范围，请在终端整理后重新检查。文件未改动。"})
+        return result
     finally:
         if metadata is not None:
             os.close(metadata)
@@ -293,13 +302,44 @@ def run(workspace, request: dict, record: Record | None) -> dict:
                 return {**result, "created": True}
             finally:
                 os.close(holder)
-        before = inspect(workspace, home, identity_value, binding)
+        before = inspect(workspace, home, identity_value, binding, lightweight=action == "worktree/read")
         if action == "worktree/read":
             return before
         require(before["revision"] == params["expectedRevision"], "Worktree changed; inspect the current revision", "conflict")
         if action == "worktree/attach":
             require(before["phase"] == "active", "Only an active managed worktree can be attached", "recovery_required")
             return {**before, "attached": True}
+        if action == "worktree/retire":
+            require(before["phase"] in ("active", "archived"), "Resolve worktree recovery before retirement", "recovery_required")
+            checkout = Root(before["path"], [])
+            try:
+                from .workspace_git_view import content_view
+                with content_view(checkout, Path(binding["gitDir"]), Path(binding["commonDir"])) as (environment, descriptors):
+                    dirty = git(checkout, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignored=matching"], environment=environment, descriptors=descriptors)
+                require(not dirty, "工作树仍有修改、未跟踪或忽略的文件；请先保存或整理，退役不会丢弃它们。", "worktree_dirty")
+            finally:
+                checkout.close()
+            retired = private_directory(state, "retired", create=True)
+            holder = private_directory(state, identity_value)
+            try:
+                with os.scandir(retired) as listing:
+                    require(sum(1 for _ in listing) < 256, "Retired worktree retention reached 256; server administrator must inspect retained archives", "budget")
+                journal = Record(holder, identity_value)
+                journal.save({"phase": "retiring", "operationId": record.identity, "expectedRevision": before["revision"]})
+                if before["phase"] == "active":
+                    target = home / "worktrees" / identity_value
+                    git(workspace.root, ["worktree", "lock", "--reason", "codex-harness-archive:" + identity_value, str(target)])
+                    rename_absent(active, identity_value, holder, "checkout")
+                captured = inspect(workspace, home, identity_value, binding)
+                require(captured["revision"] == before["revision"], "Worktree changed during retirement; all files retained", "conflict")
+                rename_absent(state, identity_value, retired, identity_value)
+                target = home / "worktree-state" / "retired" / identity_value / "checkout"
+                git(workspace.root, ["worktree", "repair", str(target)])
+                journal.save({"phase": "retired", "operationId": record.identity, "expectedRevision": before["revision"]})
+                return {**before, "path": str(target), "phase": "retired", "retired": True, "retained": True}
+            finally:
+                os.close(holder)
+                os.close(retired)
         holder = private_directory(state, identity_value)
         try:
             journal = Record(holder, identity_value)

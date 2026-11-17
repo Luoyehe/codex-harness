@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -24,9 +25,9 @@ test('official CLI command approval keeps invalid answers pending, cancels witho
   const base = path.resolve('.work/approval-native'); mkdirSync(base, { recursive: true }); const root = mkdtempSync(path.join(base, 'run-'));
   const home = path.join(root, 'codex'), project = path.join(root, 'project'), temporary = path.join(root, 'tmp');
   for (const directory of [home, project, temporary]) mkdirSync(directory);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const env = nativeTestEnvironment({ home: root, codexHome: home, temporary, fixtureApiKey: 'local-protocol-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.164.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
   let requests = 0; let nextTool = true; const errors: string[] = []; const received: JsonObject[] = [];
   const provider = createServer((req, res) => { void (async () => {
     if (req.method !== 'POST' || req.url !== '/v1/responses') throw new Error('Unexpected provider route');
@@ -72,7 +73,7 @@ test('official CLI command approval keeps invalid answers pending, cancels witho
   } finally {
     try { await service?.close(); }
     finally { await new Promise<void>(resolve => { provider.close(() => resolve()); provider.closeAllConnections(); }); }
-    if (service?.native.processId !== undefined) expect(() => process.kill(service!.native.processId!, 0)).toThrow();
+    if (service) expectNativeClosed(service.native);
     expect(provider.listening).toBe(false);
   }
 }, 60000);

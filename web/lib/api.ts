@@ -124,14 +124,20 @@ export class Api {
     } catch {
       /* A proxy can return an empty/non-JSON 401. */
     }
-    const external = object(body.error).code !== 'unauthorized';
+    const error = object(body.error);
+    // A rejected second factor is not evidence that the existing session or
+    // outer access authentication has expired (account security actions use it too).
+    if (error.code === 'mfa_invalid')
+      return new RpcError('验证码或恢复码不正确，请核对后重试。', 'mfa_invalid',
+        error.delivery === 'unknown' ? 'unknown' : 'not_sent', operationId);
+    const external = error.code !== 'unauthorized';
     if (generation === this.sessionGeneration) this.loseAuthentication(csrf, external);
     return new RpcError(
       external
         ? '站点访问认证已失效。请完成访问认证后重新检查登录，草稿和操作记录仍保留。'
         : '登录已失效，请重新登录。草稿和操作恢复记录仍保留。',
       external ? 'access_authentication_required' : 'unauthorized',
-      object(body.error).delivery === 'unknown' ? 'unknown' : 'not_sent',
+      error.delivery === 'unknown' ? 'unknown' : 'not_sent',
       operationId,
     );
   }
@@ -167,9 +173,10 @@ export class Api {
           '登录操作结果尚未确认，请先重新检查账号状态。',
           String(error.code ?? response.status), 'unknown',
         );
-      if (credentials !== undefined && ['unauthorized', 'mfa_required'].includes(String(error.code)))
+      if (credentials !== undefined && ['unauthorized', 'mfa_required', 'mfa_invalid'].includes(String(error.code)))
         throw new RpcError(
-          error.code === 'mfa_required' ? '请输入验证器验证码或恢复码。' : '登录信息不正确，请核对后重试。',
+          error.code === 'mfa_required' ? '请输入验证器验证码或恢复码。'
+            : error.code === 'mfa_invalid' ? '验证码或恢复码不正确，请核对后重试。' : '登录信息不正确，请核对后重试。',
           String(error.code), 'not_sent',
         );
       if (response.status === 401) {
@@ -233,7 +240,14 @@ export class Api {
     if (body.authenticated === false) this.loseAuthentication(csrf);
     return body as T;
   }
-  async logout() {
+  private logoutPending?: Promise<void>;
+  logout(): Promise<void> {
+    if (this.logoutPending) return this.logoutPending;
+    const pending = this.performLogout().finally(() => { if (this.logoutPending === pending) this.logoutPending = undefined; });
+    this.logoutPending = pending;
+    return pending;
+  }
+  private async performLogout() {
     const csrf = this.csrf,
       generation = this.sessionGeneration;
     const r = await fetch('/api/session', {
@@ -280,7 +294,8 @@ export class Api {
     ].includes(method)
       ? 110_000
       : 30_000;
-    const r = await fetch(method === 'system/recover' ? '/api/recover' : '/api/rpc', {
+    let r: Response;
+    try { r = await fetch(method === 'system/recover' ? '/api/recover' : '/api/rpc', {
       method: 'POST',
       credentials: 'same-origin',
       headers: this.headers(),
@@ -288,9 +303,14 @@ export class Api {
       signal: signal
         ? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
         : AbortSignal.timeout(timeout),
-    });
+    }); } catch {
+      throw new RpcError(signal?.aborted ? '读取已取消。' : '连接中断或请求超时，请检查网络后重新读取状态。已提交操作的结果可能未知，请查询原回执，勿重复提交。',
+        'transport_error', operationId ? 'unknown' : undefined, operationId);
+    }
     if (r.status === 401) throw await this.authenticationError(r, csrf, generation, operationId);
-    const body = object(await r.json());
+    let body: Record<string, unknown>;
+    try { body = object(await r.json()); }
+    catch { throw new RpcError('服务返回了无法读取的响应，请重新读取状态；已提交操作请查询原回执。', 'invalid_response', operationId ? 'unknown' : undefined, operationId); }
     if (body.ok !== true) {
       const error = object(body.error);
       throw new RpcError(
@@ -460,7 +480,8 @@ export class Api {
       }
       const thread = object(object(result).thread);
       try {
-        await updateOperation(id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined);
+        await updateOperation(id, 'accepted', typeof thread.id === 'string' ? thread.id : undefined,
+          undefined, method === 'system/recover' ? result : undefined);
         if (![...INPUT_METHODS, 'thread/fork', 'thread/convert', 'review/startNew', 'system/recover'].includes(method))
           await acknowledgeOperation(id);
       } catch (error) {

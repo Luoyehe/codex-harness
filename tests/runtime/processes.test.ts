@@ -10,9 +10,9 @@ vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (a
 import { Processes } from '../../src/runtime/processes.js';
 const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => {} };
 const instances: Processes[] = [];
-function setup() {
+function setup(rollingOutput = false) {
   const events: { data: JsonObject; channel?: string }[] = []; const calls: { method: string; params: JsonValue }[] = []; let nativeGate: Promise<void> | undefined; let available = true; let failed = 0;
-  const processes = new Processes({ cwd: value => String(value), available: () => { if (!available) throw new DeliveryError('activity_unknown', 'Unavailable'); }, emit: (data, channel) => events.push({ data, channel }), changed: () => {},
+  const processes = new Processes({ rollingOutput, cwd: value => String(value), available: () => { if (!available) throw new DeliveryError('activity_unknown', 'Unavailable'); }, emit: (data, channel) => events.push({ data, ...(channel !== undefined ? { channel } : {}) }), changed: () => {},
     native: async (method, params, options) => { await nativeGate; options?.beforeWrite?.(); calls.push({ method, params }); return {}; },
     start: async (operation, owner) => { owner.beforeWrite?.(); operation.beforeWrite?.(); calls.push({ method: operation.method, params: operation.params }); return {}; },
     failEpoch: async () => { failed++; available = false; processes.reset(); },
@@ -23,6 +23,17 @@ const exit = (processes: Processes, handle: JsonValue, wrapperCode = 0) => proce
 const spawn = async (processes: Processes, extra: JsonObject = {}) => object(await processes.call('process/spawn', { cwd: '/fixture', command: ['fixture'], ...extra }, context)).processHandle!;
 beforeEach(() => { fixture.jobs.length = 0; fixture.gate = undefined; });
 afterEach(() => { for (const instance of instances.splice(0)) instance.reset(); vi.useRealTimers(); });
+test('interactive output keeps streaming after its bounded local history rolls over', async () => {
+  const { processes, calls, events } = setup(true), processHandle = await spawn(processes, { outputBytesCap: 1024 });
+  expect(object(calls[0]!.params).outputBytesCap).toBeNull();
+  for (const chunk of [Buffer.alloc(1024, 65), Buffer.alloc(1024, 66), Buffer.alloc(10, 67)]) processes.notification('process/outputDelta', { processHandle, stream: 'stdout', deltaBase64: chunk.toString('base64'), capReached: false });
+  const result = object(await processes.call('process/read', { processHandle }, context));
+  expect(Buffer.from(String(result.stdoutBase64), 'base64')).toEqual(Buffer.concat([Buffer.alloc(1014, 66), Buffer.alloc(10, 67)]));
+  expect(result.status).toBe('running'); expect(events.filter(event => event.data.type === 'output')).toHaveLength(3);
+  fixture.jobs[0]!.finish(0); processes.notification('process/exited', { processHandle, exitCode: 0, stdout: '', stderr: '', stdoutCapReached: false, stderrCapReached: false, outputDrainTimedOut: true });
+  await expect.poll(async () => object(await processes.call('process/read', { processHandle }, context)).status).toBe('exited');
+  expect(await processes.call('process/read', { processHandle }, context)).toMatchObject({ outputDrainTimedOut: true });
+});
 
 test.runIf(process.platform === 'win32')('forces the final Windows spawn environment to disable cache despite case-variant user overrides', async () => {
   const { processes, calls } = setup();

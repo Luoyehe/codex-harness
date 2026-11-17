@@ -12,6 +12,7 @@ lines.on('line', line => {
   if (m.method === 'hold') return;
   if (m.method === 'exit') { process.exit(7); return; }
   if (m.method === 'error') { send({ id: m.id, error: { code: -32000, message: 'fixture rejection', data: { kind: 'fixture' } } }); return; }
+  if (m.method === 'fixture/error/reflect') { send({ id: m.id, error: m.params }); return; }
   if (m.method === 'malformed') { send({ id: m.id, error: null }); return; }
   if (m.method === 'prompt') { send({ id: 'original-string-id', method: 'item/fileChange/requestApproval', params: { threadId: 't', turnId: 'u', itemId: 'i', reason: null, grantRoot: null } }); send({ id: m.id, result: {} }); return; }
   if (m.method === 'pause') { process.stdin.pause(); lines.pause(); setInterval(() => {}, 1000); send({ id: m.id, result: {} }); return; }

@@ -117,7 +117,7 @@ describe('pending answer ownership', () => {
       'permissions',
       { permissions: { fileSystem: { write: ['/fixture'] } } },
       'item/permissions/requestApproval',
-      '授予所选权限',
+      '不授予权限并继续',
     ],
     [
       'URL confirmation',

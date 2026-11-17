@@ -41,13 +41,14 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
         allowed = {expected[unit].encode()} if unit in expected else set()
         if role == "caddy":
             allowed.add(render_edge_units(layout, builtin=True)[unit].encode())
+            allowed.add(render_edge_units(layout, builtin=True, client_identity=True)[unit].encode())
             if candidate_dns is not None:
-                allowed.add(render_edge_units(layout, builtin=True, dns_metadata=candidate_dns)[unit].encode())
+                allowed.add(render_edge_units(layout, builtin=True, dns_metadata=candidate_dns, client_identity=candidate_dns.get("clientIdentity") == 1)[unit].encode())
             if present(layout.config / "https.json"):
                 from .https import read_https_metadata
                 metadata = read_https_metadata(layout)
                 if metadata.get("dnsProvider") is not None:
-                    allowed.add(render_edge_units(layout, builtin=True, dns_metadata=metadata)[unit].encode())
+                    allowed.add(render_edge_units(layout, builtin=True, dns_metadata=metadata, client_identity=metadata.get("clientIdentity") == 1)[unit].encode())
         if role == "worker":
             allowed.update(worker_variants)
         if prior_units and prior_units.get(role) is not None:

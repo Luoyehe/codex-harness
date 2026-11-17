@@ -3,16 +3,17 @@ import type { Api } from '../lib/api';
 import { array, message } from '../lib/types';
 
 /** One explicit refresh synchronizes only the provider chosen in the composer. */
-export function useModelCatalogRefresh(api: Api, modelProvider?: string, enabled = true) {
+export function useModelCatalogRefresh(api: Api, modelProvider?: string, enabled = true, scopeKey = '', unavailable = '连接、身份或运行状态尚未就绪，请稍后同步供应商模型目录。') {
   const [refreshing, setRefreshing] = useState(false), [error, setError] = useState('');
   const owner = useRef({ api, csrf: api.csrf, modelProvider, enabled, mounted: true, generation: 0 });
   const running = useRef(false);
   if (owner.current.api !== api || owner.current.csrf !== api.csrf || owner.current.modelProvider !== modelProvider || owner.current.enabled !== enabled)
     owner.current = { api, csrf: api.csrf, modelProvider, enabled, mounted: owner.current.mounted, generation: owner.current.generation + 1 };
   useEffect(() => { owner.current.mounted = true; return () => { owner.current.mounted = false; }; }, []);
+  useEffect(() => { setError(''); }, [api, api.csrf, modelProvider, scopeKey]);
   const refresh = async () => {
     if (running.current) return;
-    if (!enabled) { setError('请先结束正在运行的任务，再同步供应商模型目录。'); return; }
+    if (!enabled) { setError(unavailable); return; }
     const scope = { api, csrf: api.csrf, modelProvider, generation: owner.current.generation };
     const current = () => owner.current.mounted && owner.current.enabled && owner.current.api === scope.api &&
       owner.current.csrf === scope.csrf && owner.current.modelProvider === scope.modelProvider && owner.current.generation === scope.generation;

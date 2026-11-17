@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AppInfo } from '../../protocol/ts/v2/AppInfo';
 import type { InstalledApp } from '../../protocol/ts/v2/InstalledApp';
 import type { Api } from '../lib/api';
@@ -53,14 +53,17 @@ export function InputContextPicker({
     [error, setError] = useState('');
   const key = `${projectId}:${threadId}:${epoch}:${open}`,
     scoped = threadId ? { threadId } : {};
+  const reloadSkills = useRef(false);
   const skills = useResource(
     key,
-    (signal) =>
-      api.call<{ data: { skills: Skill[]; errors: { message: string }[] }[] }>(
+    (signal) => {
+      const forceReload = reloadSkills.current; reloadSkills.current = false;
+      return api.call<{ data: { skills: Skill[]; errors: { message: string }[] }[] }>(
         'skills/list',
-        { projectId, forceReload: true },
+        { projectId, forceReload },
         signal,
-      ),
+      );
+    },
     open && tab === 'skills' && Boolean(projectId),
   );
   const apps = usePaged<AppInfo>(api, 'app/list', scoped, key, open && tab === 'apps'),
@@ -194,7 +197,7 @@ export function InputContextPicker({
                   className="button small"
                   type="button"
                   disabled={skills.loading}
-                  onClick={skills.refresh}
+                  onClick={() => { reloadSkills.current = true; skills.refresh(); }}
                 >
                   刷新技能目录
                 </button>

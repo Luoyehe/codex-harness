@@ -207,7 +207,7 @@ export function WorkspaceIndexRecovery({
                 {detail.data.entries.map((entry) => (
                   <option key={entry.slot} value={entry.slot}>
                     {names[entry.slot]} ·{' '}
-                    {entry.absent ? '原先没有索引' : `${entry.bytes.toLocaleString()} 字节`}
+                    {entry.absent ? '原先没有索引' : `${entry.bytes.toLocaleString('zh-CN')} 字节`}
                   </option>
                 ))}
               </select>

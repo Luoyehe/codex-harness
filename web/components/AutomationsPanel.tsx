@@ -12,6 +12,7 @@ import type { CollaborationModeMask } from '../lib/workflows';
 import { message, type Model, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { useAutomationRuns } from '../hooks/useAutomationRuns';
+import { usePageVisible } from '../hooks/usePageVisible';
 import { AutomationForm } from './AutomationForm';
 import type { ModelPagination } from './ModelDirectoryStatus';
 import { Dialog } from './Dialog';
@@ -45,6 +46,7 @@ export function AutomationsPanel({
 }) {
   const [selected, setSelected] = useState(''),
     [editing, setEditing] = useState<{ record?: Automation }>();
+  const visible = usePageVisible();
   const list = useResource(`${epoch}:automations`, (signal) =>
     api.call<{ data: Automation[] }>('automation/list', {}, signal),
   );
@@ -76,14 +78,14 @@ export function AutomationsPanel({
     onChanged();
   }, [list.refresh, health.refresh, detail.refresh, onChanged]);
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !visible) return;
     const timer = setInterval(() => {
       health.refresh();
       list.refresh();
       if (selected && !editing) detail.refresh();
     }, 15_000);
     return () => clearInterval(timer);
-  }, [enabled, selected, Boolean(editing), health.refresh, list.refresh, detail.refresh]);
+  }, [enabled, visible, selected, Boolean(editing), health.refresh, list.refresh, detail.refresh]);
   return (
     <Dialog title="自动化" onClose={onClose} wide>
       <section className="stack automations-panel">
@@ -99,7 +101,7 @@ export function AutomationsPanel({
         <div className="inline">
           <span className="small" role="status">
             {health.data
-              ? `调度器${health.data.running ? '运行中' : '未运行'} · 上次检查 ${health.data.lastTickAt ? new Date(health.data.lastTickAt).toLocaleTimeString() : '尚无记录'}`
+              ? `调度器${health.data.running ? '运行中' : '未运行'} · 上次检查 ${health.data.lastTickAt ? new Date(health.data.lastTickAt).toLocaleTimeString('zh-CN') : '尚无记录'}`
               : '正在读取调度器状态…'}
           </span>
           <button className="button small" onClick={refresh}>
@@ -226,7 +228,8 @@ export function AutomationDetail({
   onRemoved: () => void;
   onOpenThread: (id: string) => void;
 }) {
-  const runs = useAutomationRuns(api, record.id, epoch, true),
+  const visible = usePageVisible();
+  const runs = useAutomationRuns(api, record.id, epoch, enabled),
     [intent, setIntent] = useState<'resume' | 'run' | 'remove' | ''>(''),
     [preview, setPreview] = useState<{ revision: number; next: number[] }>(),
     [confirmed, setConfirmed] = useState(false),
@@ -242,9 +245,10 @@ export function AutomationDetail({
       onRemoved();
   }, [action.operation?.id, action.operation?.state]);
   useEffect(() => {
+    if (!enabled || !visible) return;
     const timer = setInterval(() => void runs.refresh(), 5000);
     return () => clearInterval(timer);
-  }, [runs.refresh]);
+  }, [runs.refresh, enabled, visible]);
   useEffect(() => {
     setIntent('');
     setConfirmed(false);
@@ -331,14 +335,14 @@ export function AutomationDetail({
         )}
         <button
           className="button small"
-          disabled={action.disabled || unresolved || runs.loading || Boolean(runs.error)}
+          disabled={action.disabled || unresolved || runs.initialLoading || Boolean(runs.error)}
           onClick={() => void inspectIntent('run')}
         >
           立即运行一次…
         </button>
         <button
           className="button danger small"
-          disabled={action.disabled || unresolved || runs.loading || Boolean(runs.error)}
+          disabled={action.disabled || unresolved || runs.initialLoading || Boolean(runs.error)}
           onClick={() => void inspectIntent('remove')}
         >
           移除计划…

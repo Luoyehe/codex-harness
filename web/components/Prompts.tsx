@@ -347,7 +347,7 @@ function Prompt({
                 disabled={busy}
                 onClick={() => void send({ permissions: content, scope })}
               >
-                授予所选权限
+                {Object.keys(content).length ? '授予所选权限' : '不授予权限并继续'}
               </button>
               <button
                 className="button"

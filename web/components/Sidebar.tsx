@@ -117,7 +117,7 @@ export function Sidebar({
           {thread.section.appearance?.icon} {thread.section.name}
         </span>}{name}{snippets?.[thread.id] && <span className="thread-snippet">{snippets[thread.id]}</span>}</span>
         <small>{thread.updatedAt ? new Date(thread.updatedAt * (thread.updatedAt < 1e12 ? 1000 : 1))
-          .toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</small>
+          .toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : ''}</small>
       </button>
       {onThreadAction && <RowActions label={'管理会话：' + name} open={menu === key}
         setOpen={open => setMenu(open ? key : '')} actions={[
@@ -155,7 +155,7 @@ export function Sidebar({
     <button type="button" className="new-chat" onClick={onNew}><Icon name="plus" />新会话</button>
     <div className="nav-tools">
       <button type="button" className={'nav-item ' + (searchOpen ? 'selected' : '')} aria-expanded={searchOpen}
-        onClick={() => setSearchOpen(value => !value)}><Icon name="search" />搜索会话</button>
+        onClick={() => { if (searchOpen) onQuery(''); setSearchOpen(value => !value); }}><Icon name="search" />搜索会话</button>
       <button type="button" className={'nav-item ' + (archived ? 'selected' : '')} onClick={onArchived}><Icon name="archive" />已归档</button>
       {onLoaded && <button type="button" className="nav-item" onClick={onLoaded}><Icon name="play" />已加载会话</button>}
       {onAutomations && <button type="button" className="nav-item" onClick={onAutomations}><Icon name="refresh" />自动化</button>}

@@ -136,7 +136,7 @@ export class Dispatcher extends EventEmitter {
           this.#maintenance && !(forceRecovery && this.#maintenance.kind === 'worker'))
         throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
       if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
-      if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', '此会话已有正在执行或等待确认的任务。');
+      if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', scope.startsWith('project:') ? '此项目有正在执行或等待确认的操作，请完成后重试。' : '此会话已有正在执行或等待确认的任务。');
       if (management) {
         if (method !== 'system/restart' && !forceRecovery && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台状态未知，请先检查并恢复服务。');
         // Explicit restart is the stop-confirmed recovery path, including when
@@ -144,7 +144,7 @@ export class Dispatcher extends EventEmitter {
         // Ordinary restart waits for submitted work. Explicit force recovery
         // fences queued writes and lets the manager confirm both cgroups empty.
         if (!forceRecovery && (this.#pendingWork.size || (method !== 'system/restart' && (this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes))))
-          throw new HarnessError('activity_busy', '请先结束任务和网页终端，再变更服务配置。');
+          throw new HarnessError('activity_busy', method.startsWith('workspace/git/') ? '仓库写入需要所有后台任务、子任务、终端和订阅空闲，以避免它们同时修改仓库文件。请先结束相关执行。' : '请先结束任务和网页终端，再变更服务配置。');
         // Root transactions and receipt rotation cannot be preempted. Worker
         // configuration can hang like any native operation, so recovery owns
         // a new token and the old worker's finally must not release that token.

@@ -70,3 +70,14 @@ test('worktree management excludes active tasks and blocks project removal durin
     await f.dispatcher.call({ ...f.create, operationId: id }, { clientId: 'owner' }); expect(f.ledger.project(f.origin.id)).toBeDefined();
   } finally { f.ledger.close(); }
 });
+test('retired worktrees free project registration without allowing a late older acknowledgement to resurrect them', async () => {
+  const f = setup();
+  try {
+    await f.dispatcher.call(f.create, { clientId: 'owner' });
+    f.set(async (_method, _params, context) => { context.beforeWrite?.(); return { ...f.result, phase: 'retired', path: '/native/worktree-state/retired/' + f.id + '/checkout', retired: true, retained: true, worktreeVersion: 2 }; });
+    await f.dispatcher.call({ method: 'workspace/worktree/retire', operationId: randomUUID(), params: { projectId: f.origin.id, worktreeId: f.id, expectedRevision: f.result.revision!, confirm: true } }, { clientId: 'owner' });
+    expect(f.ledger.worktrees.list(f.origin.id)).toEqual({ data: [] }); expect(() => f.ledger.project(f.id)).toThrow();
+    f.ledger.transaction(() => f.ledger.worktrees.apply('workspace/worktree/create', f.origin.id, f.id, f.result));
+    expect(() => f.ledger.project(f.id)).toThrow(); expect(() => f.ledger.removeProject(f.origin.id)).not.toThrow();
+  } finally { f.ledger.close(); }
+});

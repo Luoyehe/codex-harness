@@ -22,7 +22,7 @@ export function Welcome({
         <button
           onClick={() => onSuggestion('帮我排查一个问题。先了解相关代码，再一起确认修复方案。')}
         >
-          <span className="suggestion-icon amber">⌁</span>
+          <span className="suggestion-icon amber" aria-hidden="true">⌁</span>
           <strong>解决问题</strong>
         </button>
         <button onClick={() => onSuggestion('我想实现一个新功能，请先和我明确目标与边界。')}>

@@ -18,6 +18,8 @@ export interface Activity {
   goalPending?: boolean;
   queued?: boolean;
   checkingContinuation?: boolean;
+  /** A read-only observation failed; no mutation is inferred from that failure. */
+  continuationUnverified?: boolean;
   continuationRevision?: number;
   subscribed?: boolean;
   settingsRevision?: number;
@@ -47,7 +49,7 @@ export class ThreadActivity {
 
   private disposable(id: string, state: Activity): boolean {
     return !hasTurnActivity(state) && !state.pending && !state.unknown &&
-      !state.goalActive && !state.queued && !state.checkingContinuation &&
+      !state.goalActive && !state.queued && !state.checkingContinuation && !state.continuationUnverified &&
       state.subscribed !== true && !this.readers.has(id) && !this.retained(id);
   }
 

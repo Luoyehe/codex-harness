@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -40,6 +40,89 @@ function setup(file = ':memory:', initialTime = Date.parse('2026-01-01T00:00:00Z
   return { ledger, worker, dispatcher, scheduler, project, spec, command, create, calls, leases, advance: (ms: number) => { time += ms; }, terminal: (status: string) => { turnState = status; }, behavior: (run: typeof behavior) => { behavior = run; } };
 }
 describe('durable bounded automation execution', () => {
+  it('a blocked launch cannot delay another run deadline stop', async () => {
+    const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const first = f.ledger.automations.outstanding()[0]!;
+    await f.command('automation/create', { spec: { ...f.spec, schedule: { kind: 'once', at: Date.parse('2026-01-01T00:02:00Z'), timeZone: 'UTC' } } as unknown as JsonValue }); let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+    f.behavior(async (method, _params, context) => {
+      context.beforeWrite?.();
+      if (method === 'conversation/start') { await gate; return { thread: { id: 'second', cwd: '/project' }, turn: { id: 'second-turn', status: 'inProgress' } }; }
+      if (method === 'thread/history') return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+      return {};
+    });
+    f.advance(60_000); const pending = f.scheduler.tick();
+    try {
+      await vi.waitFor(() => expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(2));
+      f.advance(600_000); const tick = f.scheduler.tick();
+      await vi.waitFor(() => expect(f.calls.some(call => call.method === 'turn/interrupt')).toBe(true));
+      expect(f.ledger.automations.getRun(first.id).stopSent).toBe(true); release(); await tick;
+    } finally { release(); await pending; }
+  });
+  it('known not-sent stop failures retry only after cooldown without marking the run unknown', async () => {
+    const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
+    f.behavior(async (method, _params, context) => {
+      if (method === 'turn/interrupt') throw new HarnessError('temporarily_busy', 'not sent');
+      context.beforeWrite?.(); return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+    });
+    f.advance(600_000); await f.scheduler.tick(); await f.scheduler.tick();
+    expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'running', stopRequested: true, stopSent: false });
+    expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+    f.advance(30_000); await f.scheduler.tick(); expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(2);
+  });
+  it('completion notifications reclaim both cooldowns after a definitively rejected stop', async () => {
+    const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
+    f.behavior(async method => {
+      if (method === 'turn/interrupt') throw new HarnessError('temporarily_busy', 'not sent');
+      return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+    });
+    f.scheduler.start(); f.advance(600_000); await f.scheduler.tick();
+    expect(f.scheduler['nextRead'].has(run.id)).toBe(true); expect(f.scheduler['nextStop'].has(run.id)).toBe(true);
+    f.dispatcher.emit('event', { type: 'notification', data: { method: 'turn/completed', params: { threadId: run.threadId, turn: { id: run.turnId, status: 'completed' } } } });
+    expect(f.ledger.automations.getRun(run.id).state).toBe('completed');
+    expect(f.scheduler['nextRead'].size).toBe(0); expect(f.scheduler['nextStop'].size).toBe(0); expect(f.leases.size).toBe(0);
+    await f.scheduler.tick(); expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+  });
+  it.each(['not_sent', 'unknown'] as const)('completion wins a late %s stop and history response without leaking cooldowns or replaying', async delivery => {
+    const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
+    let releaseStop!: () => void, releaseRead!: () => void;
+    const stopGate = new Promise<void>(resolve => { releaseStop = resolve; }), readGate = new Promise<void>(resolve => { releaseRead = resolve; });
+    f.behavior(async (method, _params, context) => {
+      if (method === 'turn/interrupt') { if (delivery === 'unknown') context.beforeWrite?.(); await stopGate; throw new HarnessError('delayed_stop', 'fixture failure', delivery); }
+      if (method === 'thread/history') { await readGate; return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null }; }
+      return {};
+    });
+    f.advance(600_000); f.scheduler.start(); const pending = f.scheduler.tick();
+    try {
+      await vi.waitFor(() => expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1));
+      f.dispatcher.emit('event', { type: 'notification', data: { method: 'turn/completed', params: { threadId: run.threadId, turn: { id: run.turnId, status: 'interrupted' } } } });
+      releaseStop(); releaseRead(); await pending;
+      expect(f.ledger.automations.getRun(run.id).state).toBe('interrupted');
+      expect(f.scheduler['nextRead'].size).toBe(0); expect(f.scheduler['nextStop'].size).toBe(0); expect(f.leases.size).toBe(0);
+      await f.scheduler.tick(); expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1); expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
+    } finally { releaseStop(); releaseRead(); await pending; }
+  });
+  it('unknown execution retains reconciliation cooldown until explicit confirmed closure, then survives record recycling', async () => {
+    const f = setup(); const job = await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
+    f.behavior(async (method, _params, context) => {
+      if (method === 'turn/interrupt') { context.beforeWrite?.(); throw new HarnessError('lost', 'unknown stop', 'unknown'); }
+      return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
+    });
+    f.advance(600_000); await f.scheduler.tick();
+    expect(f.ledger.automations.getRun(run.id).state).toBe('unknown'); expect(f.scheduler['nextRead'].has(run.id)).toBe(true);
+    await f.scheduler.tick(); expect(f.scheduler['nextRead'].has(run.id)).toBe(true); expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+    f.dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: true } } });
+    await expect(f.command('automation/acknowledge', { runId: run.id, confirm: true })).rejects.toMatchObject({ code: 'activity_unknown' });
+    f.dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+    f.ledger.setMeta('activityUncertain', 'false'); // Separate stop-confirmed recovery proof.
+    await f.command('automation/acknowledge', { runId: run.id, confirm: true });
+    for (let index = 0; index < 1000; index++) {
+      const next = f.ledger.transaction(() => f.ledger.automations.command('automation/run', { id: job.id!, expectedRevision: 1 })) as JsonObject;
+      f.ledger.transaction(() => f.ledger.automations.finish(String(next.runId), 'not_sent'));
+    }
+    expect(() => f.ledger.automations.getRun(run.id)).toThrow('运行记录不存在');
+    await f.command('automation/remove', { id: job.id!, expectedRevision: 1 });
+    f.worker.connected = false; await f.scheduler.tick();
+    expect(f.scheduler['nextRead'].size).toBe(0); expect(f.scheduler['nextStop'].size).toBe(0);
+  });
   it('atomically saves definitions and receipt, replays without duplicate schedules and detects stale revisions', async () => {
     const f = setup(), operationId = randomUUID();
     const first = await f.command('automation/create', { spec: f.spec as unknown as JsonValue }, operationId);

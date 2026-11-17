@@ -1,14 +1,15 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { root } from './snapshot.mjs';
 
 const pins = {
-  linux: ['0.164.0-linux-x64', 'sha512-XLAoaWsGOT2khzl+P4FYDPTkzAr9W0VFXFaVkqlFdkM0soa1gH/4S0wSD57Ek3HHwkirAEGz2/Mwehseh+l5Mg=='],
-  win32: ['0.164.0-win32-x64', 'sha512-urWPhwh9YavuoAPIkmVYKBTtd5OtGVL4Ki0Fb28dhK/Mz6Pt4LSy+gbRrZFz5+RXrw9ubvXuXDCcd8beYcWhDg=='],
+  linux: ['0.169.0-linux-x64', 'sha512-o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww=='],
+  win32: ['0.169.0-win32-x64', 'sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg=='],
 };
+/** @param {unknown} pack @param {string} platform @param {string} arch */
 export function validatePackageMetadata(pack, platform = process.platform, arch = process.arch) {
   const pin = Object.hasOwn(pins, platform) ? pins[platform] : undefined;
   if (!pin || arch !== 'x64') throw Error('CI native preparation requires a supported x64 runner');
@@ -29,13 +30,36 @@ export function extractArchive(directory, filename) {
   execFileSync('tar', ['-xzf', filename], { cwd: directory, stdio: 'inherit', windowsHide: true });
 }
 
+export function nativePreparationDirectory(base) {
+  const resolved = path.resolve(base);
+  if (/[\r\n]/.test(resolved)) throw Error('Invalid native preparation path');
+  let current = path.parse(resolved).root;
+  const parents = resolved.slice(current.length).split(path.sep).filter(Boolean);
+  for (const component of [...parents, 'reference', 'runtime', 'ci-codex']) {
+    current = path.join(current, component);
+    try { mkdirSync(current, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+    const info = lstatSync(current);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw Error('Native preparation requires ordinary directories');
+  }
+  return current;
+}
+
 export function prepareCiNative(base = root, env = process.env) {
-  const directory = path.join(base, 'reference/runtime/ci-codex');
-  mkdirSync(directory, { recursive: true });
-  const entry = validatePackageMetadata(JSON.parse(readFileSync(path.join(directory, 'pack.json'), 'utf8')));
+  if (!env.GITHUB_ENV) throw Error('Expected a CI environment file');
+  const directory = nativePreparationDirectory(base);
+  const packFile = path.join(directory, 'pack.json'), metadata = lstatSync(packFile);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 65536) throw Error('Invalid native package metadata file');
+  const entry = validatePackageMetadata(JSON.parse(readFileSync(packFile, 'utf8')));
   const archive = path.join(directory, entry.filename);
-  if ('sha512-' + createHash('sha512').update(readFileSync(archive)).digest('base64') !== entry.integrity) throw Error('Official CLI archive integrity mismatch');
-  extractArchive(directory, entry.filename);
+  const info = lstatSync(archive);
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 256 * 1024 * 1024) throw Error('Invalid native archive file');
+  const bytes = readFileSync(archive);
+  if (bytes.length > 256 * 1024 * 1024 || 'sha512-' + createHash('sha512').update(bytes).digest('base64') !== entry.integrity) throw Error('Official CLI archive integrity mismatch');
+  const extracted = mkdtempSync(path.join(directory, 'prepare-'));
+  // Extract the bytes that were actually verified into a fresh private tree.
+  // Reusing package/ could follow a previously substituted directory or file.
+  writeFileSync(path.join(extracted, entry.filename), bytes, { flag: 'wx', mode: 0o600 });
+  extractArchive(extracted, entry.filename);
   const binaries = [];
   function visit(folder) {
     for (const item of readdirSync(folder, { withFileTypes: true })) {
@@ -44,7 +68,7 @@ export function prepareCiNative(base = root, env = process.env) {
       else if (item.isFile() && item.name === (process.platform === 'win32' ? 'codex.exe' : 'codex')) binaries.push(file);
     }
   }
-  visit(path.join(directory, 'package/vendor'));
+  visit(path.join(extracted, 'package/vendor'));
   if (binaries.length !== 1 || !env.GITHUB_ENV) throw Error('Expected exactly one independent binary and a CI environment file');
   appendFileSync(env.GITHUB_ENV, `HARNESS_TEST_CODEX_BIN=${binaries[0]}\n`);
 }

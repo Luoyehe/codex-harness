@@ -5,11 +5,39 @@ import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
+import { UnifiedHistory } from '../../src/runtime/history.js';
+import type { Activity } from '../../src/runtime/thread-activity.js';
+import { createHash } from 'node:crypto';
+
+test('export and page traversal interleave without replacing each other or granting page completeness', async () => {
+  const state: Activity = { status: 'idle', turnId: null, pending: false, unknown: false, revision: 1, historyMode: 'paginated' };
+  const history = new UnifiedHistory({ state: () => state, closed: () => false, observe: () => {}, checkTurns: () => {}, native: async (method, value) => {
+    const p = object(value); if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
+    return { data: [{ id: p.cursor ? 'old' : 'new', status: 'completed', items: [] }], nextCursor: p.cursor ? null : 'older' };
+  } });
+  const owner = { clientId: 'owner' }, browser = object(await history.read({ threadId: 'thread' }, owner)), exported = history.isolated(owner);
+  const first = object(await exported.read({ threadId: 'thread' })); await exported.read({ threadId: 'thread', cursor: first.nextCursor! });
+  expect(history.complete('thread', owner)).toBe(false); exported.close();
+  expect(await history.read({ threadId: 'thread', cursor: browser.nextCursor! }, owner)).toMatchObject({ complete: true }); expect(history.complete('thread', owner)).toBe(true);
+});
+
+test('queued references and extra notes preserve omitted slices and clear independently', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const reference = 'Untrusted referenced file', extra = 'Untrusted extra note';
+  const marked = (text: string, kind: string): JsonObject => ({ type: 'text', text, text_elements: [{ byteRange: { start: 0, end: Buffer.byteLength(text) }, placeholder: `harness-context:v2:${kind}:${createHash('sha256').update(text).digest('hex')}` }] });
+  native.queue = [{ id: 'original', clientUserMessageId: 'message', input: [{ type: 'text', text: 'main', text_elements: [] }, marked(reference, 'reference'), marked(extra, 'extra')] }];
+  await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: 'original', references: [] }, context);
+  expect(JSON.stringify(native.queue[0]!.input)).not.toContain(reference); expect(JSON.stringify(native.queue[0]!.input)).toContain(extra);
+  await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: 'original', extraContext: [] }, context);
+  expect(native.queue[0]!.input).toEqual([{ type: 'text', text: 'main', text_elements: [] }]);
+  const legacy = marked(extra, 'extra'); object((legacy.text_elements as JsonValue[])[0]).placeholder = 'harness-context:' + 'a'.repeat(64); native.queue[0]!.input = [legacy];
+  await expect(service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: 'original', references: [] }, context)).rejects.toMatchObject({ code: 'legacy_context_ambiguous', delivery: 'not_sent' });
+});
 
 const roots = path.resolve('.work/workflow-tests'); mkdirSync(roots, { recursive: true });
 const turn = (id = 'u', status = 'completed'): JsonObject => ({ id, rootTurnId: null, items: [], itemsView: 'full', status, error: null, startedAt: null, completedAt: null, durationMs: null });
 function thread(id: string, cwd: string, active = false): JsonObject {
-  return { id, environments: null, extra: null, sessionId: id, forkedFromId: null, parentThreadId: null, preview: '', ephemeral: false, section: null, sectionEnteredAt: null, projectId: null, historyMode: 'paginated', modelProvider: 'fixture', model: 'fixture', reasoningEffort: null, createdAt: 1, updatedAt: 1, recencyAt: null, status: active ? { type: 'active', activeFlags: [] } : { type: 'idle' }, path: null, cwd, cliVersion: '0.164.0', originator: null, source: 'appServer', canAcceptDirectInput: true, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null, name: null, daybreakEnabled: null, turns: [] };
+  return { id, environments: null, extra: null, sessionId: id, forkedFromId: null, parentThreadId: null, preview: '', ephemeral: false, section: null, sectionEnteredAt: null, projectId: null, historyMode: 'paginated', modelProvider: 'fixture', model: 'fixture', reasoningEffort: null, createdAt: 1, updatedAt: 1, recencyAt: null, status: active ? { type: 'active', activeFlags: [] } : { type: 'idle' }, path: null, cwd, cliVersion: '0.169.0', originator: null, source: 'appServer', canAcceptDirectInput: true, threadSource: null, agentNickname: null, agentRole: null, gitInfo: null, name: null, daybreakEnabled: null, turns: [] };
 }
 class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonObject }[] = []; queue: JsonObject[] = []; active = false; directInput = true;
@@ -79,7 +107,7 @@ test('queue text and attachment edits preserve opaque context until references a
   expect(added.text).toBe('Main message'); expect(added.hasOpaqueInput).toBe(true); expect(added.input).toHaveLength(3);
   const edited = object(object(await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: added.id!, text: 'Edited', attachmentIds: [] }, context)).queuedSubmission);
   expect(edited.text).toBe('Edited'); expect(edited.input).toHaveLength(2); expect(JSON.stringify(edited.input)).toContain('Opaque retained context');
-  const cleared = object(object(await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: added.id!, text: 'Final', references: [] }, context)).queuedSubmission); expect(cleared.input).toHaveLength(1); expect(cleared.hasOpaqueInput).toBe(false);
+  const cleared = object(object(await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: added.id!, text: 'Final', references: [], extraContext: [] }, context)).queuedSubmission); expect(cleared.input).toHaveLength(1); expect(cleared.hasOpaqueInput).toBe(false);
   native.active = true; native.emit('notification', { method: 'turn/started', params: { threadId: 't', turn: turn('active', 'inProgress') } });
   await service.call('turn/steer', { threadId: 't', expectedTurnId: 'active', extraContext: [{ label: 'Steer evidence', text: 'Context-only steering' }] }, context);
   expect(JSON.stringify(native.calls.find(call => call.method === 'turn/steer')!.params.input)).toContain('harness-context:');
@@ -100,7 +128,7 @@ test('audio queue edits preserve native media and reject unknown or unsupported 
   await expect(service.call('thread/settings/update', { threadId: 't', model: 'fixture' }, context)).rejects.toMatchObject({ code: 'model_modality_unsupported' });
   expect(native.calls.some(call => call.method === 'thread/queue/update' || call.method === 'thread/settings/update')).toBe(false);
   await expect(service.call('thread/queue/start', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'model_modality_unsupported' });
-  native.responseOverride = undefined; const edited = object(object(await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: row.id!, text: 'keep audio' }, context)).queuedSubmission); expect(edited.attachmentIds).toEqual([attachmentId]); expect(edited.hasOpaqueInput).toBe(false);
+  delete native.responseOverride; const edited = object(object(await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: row.id!, text: 'keep audio' }, context)).queuedSubmission); expect(edited.attachmentIds).toEqual([attachmentId]); expect(edited.hasOpaqueInput).toBe(false);
 });
 
 test('steer media requires a known current-turn model and honors applied live model overrides', async () => {
@@ -124,7 +152,7 @@ test.each(['before', 'after'] as const)('live model updates respect reroutes rec
   const steer = () => service.call('turn/steer', { threadId: 't', expectedTurnId: 'active', attachmentIds: [attachmentId] }, context);
   if (when === 'before') await expect(steer()).resolves.toEqual({ turnId: 'active' });
   else { await expect(steer()).rejects.toMatchObject({ code: 'model_modality_unsupported' }); expect(native.calls.some(call => call.method === 'turn/steer')).toBe(false); }
-  native.hook = undefined; native.afterWrite = undefined;
+  delete native.hook; delete native.afterWrite;
   await service.call('turn/settings/update', { threadId: 't', turnId: 'active', model: 'fixture' }, context);
   await expect(steer()).resolves.toEqual({ turnId: 'active' });
 });
@@ -291,7 +319,9 @@ test('active goals and queued continuations remain busy between model turns', as
 });
 test('malformed continuation readback keeps global maintenance blocked', async () => {
   const { service, native } = setup(); native.responseOverride = { method: 'thread/goal/get', value: {} }; native.emit('notification', { method: 'thread/queue/changed', params: { threadId: 't' } });
-  await expect.poll(() => object(object(service.status()).activity).unknown).toBe(true);
+  await expect.poll(() => native.calls.some(call => call.method === 'thread/goal/get')).toBe(true);
+  await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
+  expect(object(object(service.status()).activity).unknown).toBe(false);
   expect(object(object(service.status()).activity).activeThreads).toContain('t');
 });
 test('known unsubscribe prevents work without implicit resubscription', async () => {

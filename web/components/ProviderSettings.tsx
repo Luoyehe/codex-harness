@@ -5,6 +5,8 @@ import { array, composing, object } from '../lib/types';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
 import { ModelCatalog } from './ModelCatalog';
 import { ProviderProfiles } from './ProviderProfiles';
+import { SettingsDrafts, hasSettingsDrafts, useSettingsDraft, useSettingsNavigation } from '../hooks/useSettingsDraft';
+import { SettingsDraftDialog } from './SettingsDraftDialog';
 
 type Gateway = {
   authorizationUrl: string;
@@ -69,12 +71,26 @@ function ProviderSettingsForm({
   const [selectedId, setSelectedId] = useState('');
   const connections = array<Record<string, unknown>>(registry?.connections);
   const effectiveId = selectedId || String(registry?.defaultProviderId ?? 'default');
-  const provider = useMemo(() => {
-    const values = resource.data ?? lastProvider.current;
-    if (!values) return undefined;
-    const row = array<Record<string, unknown>>(values.connections).find(item => item.id === effectiveId);
-    return row ? { ...row, revision: values.revision, providerId: row.id } : effectiveId === 'new' ? undefined : values;
-  }, [resource.data, effectiveId]);
+  const registrySeen = useRef(false);
+  if (registry && (Object.hasOwn(registry, 'connections') || Object.hasOwn(registry, 'defaultProviderId')))
+    registrySeen.current = true;
+  const resolvedProvider = useMemo(() => {
+    if (!registry || effectiveId === 'new') return undefined;
+    const row = array<Record<string, unknown>>(registry.connections).find(item => item.id === effectiveId);
+    if (row) return { ...row, revision: registry.revision, providerId: row.id };
+    // Only an actual legacy single-provider response has no registry identity.
+    // A removed selection must never resolve to the default provider's summary.
+    return !registrySeen.current && effectiveId === 'default' ? registry : undefined;
+  }, [registry, effectiveId]);
+  const retainedProvider = useRef<{ id: string; value: Record<string, unknown> } | undefined>(undefined);
+  if (resolvedProvider) retainedProvider.current = { id: effectiveId, value: resolvedProvider };
+  const provider = resolvedProvider ?? (retainedProvider.current?.id === effectiveId ? retainedProvider.current.value : undefined);
+  const targetMissing = Boolean(registry && effectiveId !== 'new' && !resolvedProvider);
+  // Once opened, the editor belongs to that ID even if another client changes
+  // the default or replaces the complete registry from a saved profile.
+  useEffect(() => {
+    if (registry && !selectedId) setSelectedId(effectiveId);
+  }, [registry, selectedId, effectiveId]);
   const [name, setName] = useState(''), [connectionEnabled, setConnectionEnabled] = useState(true);
   const [supportsTools, setSupportsTools] = useState(true);
   const [kind, setKind] = useState('chatgpt'),
@@ -92,9 +108,22 @@ function ProviderSettingsForm({
     baseRevision = useRef<unknown>(undefined),
     [initialized, setInitialized] = useState(false),
     [conflict, setConflict] = useState(false);
+  useSettingsDraft(() => dirty.current);
+  const catalogDrafts = useRef(new Set<() => boolean>());
+  const [catalogDirty, setCatalogDirty] = useState(false);
+  useSettingsDraft(() => hasSettingsDrafts(catalogDrafts.current));
+  const navigationOwner = useMemo(() => ({}), [api, api.csrf, effectiveId, registry?.revision, epoch, visible, enabled]);
+  const navigation = useSettingsNavigation(catalogDrafts.current, navigationOwner);
+  const selectProvider = (id: string) => {
+    if (id === effectiveId || (id !== 'new' && !connections.some(row => row.id === id))) return;
+    navigation.request(() => {
+      dirty.current = false; setSelectedId(id); setSaved(false);
+    }, '放弃目录编辑并切换供应商');
+  };
+  const [secretNotice, setSecretNotice] = useState('');
   const action = useExtensionAction(
     api,
-    enabled && visible && !resource.loading && !resource.error,
+    enabled && visible && !resource.loading && !resource.error && !targetMissing,
     () => {
       resource.refresh();
       onChanged();
@@ -109,12 +138,15 @@ function ProviderSettingsForm({
   const isBedrock = kind === 'bedrock-runtime' || kind === 'bedrock-mantle',
     usesKey = ['responses', 'zhipu-coding', 'bedrock-runtime', 'bedrock-mantle'].includes(kind);
   useEffect(() => {
+    if (apiKey || clearKey || gatewayConsent || allowInsecureHttp)
+      setSecretNotice('连接状态或设置页面已变化，新填密钥与授权确认已清除；保存前请重新填写并核对。');
     setApiKey('');
     setClearKey(false);
     setAllowInsecureHttp(false);
     setGatewayConsent('');
-  }, [epoch, visible, enabled]);
+  }, [epoch, visible, enabled, targetMissing]);
   useEffect(() => {
+    if (targetMissing) return;
     if (resource.data && dirty.current) {
       setConflict(resource.data.revision !== baseRevision.current);
       return;
@@ -129,7 +161,8 @@ function ProviderSettingsForm({
       setSupportsTools(true);
       return;
     }
-    const value = provider ?? resource.data;
+    if (!provider) return;
+    const value = provider;
     baseRevision.current = resource.data.revision;
     setConflict(false);
     setKind(String(value.kind));
@@ -150,11 +183,12 @@ function ProviderSettingsForm({
     );
     // Expose editors only after their displayed values and revision share one baseline.
     setInitialized(true);
-  }, [resource.data, provider, effectiveId]);
+  }, [resource.data, provider, effectiveId, targetMissing]);
   const save = async () => {
     if (
       !initialized ||
       !resource.data ||
+      targetMissing ||
       conflict ||
       action.disabled ||
       (effectiveId !== 'new' && kind !== provider?.kind) ||
@@ -189,14 +223,13 @@ function ProviderSettingsForm({
       ...(usesKey ? (apiKey ? { apiKey } : clearKey ? { apiKey: '' } : {}) : {}),
     };
     // Secret input is intentionally not retained while a result is uncertain.
+    if (apiKey) setSecretNotice('本次提交后已清除新填密钥。如请求未发送或被拒绝，再次保存前需重新填写；结果未知时请先查询原回执。');
     setApiKey('');
     const result = await action.run('system/provider/write', params, '配置已保存，正在读取新运行环境。');
     if (result) {
       dirty.current = false;
       if (effectiveId === 'new') {
-        const previous = new Set(connections.map(row => row.id));
-        const added = array<Record<string, unknown>>(result.connections).find(row => !previous.has(row.id));
-        setSelectedId(typeof added?.id === 'string' ? added.id : '');
+        setSelectedId(typeof result.providerId === 'string' ? result.providerId : '');
       }
       setSaved(true);
       resource.refresh();
@@ -205,6 +238,10 @@ function ProviderSettingsForm({
   return (
     <div className="stack">
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原供应商配置回执" />
+      {secretNotice && <p className="small muted" role="status">{secretNotice}</p>}
+      {targetMissing && <p className="workspace-warning" role="alert">
+        供应商“{String(provider?.name || effectiveId)}”已不在当前配置中。原编辑仍保留且不会提交给其他供应商；请明确选择其他供应商后继续。
+      </p>}
       {connections.length > 0 && (
         <section className="stack" aria-label="已添加模型供应商">
           <div className="inline">
@@ -212,11 +249,11 @@ function ProviderSettingsForm({
               className={row.id === effectiveId ? 'button primary' : 'button'}
               disabled={action.busy || dirty.current}
               aria-pressed={row.id === effectiveId}
-              onClick={() => { dirty.current = false; setSelectedId(String(row.id)); setSaved(false); }}>
+              onClick={() => selectProvider(String(row.id))}>
               {String(row.name)}{row.enabled === false ? '（已停用）' : row.id === registry?.defaultProviderId ? '（默认）' : ''}
             </button>)}
             <button type="button" className="button" disabled={action.busy || dirty.current || connections.length >= 16}
-              onClick={() => { dirty.current = false; setSelectedId('new'); setSaved(false); }}>添加供应商</button>
+              onClick={() => selectProvider('new')}>添加供应商</button>
           </div>
           {dirty.current && <button type="button" className="button small" onClick={() => { dirty.current = false; setSaved(false); resource.refresh(); }}>放弃当前编辑</button>}
         </section>
@@ -249,7 +286,7 @@ function ProviderSettingsForm({
             </button>
           </p>
         )}
-        <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized}>
+        <fieldset className="provider-fields stack" disabled={action.busy || !visible || !initialized || targetMissing}>
           <h3>模型供应商</h3>
           <p className="muted">
             可同时启用多个服务。新对话可选择任一供应商的模型，已有对话沿用当前供应商；更换供应商请使用会话菜单中的“切换供应商 / 转换会话”。保存配置会重启运行时，请先结束正在执行的任务。
@@ -454,6 +491,7 @@ function ProviderSettingsForm({
               action.disabled ||
               !initialized ||
               !resource.data ||
+              targetMissing ||
               conflict ||
               (isGateway && gatewayConsent !== gatewayScope)
             }
@@ -462,15 +500,22 @@ function ProviderSettingsForm({
           </button>
         </fieldset>
       </form>
-      {provider && initialized && !dirty.current && ['chatgpt', 'chatgpt-gateway'].includes(kind) && provider.kind === kind && provider.enabled !== false &&
+      {provider && initialized && !targetMissing && !dirty.current && ['chatgpt', 'chatgpt-gateway'].includes(kind) && provider.kind === kind && provider.enabled !== false &&
         (typeof accountPanel === 'function' ? accountPanel(provider, effectiveId === registry?.defaultProviderId || !connections.length) : accountPanel)}
-      {provider && initialized && connections.length > 0 && effectiveId !== 'new' && !dirty.current && (
+      {provider && initialized && !targetMissing && connections.length > 0 && effectiveId !== 'new' && !dirty.current && (
         <div className="inline">
           <button type="button" className="button" disabled={action.disabled || provider.enabled === false || effectiveId === registry?.defaultProviderId}
             onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, defaultProviderId: effectiveId }, '已更新新对话的默认供应商。')) resource.refresh(); }}>设为默认供应商</button>
           <details><summary>移除供应商</summary><p>历史对话会保留，但使用此供应商的对话将无法继续。需要改用其他供应商的对话，请先在会话菜单中创建转换副本；移除后若要继续原对话或再转换，需要恢复原供应商配置。</p>
+            {connections.length <= 1 && <p className="small muted">至少需要保留一个供应商。请先添加另一个供应商，再移除此项。</p>}
             <button type="button" className="button danger" disabled={action.disabled || connections.length <= 1}
-              onClick={async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, removeProviderId: effectiveId }, '已移除供应商。')) { setSelectedId(''); resource.refresh(); } }}>确认移除 {String(provider.name)}</button>
+              onClick={() => navigation.request(() => {
+                void (async () => { if (await action.run('system/provider/write', { expectedRevision: registry?.revision, removeProviderId: effectiveId }, '已移除供应商。')) {
+                  const remaining = connections.filter(row => row.id !== effectiveId);
+                  setSelectedId(String(remaining.find(row => row.id === registry?.defaultProviderId)?.id ?? remaining[0]?.id ?? ''));
+                  resource.refresh();
+                } })();
+              }, '放弃目录编辑并移除供应商')}>确认移除 {String(provider.name)}</button>
           </details>
         </div>
       )}
@@ -481,27 +526,31 @@ function ProviderSettingsForm({
             confirmationScope={JSON.stringify([epoch, visible, enabled])}
             provider={registry ?? provider}
             action={action}
-            hasDraft={dirty.current}
+            hasDraft={dirty.current || catalogDirty}
             onUpdated={() => {
               dirty.current = false;
               resource.refresh();
             }}
           /></details>
           <hr />
+          <SettingsDrafts.Provider value={catalogDrafts.current}>
           <ModelCatalog
-            key={effectiveId + ':' + String(provider.revision)}
+            key={effectiveId}
             api={api}
             provider={provider}
             visible={visible}
             scopeKey={epoch}
-            enabled={enabled && !resource.loading && !resource.error}
+            enabled={enabled && !resource.loading && !resource.error && !targetMissing}
+            onDraftChange={setCatalogDirty}
             onApplied={() => {
               resource.refresh();
               onChanged();
             }}
           />
+          </SettingsDrafts.Provider>
         </>
       )}
+      <SettingsDraftDialog navigation={navigation} />
     </div>
   );
 }

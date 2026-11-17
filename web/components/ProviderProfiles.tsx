@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { array, object } from '../lib/types';
 import type { useExtensionAction } from './ExtensionControls';
 
@@ -10,6 +11,8 @@ type Profile = {
   region?: string;
   model?: string;
   hasApiKey?: boolean;
+  connections?: { id: string; name: string; enabled: boolean }[];
+  defaultProviderId?: string;
 };
 export function ProviderProfiles({
   provider,
@@ -29,6 +32,7 @@ export function ProviderProfiles({
   const [name, setName] = useState(''),
     [selected, setSelected] = useState(''),
     [confirm, setConfirm] = useState('');
+  useSettingsDraft(Boolean(name));
   const profile = profiles.find((profile) => profile.id === selected);
   useEffect(() => setConfirm(''), [action.scope, confirmationScope]);
   const trimmedName = name.trim(),
@@ -111,8 +115,15 @@ export function ProviderProfiles({
             {profile.model ?? '原生默认模型'}
           </p>
           <p className="small muted">
-            {profile.hasApiKey ? '已保存与此端点绑定的密钥。' : '此配置不使用保存的 API Key。'}
+            {profile.hasApiKey ? '此配置档含一个或多个连接的 API Key，密钥与各自端点绑定。' : '此配置档未保存 API Key。'}
           </p>
+          <p>恢复将替换整个供应商集合。请先保存当前配置为配置档，以便恢复。</p>
+          {profile.connections ? <>
+            <p>恢复后的连接：{profile.connections.map(row => `${row.name}${row.enabled ? '' : '（已停用）'}`).join('、') || '无'}</p>
+            <p>将移出的当前连接：{array<{ id: string; name: string }>(provider.connections)
+              .filter(row => !profile.connections!.some(saved => saved.id === row.id)).map(row => row.name).join('、') || '无'}</p>
+            <p>恢复后的默认供应商：{profile.connections.find(row => row.id === profile.defaultProviderId)?.name ?? '未提供'}</p>
+          </> : <p className="workspace-warning">旧配置档未提供连接摘要。恢复前请核对其来源；当前集合中额外的连接将被替换。</p>}
           <label className="check-row">
             <input
               type="checkbox"

@@ -118,6 +118,11 @@ class IndexFilesystemTests(unittest.TestCase):
         selected = self.selected("a")
         target.chmod(0o755)
         with self.assertRaises(DeployError): self.call("git/stage", {**self.versions(), "files": [selected]})
+        with self.assertRaises(DeployError) as caught:
+            self.stage(["a"])
+        self.assertEqual(caught.exception.code, "git_conversion_required")
+        self.assertFalse(marker.exists())
+        (self.path / ".gitattributes").write_text("a -filter\n")
         self.stage(["a"])
         self.assertFalse(marker.exists())
         self.assertEqual(self.git("show", ":a"), b"\0\xffraw data")

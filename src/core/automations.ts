@@ -111,6 +111,12 @@ export class Automations {
     }
   }
   outstanding(): AutomationRun[] { return this.db.prepare("SELECT * FROM automation_runs WHERE state IN ('queued','dispatching','running','needs_attention','stopping','unknown') ORDER BY rowid").all().map(run); }
+  projectRemoved(projectId: string): void {
+    for (const row of this.db.prepare("SELECT * FROM automations WHERE state!='removed'").all()) if (job(row).projectId === projectId) {
+      this.db.prepare("UPDATE automations SET state='paused',next_at=NULL,revision=revision+1,updated_at=? WHERE id=?").run(this.now(), row.id!);
+      for (const value of this.forJob(String(row.id))) if (value.state === 'queued') this.finish(value.id, 'not_sent', 'project_removed');
+    }
+  }
   claim(id: string): AutomationRun | null { const change = this.db.prepare("UPDATE automation_runs SET state='dispatching',started_at=? WHERE id=? AND state='queued'").run(this.now(), id); return Number(change.changes) ? this.getRun(id) : null; }
   accepted(id: string, threadId: string, turnId: string, status: string): void {
     identifier(threadId); identifier(turnId);
@@ -125,5 +131,6 @@ export class Automations {
   attention(threadId: string): void { this.db.prepare("UPDATE automation_runs SET state='needs_attention' WHERE thread_id=? AND state='running'").run(threadId); }
   requestStop(id: string): void { this.db.prepare("UPDATE automation_runs SET stop_requested=1 WHERE id=? AND state IN ('running','needs_attention')").run(id); }
   claimStop(id: string): boolean { return !!Number(this.db.prepare("UPDATE automation_runs SET stop_sent=1,state='stopping' WHERE id=? AND state IN ('running','needs_attention') AND stop_requested=1 AND stop_sent=0").run(id).changes); }
+  stopNotSent(id: string, code: string): void { this.db.prepare("UPDATE automation_runs SET stop_sent=0,state='running',code=? WHERE id=? AND state='stopping'").run(code, id); }
   recover(): void { this.db.prepare("UPDATE automation_runs SET state='unknown',code='gateway_restarted',finished_at=? WHERE state IN ('dispatching','running','needs_attention','stopping')").run(this.now()); }
 }

@@ -10,6 +10,7 @@ import { validateRelative } from './release-audit.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
 import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.mjs';
 import { goPrerequisite, goTestFile, goTestPattern, runGoTests } from './go-tests.mjs';
+import { javascriptTestPattern as jsTest, pythonTestPattern as pyTest, validateTestPath } from './test-paths.mjs';
 
 const requiredScopes = ['gateway-core', 'runtime-protocol', 'web-ux', 'deployment-release'];
 const scopeAreas = {
@@ -19,8 +20,6 @@ const scopeAreas = {
   'deployment-release': [/^deploy\//, /^(?:scripts|\.github)\//],
 };
 const nativeNames = new Set(nativeTestFiles);
-const jsTest = /^(?:tests|web\/tests)\/[A-Za-z0-9_./-]+\.test\.tsx?$/;
-const pyTest = /^tests\/deploy\/(?:[A-Za-z0-9_-]+\/)*test_[A-Za-z0-9_-]+\.py$/;
 const identity = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 const clean = value => Array.isArray(value) && value.length === 0;
 const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value));
@@ -116,6 +115,11 @@ export function runVitest(files, base = root, env = isolatedTestEnvironment(base
 }
 
 export function executePlan(plan, base = root, dependencies = {}, env = isolatedTestEnvironment(base)) {
+  if (!Array.isArray(plan?.files) || !plan.files.length || new Set(plan.files).size !== plan.files.length) throw Error('Execution requires a nonempty unique test plan');
+  for (const name of plan.files) {
+    validateTestPath(name);
+    if ([jsTest, pyTest, goTestPattern].filter(pattern => pattern.test(name)).length !== 1) throw Error('Unclassified test file in execution plan');
+  }
   const js = plan.files.filter(name => jsTest.test(name)); const python = plan.files.filter(name => pyTest.test(name));
   const go = plan.files.filter(name => goTestPattern.test(name));
   const hasNative = js.some(name => nativeNames.has(name)); const prerequisites = [];

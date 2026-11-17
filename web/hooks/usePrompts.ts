@@ -5,6 +5,7 @@ import { array, message, type HarnessEvent, type PromptRecord } from '../lib/typ
 export function usePrompts(api: Api, events: Events, epoch: string) {
   const [prompts, setPrompts] = useState<PromptRecord[]>([]),
     [error, setError] = useState('');
+  const [revision, setRevision] = useState(0);
   const generation = useRef(0),
     closed = useRef(new Set<string>()),
     current = useRef<PromptRecord[]>([]);
@@ -36,7 +37,7 @@ export function usePrompts(api: Api, events: Events, epoch: string) {
       generation.current++;
       controller.abort();
     };
-  }, [api, epoch]);
+  }, [api, epoch, revision]);
   const listener = useCallback((event: HarnessEvent) => {
     if (event.type === 'prompt') {
       const p = event.data as unknown as PromptRecord;
@@ -54,5 +55,5 @@ export function usePrompts(api: Api, events: Events, epoch: string) {
     closed.current.add(id);
     publish(current.current.filter((p) => p.promptId !== id));
   };
-  return { prompts, error, answer };
+  return { prompts, error, answer, refresh: () => setRevision(value => value + 1) };
 }

@@ -38,12 +38,16 @@ export function TurnFooter({ turn, onAction, actionsDisabled = false, active = f
   }, [menuOpen]);
   useEffect(() => {
     mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
     const outside = (event: PointerEvent) => {
       if (footer.current && event.target instanceof Node && !footer.current.contains(event.target)) setMenuOpen(false);
     };
     document.addEventListener('pointerdown', outside);
-    return () => { mounted.current = false; document.removeEventListener('pointerdown', outside); };
-  }, []);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [menuOpen]);
   const copy = async () => {
     if (!answer || running.current) return;
     running.current = true; setCopying(true); setFeedback(undefined); setMenuOpen(false);

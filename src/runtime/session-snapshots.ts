@@ -1,4 +1,4 @@
-import { jsonBytes, object, type JsonObject, type JsonValue } from './types.js';
+import { jsonBytes, LIMITS, object, type JsonObject, type JsonValue } from './types.js';
 
 /** Read-only views never activate a stored native thread. */
 export class SessionSnapshots {
@@ -6,9 +6,11 @@ export class SessionSnapshots {
   private bytes = 0;
   private metadata(thread: JsonObject): JsonObject { return Object.fromEntries(['id', 'cwd', 'status', 'parentThreadId', 'canAcceptDirectInput', 'historyMode', 'model', 'modelProvider', 'reasoningEffort', 'name'].filter(key => thread[key] !== undefined).map(key => [key, thread[key]! ])); }
   private store(id: string, value: JsonObject, stale: boolean): void {
-    const bytes = Buffer.byteLength(jsonBytes(value, 256 * 1024)); const old = this.entries.get(id); const revision = (old?.revision ?? 0) + 1;
+    // Settings are a projection of a validated native frame. Retain every field
+    // rather than rejecting a positive creation ACK at a smaller cache limit.
+    const bytes = Buffer.byteLength(jsonBytes(value, LIMITS.frameBytes)); const old = this.entries.get(id); const revision = (old?.revision ?? 0) + 1;
     if (old) { this.entries.delete(id); this.bytes -= old.bytes; }
-    while (this.entries.size >= 128 || this.bytes + bytes > 8 * 1024 * 1024) { const [key, entry] = this.entries.entries().next().value!; this.entries.delete(key); this.bytes -= entry.bytes; }
+    while (this.entries.size >= 128 || this.bytes + bytes > LIMITS.retainedBytes) { const [key, entry] = this.entries.entries().next().value!; this.entries.delete(key); this.bytes -= entry.bytes; }
     this.entries.set(id, { value, stale, revision, bytes }); this.bytes += bytes;
   }
   capture(result: JsonValue): void {

@@ -88,7 +88,7 @@ it('publishes only after reviewing a project-scoped inventory and exact audience
 it('changing an audience invalidates confirmation and remote delete requires the exact current selection', async () => {
   const { api, calls } = routed(sharingRoute);
   render(<PluginSharing {...base} api={api} />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Plugin · PRIVATE' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Plugin · 私有' }));
   fireEvent.click(screen.getByText('修改共享范围', { selector: 'summary' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '确认使用上述范围与完整接收者列表' }));
   fireEvent.change(screen.getByRole('combobox', { name: '可见范围' }), {

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AppInfo } from '../../protocol/ts/v2/AppInfo';
 import type { AppsInstalledResponse } from '../../protocol/ts/v2/AppsInstalledResponse';
 import type { AppsReadResponse } from '../../protocol/ts/v2/AppsReadResponse';
 import type { MemoryStatusResponse } from '../../protocol/ts/v2/MemoryStatusResponse';
 import type { GetAccountTokenUsageResponse } from '../../protocol/ts/v2/GetAccountTokenUsageResponse';
 import type { GetWorkspaceMessagesResponse } from '../../protocol/ts/v2/GetWorkspaceMessagesResponse';
-import type { ServerDiagnosticsResponse } from '../../protocol/ts/v2/ServerDiagnosticsResponse';
+import { useDiagnostics } from '../hooks/useDiagnostics';
 import type { Api } from '../lib/api';
 import { safeUrl } from '../lib/types';
 import { usePaged } from '../hooks/usePaged';
@@ -129,20 +129,22 @@ const quantity = (value: unknown) =>
   value === null || value === undefined
     ? '未提供'
     : typeof value === 'number'
-      ? value.toLocaleString()
+      ? value.toLocaleString('zh-CN')
       : String(value);
 export function RuntimeInsights({
   api,
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
   api: Api;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
+  visible?: boolean;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     key = `${epoch}:${action.revision}`,
     [confirmation, setConfirmation] = useState('');
   const memory = useResource(key, (signal) =>
@@ -154,14 +156,13 @@ export function RuntimeInsights({
     messages = useResource(key, (signal) =>
       api.call<GetWorkspaceMessagesResponse>('account/workspaceMessages/read', {}, signal),
     ),
-    diagnostics = useResource(key, (signal) =>
-      api.call<ServerDiagnosticsResponse>('server/diagnostics', {}, signal),
-    );
+    diagnostics = useDiagnostics(api, key, visible);
+  useEffect(() => { setConfirmation(''); }, [visible, enabled, epoch]);
   return (
     <section className="stack">
       <div className="section-heading">
         <h3>全局记忆</h3>
-        <button className="button small" onClick={action.refresh}>
+        <button className="button small" disabled={memory.loading || diagnostics.loading} onClick={() => { action.refresh(); diagnostics.refresh(); }}>
           重新读取
         </button>
       </div>
@@ -169,7 +170,7 @@ export function RuntimeInsights({
       <ReadState {...memory} />
       {memory.data && (
         <p>
-          已整合 {memory.data.v2ConsolidatedThreads.toLocaleString()} 个会话 ·{' '}
+          已整合 {memory.data.v2ConsolidatedThreads.toLocaleString('zh-CN')} 个会话 ·{' '}
           {memory.data.v2Ready ? '记忆已就绪' : '尚未就绪'}
         </p>
       )}
@@ -250,7 +251,7 @@ export function RuntimeInsights({
         <article className="info-card" key={item.messageId}>
           <strong>{item.messageType}</strong>
           <p>{item.messageBody}</p>
-          {item.createdAt && <small>{new Date(item.createdAt * 1000).toLocaleString()}</small>}
+          {item.createdAt && <small>{new Date(item.createdAt * 1000).toLocaleString('zh-CN')}</small>}
         </article>
       ))}
       <h3>运行时诊断</h3>

@@ -792,8 +792,8 @@ export function WorkspacePanel({
                       {currentFile?.reason &&
                         ['file_too_large', 'preview_too_large'].includes(currentFile.reason) && (
                           <p className="muted">
-                            文件大小为 {currentFile.bytes.toLocaleString()} 字节，超过 512 KiB
-                            文本预览与修改上限。
+                            文件大小为 {currentFile.bytes.toLocaleString('zh-CN')} 字节，超过 512 KiB
+                            文本预览、编辑、可恢复复制与移除上限。8 MiB 以内仍可下载；更大的文件请在终端操作。
                           </p>
                         )}
                     </>

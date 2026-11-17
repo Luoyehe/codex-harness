@@ -56,7 +56,7 @@ async function setup(thread = '', selectedProject = 'a') {
   return { removeCurrentProject: async () => { projects = projects.filter(p => p.id !== 'a'); await act(async () => state('two')); } };
 }
 
-it.each(['quota', 'capacity'])('protects the sole draft on real sidebar project selection (%s), then retries without replaying navigation', async failureKind => {
+it.each(['quota', 'capacity'])('protects the sole draft on real sidebar project selection (%s), then resumes the saved navigation after persistence succeeds', async failureKind => {
   if (failureKind === 'capacity') for (let i = 0; i < 50; i++) writeDraft({ ...emptyDraft(`filler-${i}`), text: 'saved filler' });
   await setup();
   const failure = failureKind === 'quota' ? failWrites() : undefined;
@@ -72,8 +72,7 @@ it.each(['quota', 'capacity'])('protects the sole draft on real sidebar project 
   fireEvent.click(guard().getByRole('button', { name: '重试保存草稿' }));
   expect(screen.queryByRole('dialog', { name: '草稿尚未保存' })).toBeNull();
   expect(readDraft('new:a').text).toBe('only copy');
-  expect(screen.getByRole('button', { name: 'Project A' }).className).toContain('selected');
-  fireEvent.click(screen.getByRole('button', { name: 'Project B' }));
+  expect(screen.getByRole('button', { name: 'Project B' }).className).toContain('selected');
   fireEvent.click(screen.getByRole('button', { name: 'Project A' }));
   await waitFor(() => expect(editor().value).toBe('only copy'));
 });
@@ -131,9 +130,9 @@ it('keeps settings open when another saved draft cannot be opened and requires a
   expect(guard().getByRole('button', { name: '确认放弃未保存的修改' }).matches(':disabled')).toBe(true);
   fireEvent.click(guard().getByRole('button', { name: '重新确认当前修改' }));
   fireEvent.click(guard().getByRole('button', { name: '确认放弃未保存的修改' }));
-  expect(editor().value).toBe('saved A');
+  expect(editor().value).toBe('saved B');
+  expect(readDraft('new:a').text).toBe('saved A');
   expect(readDraft('new:b').text).toBe('saved B');
-  expect(screen.getByRole('dialog', { name: '设置' })).toBeTruthy();
-  fireEvent.click(within(row as HTMLElement).getByRole('button', { name: '打开草稿' }));
+  expect(screen.queryByRole('dialog', { name: '设置' })).toBeNull();
   await waitFor(() => expect(editor().value).toBe('saved B'));
 });

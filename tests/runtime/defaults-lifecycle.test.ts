@@ -1,43 +1,15 @@
+import { processIdentity } from './process-identity.js';
 import { afterEach, expect, test, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
-import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { promisify } from 'node:util';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError, LIMITS, type JsonObject } from '../../src/runtime/types.js';
-import { windowsPowerShellEnv } from '../../src/runtime/windows-job.js';
 
 const services: RuntimeService[] = [];
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
-async function processIdentity(pid: number): Promise<string | null> {
-  if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('Invalid fixture PID');
-  if (process.platform !== 'win32') {
-    try { process.kill(pid, 0); return String(pid); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return null; throw error; }
-  }
-  // A terminated Windows PID can name a successor by the next probe. Record
-  // creation time while the held child is alive, then compare that identity.
-  // Keep the UTC DateTime ticks (100 ns units) as text, never a rounded JS number.
-  // Only an absent PID is accepted as missing; access/query failures fail closed.
-  const script = `$ErrorActionPreference='Stop'; $PSModuleAutoLoadingPreference='None'
-try { $target=[Diagnostics.Process]::GetProcessById(${pid}) }
-catch [ArgumentException] { [Console]::WriteLine('absent'); exit 0 }
-catch { exit 1 }
-try { [Console]::WriteLine($target.StartTime.ToUniversalTime().Ticks.ToString([Globalization.CultureInfo]::InvariantCulture)) }
-catch { exit 1 }
-finally { $target.Dispose() }`;
-  const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
-  const { stdout } = await promisify(execFile)(path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-    ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-    { env: windowsPowerShellEnv({ SystemRoot: systemRoot }), windowsHide: true, timeout: 10000, maxBuffer: 1024 });
-  const identity = stdout.trim();
-  if (identity === 'absent') return null;
-  if (!/^[1-9]\d+$/.test(identity)) throw new Error('Invalid fixture process creation time');
-  return identity;
-}
 function setup(stage: string, startupDelayMs = 0) {
   const parent = path.resolve('.work/defaults-lifecycle'); mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(path.join(parent, 'run-')); const marker = path.join(root, 'probe.pid');

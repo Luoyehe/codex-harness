@@ -52,9 +52,10 @@ function TerminalRow({
   onTerminate: () => void;
   onLocate: () => void;
 }) {
-  const [confirmation, setConfirmation] = useState<{ row: NativeTerminal; scope: object }>();
-  const confirm = confirmation?.row === row && confirmation.scope === scope;
-  const setConfirm = (value: boolean) => setConfirmation(value ? { row, scope } : undefined);
+  const identity = JSON.stringify([row.itemId, row.processId, row.command, row.cwd, row.osPid]);
+  const [confirmation, setConfirmation] = useState<{ identity: string; scope: object }>();
+  const confirm = confirmation?.identity === identity && confirmation.scope === scope;
+  const setConfirm = (value: boolean) => setConfirmation(value ? { identity, scope } : undefined);
   return (
     <article className="info-card stack">
       <div className="section-heading">
@@ -117,8 +118,7 @@ export function ThreadTerminals({
   onLocate: (itemId: string) => void;
   onChat?: () => void;
 }) {
-  const [revision, setRevision] = useState(0),
-    [draft, setDraft] = useState({ threadId, text: '', revision: 0 }),
+  const [draft, setDraft] = useState({ threadId, text: '', revision: 0 }),
     [timeout, setTimeoutMinutes] = useState('60'),
     [consentOwner, setConsentOwner] = useState<object>(),
     [cleanProof, setCleanProof] = useState<{
@@ -142,7 +142,7 @@ export function ThreadTerminals({
   };
   const notice = noticeState?.scope === scope ? noticeState.text : '',
     setNotice = (text: string) => setNoticeState({ scope, text });
-  const key = `${epoch}:${threadId}:${revision}`,
+  const key = `${epoch}:${threadId}`,
     directory = usePaged<NativeTerminal>(
       api,
       'thread/backgroundTerminals/list',
@@ -150,7 +150,7 @@ export function ThreadTerminals({
       key,
       connected,
     );
-  const refresh = useCallback(() => setRevision((value) => value + 1), []);
+  const refresh = directory.refresh;
   const changed = useCallback(() => {
     refresh();
     onChanged();

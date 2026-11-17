@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import type { PluginListResponse } from '../../protocol/ts/v2/PluginListResponse';
 import type { PluginSearchResult } from '../../protocol/ts/v2/PluginSearchResult';
 import type { PluginReadResponse } from '../../protocol/ts/v2/PluginReadResponse';
@@ -37,6 +38,7 @@ export function PluginSettings({
     [refName, setRefName] = useState(''),
     [marketConsent, setMarketConsent] = useState(false),
     [marketAction, setMarketAction] = useState<{ method: string; name: string }>();
+  useSettingsDraft(Boolean(source || refName));
   const catalog = useResource(
     `${key}:${view}`,
     (signal) =>
@@ -181,7 +183,7 @@ export function PluginSettings({
         {rows.map(({ plugin: item, marketplaceName }) => (
           <button
             className={`extension-card ${selected === item.id ? 'selected' : ''}`}
-            key={`${marketplaceName}:${item.id}`}
+            key={`${marketplaceName}:${item.id}`} aria-pressed={selected === item.id}
             onClick={() => setSelected(item.id)}
           >
             <strong>{item.interface?.displayName ?? item.name}</strong>
@@ -379,10 +381,10 @@ export function PluginSettings({
       {marketForm && (
         <form
           className="info-card stack"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            if (visible && marketConsent)
-              void action.run('marketplace/add', {
+            if (visible && marketConsent) {
+              const result = await action.run('marketplace/add', {
                 projectId: project.id,
                 source:
                   sourceType === 'project'
@@ -390,6 +392,8 @@ export function PluginSettings({
                     : { type: 'git', url: source },
                 ...(refName.trim() ? { refName: refName.trim() } : {}),
               });
+              if (result) { setSource(''); setRefName(''); setMarketConsent(false); setMarketForm(false); }
+            }
           }}
         >
           <label className="field">

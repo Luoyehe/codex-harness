@@ -116,6 +116,16 @@ class HttpsMigrationBoundaryTests(unittest.TestCase):
             self.assertNotEqual(https_revision({**self.metadata, field: "different"}), result["httpsRevision"])
         self.assertNotIn("privateKeySha256", result["settings"])
 
+    def test_internal_hsts_is_rejected_before_preparation_or_credentials(self):
+        for value in (True, 1, 'yes'):
+            with self.subTest(hsts=value), patch('deploy.https.edge_binary') as binary, \
+                 patch('deploy.https.ensure_account') as account, patch('deploy.https.verify_account_login') as login, \
+                 patch('deploy.ports.require_edge_ports_available') as ports, self.assertRaisesRegex(DeployError, 'HSTS'):
+                setup_https(self.manager, host=self.metadata['host'], tls='internal', hsts=value,
+                            http_port=18081, https_port=18443)
+            binary.assert_not_called(); account.assert_not_called(); login.assert_not_called(); ports.assert_not_called()
+            self.assertEqual(list(self.layout.config.iterdir()), [self.layout.config / 'https.json'])
+
     def test_default_https_rejects_each_address_or_mode_change_before_credentials_or_staging(self):
         values = {"host": "local.example.test", "tls": "internal", "http_port": 18081, "https_port": 18443}
         for change in ({"host": "public.example.test"}, {"tls": "acme"}, {"http_port": 80}, {"https_port": 443},

@@ -1,3 +1,4 @@
+import { composing } from '../lib/types';
 import { useEffect, useState } from 'react';
 import type { ExperimentalFeature } from '../../protocol/ts/v2/ExperimentalFeature';
 import type { Api } from '../lib/api';
@@ -84,21 +85,23 @@ export function ConfigSettings({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
+  visible?: boolean;
   api: Api;
   project: Project;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     key = `${project.id}:${epoch}:${action.revision}`;
   const current = useResource(key, (signal) =>
       api.call('settings/read', { projectId: project.id }, signal),
-    ),
-    requirements = useResource(key, (signal) => api.call('configRequirements/read', {}, signal));
-  const features = usePaged<ExperimentalFeature>(api, 'experimentalFeature/list', {}, key);
-  const models = useModelDirectory(api, key);
+    visible),
+    requirements = useResource(key, (signal) => api.call('configRequirements/read', {}, signal), visible);
+  const features = usePaged<ExperimentalFeature>(api, 'experimentalFeature/list', {}, key, visible);
+  const models = useModelDirectory(api, key, visible);
   const [base, setBase] = useState<ConfigDraft['base']>(() => drafts.get(project.id)?.base),
     [changes, setChanges] = useState<Record<string, string>>(
       () => drafts.get(project.id)?.changes ?? {},
@@ -139,7 +142,13 @@ export function ConfigSettings({
       setError('页面已保留 10 个项目的配置草稿。请先保存或放弃已有配置，再编辑此项目。');
       return;
     }
-    setChanges((previous) => ({ ...previous, [key]: next }));
+    setChanges((previous) => {
+      const changes = { ...previous };
+      const original = base?.config[key] ?? config[key];
+      if (next === (original === undefined || original === null ? '' : String(original))) delete changes[key];
+      else changes[key] = next;
+      return changes;
+    });
   };
   useEffect(() => {
     if (typeof version === 'string' && (!base || !changed.length)) setBase({ version, config });
@@ -271,6 +280,7 @@ export function ConfigSettings({
         onChange={(value) => update('model_auto_compact_token_limit', value)}
       />
       <form
+        onKeyDown={event => { if (event.key === 'Enter' && composing(event)) event.preventDefault(); }}
         className="stack"
         onSubmit={(event) => {
           event.preventDefault();

@@ -142,6 +142,7 @@ export function Messages({
     setEndKey(rows[Math.max(0, Math.min(rows.length - 1, nextEnd - 1))]!.key);
   };
   return (
+    <div className="conversation-viewport">
     <div
       className="conversation-scroll"
       onScroll={(event) => {
@@ -231,6 +232,7 @@ export function Messages({
         })}
         <div ref={bottom} />
       </div>
+    </div>
       {(!follow || end < rows.length) && (
         <button
           className="jump-bottom button"

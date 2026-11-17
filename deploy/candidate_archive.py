@@ -43,14 +43,14 @@ def ordinary_directory(path: Path) -> tuple[int, int]:
     return info.st_dev, info.st_ino
 
 
-def unmounted(path: Path) -> None:
+def unmounted(path: Path, *, retained_images: bool = False) -> None:
     # Decode mountinfo's escaped bytes before comparing complete path components.
     for line in Path("/proc/self/mountinfo").read_text().splitlines():
         fields = line.split()
         require(len(fields) >= 6, "Cannot inspect mount table", "stop_unknown")
         mounted = Path(re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), fields[4]))
         require(mounted != path and not mounted.is_relative_to(path), "Candidate still has mounted filesystems", "candidate_not_complete")
-    require(not any(present(path / name) for name in ("fetch.ext4", "build.ext4")),
+    require(retained_images or not any(present(path / name) for name in ("fetch.ext4", "build.ext4")),
             "Candidate retains an image; inspect its interrupted cleanup", "candidate_not_complete")
 
 
@@ -69,19 +69,21 @@ def stopped_units(manager, candidate: str) -> None:
                 require(events.get("populated") == "0", "Candidate cgroup is populated", "stop_unknown")
 
 
-def inspect_candidate(manager, candidate: str, *, path: Path | None = None) -> dict:
+def inspect_candidate(manager, candidate: str, *, path: Path | None = None, allow_failed: bool = False) -> dict:
     candidate = identity(candidate)
     path = path or manager.layout.work / ("candidate-" + candidate)
     inode = ordinary_directory(path)
     record = manager.layout.state / "transactions" / candidate / "prepared.json"
     trusted_ancestors(record.parent)
-    require(present(record), "Candidate has no successful preparation record", "candidate_not_complete")
-    prepared = read_private(record)
+    prepared = read_private(record) if present(record) else {}
     release = prepared.get("release")
-    require(isinstance(release, str) and HASH.fullmatch(release) is not None and prepared.get("manifestDigest") == release and
-            all(prepared.get(name) is True for name in PROBES), "Candidate has incomplete successful probe evidence", "candidate_not_complete")
-    manager.verify_release(release)
-    unmounted(path)
+    complete = isinstance(release, str) and HASH.fullmatch(release) is not None and prepared.get("manifestDigest") == release and all(prepared.get(name) is True for name in PROBES)
+    require(complete or allow_failed, "Candidate has incomplete successful probe evidence; explicitly review failed-candidate archival", "candidate_not_complete")
+    if complete:
+        manager.verify_release(release)
+    else:
+        release = None
+    unmounted(path, retained_images=allow_failed and not complete)
     stopped_units(manager, candidate)
     return {"id": candidate, "release": release, "preparedDigest": digest(prepared), "inode": list(inode)}
 
@@ -112,7 +114,7 @@ def list_candidates(manager) -> dict:
                 existing["resume"] = True
                 continue
             try:
-                check = inspect_candidate(manager, candidate, path=root / ("candidate-" + candidate))
+                check = inspect_candidate(manager, candidate, path=root / ("candidate-" + candidate), allow_failed=saved["release"] is None)
                 require(all(saved[key] == check[key] for key in ("id", "release", "preparedDigest", "inode")), "Archive binding changed", "integrity")
                 rows.append({"id": candidate, "release": check["release"], "eligible": True, "resume": True})
             except (DeployError, OSError, ValueError):
@@ -151,7 +153,7 @@ def validate_inventory(value: dict, layout, candidate: str) -> None:
     identity(candidate)
     require(set(value) == {"format", "instance", "id", "release", "preparedDigest", "inode", "phase", "lifecycle"} and
             value["format"] == 1 and value["instance"] == layout.instance and value["id"] == candidate and
-            isinstance(value["release"], str) and HASH.fullmatch(value["release"]) is not None and
+            (value["release"] is None or isinstance(value["release"], str) and HASH.fullmatch(value["release"]) is not None) and
             isinstance(value["preparedDigest"], str) and HASH.fullmatch(value["preparedDigest"]) is not None and
             isinstance(value["inode"], list) and len(value["inode"]) == 2 and all(type(item) is int and item >= 0 for item in value["inode"]) and
             value["phase"] in ("prepared", "stopped", "moving", "archived", "complete") and
@@ -160,7 +162,7 @@ def validate_inventory(value: dict, layout, candidate: str) -> None:
             "Invalid candidate archive inventory", "integrity")
 
 
-def archive_locked(manager, candidate: str) -> dict:
+def archive_locked(manager, candidate: str, *, allow_failed: bool = False) -> dict:
     """Caller holds initialization then management lock throughout removal/move/restore."""
     layout = manager.layout
     candidate = identity(candidate)
@@ -184,7 +186,7 @@ def archive_locked(manager, candidate: str) -> dict:
     moved = present(target)
     require(not moved or saved is not None and saved["phase"] in ("moving", "archived", "complete") and not present(source),
             "Archive destination already exists or movement is ambiguous; nothing overwritten", "collision")
-    current = inspect_candidate(manager, candidate, path=target if moved else source)
+    current = inspect_candidate(manager, candidate, path=target if moved else source, allow_failed=allow_failed)
     if saved is not None:
         require(all(saved[key] == current[key] for key in ("id", "release", "preparedDigest", "inode")),
                 "Candidate archive binding changed", "integrity")
@@ -202,6 +204,7 @@ def archive_locked(manager, candidate: str) -> dict:
         require_recovered(layout)
         manager.require_service_ownership()
         require_idle(manager)
+        manager.verify(https_probe=False, maintenance_legacy=True)
         saved = {"format": 1, "instance": layout.instance, **current, "phase": "prepared", "lifecycle": None}
         write_json(inventory, saved)
         result = uninstall_services(manager)
@@ -219,7 +222,7 @@ def archive_locked(manager, candidate: str) -> dict:
         manager.system.stop(units)
         manager.system.stop(units)
         manager.system.no_instance_processes(layout, manager.config)
-        check = inspect_candidate(manager, candidate)
+        check = inspect_candidate(manager, candidate, allow_failed=allow_failed)
         require(all(saved[key] == check[key] for key in ("id", "release", "preparedDigest", "inode")), "Candidate changed during maintenance", "integrity")
         require(not present(target) and root.stat().st_dev == source.stat().st_dev, "Archive destination changed", "collision")
         saved["phase"] = "moving"
@@ -236,14 +239,14 @@ def archive_locked(manager, candidate: str) -> dict:
             "release": saved["release"], "dataPreserved": True, "servicesRestored": True}
 
 
-def archive_candidate(layout, candidate: str, *, confirm_stop: bool) -> dict:
+def archive_candidate(layout, candidate: str, *, confirm_stop: bool, allow_failed: bool = False) -> dict:
     identity(candidate)
     require(confirm_stop, "Archival briefly stops this instance; pass --confirm-stop after reviewing candidate-list")
     require_initialization_complete(layout)
     with initialization_lock(layout), management_lock(layout):
         manager = Manager(layout, ControlSystem())
         try:
-            return archive_locked(manager, candidate)
+            return archive_locked(manager, candidate, allow_failed=allow_failed)
         except Exception as exc:
             raise DeployError(getattr(exc, "code", "archive_failed"),
                 "Candidate archival did not complete; all data and inventory are retained. "

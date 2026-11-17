@@ -46,20 +46,20 @@ test.each(['omitted', 'null'])('missing account credit metadata (%s) yields a se
 });
 function gateway() {
   const notifications: unknown[] = [], calls: unknown[] = []; let failCancel = false;
-  const native = async (method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> => { options?.beforeWrite?.(); calls.push({ method, params }); if (method === 'account/gatewayOAuth/read') return { providerId: 'enterprise', providerName: 'Enterprise', required: true, status: 'notReady', error: null }; if (method.endsWith('/cancel') && failCancel) throw new DeliveryError('transport', 'lost', 'unknown'); return {}; };
+  const native = async (method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> => { options?.beforeWrite?.(); calls.push({ method, params }); if (method === 'account/gatewayOAuth/read') return { providerId: 'enterprise', providerName: 'Enterprise', required: true, status: 'notReady', error: null }; if (method.endsWith('/cancel') && failCancel) throw new DeliveryError('transport', 'lost', 'unknown'); return method === 'account/gatewayOAuth/login' ? { prompt: null } : {}; };
   const tools = new AccountTools({ native, redactor: new DiagnosticRedactor({}), notify: (method, params) => notifications.push({ method, params }) });
   return { tools, native, notifications, calls, fail: () => { failCancel = true; } };
 }
 test('early OAuth links remain private to one owner and are removed from public notifications and receipts', async () => {
   const { tools, native, notifications } = gateway();
-  const result = object(await tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, async (method, params, options) => { const result = await native(method, params, options); tools.notification('account/gatewayOAuth/changed', { providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/authorize?state=private' }); return result; }, owner));
+  const result = object(await tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, async (method, params, options) => { const result = await native(method, params, options); tools.notification('account/gatewayOAuth/changed', { loginId: null, providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/authorize?state=private' }); return result; }, owner));
   expect(JSON.stringify(result)).not.toContain('private'); expect(JSON.stringify(notifications)).not.toContain('private');
   expect(await tools.read('account/gatewayOAuth/handoff', { handoffId: result.handoffId! }, owner)).toMatchObject({ authUrl: 'https://auth.example/authorize?state=private' });
   await expect(tools.read('account/gatewayOAuth/handoff', { handoffId: result.handoffId! }, { ...owner, clientId: 'other' })).rejects.toMatchObject({ code: 'not_found' });
   await expect(tools.read('account/gatewayOAuth/handoff', { handoffId: result.handoffId! }, { ...owner, eventChannelId: 'other' })).rejects.toMatchObject({ code: 'not_found' });
   await tools.disconnect(owner.clientId, owner.eventChannelId);
   await expect(tools.read('account/gatewayOAuth/handoff', { handoffId: result.handoffId! }, owner)).rejects.toMatchObject({ code: 'not_found' });
-  tools.notification('account/gatewayOAuth/changed', { providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/late?code=private' }); expect(JSON.stringify(notifications)).not.toContain('private'); tools.close();
+  tools.notification('account/gatewayOAuth/changed', { loginId: null, providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/late?code=private' }); expect(JSON.stringify(notifications)).not.toContain('private'); tools.close();
 });
 test('uncertain cancellation prevents assigning a late login to a new browser owner', async () => {
   const { tools, native, fail } = gateway(); await tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, native, owner); fail(); await tools.disconnect(owner.clientId, owner.eventChannelId);
@@ -70,7 +70,7 @@ test('confirmed cancellation still cannot attribute an uncorrelated late native 
   const { tools, native, notifications } = gateway();
   const result = object(await tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, native, owner));
   await tools.mutate('account/gatewayOAuth/cancel', { handoffId: result.handoffId! }, native, owner);
-  tools.notification('account/gatewayOAuth/changed', { providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/late?state=private' });
+  tools.notification('account/gatewayOAuth/changed', { loginId: null, providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/late?state=private' });
   expect(JSON.stringify(notifications)).not.toContain('private');
   await expect(tools.read('account/gatewayOAuth/handoff', { handoffId: result.handoffId! }, owner)).rejects.toMatchObject({ code: 'not_found' });
   expect(await tools.read('account/gatewayOAuth/read', {}, owner)).toMatchObject({ restartRequired: true });
@@ -81,7 +81,7 @@ test('an early OAuth event followed by an RPC rejection is unknown, never a safe
   const { tools, native } = gateway();
   await expect(tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, async (method, params, options) => {
     await native(method, params, options);
-    tools.notification('account/gatewayOAuth/changed', { providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/authorize?state=private' });
+    tools.notification('account/gatewayOAuth/changed', { loginId: null, providerId: 'enterprise', status: 'started', error: null, authUrl: 'https://auth.example/authorize?state=private' });
     throw new DeliveryError('native_error', 'login rejected', 'not_sent');
   }, owner)).rejects.toMatchObject({ code: 'oauth_outcome_unknown', delivery: 'unknown' });
   await expect(tools.mutate('account/gatewayOAuth/login', { providerId: 'enterprise', confirm: true }, native, owner)).rejects.toMatchObject({ code: 'login_pending' }); tools.close();

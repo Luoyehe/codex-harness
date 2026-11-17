@@ -3,21 +3,38 @@ import type { CallContext, JsonObject, JsonValue } from '../core/contracts.js';
 import { Ledger } from '../core/ledger.js';
 import { HarnessError } from '../core/errors.js';
 import { object } from '../core/validation.js';
+import { OPERATION_EXPORT_SNAPSHOT_LIMIT, OPERATION_EXPORT_TTL_MS } from '../core/operation-retention.js';
 
 interface ExportLease { id: string; owner: string; digest: string; nextGeneration: number; bytes: number; offset: number; expires: number }
-/** A single bounded export is tied to the exact live browser connection. */
+/** Independent bounded exports belong to their exact live browser connections. */
 export class ReceiptMaintenance {
-  private lease: ExportLease | undefined;
+  private leases = new Map<string, ExportLease>();
   constructor(private ledger: Ledger, private now: () => number = Date.now) {}
-  forget(owner?: string): void { if (!owner || this.lease?.owner === owner) this.lease = undefined; }
+  forget(owner?: string): void {
+    for (const [key, lease] of this.leases) {
+      if (owner !== undefined && key !== owner) continue;
+      this.leases.delete(key);
+      // Identical ledger snapshots may be shared by two independent exports.
+      if (![...this.leases.values()].some(other => other.digest === lease.digest)) this.ledger.releaseMaintenanceExport(lease.digest);
+    }
+  }
+  private expire(): void {
+    for (const lease of this.leases.values()) if (lease.expires <= this.now()) this.forget(lease.owner);
+  }
   call(method: string, params: JsonObject, context: CallContext): JsonValue {
     context.requireConnection?.();
     if (method === 'operation/maintenance/preview') {
       this.keys(params, []);
+      this.expire();
+      if (!this.leases.has(context.clientId) && this.leases.size >= OPERATION_EXPORT_SNAPSHOT_LIMIT)
+        throw new HarnessError('capacity', '已有两个页面正在导出，请关闭其中一个页面或等待导出过期后重试。');
+      // Replacing this owner's preview must release its old snapshot first:
+      // otherwise the core's bounded cache could evict the other live owner.
+      this.forget(context.clientId);
       const preview = this.ledger.maintenancePreview();
       object(preview);
       const id = randomUUID();
-      this.lease = { id, owner: context.clientId, digest: String(preview.digest), nextGeneration: Number(preview.nextGeneration), bytes: Number(preview.bytes), offset: 0, expires: this.now() + 10 * 60 * 1000 };
+      this.leases.set(context.clientId, { id, owner: context.clientId, digest: String(preview.digest), nextGeneration: Number(preview.nextGeneration), bytes: Number(preview.bytes), offset: 0, expires: this.now() + OPERATION_EXPORT_TTL_MS });
       return { ...preview, exportId: id };
     }
     if (method === 'operation/maintenance/chunk') {
@@ -40,8 +57,9 @@ export class ReceiptMaintenance {
     return { digest: lease.digest, nextGeneration: lease.nextGeneration, exportedDigest: lease.digest };
   }
   private require(params: JsonObject, context: CallContext): ExportLease {
-    const lease = this.lease;
-    if (!lease || lease.expires <= this.now() || lease.owner !== context.clientId || params.exportId !== lease.id || params.digest !== lease.digest)
+    this.expire();
+    const lease = this.leases.get(context.clientId);
+    if (!lease || params.exportId !== lease.id || params.digest !== lease.digest)
       throw new HarnessError('archive_expired', '归档已过期或不属于当前连接，请重新预览并导出。');
     return lease;
   }

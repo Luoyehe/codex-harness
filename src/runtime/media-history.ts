@@ -10,20 +10,28 @@ export async function readMediaHistory(native: NativeCall, media: GeneratedMedia
   if (method === 'thread/turns/list' && request.itemsView === 'full') {
     const page = object(await native(method, { ...request, itemsView: 'notLoaded' }, options));
     if (!Array.isArray(page.data) || page.data.length > integer(request.limit ?? 25, 'limit', 1, 100)) throw new DeliveryError('invalid_native_response', 'Invalid turn page');
-    const turns: JsonValue[] = []; let itemCount = 0;
+    const turns: JsonValue[] = []; let itemCount = 0, retainedBytes = Buffer.byteLength(jsonBytes({ ...page, data: [] }, LIMITS.historyBytes));
+    const charge = (value: JsonValue): void => { retainedBytes += Buffer.byteLength(jsonBytes(value, LIMITS.historyBytes)) + 1; if (retainedBytes > LIMITS.historyBytes) throw new DeliveryError('capacity', 'History aggregate exceeds its byte budget'); };
     for (const value of page.data) {
       const turn = object(value);
-      if (turn.itemsView === 'full') { turns.push(projected(turn)); continue; }
+      if (turn.itemsView === 'full') { const value = projected(turn); charge(value); const items = object(value).items; if (!Array.isArray(items) || (itemCount += items.length) > LIMITS.historyItems) throw new DeliveryError('capacity', 'History item traversal exceeded its budget'); turns.push(value); continue; }
       if (turn.itemsView !== 'notLoaded' || !Array.isArray(turn.items) || turn.items.length) throw new DeliveryError('invalid_native_response', 'Native turn metadata included unexpected items');
+      charge({ ...turn, itemsView: 'full' });
       const turnId = string(turn.id, 'turn id'), items: JsonValue[] = [], seen = new Set<string>(), ids = new Set<string>(); let cursor: JsonValue = null;
       do {
         if (++itemCount > LIMITS.historyItems) throw new DeliveryError('capacity', 'History item traversal exceeded its budget');
         const result = object(projected(await native('thread/items/list', { threadId: threadId!, turnId, limit: 1, sortDirection: 'asc', ...(cursor !== null ? { cursor } : {}) }, options)));
         if (!Array.isArray(result.data) || result.data.length > 1) throw new DeliveryError('invalid_native_response', 'Invalid native item page');
         for (const row of result.data) {
-          const entry = object(row), item = object(entry.item), id = string(item.id, 'item id');
+          let entry = object(row); let item = object(entry.item); const id = string(item.id, 'item id');
           if (entry.turnId !== turnId || ids.has(id)) throw new DeliveryError('invalid_native_response', 'History item identity changed during traversal');
-          ids.add(id); items.push(item);
+          if (entry.outputDeferred === true) {
+            const full = object(projected(await native('thread/items/read', { threadId: threadId!, turnId, itemIds: [id] }, options)));
+            if (!Array.isArray(full.data) || full.data.length !== 1) throw new DeliveryError('invalid_native_response', 'Deferred history output is missing');
+            entry = object(full.data[0]); item = object(entry.item);
+            if (entry.turnId !== turnId || item.id !== id || entry.outputDeferred === true) throw new DeliveryError('invalid_native_response', 'Deferred history identity or completeness changed');
+          }
+          charge(item); ids.add(id); items.push(item);
         }
         cursor = result.nextCursor!;
         if (cursor !== null) { const next = string(cursor, 'nextCursor', LIMITS.cursorBytes, true); if (seen.has(next)) throw new DeliveryError('cursor_loop', 'Native item cursor repeated'); seen.add(next); }
@@ -33,13 +41,14 @@ export async function readMediaHistory(native: NativeCall, media: GeneratedMedia
     const result = { ...page, data: turns }; jsonBytes(result, LIMITS.historyBytes); return result;
   }
   if (method === 'thread/timeline/list') {
-    const limit = integer(request.limit ?? 25, 'limit', 1, 100), data: JsonValue[] = [], seen = new Set<string>(); let cursor = request.cursor ?? null, active: JsonValue = null;
+    const limit = integer(request.limit ?? 25, 'limit', 1, 100), data: JsonValue[] = [], seen = new Set<string>(); let cursor = request.cursor ?? null, active: JsonValue = null, retainedBytes = 128;
     for (let index = 0; index < limit; index++) {
       const page = object(projected(await native(method, { ...request, limit: 1, ...(cursor !== null ? { cursor } : {}) }, options)));
       if (!Array.isArray(page.data) || page.data.length > 1) throw new DeliveryError('invalid_native_response', 'Invalid native timeline page');
       // Native pages traverse backwards but each page is in rollout order.
       // The oldest subpage defines the opening voice state of the joined page.
       active = page.activeRealtimeSessionAtPageStart!;
+      for (const item of page.data) { retainedBytes += Buffer.byteLength(jsonBytes(item, LIMITS.historyBytes)) + 1; if (retainedBytes > LIMITS.historyBytes) throw new DeliveryError('capacity', 'Timeline aggregate exceeds its byte budget'); }
       data.unshift(...page.data); const next = page.nextCursor;
       if (next === null) { cursor = null; break; }
       const continuation = string(next, 'nextCursor', LIMITS.cursorBytes, true);

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
+import { useSettingsDraft, useSettingsNavigation } from '../hooks/useSettingsDraft';
+import { SettingsDraftDialog } from './SettingsDraftDialog';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
 type ServerConfig = {
   name: string;
@@ -168,7 +170,18 @@ function McpConfigurationForm({
     [confirm, setConfirm] = useState(false),
     [compared, setCompared] = useState(false),
     [error, setError] = useState('');
+  const editBaseline = useRef('');
+  const editRef = useRef(edit);
+  editRef.current = edit;
+  const isDirty = () => Boolean(editRef.current && JSON.stringify(editRef.current) !== editBaseline.current);
+  useSettingsDraft(isDirty);
+  const drafts = useRef(new Set([isDirty]));
+  const navigationOwner = useMemo(() => ({}), [api, api.csrf, projectId, epoch, visible, enabled, catalog.data?.userVersion]);
+  const navigation = useSettingsNavigation(drafts.current, navigationOwner);
+  const [secretNotice, setSecretNotice] = useState('');
   useEffect(() => {
+    if (edit?.env || edit?.headers || confirm)
+      setSecretNotice('连接状态或页面已变化，新填的敏感值与授权确认已清除。字段名和普通编辑保留，保存前请重新核对。');
     setConfirm(false);
     setCompared(false);
     setEdit((current) => current
@@ -187,24 +200,30 @@ function McpConfigurationForm({
     setConfirm(false);
   };
   const begin = (server?: ServerConfig) => {
-    if (typeof catalog.data?.userVersion !== 'string') return;
-    setRemove(undefined);
-    setConfirm(false);
-    setCompared(false);
-    setError('');
-    setEdit({
-      baseName: server?.name,
-      baseVersion: catalog.data.userVersion,
-      originalTransport: server?.transport,
-      name: server?.name ?? '',
-      transport: server?.transport === 'http' ? 'http' : 'stdio',
-      command: server?.command ?? '',
-      args: server?.args ?? [],
-      url: server?.url ?? '',
-      enabled: server?.enabled ?? true,
-      bearer: '',
-      clearSecrets: false,
-    });
+    const baseVersion = catalog.data?.userVersion;
+    if (typeof baseVersion !== 'string') return;
+    if (edit && edit.baseName === server?.name) return;
+    navigation.request(() => {
+      setRemove(undefined);
+      setConfirm(false);
+      setCompared(false);
+      setError('');
+      const next: Edit = {
+        baseName: server?.name,
+        baseVersion,
+        originalTransport: server?.transport,
+        name: server?.name ?? '',
+        transport: server?.transport === 'http' ? 'http' : 'stdio',
+        command: server?.command ?? '',
+        args: server?.args ?? [],
+        url: server?.url ?? '',
+        enabled: server?.enabled ?? true,
+        bearer: '',
+        clearSecrets: false,
+      };
+      editBaseline.current = JSON.stringify(next);
+      setEdit(next);
+    }, '放弃编辑并切换服务');
   };
   const save = async () => {
     if (
@@ -268,6 +287,7 @@ function McpConfigurationForm({
       {!projectId && <p className="muted">请先选择已注册项目，以查看其有效配置。</p>}
       <ReadState {...catalog} />
       <ExtensionStatus api={api} action={action} />
+      {secretNotice && <p className="small muted" role="status">{secretNotice}</p>}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -324,11 +344,11 @@ function McpConfigurationForm({
                 <button
                   className="button danger small"
                   disabled={action.disabled || !catalog.data?.userVersion}
-                  onClick={() => {
+                  onClick={() => navigation.request(() => {
                     setEdit(undefined);
                     setConfirm(false);
                     setRemove({ name: server.name, version: catalog.data!.userVersion! });
-                  }}
+                  }, '放弃编辑并准备移除')}
                 >
                   移除 {server.name} 用户配置
                 </button>
@@ -585,6 +605,7 @@ function McpConfigurationForm({
           </div>
         </div>
       )}
+      <SettingsDraftDialog navigation={navigation} />
     </section>
   );
 }

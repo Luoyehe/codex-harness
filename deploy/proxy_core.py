@@ -309,7 +309,7 @@ def _publish(source: Path, target: Path) -> None:
         os.rename(source, target)
 
 
-def prepare_core(layout: Layout, version: str, *, download_proxy: str | None = None) -> dict:
+def prepare_core(layout: Layout, version: str, *, download_proxy: str | None = None, expected_sha256: str | None = None) -> dict:
     _require_root()
     version = _version(version)
     arch = architecture()
@@ -325,6 +325,9 @@ def prepare_core(layout: Layout, version: str, *, download_proxy: str | None = N
         value = _fetch(dgst["browser_download_url"], 65536, download_proxy, asset=True)
         require(len(value) == dgst["size"], "Official Xray digest size mismatch", "integrity")
         expected = _digest(value, ASSETS[arch])
+    if expected_sha256 is not None:
+        require(isinstance(expected_sha256, str) and re.fullmatch(r"[a-f0-9]{64}", expected_sha256), "Reviewed proxy SHA-256 must be 64 lowercase hex digits")
+        require(expected == expected_sha256, "Official Xray digest differs from the separately reviewed digest", "integrity")
     target = core_path(layout, expected)
     _chain(layout, target.parent, create=True)
     if target.exists() or target.is_symlink():

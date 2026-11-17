@@ -4,10 +4,79 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { listOperations } from '../lib/operations';
 import { Api } from '../lib/api';
 import { useEvents } from '../hooks/useEvents';
+import { MAX_EVENT_BYTES } from '../../src/shared/event-limits';
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+function sizedEvent(bytes: number, character = 'a') {
+  const envelope = JSON.stringify({ type: 'notification', data: { text: '' } });
+  const remaining = bytes - new TextEncoder().encode(envelope).byteLength;
+  const width = new TextEncoder().encode(character).byteLength;
+  return JSON.stringify({ type: 'notification', data: {
+    text: character.repeat(Math.floor(remaining / width)) + 'a'.repeat(remaining % width),
+  } });
+}
+
+it.each([
+  ['large ASCII', 2 * 1024 * 1024 + 1, 'a'],
+  ['maximum ASCII', MAX_EVENT_BYTES, 'a'],
+  ['maximum UTF-8', MAX_EVENT_BYTES, '界'],
+] as const)('delivers a legal %s event under the shared byte contract', (_name, bytes, character) => {
+  let socket!: { onmessage: (event: { data: string }) => void; close: ReturnType<typeof vi.fn> };
+  vi.stubGlobal('WebSocket', class {
+    onmessage = (_event: { data: string }) => {};
+    close = vi.fn();
+    constructor() { socket = this; }
+  });
+  const onEvent = vi.fn(), api = { clientId: 'owner' } as Api;
+  const { result } = renderHook(() => useEvents(api, onEvent));
+  const payload = sizedEvent(bytes, character);
+  expect(new TextEncoder().encode(payload).byteLength).toBe(bytes);
+  act(() => socket.onmessage({ data: payload }));
+  expect(socket.close).not.toHaveBeenCalled();
+  expect(onEvent).toHaveBeenCalledExactlyOnceWith(JSON.parse(payload));
+  expect(result.current.error).toBe('');
+});
+
+it('rejects a UTF-8 oversized event, reconnects and receives fresh state without replaying work', async () => {
+  vi.useFakeTimers();
+  class Socket {
+    onopen = () => {};
+    onclose = () => {};
+    onmessage = (_event: { data: string }) => {};
+    close = vi.fn(() => this.onclose());
+    constructor() { sockets.push(this); }
+  }
+  const sockets: Socket[] = [];
+  vi.stubGlobal('WebSocket', Socket);
+  const session = vi.fn().mockResolvedValue({ authenticated: true }), call = vi.fn(), mutate = vi.fn();
+  const api = { clientId: 'owner', session, call, mutate, connectionChanged: vi.fn() } as unknown as Api;
+  const onEvent = vi.fn(), { result } = renderHook(() => useEvents(api, onEvent));
+  const state = (epoch: string) => JSON.stringify({ type: 'state', data: {
+    connected: true, epoch, activity: { unknown: false, activeThreads: [], pendingStarts: 0, terminals: 0 },
+  } });
+  act(() => { sockets[0]!.onopen(); sockets[0]!.onmessage({ data: state('before') }); });
+  expect(result.current.activityReady).toBe(true);
+  onEvent.mockClear();
+  const payload = sizedEvent(MAX_EVENT_BYTES + 1, '界');
+  expect(payload.length).toBeLessThan(MAX_EVENT_BYTES);
+  expect(new TextEncoder().encode(payload).byteLength).toBe(MAX_EVENT_BYTES + 1);
+  await act(async () => sockets[0]!.onmessage({ data: payload }));
+  expect(onEvent).not.toHaveBeenCalled();
+  expect(sockets[0]!.close).toHaveBeenCalledOnce();
+  expect(result.current.error).toContain('超过传输上限');
+  expect(result.current.activityReady).toBe(false);
+  expect(session).toHaveBeenCalledOnce();
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  expect(sockets).toHaveLength(2);
+  act(() => { sockets[1]!.onopen(); sockets[1]!.onmessage({ data: state('after') }); });
+  expect(result.current).toMatchObject({ epoch: 'after', activityReady: true, connection: 'connected' });
+  expect(onEvent).toHaveBeenCalledExactlyOnceWith(JSON.parse(state('after')));
+  expect(call).not.toHaveBeenCalled(); expect(mutate).not.toHaveBeenCalled();
+});
+
 describe('transport and runtime state separation', () => {
   it('keeps the previous ROOT warning until a connected runtime confirms native identity', () => {
     let socket!: { onmessage: (event: { data: string }) => void; onclose: () => void };

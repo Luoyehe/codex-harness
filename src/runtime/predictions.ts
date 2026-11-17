@@ -21,6 +21,7 @@ export class Predictions {
   private entries = new Map<string, Entry>(); private sources = new Set<string>();
   constructor(private host: Host) {}
   activeThreads(): string[] { return [...new Set([...this.entries.values()].filter(entry => entry.pending).map(entry => entry.threadId))]; }
+  budget(): JsonObject { return { sourcesUsed: this.sources.size, sourceLimit: 2048, pending: [...this.entries.values()].filter(entry => entry.pending).length, retained: this.entries.size }; }
   private identity(entry: Entry): JsonObject { return { predictionId: entry.predictionId, threadId: entry.threadId, sourceTurnId: entry.sourceTurnId }; }
   private view(entry: Entry): JsonObject { return { ...this.identity(entry), state: entry.state, ...(entry.state === 'completed' && entry.result ? { result: entry.result } : {}) }; }
   private publish(entry: Entry): void { if (!entry.revoked) this.host.emit({ ...this.view(entry), clientId: entry.owner.clientId }, entry.owner.eventChannelId!); }
@@ -39,7 +40,8 @@ export class Predictions {
     onlyKeys(params, ['threadId', 'sourceTurnId']); if (!context.beforeWrite || !context.eventChannelId) throw new DeliveryError('operation_required', 'Predictions require a live owner and durable operation');
     const sourceTurnId = string(params.sourceTurnId, 'sourceTurnId', 256), key = canonical([threadId, sourceTurnId]);
     if (this.sources.has(key)) throw new DeliveryError('prediction_already_requested', 'This source already has a prediction request; read its original receipt');
-    if (this.sources.size >= 2048 || this.entries.size >= 64 || [...this.entries.values()].filter(entry => entry.pending).length >= 8) throw new DeliveryError('capacity', 'Prediction capacity exhausted');
+    if (this.sources.size >= 2048) throw new DeliveryError('capacity', '本轮运行时已使用 2048 个预测来源。为防止重复推理，旧来源不会自动重发；请结束当前任务后重启运行时，再明确发起新的预测。');
+    if (this.entries.size >= 64 || [...this.entries.values()].filter(entry => entry.pending).length >= 8) throw new DeliveryError('capacity', '预测正在处理或结果暂存已满，请等待当前预测结束后重试。');
     if (this.activeThreads().includes(threadId)) throw new DeliveryError('prediction_busy', 'A prediction is still pending for this thread');
     const entry: Entry = { predictionId: randomUUID(), threadId, sourceTurnId, owner: { ...context }, createdAt: Date.now(), state: 'pending', pending: true, sent: false, revoked: false, revision: this.host.revision(threadId) };
     this.sources.add(key); this.entries.set(entry.predictionId, entry); this.host.changed();

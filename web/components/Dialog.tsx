@@ -55,7 +55,7 @@ export function Dialog({
     if (previous && above.some((layer) => layer.dialog.contains(previous)) && visible(previous))
       previous.focus();
     const keyboard = (event: KeyboardEvent) => {
-      if (layers.at(-1)?.dialog !== dialog || !dialog.open || composing(event)) return;
+      if (layers.at(-1)?.dialog !== dialog || !dialog.open || composing(event) || event.defaultPrevented) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         close.current();
@@ -82,9 +82,9 @@ export function Dialog({
         (event.shiftKey ? last : first)?.focus();
       }
     };
-    document.addEventListener('keydown', keyboard, true);
+    document.addEventListener('keydown', keyboard);
     return () => {
-      document.removeEventListener('keydown', keyboard, true);
+      document.removeEventListener('keydown', keyboard);
       const wasTop = layers.at(-1)?.dialog === dialog;
       layers.splice(
         layers.findIndex((layer) => layer.dialog === dialog),
@@ -97,6 +97,7 @@ export function Dialog({
       const remaining = layers.at(-1)?.dialog;
       if (
         previous?.isConnected &&
+        !previous.matches(':disabled,[aria-disabled="true"]') &&
         visible(previous) &&
         (!remaining || remaining.contains(previous))
       )

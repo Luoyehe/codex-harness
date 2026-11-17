@@ -219,7 +219,7 @@ it('blocks malformed directory controls and new shell submission while active or
   ).toBe(true);
   expect(s.calls.some((c) => c.operationId)).toBe(false);
 });
-it('refreshes after native command completion and discards prior termination consent', async () => {
+it('refreshes after native command completion and preserves consent for the same process identity', async () => {
   const s = setup();
   render(<ThreadTerminals {...props(s)} />);
   await ready();
@@ -237,7 +237,7 @@ it('refreshes after native command completion and discards prior termination con
   expect(
     (screen.getByRole('checkbox', { name: '确认终止这个原生后台进程' }) as HTMLInputElement)
       .checked,
-  ).toBe(false);
+  ).toBe(true);
 });
 
 async function shellDraft() {
@@ -351,7 +351,7 @@ it('requires new row confirmation when another page replaces the same displayed 
     call.method === 'thread/backgroundTerminals/list'
       ? call.params.cursor
         ? {
-            data: [{ ...row }, { ...row, processId: 'second', itemId: 'second' }],
+            data: [{ ...row, command: 'replacement process' }, { ...row, processId: 'second', itemId: 'second' }],
             nextCursor: null,
           }
         : { data: [{ ...row }], nextCursor: 'next' }

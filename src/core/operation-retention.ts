@@ -8,7 +8,8 @@ const MAX_GENERATION = 0xffffffffffff;
 const MAX_EXPORT_BYTES = 80 * 1024 * 1024;
 const KEY = 'operationGeneration';
 export const EMERGENCY_RECOVERY_KEY = 'emergencyRecoveryOperation';
-const SNAPSHOT_TTL = 10 * 60 * 1000;
+export const OPERATION_EXPORT_TTL_MS = 10 * 60 * 1000;
+export const OPERATION_EXPORT_SNAPSHOT_LIMIT = 2;
 const scoped = /^([a-f0-9]{8})-([a-f0-9]{4})-8[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 
 export function operationId(generation: number): string {
@@ -21,7 +22,9 @@ export function operationId(generation: number): string {
 
 /** Bounded live receipts; retired generations are rejected without keeping every UUID forever. */
 export class OperationRetention {
-  private snapshot: { data: Buffer; digest: string; expires: number } | undefined;
+  // Two bounded generations allow separate tabs to finish their own exports.
+  // Rotation still validates the latest live ledger, not a cached snapshot.
+  private snapshots = new Map<string, { data: Buffer; expires: number }>();
   constructor(private readonly db: DatabaseSync, private readonly now: () => number = Date.now) {}
 
   generation(): number {
@@ -88,19 +91,24 @@ export class OperationRetention {
 
   preview(): JsonObject {
     const archive = this.archive();
-    this.snapshot = { data: archive.data, digest: archive.digest, expires: this.now() + SNAPSHOT_TTL };
+    for (const [digest, snapshot] of this.snapshots) if (snapshot.expires <= this.now()) this.snapshots.delete(digest);
+    this.snapshots.delete(archive.digest);
+    this.snapshots.set(archive.digest, { data: archive.data, expires: this.now() + OPERATION_EXPORT_TTL_MS });
+    while (this.snapshots.size > OPERATION_EXPORT_SNAPSHOT_LIMIT) this.snapshots.delete(this.snapshots.keys().next().value!);
     const lastRotation = this.db.prepare('SELECT value FROM metadata WHERE key=?').get('lastOperationRotation')?.value;
     return { generation: this.generation(), nextGeneration: this.nextGeneration(), digest: archive.digest,
       bytes: archive.data.length, receipts: archive.receipts, retirements: archive.retirements, blocked: archive.blocked,
       ...(typeof lastRotation === 'string' ? { lastRotation: JSON.parse(lastRotation) as JsonValue } : {}) };
   }
 
+  release(digest: string): void { this.snapshots.delete(digest); }
+
   chunk(digest: string, offset: number, limit = 512 * 1024): JsonObject {
     if (!/^[a-f0-9]{64}$/.test(digest) || !Number.isSafeInteger(offset) || offset < 0 ||
         !Number.isSafeInteger(limit) || limit < 1 || limit > 512 * 1024) throw new HarnessError('invalid', '归档分块参数无效。');
-    const archive = this.snapshot;
-    if (!archive || archive.expires <= this.now()) { this.snapshot = undefined; throw new HarnessError('journal_changed', '归档导出已过期，请重新预览并导出。'); }
-    if (archive.digest !== digest || offset >= archive.data.length) throw new HarnessError('journal_changed', '归档编号或位置无效，请重新预览并导出。');
+    const archive = this.snapshots.get(digest);
+    if (!archive || archive.expires <= this.now()) { this.snapshots.delete(digest); throw new HarnessError('journal_changed', '归档已过期或超出最近两个预览的保留上限，请重新预览并导出。'); }
+    if (offset >= archive.data.length) throw new HarnessError('journal_changed', '归档位置无效，请重新预览并导出。');
     const end = Math.min(offset + limit, archive.data.length);
     return { digest, offset, totalBytes: archive.data.length, base64: archive.data.subarray(offset, end).toString('base64'), nextOffset: end === archive.data.length ? null : end };
   }
@@ -117,7 +125,7 @@ export class OperationRetention {
     this.db.prepare('INSERT INTO metadata(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(KEY, String(next));
     const result = { rotated: true, generation: next, archivedDigest: archive.digest, receipts: archive.receipts, retirements: archive.retirements, rotatedAt: this.now() };
     this.db.prepare('INSERT INTO metadata(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run('lastOperationRotation', JSON.stringify(result));
-    this.snapshot = undefined;
+    this.snapshots.clear();
     return result;
   }
 

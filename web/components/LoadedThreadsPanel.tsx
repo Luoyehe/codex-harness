@@ -13,6 +13,8 @@ export function LoadedThreadsPanel({
   onOpenThread,
   onChanged,
   onClose,
+  knownThreads = [],
+  navigationError = '',
 }: {
   api: Api;
   epoch: string;
@@ -21,6 +23,8 @@ export function LoadedThreadsPanel({
   onOpenThread: (id: string) => void;
   onChanged: () => void;
   onClose: () => void;
+  knownThreads?: Thread[];
+  navigationError?: string;
 }) {
   const [selected, setSelected] = useState(''),
     [confirm, setConfirm] = useState(false),
@@ -41,6 +45,7 @@ export function LoadedThreadsPanel({
   return (
     <Dialog title="已加载会话" onClose={onClose} wide>
       <section className="stack">
+        {navigationError && <p className="error" role="alert">{navigationError}</p>}
         <div className="section-heading">
           <h3>原生运行时中的已加载会话</h3>
           <button
@@ -79,7 +84,7 @@ export function LoadedThreadsPanel({
                 setNotice('');
               }}
             >
-              {id}
+              {knownThreads.find(thread => thread.id === id)?.name || (thread?.id === id ? thread.name : '') || id}
             </button>
           ))}
         </div>

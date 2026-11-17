@@ -52,6 +52,7 @@ class ProxyTransactionRootTests(unittest.TestCase):
         self.kernel = None
         self.stack.enter_context(patch("deploy.proxy_core.prepare_core", side_effect=lambda layout, version, **kwargs: self.cores[version]))
         self.stack.enter_context(patch.object(transaction, "prerequisites"))
+        self.stack.enter_context(patch("deploy.service_proxy.require_available_ports"))
         self.stack.enter_context(patch.object(transaction, "check_core_config", side_effect=lambda layout, value: service_proxy.verify_selection(layout, {"serviceProxy": value})))
         self.stack.enter_context(patch.object(transaction, "apply_routes", side_effect=self.apply))
         self.stack.enter_context(patch.object(transaction, "remove_routes", side_effect=self.remove))

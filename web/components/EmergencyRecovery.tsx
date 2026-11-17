@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Api, RpcError } from '../lib/api';
-import { acknowledgeOperation, listOperations, reconcileOperation } from '../lib/operations';
+import { acknowledgeOperation, listOperations, reconcileOperation, isArchivedReceipt } from '../lib/operations';
 import { closeEmergencyOperations } from '../lib/emergency-recovery';
 import { message, object } from '../lib/types';
 import { Dialog } from './Dialog';
@@ -94,9 +94,21 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
         if (current()) { select(''); setNotice('原恢复请求确认未发送，已关闭本地记录；可重新确认强制停止。'); }
         return;
       }
+      if (local?.state === 'accepted' && local.recoveryResult) {
+        await accepted(operationId, local.recoveryResult);
+        return;
+      }
       const receipt = await api.call('operation/read', { operationId });
       if (!current()) return;
-      if (receipt.operationId !== operationId || receipt.state !== 'not_received' && receipt.method !== 'system/recover')
+      if (local?.state === 'accepted' && receipt.operationId === operationId && isArchivedReceipt(receipt)) {
+        // Older versions stored acceptance without the compact recovery proof.
+        // Retire this confirmed local handoff only; never infer old task closure.
+        await acknowledgeOperation(operationId);
+        if (current()) { select(''); setNotice('此前恢复已受理，服务已归档其结果。已保留历史并关闭旧交接；其他旧操作仍需各自核对，必要时可重新确认一次新的强制停止。'); }
+        return;
+      }
+      if (receipt.operationId !== operationId || receipt.state !== 'not_received' && receipt.method !== 'system/recover' &&
+          !(receipt.method === 'operation/retire' && receipt.state === 'not_sent'))
         throw new Error('恢复回执身份不匹配，请在操作记录中核对。');
       await reconcileOperation(operationId, receipt);
       if (!current()) return;

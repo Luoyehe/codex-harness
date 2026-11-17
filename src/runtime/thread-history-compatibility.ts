@@ -24,7 +24,7 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
       // Do not dispatch a helper after the operation's caller/epoch was revoked.
       try { if (mutating) beforeWrite?.(); } catch (error) { reject(error); return; }
       const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true,
-        timeout: mutating ? 60000 : 15000, maxBuffer: request.action === 'copy-inspect' ? 2 * 1024 * 1024 + 8192 : 8192, encoding: 'utf8' }, (error, stdout) => {
+        timeout: mutating || request.action === 'attachment-index' ? 60000 : 15000, maxBuffer: ['copy-inspect', 'attachment-index', 'attachment-inspect'].includes(String(request.action)) ? 2 * 1024 * 1024 + 8192 : 8192, encoding: 'utf8' }, (error, stdout) => {
         try {
           const result = object(JSON.parse(stdout));
           if (error || result.error !== undefined) {

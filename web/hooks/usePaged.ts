@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { message, object } from '../lib/types';
 export function usePaged<T>(
@@ -19,9 +19,12 @@ export function usePaged<T>(
     pageCount = useRef(0),
     paramsRef = useRef(params);
   paramsRef.current = params;
-  const owner = useMemo(() => ({}), [api, method, resourceKey, enabled, revision]);
+  const scope = useMemo(() => ({}), [api, method, resourceKey, enabled]);
+  const owner = useMemo(() => ({}), [scope, revision]);
+  const loadedScope = useRef<object | undefined>(undefined);
   const [loadedOwner, setLoadedOwner] = useState<object>();
   const running = useRef(false);
+  const refresh = useCallback(() => setRevision(v => v + 1), []);
   const [snapshotKey, setSnapshotKey] = useState<string>();
   const validate = (value: unknown, current: T[]) => {
     const result = object(value), raw = result.data ?? result.threads ?? result.models ?? result.servers;
@@ -63,13 +66,16 @@ export function usePaged<T>(
   useEffect(() => {
     const gen = ++epoch.current,
       controller = new AbortController();
+    const sameScope = loadedScope.current === scope;
+    const wantedPages = sameScope ? Math.max(1, pageCount.current) : 1;
+    loadedScope.current = scope;
     setLoadedOwner(owner);
     running.current = false;
-    setItems([]);
+    if (!sameScope || !['thread/list', 'model/list', 'thread/backgroundTerminals/list'].includes(method)) setItems([]);
     setError('');
     setWarning('');
     setCursor(null);
-    setSnapshotKey(undefined);
+    if (!sameScope) setSnapshotKey(undefined);
     seen.current.clear();
     pageCount.current = 0;
     if (!enabled) {
@@ -77,24 +83,31 @@ export function usePaged<T>(
       return;
     }
     setLoading(true);
-    api
-      .call(method, { ...paramsRef.current, limit: 50 }, controller.signal)
-      .then((value) => {
-        if (epoch.current !== gen) return;
-        const page = validate(value, []);
-        if (page.next !== null) seen.current.add(page.next);
-        pageCount.current++;
-        setItems(page.data);
-        setWarning(page.warning);
-        setCursor(page.next);
-        setSnapshotKey(resourceKey);
-      })
-      .catch((e) => {
+    void (async () => {
+      try {
+        let collected: T[] = [], next: string | null = null, warnings: string[] = [];
+        for (let pageNumber = 0; pageNumber < wantedPages; pageNumber++) {
+          const value = await api.call(method, { ...paramsRef.current, limit: 50,
+            ...(next === null ? {} : { cursor: next }) }, controller.signal);
+          if (epoch.current !== gen) return;
+          const page = validate(value, collected);
+          if (page.next !== null) seen.current.add(page.next);
+          pageCount.current++;
+          const merged = new Map<string, T>();
+          for (const item of [...collected, ...page.data]) {
+            const row = object(item), identity = String(row.id ?? row.processId ?? row.name ?? JSON.stringify(item));
+            merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
+          }
+          collected = [...merged.values()]; next = page.next;
+          if (page.warning) warnings.push(page.warning);
+          if (next === null) break;
+        }
+        setItems(collected); setWarning([...new Set(warnings)].join('；'));
+        setCursor(next); setSnapshotKey(resourceKey);
+      } catch (e) {
         if (epoch.current === gen && !controller.signal.aborted) setError(message(e));
-      })
-      .finally(() => {
-        if (epoch.current === gen) setLoading(false);
-      });
+      } finally { if (epoch.current === gen) setLoading(false); }
+    })();
     return () => {
       epoch.current++;
       controller.abort();
@@ -115,7 +128,7 @@ export function usePaged<T>(
       const merged = new Map<string, T>();
       for (const item of [...items, ...page.data]) {
         const row = object(item);
-        const identity = String(row.id ?? row.name ?? JSON.stringify(item));
+        const identity = String(row.id ?? row.processId ?? row.name ?? JSON.stringify(item));
         merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
       }
       setItems([...merged.values()]);
@@ -133,13 +146,13 @@ export function usePaged<T>(
   // is still pending (including refresh, authentication and runtime changes).
   const current = enabled && loadedOwner === owner;
   return {
-    items: current ? items : [],
+    items: enabled && loadedScope.current === scope ? items : [],
     loading: enabled && (!current || loading),
     error: current ? error : '',
     warning: current ? warning : '',
     snapshotKey: current ? snapshotKey : undefined,
     hasMore: current && cursor !== null,
     more,
-    refresh: () => setRevision((v) => v + 1),
+    refresh,
   };
 }

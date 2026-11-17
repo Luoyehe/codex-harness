@@ -302,6 +302,9 @@ def restore_services(manager):
         require(type(saved["mode"]) is int and not saved["mode"] & 0o022 and len(data) <= 1024 * 1024,
                 "Unsafe retained service definition", "corrupt_state")
         if present(paths[name]): regular(paths[name], {data})
+        elif name == "sudo":
+            from .sudo_publish import publish
+            publish(paths[name], data, saved["mode"])
         else: atomic_write(paths[name], data, saved["mode"])
     run(["/usr/sbin/visudo", "-cf", str(paths["sudo"])])
     manager.system.reload()

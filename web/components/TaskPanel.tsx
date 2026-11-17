@@ -156,7 +156,7 @@ function QueueEntry({
             <button className="button small" disabled={disabled || active} onClick={onStart}>
               立即执行此条
             </button>
-            <button className="button danger small" disabled={disabled} onClick={onDelete}>
+            <button className="button danger small" disabled={disabled} title={`删除待办 ${index + 1}，不撤销已执行的任务或文件修改`} onClick={onDelete}>
               删除
             </button>
           </div>
@@ -433,11 +433,11 @@ function GoalPanel(props: PanelProps) {
           <dl className="goal-stats">
             <div>
               <dt>已用 token</dt>
-              <dd>{goal.tokensUsed.toLocaleString()}</dd>
+              <dd>{goal.tokensUsed.toLocaleString('zh-CN')}</dd>
             </div>
             <div>
               <dt>总预算</dt>
-              <dd>{goal.tokenBudget === null ? '未设上限' : goal.tokenBudget.toLocaleString()}</dd>
+              <dd>{goal.tokenBudget === null ? '未设上限' : goal.tokenBudget.toLocaleString('zh-CN')}</dd>
             </div>
             <div>
               <dt>累计时间</dt>
@@ -488,7 +488,7 @@ function GoalPanel(props: PanelProps) {
                 )
               }
             >
-              清除目标
+              清除目标（保留会话与已发生的修改）
             </button>
           </div>
         </div>

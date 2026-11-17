@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Api } from '../lib/api';
 import { array, object, type Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 const fields = [
   {
@@ -28,14 +29,16 @@ export function MemorySettings({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
   api: Api;
   project: Project;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
+  visible?: boolean;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     resource = useResource(`${project.id}:${epoch}:${action.revision}`, (signal) =>
       api.call('settings/read', { projectId: project.id }, signal),
     );
@@ -55,6 +58,8 @@ export function MemorySettings({
   const user = userLayers.length === 1 ? object(object(userLayers[0]!.config).memories) : {};
   const selected = fields.filter((field) => Boolean(changes[field.key])),
     conflict = Boolean(base && typeof version === 'string' && base.version !== version);
+  useSettingsDraft(selected.length > 0);
+  useEffect(() => { setConfirm(false); setCompared(false); }, [visible, enabled, epoch]);
   const writable =
     typeof version === 'string' && userLayers.length === 1 && userLayers[0]!.version === version;
   useEffect(() => {

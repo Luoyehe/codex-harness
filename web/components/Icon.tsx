@@ -1,5 +1,5 @@
-export function Icon({ name, size = 19 }: { name: string; size?: number }) {
-  const paths: Record<string, string> = {
+const paths = {
+    play: 'm8 4 12 8-12 8z',
     cloud: 'M7 18a5 5 0 1 1 1-10 6 6 0 0 1 11 3 4 4 0 0 1 0 8H7z',
     plus: 'M12 5v14M5 12h14',
     search: 'm21 21-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
@@ -19,6 +19,8 @@ export function Icon({ name, size = 19 }: { name: string; size?: number }) {
     more: 'M5 12h.01M12 12h.01M19 12h.01',
     refresh: 'M20 7A9 9 0 1 0 21 14M20 2v5h-5',
   };
+export type IconName = keyof typeof paths;
+export function Icon({ name, size = 19 }: { name: IconName; size?: number }) {
   return (
     <svg
       width={size}
@@ -31,7 +33,7 @@ export function Icon({ name, size = 19 }: { name: string; size?: number }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d={paths[name] ?? paths.chat} />
+      <path d={paths[name]} />
     </svg>
   );
 }

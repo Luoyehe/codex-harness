@@ -42,9 +42,9 @@ test('disconnect while preparing revokes startup before any native command is wr
   const disconnected = f.service.clientDisconnected(owner.clientId, owner.eventChannelId); release(); await rejected; await disconnected; expect(f.native.calls).toEqual([]); expect(object(object(f.service.status()).activity)).toMatchObject({ pendingStarts: 0, unknown: false });
 });
 test('disconnect stops only the owned process before reporting the interrupted diagnostic', async () => {
-  const f = setup(), pending = f.run(), rejected = expect(pending).rejects.toMatchObject({ delivery: 'unknown', code: 'client_disconnected' }); await expect.poll(() => f.native.calls.length).toBe(1); const handle = f.handle();
+  const f = setup(), pending = f.run(), canceled = expect(pending).resolves.toMatchObject({ status: 'canceled', cleanupConfirmed: true }); await expect.poll(() => f.native.calls.length).toBe(1); const handle = f.handle();
   fixture.jobs[0]!.signal = vi.fn(async () => { fixture.jobs[0]!.finish(-9); f.exit(handle); }); await f.service.clientDisconnected('other', 'channel'); expect(fixture.jobs[0]!.signal).not.toHaveBeenCalled();
-  await f.service.clientDisconnected(owner.clientId, owner.eventChannelId); await rejected; expect(fixture.jobs[0]!.signal).toHaveBeenCalledOnce(); expect(object(object(f.service.status()).activity).pendingStarts).toBe(0);
+  await f.service.clientDisconnected(owner.clientId, owner.eventChannelId); await canceled; expect(fixture.jobs[0]!.signal).toHaveBeenCalledOnce(); expect(object(object(f.service.status()).activity)).toMatchObject({ pendingStarts: 0, unknown: false });
 });
 test.each([true, false])('incomplete output explains its bounded failure without exposing raw partial output (%s)', async capped => {
   const f = setup(), pending = f.run(); await expect.poll(() => f.native.calls.length).toBe(1); const handle = f.handle(); f.output(handle, capped ? '{"models":[]}' : 'fixture-private-key malformed', capped); f.exit(handle); fixture.jobs[0]!.finish(0);
@@ -60,7 +60,7 @@ test('timeout reports timed_out only after its owned process tree confirms clean
 
 test.each(['warning', 'fail', 'unrecognized'])('doctor report status %s follows the pinned observed report contract', async overallStatus => {
   const f = setup(), pending = f.service.call('diagnostics/cli/run', { kind: 'doctor' }, owner); await expect.poll(() => f.native.calls.length).toBe(1);
-  const report = { schemaVersion: 1, generatedAt: '2026-10-25T00:00:00Z', codexVersion: '0.164.0', overallStatus, checks: {} };
+  const report = { schemaVersion: 1, generatedAt: '2026-10-25T00:00:00Z', codexVersion: '0.169.0', overallStatus, checks: {} };
   f.output(f.handle(), JSON.stringify(report)); f.exit(f.handle()); fixture.jobs[0]!.finish(overallStatus === 'fail' ? 1 : 0); const result = object(await pending);
   const read = object(await f.service.call('diagnostics/cli/result/read', { resultId: result.resultId! }, owner));
   if (overallStatus === 'unrecognized') expect(read).toMatchObject({ status: 'failed', reason: 'invalid_report' });

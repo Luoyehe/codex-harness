@@ -115,12 +115,18 @@ def prepare(workspace, action, params, paths, current, original):
                 git(root, ["update-index", "--no-split-index"], environment=environment, descriptors=descriptors)
                 after = view_bytes(environment)
             return before, after, selected, hash_length
+        if action == "git/stage":
+            attributes = git(root, ["check-attr", "-z", "filter", "text", "eol", "working-tree-encoding", "ident", "--", *selected], environment=environment, descriptors=descriptors).decode("utf-8", "strict").split("\0")
+            require(attributes[-1] == "" and (len(attributes) - 1) % 3 == 0, "Invalid Git attribute response", "git_unavailable")
+            require(all(attributes[offset] in ("unspecified", "unset") for offset in range(2, len(attributes) - 1, 3)),
+                    "所选文件配置了 Git 内容转换（如 LFS、换行或编码）；请在终端使用 Git 暂存，网页不会执行外部过滤器。", "git_conversion_required")
         instructions, total = bytearray(), 0
         for index, name in enumerate(selected):
             instructions.extend(b"0 " + b"0" * hash_length + b"\t" + name.encode() + b"\0")
             if action == "git/stage":
                 data, info = selected_file(root, params["files"][index])
                 if data is None: continue
+                require(b"\0" in data or b"\r\n" not in data, "所选文本使用 CRLF；请在终端按仓库换行规则暂存，网页不会静默绕过转换。", "git_conversion_required")
                 total += len(data)
                 require(total <= MAX_SELECTED, "Selected staging files exceed byte budget", "budget")
                 oid = git(root, ["hash-object", "-w", "--stdin"], environment=environment, descriptors=descriptors, input_bytes=data, input_limit=MAX_FILE).decode().strip()
@@ -164,15 +170,17 @@ def change(workspace, action, params, record):
     paths = repository_paths(root, workspace.forbidden)
     metadata, common = directory(paths[0]), directory(paths[1])
     lease = None
+    record.side_effects = False
     try:
         safe_metadata(metadata, common, allow_in_progress=True)
-        lease = IndexLease(metadata, record.identity)
+        lease = IndexLease(metadata, record.identity, record)
         current = state(root, paths)
         expected(current, params)
         try: original = file_data(metadata, "index", INDEX_LIMIT)
         except FileNotFoundError: original = None
         if original is not None:
             require(original[1].st_uid == os.geteuid() and not original[1].st_mode & 0o022, "Shared or foreign-owned index cannot be replaced", "unsafe_path")
+        record.side_effects = True
         before, after, selected, hash_length = prepare(workspace, action, params, paths, current, original)
         expected(state(root, paths), params)
         store = IndexStore(workspace)
@@ -201,6 +209,10 @@ def change(workspace, action, params, record):
             if action == "git/index/recovery/restore": result["restoredFromOperationId"] = params["recoveryOperationId"]
             else: result.update(pathsDigest=digest(selected), selectedCount=len(selected))
             return result
+    except DeployError as exc:
+        if exc.code == "git_conversion_required":
+            record.side_effects = False  # Refused before any original index capture/publication.
+        raise
     finally:
         try:
             if lease is not None: lease.close()

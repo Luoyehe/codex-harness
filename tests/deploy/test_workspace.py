@@ -1,5 +1,7 @@
 """Native workspace validators and Linux descriptor/transaction regressions."""
 import hashlib
+import io
+import json
 import os
 import struct
 import subprocess
@@ -7,6 +9,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from deploy.common import DeployError, Layout
@@ -144,6 +147,26 @@ class WorkspaceFilesystemTests(unittest.TestCase):
         finally:
             if opened is not None: opened.close()
             ancestor.chmod(0o700)
+
+    def test_control_character_expansion_returns_structured_budget_error_without_mutation(self):
+        from deploy.common import canonical
+        from deploy.workspace import workspace_main
+        target = self.path / 'control-text.txt'
+        original = b'\x01' * MAX_FILE
+        target.write_bytes(original)
+        request = {'version': 1, 'root': str(self.path), 'action': 'read', 'params': {'path': target.name}}
+        output = io.BytesIO()
+        layout = Layout('fixture', Path(self.temp.name) / 'managed')
+        settings = {'home': str(Path(self.temp.name) / 'native-home'), 'cwd': str(Path(self.temp.name) / 'worker')}
+        with patch('deploy.workspace.sys.stdin', SimpleNamespace(buffer=io.BytesIO(canonical(request)))), \
+                patch('deploy.workspace.sys.stdout', SimpleNamespace(buffer=output)), \
+                patch('deploy.workspace.signal.signal'), patch('deploy.workspace.signal.alarm'):
+            workspace_main(layout, settings)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result['error']['code'], 'budget')
+        self.assertEqual(result['error']['delivery'], 'not_sent')
+        self.assertEqual(target.read_bytes(), original)
+        self.assertNotIn('control-text.txt', result['error']['message'])
 
     def test_unresolvable_protected_boundary_is_not_silently_omitted(self):
         protected = Path(self.temp.name) / "protected"

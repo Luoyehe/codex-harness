@@ -8,12 +8,13 @@ export interface ConversionHost {
   capture(result: JsonObject): void;
   closed(threadId: string): void;
   publish(result: JsonObject, name: string): void;
+  copied(threadId: string, path: string): Promise<void>;
   uncertain(threadId?: string): void;
 }
 
 /** Native creates the independent ID. Only that new thread is ever converted. */
 export async function convertThread(config: NativeConfig, native: NativeRpc, thread: JsonObject, snapshot: JsonObject,
-  selection: JsonObject, mode: ReasoningCompatibility, sourceConfig: JsonObject, targetName: string, host: ConversionHost, beforeWrite: () => void): Promise<JsonObject> {
+  selection: JsonObject, mode: ReasoningCompatibility, targetName: string, host: ConversionHost, beforeWrite: () => void): Promise<JsonObject> {
   const sourceThreadId = string(thread.id, 'threadId', 128), sourceProvider = string(snapshot.modelProvider, 'source provider', 128), targetProvider = string(selection.modelProvider, 'target provider', 128);
   if (snapshot.requiresResume === true || thread.cwd !== snapshot.cwd) throw new DeliveryError('session_not_loaded', '请等待原会话加载完成，再创建转换会话。');
   if (thread.ephemeral === true || !thread.path) throw new DeliveryError('history_conversion_unsupported', '此会话没有可独立复制的持久历史。');
@@ -21,7 +22,22 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
   if (mode === 'plaintext' && !needsRepair) throw new DeliveryError('provider_unchanged', '同一供应商请直接在模型菜单中选择模型；无需转换会话。');
   const input: JsonObject = { threadId: sourceThreadId, path: thread.path, mode };
   // Reject unsupported source formats before even unloading the original.
-  await historyHelper(config, { ...input, action: 'copy-inspect' });
+  const initialInspection = await historyHelper(config, { ...input, action: 'copy-inspect' });
+  const startParams = (metadata: JsonObject): JsonObject => {
+    const start: JsonObject = { ...selection, historyMode: 'paginated', ephemeral: false, modelProvider: targetProvider, model: selection.model!, cwd: snapshot.cwd!,
+      approvalPolicy: snapshot.approvalPolicy!, approvalsReviewer: snapshot.approvalsReviewer!, runtimeWorkspaceRoots: snapshot.runtimeWorkspaceRoots!,
+      ...(thread.projectId != null ? { projectId: thread.projectId } : {}), ...(thread.environments != null ? { environments: thread.environments } : {}), ...metadata };
+    delete start.summary;
+    if (snapshot.activePermissionProfile != null) start.permissions = object(snapshot.activePermissionProfile).id!;
+    else {
+      const sandbox = ({ readOnly: 'read-only', workspaceWrite: 'workspace-write', dangerFullAccess: 'danger-full-access' } as Record<string, string>)[String(object(snapshot.sandbox).type)];
+      if (!sandbox) throw new DeliveryError('history_conversion_unsupported', '此执行权限不能安全复制为独立会话。'); start.sandbox = sandbox;
+    }
+    validateOfficial('ThreadStartParams', start); return start;
+  };
+  // This validation must precede unsubscribe: unsupported permissions are a
+  // definite refusal, not a partially executed conversion.
+  startParams(object(initialInspection.sourceMetadata));
   const release = host.reserve(), deadline = Date.now() + 240000;
   let wrote = false, targetId: string | undefined;
   const check = (): void => { beforeWrite(); if (Date.now() >= deadline) throw new DeliveryError('history_conversion_timeout', '转换超过时间上限，请查询原操作状态。'); };
@@ -41,23 +57,13 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     const inspected = await historyHelper(config, { ...input, action: 'copy-inspect' }), expected = object(inspected.expected), metadata = object(inspected.sourceMetadata);
     const title = Array.from(typeof thread.name === 'string' && thread.name || typeof thread.preview === 'string' && thread.preview || '会话').slice(0, 48).join('');
     const note = `转换至 ${Array.from(targetName).slice(0, 32).join('')} · ${new Date().toISOString()}`;
-    const start: JsonObject = { historyMode: 'paginated', ephemeral: false, modelProvider: sourceProvider, model: snapshot.model!, cwd: snapshot.cwd!,
-      approvalPolicy: snapshot.approvalPolicy!, approvalsReviewer: snapshot.approvalsReviewer!, runtimeWorkspaceRoots: snapshot.runtimeWorkspaceRoots!,
-      config: { ...sourceConfig, ...(snapshot.reasoningEffort != null ? { model_reasoning_effort: snapshot.reasoningEffort } : {}) },
-      ...(thread.projectId != null ? { projectId: thread.projectId } : {}), ...(thread.environments != null ? { environments: thread.environments } : {}), ...metadata };
-    delete start.summary;
-    if (snapshot.activePermissionProfile != null) start.permissions = object(snapshot.activePermissionProfile).id!;
-    else {
-      const sandbox = ({ readOnly: 'read-only', workspaceWrite: 'workspace-write', dangerFullAccess: 'danger-full-access' } as Record<string, string>)[String(object(snapshot.sandbox).type)];
-      if (!sandbox) throw new DeliveryError('history_conversion_unsupported', '此执行权限不能安全复制为独立会话。'); start.sandbox = sandbox;
-    }
-    validateOfficial('ThreadStartParams', start);
+    const start = startParams(metadata);
     const created = await write('thread/start', start, 'ThreadStartResponse'), target = object(created.thread);
     const candidateId = string(target.id, 'new threadId', 128);
     if (candidateId === sourceThreadId) throw new Error('Native conversion reused source identity');
     targetId = candidateId;
     const sameLocation = (value: JsonObject): boolean => value.cwd === snapshot.cwd && canonical(value.projectId ?? null) === canonical(thread.projectId ?? null) && canonical(value.environments ?? null) === canonical(thread.environments ?? null);
-    if (!sameLocation(target) || created.modelProvider !== sourceProvider || target.historyMode !== 'paginated') throw new Error('Native conversion target identity mismatch');
+    if (!sameLocation(target) || created.modelProvider !== targetProvider || target.historyMode !== 'paginated') throw new Error('Native conversion target identity mismatch');
     host.capture(created);
     await write('thread/name/set', { threadId: targetId, name: `转换未完成 · ${title} · ${note}` }, 'ThreadSetNameResponse');
     const empty = object(await native.call('thread/read', { threadId: targetId, includeTurns: true })); validateOfficial('ThreadReadResponse', empty);
@@ -65,9 +71,10 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     await close(targetId);
     const targetInput: JsonObject = { threadId: targetId, path: string(target.path, 'new rollout path'), mode };
     const emptyWitness = await historyHelper(config, { ...targetInput, action: 'inspect' });
-    const copied = await historyHelper(config, { ...input, action: 'recovery-copy', expected, sourceProvider, cwd: snapshot.cwd!,
+    const copied = await historyHelper(config, { ...input, action: 'recovery-copy', expected, sourceProvider, targetProvider, cwd: snapshot.cwd!,
       target: { threadId: targetId, path: targetInput.path!, expected: emptyWitness.expected! } }, true, check);
     if (copied.copied !== true || copied.sourcePreserved !== true || canonical(object(copied.expected)) !== canonical(expected) || object(copied.target).threadId !== targetId) throw new Error('Unconfirmed independent copy');
+    await host.copied(targetId, string(targetInput.path, 'new rollout path'));
     const repaired = await historyHelper(config, { ...targetInput, action: 'repair', expected: object(copied.target).expected! }, true, check);
     if (repaired.needsRepair !== false) throw new Error('New thread conversion was not confirmed');
     const resumed = await write('thread/resume', { threadId: targetId, excludeTurns: true, ...selection }, 'ThreadResumeResponse'); host.capture(resumed);

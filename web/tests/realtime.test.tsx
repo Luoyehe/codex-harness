@@ -38,14 +38,14 @@ class Peer extends EventTarget {
     this.localDescription = value;
   });
 }
-let track: { stop: ReturnType<typeof vi.fn>; enabled: boolean },
+let track: EventTarget & { stop: ReturnType<typeof vi.fn>; enabled: boolean; readyState: string },
   stream: MediaStream,
   microphone: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   Peer.all = [];
-  track = { stop: vi.fn(), enabled: true };
+  track = Object.assign(new EventTarget(), { stop: vi.fn(), enabled: true, readyState: 'live' });
   stream = { getTracks: () => [track], getAudioTracks: () => [track] } as unknown as MediaStream;
   microphone = vi.fn(async () => stream);
   vi.stubGlobal('RTCPeerConnection', Peer);
@@ -124,7 +124,7 @@ it('negotiates the browser offer once, accepts early SDP privately, and confirms
   render(<RealtimePanel {...props} />);
   expect(microphone).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
-  await screen.findByText('active');
+  await screen.findByText('进行中');
   await waitFor(() => expect(Peer.all[0]!.setRemoteDescription).toHaveBeenCalledTimes(1));
   expect(calls.find((call) => call.method === 'thread/realtime/start')).toMatchObject({
     params: {
@@ -140,7 +140,7 @@ it('negotiates the browser offer once, accepts early SDP privately, and confirms
   fireEvent.click(screen.getByRole('button', { name: '开启麦克风' }));
   expect(track.enabled).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: '结束本次实时会话' }));
-  await screen.findByText('closed');
+  await screen.findByText('已结束');
   expect(track.stop).toHaveBeenCalledTimes(1);
   expect(Peer.all[0]!.close).toHaveBeenCalledTimes(1);
   expect(props.onClosed).toHaveBeenCalledTimes(1);
@@ -167,7 +167,7 @@ it('unknown startup only reads its original receipt and never repeats microphone
   render(<RealtimePanel {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
   fireEvent.click(await enabledButton({ name: '查询原语音操作回执' }));
-  await screen.findByText('closed');
+  await screen.findByText('已结束');
   expect(calls.filter((call) => call.method === 'thread/realtime/start')).toHaveLength(1);
   expect(microphone).toHaveBeenCalledTimes(1);
   expect(track.stop).toHaveBeenCalledTimes(1);
@@ -182,7 +182,7 @@ it('live text has a single monotonic sequence, no durable payload, and a lost re
     target: { value: 'text' },
   });
   fireEvent.click(screen.getByRole('button', { name: '启动一次实时文字' }));
-  await screen.findByText('active');
+  await screen.findByText('进行中');
   await waitFor(() =>
     expect(
       (screen.getByRole('button', { name: '读取当前语音状态' }) as HTMLButtonElement).disabled,
@@ -257,7 +257,7 @@ it('ignores foreign events and invalidates local audio immediately on owner loss
   const { props } = setup();
   const view = render(<RealtimePanel {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
-  await screen.findByText('active');
+  await screen.findByText('进行中');
   act(() =>
     props.events.publish({
       type: 'realtime',
@@ -310,7 +310,7 @@ it.each([
       target: { value: 'text' },
     });
     fireEvent.click(screen.getByRole('button', { name: '启动一次实时文字' }));
-    await screen.findByText('active');
+    await screen.findByText('进行中');
     await waitFor(() =>
       expect(
         (screen.getByRole('button', { name: '读取当前语音状态' }) as HTMLButtonElement).disabled,
@@ -356,7 +356,7 @@ it.each(['failed', 'invalid'] as const)(
       target: { value: 'text' },
     });
     fireEvent.click(screen.getByRole('button', { name: '启动一次实时文字' }));
-    await screen.findByText('active');
+    await screen.findByText('进行中');
     await waitFor(() =>
       expect(
         (screen.getByRole('button', { name: '读取当前语音状态' }) as HTMLButtonElement).disabled,
@@ -398,7 +398,7 @@ it('does not apply an unmounted realtime owner acknowledgement to its replacemen
       target: { value: 'text' },
     });
     fireEvent.click(screen.getByRole('button', { name: '启动一次实时文字' }));
-    await screen.findByText('active');
+    await screen.findByText('进行中');
     await waitFor(() =>
       expect(
         (screen.getByRole('button', { name: '读取当前语音状态' }) as HTMLButtonElement).disabled,
@@ -555,7 +555,7 @@ it('does not notify either owner when an old stop closes after replacement', asy
     nextClosed = vi.fn(),
     view = render(<RealtimePanel {...props} />);
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
-  await screen.findByText('active');
+  await screen.findByText('进行中');
   view.rerender(
     <RealtimePanel {...props} api={new Api()} onStarted={nextStarted} onClosed={nextClosed} />,
   );
@@ -579,13 +579,33 @@ it('retains a usable current owner through StrictMode effect replay and closes i
       </StrictMode>,
     );
   fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
-  await screen.findByText('active');
+  await screen.findByText('进行中');
   expect(props.onStarted).toHaveBeenCalledTimes(1);
   expect(calls.filter((call) => call.method === 'thread/realtime/start')).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: '结束本次实时会话' }));
-  await screen.findByText('closed');
+  await screen.findByText('已结束');
   expect(props.onClosed).toHaveBeenCalledTimes(1);
   view.unmount();
   expect(calls.filter((call) => call.method === 'thread/realtime/stop')).toHaveLength(1);
   expect(track.stop).toHaveBeenCalledTimes(1);
+});
+
+it('settles cancelled microphone permission immediately and allows an independent fresh attempt', async () => {
+  let release!: (value: MediaStream) => void;
+  microphone.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+  const old = new RealtimeMedia(document.createElement('audio'), vi.fn());
+  const pending = old.offer(); const rejected = expect(pending).rejects.toThrow('语音启动已取消');
+  old.close(); await rejected;
+  const next = new RealtimeMedia(document.createElement('audio'), vi.fn());
+  expect(await next.offer()).toBe('fixture offer');
+  await act(async () => release(stream));
+  expect(track.stop).toHaveBeenCalledOnce();
+  expect(Peer.all[0]!.close).toHaveBeenCalledOnce();
+  expect(Peer.all[1]!.close).not.toHaveBeenCalled(); next.close();
+});
+it('ends microphone transport when browser permission or the track disappears', async () => {
+  const fatal = vi.fn(), media = new RealtimeMedia(document.createElement('audio'), fatal);
+  await media.offer(); track.readyState = 'ended'; track.dispatchEvent(new Event('ended'));
+  expect(fatal).toHaveBeenCalledWith(expect.stringContaining('麦克风已断开'), true);
+  expect(Peer.all[0]!.close).toHaveBeenCalledOnce();
 });

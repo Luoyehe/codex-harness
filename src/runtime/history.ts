@@ -5,7 +5,7 @@ import type { Activity } from './thread-activity.js';
 type State = Activity;
 interface Host { native(method: string, params: JsonValue): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
 interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; legacy: boolean; state: State; turnRevision: number; unknown: boolean }
-const key = (threadId: string, context: CallContext) => canonical([context.eventChannelId ?? null, context.clientId, threadId]);
+const key = (threadId: string, context: CallContext, scope = '') => canonical([context.eventChannelId ?? null, context.clientId, threadId, scope]);
 /** Both native history streams must finish before a connection may use the thread context. */
 export class UnifiedHistory {
   private traversals = new Map<string, Traversal>();
@@ -14,12 +14,20 @@ export class UnifiedHistory {
   invalidate(threadId: string): boolean { let removed = false; for (const [id, entry] of this.traversals) if (entry.threadId === threadId) { this.traversals.delete(id); removed = true; } return removed; }
   disconnect(clientId?: string, channel?: string): void { for (const [id, entry] of this.traversals) if ((clientId === undefined || entry.clientId === clientId) && (channel === undefined || entry.channel === channel)) this.traversals.delete(id); }
   clear(): void { this.traversals.clear(); }
+  isolated(context: CallContext): { read(params: JsonObject): Promise<JsonValue>; close(): void } {
+    const scope = randomUUID(); const owned = new Set<string>(); let closed = false;
+    return { read: params => {
+      if (closed) throw new DeliveryError('history_stale', 'History reader is closed');
+      owned.add(key(string(params.threadId, 'threadId'), context, scope));
+      return this.read(params, context, scope);
+    }, close: () => { closed = true; for (const id of owned) this.traversals.delete(id); owned.clear(); } };
+  }
   private cursor(page: JsonObject, prior: string | null, seen: Set<string>): string | null {
     const next = page.nextCursor; if (next === null) return null; const cursor = string(next, 'nextCursor', LIMITS.cursorBytes, true);
     if (cursor === prior || seen.has(cursor)) throw new DeliveryError('cursor_loop', 'Native history cursor repeated'); seen.add(cursor); return cursor;
   }
-  async read(params: JsonObject, context: CallContext): Promise<JsonValue> {
-    onlyKeys(params, ['threadId', 'cursor', 'limit']); const threadId = string(params.threadId, 'threadId'), limit = params.limit === undefined ? 25 : integer(params.limit, 'limit', 1, 100), id = key(threadId, context);
+  async read(params: JsonObject, context: CallContext, scope = ''): Promise<JsonValue> {
+    onlyKeys(params, ['threadId', 'cursor', 'limit']); const threadId = string(params.threadId, 'threadId'), limit = params.limit === undefined ? 25 : integer(params.limit, 'limit', 1, 100), id = key(threadId, context, scope);
     if (params.cursor != null) string(params.cursor, 'cursor', LIMITS.cursorBytes, true);
     let entry = this.traversals.get(id);
     if (params.cursor == null) {

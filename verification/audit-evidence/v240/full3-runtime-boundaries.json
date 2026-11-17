@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-3",
+  "reviewerId": "runtime-agent-supplementary-runtime-boundaries",
+  "digest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+  "startDigest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+  "endDigest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+  "startedAt": "2026-11-17T14:58:00Z",
+  "completedAt": "2026-11-17T15:05:24.108617+00:00",
+  "complete": true,
+  "scopes": [
+    "runtime-protocol"
+  ],
+  "inspectedFiles": [
+    "src/runtime/service.ts",
+    "src/runtime/thread-conversion.ts",
+    "src/runtime/thread-history-compatibility.ts",
+    "src/runtime/attachments.ts",
+    "src/runtime/providers.ts",
+    "src/runtime/native.ts",
+    "tests/runtime/providers.test.ts"
+  ],
+  "skipped": [],
+  "findings": [
+    {
+      "id": "FULL3-RUNTIME-01",
+      "priority": 2,
+      "files": [
+        "src/runtime/service.ts",
+        "src/runtime/native.ts"
+      ],
+      "description": "readAccount publishes accountCatalogSnapshot before the dedicated probe cleanup is confirmed, and always deletes the probe from catalogProcesses even when probe.close rejects. Unlike probeDefaults it neither marks runtime activity unknown nor emits fatal. Subsequent model/list can use that pre-cleanup cache and the service continues admitting work; whole-service close no longer includes the uncertain probe. Its generation check also happens before cleanup, so account/updated or service.close during the cleanup await allows stale account success to reach the caller. Publish cache/result only after confirmed cleanup plus generation and closed checks; retain failed cleanup authority and fail the epoch consistently instead of silently discarding it. Preserve singleflight and bounded retry behavior.",
+      "evidence": [
+        ".work/v240/full3-account-probe.test.ts",
+        ".work/v240/full3-account-probe.log"
+      ],
+      "reproduction": "Three actual RuntimeService tests with only NativeRpc replaced by a controlled non-spawning fake: rejected close leaves unknown=false/no fatal, subsequent model catalog uses cached ChatGPT result, service close does not await failed probe; account update during delayed cleanup still returns old account; whole service close during delayed cleanup still returns old account. All three observations reproduced. No actual process was leaked."
+    }
+  ],
+  "method": {
+    "service": "Read accountReadGeneration/account notification invalidation, readAccount/providerCatalog, defaults/probeDefaults and close/disconnect; traced active/configuration/history admission and source/target pending state around workflowMutation and convert.",
+    "conversion": "Read complete thread-conversion and history compatibility helper; checked final-provider native target creation, target/source identity witnesses, source close proof before copy, only-target repair, same native settings post-resume verification, bounded deadline, preserved unknown outcome, and no message dispatch. Rechecked attachment reserveCopy before mutation, finishCopy only after inspected target paths, positive deletion release, and complete-startup reconciliation with conservative unresolved retention.",
+    "provider": "Read all ManagedProviders and readNativeCatalog plus provider unit assertions; .169 non-default native catalogs use model/list modelProvider while ChatGPT auth uses shared-account probe. Provider-bound existing-session routing and default effort/capability selection remain intact.",
+    "controller": "NativeRpc only returns successful close after owned controller exit zero; account probe failure handling is therefore a real caller contract gap. No claim of actual OS cleanup failure or process leakage.",
+    "execution": "Executed only three narrow offline RuntimeService fault-injection probes in .work. No official CLI, paid inference, personal home, deployed runtime, or full test matrix was used."
+  },
+  "evidence": [
+    {
+      "path": ".work/v240/full3-account-probe.test.ts",
+      "sha256": "ae14779085f563217e35f95bde0a5a6b121887fe978f3c2538ca71171ea6838e"
+    },
+    {
+      "path": ".work/v240/full3-probe.config.mjs",
+      "sha256": "7e5c89e9bdab3f60f8aadf1ed23753516fa2e4f79f933bac43f04283ebdb0d41"
+    },
+    {
+      "path": ".work/v240/full3-account-probe.log",
+      "sha256": "182e3740d546f6c5f8a60c26c6e1218ea8a41c20ee727c61d8531458d9700748"
+    }
+  ],
+  "limits": [
+    "This is a supplemental boundary review, not an independent full runtime-domain review; root owns complete runtime/shared/protocol coverage.",
+    "No new actionable finding in the inspected conversion/attachment/provider-selection paths. Cross-provider acceptance and source-copy byte independence are supported by earlier targeted native evidence, not newly executed here.",
+    "The freeze3 round has findings and cannot authorize closeout."
+  ]
+}

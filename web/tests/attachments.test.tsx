@@ -157,7 +157,7 @@ describe('attachment preview resource lifetime', () => {
     expect(container.querySelector('img,audio,video,script,iframe,object,pre')).toBeNull();
     const blob = vi.mocked(URL.createObjectURL).mock.calls[0]![0] as Blob;
     expect(blob.size).toBe(1);
-    expect(blob.type).toBe(expectedType);
+    expect(blob.type).toBe('application/octet-stream');
     if (expectedType === 'application/octet-stream')
       expect(screen.getByText('附件声明的类型无法安全预览，已按普通文件提供下载。')).toBeTruthy();
   });
@@ -186,7 +186,7 @@ describe('attachment preview resource lifetime', () => {
     );
     const blob = vi.mocked(URL.createObjectURL).mock.calls[0]![0] as Blob;
     expect(blob.size).toBe(atob(base64).length);
-    expect(blob.type).toBe(mimeType.split(';')[0]);
+    expect(blob.type).toBe('application/octet-stream');
     if (mimeType.startsWith('text/html'))
       expect(screen.getByText('<script>no execution</script>')).toBeTruthy();
   });

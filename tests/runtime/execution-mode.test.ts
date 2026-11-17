@@ -100,7 +100,7 @@ test('supervisor creates only its own storage for managed homes and retains dev 
   const config = { ...base, workerHome: path.join(directory, 'supervisor'), home: path.join(directory, 'worker-root', 'codex'), launcher: launcher('root') };
   prepareRuntimeHomes(config);
   expect(existsSync(config.workerHome)).toBe(true); expect(existsSync(path.dirname(config.home))).toBe(false);
-  prepareRuntimeHomes({ ...config, launcher: undefined }); expect(existsSync(config.home)).toBe(true);
+  const { launcher: _launcher, ...devConfig } = config; prepareRuntimeHomes(devConfig); expect(existsSync(config.home)).toBe(true);
 });
 
 test.each(['native', 'root'] as const)('%s project creation and resolution share auto paths while keeping the actual launcher identity', async mode => {

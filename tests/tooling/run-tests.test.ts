@@ -86,7 +86,7 @@ test('one source file per scope cannot authorize a partial review as a complete 
 });
 
 test('full execution plan requires all three engines before starting and includes Go', () => {
-  const root = fixture(); audited(root); const plan = prepareRun('--full', [], root); const vitest = vi.fn(() => ({ status: 'passed', exitCode: 0 })); const python = vi.fn(() => ({ status: 'passed', exitCode: 0 })); const go = vi.fn(() => ({ status: 'passed', exitCode: 0 }));
+  const root = fixture(); audited(root); const plan = prepareRun('--full', [], root); const vitest = vi.fn((_files: string[]) => ({ status: 'passed', exitCode: 0 })); const python = vi.fn((_files: string[]) => ({ status: 'passed', exitCode: 0 })); const go = vi.fn((_files: string[]) => ({ status: 'passed', exitCode: 0 }));
   const skipped = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'skipped', reason: 'fixture missing native' }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });
   expect(skipped.status).toBe('skipped'); expect(skipped.exitCode).toBe(3); expect(vitest).not.toHaveBeenCalled(); expect(python).not.toHaveBeenCalled();
   const result = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'ready', binary: path.join(root, 'fixture-native') }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });

@@ -67,6 +67,49 @@ it('keeps MFA challenge within the same login and never persists credentials', a
   expect((screen.getByLabelText('密码') as HTMLInputElement).value).toBe('');
 });
 
+it('keeps the MFA step after a real invalid-code response and retries password plus code together', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(failure('mfa_required', 401))
+    .mockResolvedValueOnce(failure('mfa_invalid', 401)).mockResolvedValueOnce(ok(session));
+  vi.stubGlobal('fetch', fetch);
+  const api = new Api(), onLogin = vi.fn(), lost = vi.fn(); api.onAuthenticationLost(lost);
+  render(<Login api={api} onLogin={onLogin} />);
+  loginFields(); fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  fireEvent.change(await screen.findByLabelText('验证码或恢复码'), { target: { value: '000000' } });
+  fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  await screen.findByText(/验证码或恢复码不正确/);
+  expect((screen.getByLabelText('密码') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('验证码或恢复码') as HTMLInputElement).value).toBe('');
+  expect(api.externalAuthenticationRequired).toBe(false);
+  expect(lost).not.toHaveBeenCalled();
+  expect(screen.queryByRole('link', { name: /完成访问认证/ })).toBeNull();
+  fireEvent.change(screen.getByLabelText('密码'), { target: { value: password } });
+  expect(screen.getByRole('button', { name: '进入工作台 →' }).matches(':disabled')).toBe(true);
+  fireEvent.change(screen.getByLabelText('验证码或恢复码'), { target: { value: '123456' } });
+  fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  await waitFor(() => expect(onLogin).toHaveBeenCalledOnce());
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(JSON.parse(fetch.mock.calls[2]![1].body)).toEqual({ username: 'admin', password, remember: false, otp: '123456' });
+  expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain(password);
+});
+
+it('resets the MFA stage when the login username changes after an invalid code', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce(failure('mfa_required', 401))
+    .mockResolvedValueOnce(failure('mfa_invalid', 401)).mockResolvedValueOnce(ok(session));
+  vi.stubGlobal('fetch', fetch);
+  const onLogin = vi.fn(); render(<Login api={new Api()} onLogin={onLogin} />);
+  loginFields(); fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  fireEvent.change(await screen.findByLabelText('验证码或恢复码'), { target: { value: '000000' } });
+  fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  await screen.findByText(/验证码或恢复码不正确/);
+  fireEvent.change(screen.getByLabelText('验证码或恢复码'), { target: { value: 'old-code' } });
+  fireEvent.change(screen.getByLabelText('用户名'), { target: { value: 'correct-admin' } });
+  expect(screen.queryByLabelText('验证码或恢复码')).toBeNull();
+  fireEvent.change(screen.getByLabelText('密码'), { target: { value: password } });
+  fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
+  await waitFor(() => expect(onLogin).toHaveBeenCalledOnce());
+  expect(JSON.parse(fetch.mock.calls[2]![1].body)).toEqual({ username: 'correct-admin', password, remember: false });
+});
+
 it('submits account creation once and keeps password whitespace intact', async () => {
   const response = deferred(), fetch = vi.fn((_url: string, _init: RequestInit) => response.promise); vi.stubGlobal('fetch', fetch);
   const api = new Api(), onLogin = vi.fn(); render(<Login api={api} onLogin={onLogin} setupRequired />);
@@ -179,11 +222,28 @@ it.each(['setup', 'login'] as const)('honors an explicit unknown delivery on a 4
   expect(fetch).toHaveBeenCalledOnce();
 });
 
-it('does not classify an unknown MFA result as an external authentication challenge', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ ok: false, error: { code: 'mfa_required', delivery: 'unknown' } }) }));
+it.each(['mfa_required', 'mfa_invalid'])('does not classify an unknown %s result as an external authentication challenge', async code => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ ok: false, error: { code, delivery: 'unknown' } }) }));
   const api = new Api();
-  await expect(api.session({ username: 'admin', password })).rejects.toMatchObject({ code: 'mfa_required', delivery: 'unknown' });
+  await expect(api.session({ username: 'admin', password })).rejects.toMatchObject({ code, delivery: 'unknown' });
   expect(api.externalAuthenticationRequired).toBe(false);
+});
+
+it.each(['not_sent', 'unknown'] as const)('keeps the authenticated session after a security MFA rejection with %s delivery', async delivery => {
+  const f = await security(() => ({ ok: false, status: 401,
+    json: async () => ({ ok: false, error: { code: 'mfa_invalid', delivery } }) }), true);
+  const lost = vi.fn(); f.api.onAuthenticationLost(lost);
+  proof(true);
+  fireEvent.click(screen.getByRole('button', { name: '关闭两步验证' }));
+  fireEvent.click(screen.getByRole('button', { name: '确认关闭 admin 的两步验证' }));
+  await screen.findByRole('alert');
+  expect(lost).not.toHaveBeenCalled();
+  expect(f.api.csrf).toBe('synthetic-csrf');
+  expect(f.api.externalAuthenticationRequired).toBe(false);
+  expect((screen.getByLabelText('当前密码（安全验证）') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('当前验证码或恢复码') as HTMLInputElement).value).toBe('');
+  expect(Boolean(screen.queryByText(/操作结果或账号版本需要核对/))).toBe(delivery === 'unknown');
+  expect(f.fetch.mock.calls.filter(([url]) => url === '/api/account/totp/disable')).toHaveLength(1);
 });
 
 it('enrolls TOTP and shows recovery codes only in volatile view state', async () => {
@@ -215,6 +275,7 @@ it('discards a late enrollment secret after authentication suspension', async ()
 it('clears displayed secrets as soon as authentication is lost', async () => {
   const f = await security(() => ok({ recoveryCodes: ['synthetic-recovery-1'] }), true);
   proof(true); fireEvent.click(screen.getByRole('button', { name: '重新生成恢复码（旧码失效）' }));
+  fireEvent.click(screen.getByRole('button', { name: '确认重新生成并使全部旧恢复码失效' }));
   await screen.findByLabelText('新的恢复码');
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(failure('unauthorized', 401)));
   await act(async () => { await expect(f.api.account()).rejects.toMatchObject({ code: 'unauthorized' }); });
@@ -232,6 +293,7 @@ it('keeps invalid password errors local to security settings without logging out
 it('revokes only the selected session and binds it to the observed account revision', async () => {
   const f = await security(() => ok({ authenticated: true, operationRecoveryProtocol: 2 }));
   fireEvent.click(screen.getByRole('button', { name: '撤销此设备登录' }));
+  fireEvent.click(screen.getByRole('button', { name: /确认撤销 .* 的登录和终端/ }));
   await screen.findByText('已撤销该设备的登录。');
   const [, init] = f.fetch.mock.calls.find(([url]) => url === '/api/account/sessions/revoke')!;
   expect(JSON.parse(String(init?.body))).toEqual({ sessionId: 'other-id', expectedRevision: 'revision-1' });
@@ -275,4 +337,13 @@ it('keeps gateway account management available while the worker connection is do
   await screen.findByText('admin');
   expect(screen.getByRole('button', { name: '撤销此设备登录' }).matches(':disabled')).toBe(false);
   expect(fetch.mock.calls[0][0]).toBe('/api/account');
+});
+
+it('does not revoke a device before the target-specific confirmation or after cancellation', async () => {
+  const f = await security(() => ok({ authenticated: true, operationRecoveryProtocol: 2 }));
+  fireEvent.click(screen.getByRole('button', { name: '撤销此设备登录' }));
+  expect(f.fetch.mock.calls.some(([url]) => url === '/api/account/sessions/revoke')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '取消撤销' }));
+  expect(screen.queryByRole('button', { name: /确认撤销/ })).toBeNull();
+  expect(f.fetch.mock.calls.some(([url]) => url === '/api/account/sessions/revoke')).toBe(false);
 });

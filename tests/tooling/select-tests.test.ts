@@ -86,6 +86,31 @@ test('proxy core and transaction fixture changes select exactly all four identit
   }
 });
 
+test('pinned toolchain changes retain ordinary, root and composed durability coverage', () => {
+  const ordinary = 'tests/deploy/test_toolchain.py';
+  const privileged = ['tests/deploy/root/test_toolchain.py', 'tests/deploy/root/test_tree_durability.py'];
+  const companions = [ordinary, ...privileged], inventory = [...available, ...companions];
+  for (const changed of companions) {
+    const plan = selectTests([changed], inventory);
+    expect(plan.status).toBe('selected');
+    expect(plan.groups).toEqual({ unit: [], deploy: [ordinary], 'deploy-root': privileged, native: [], go: [] });
+    for (const missing of companions.filter(name => name !== changed)) {
+      expect(selectTests([changed], inventory.filter(name => name !== missing)).requiresFullAudit)
+        .toEqual([{ path: missing, reason: 'missing-deployment-identity-coverage' }]);
+    }
+  }
+  for (const changed of ['deploy/build.py', 'deploy/system.py']) {
+    const plan = selectTests([changed], inventory);
+    expect(plan.status).toBe('selected');
+    expect(plan.groups.deploy).toContain(ordinary);
+    expect(plan.groups['deploy-root']).toEqual(privileged);
+    for (const missing of companions) {
+      expect(selectTests([changed], inventory.filter(name => name !== missing)).requiresFullAudit)
+        .toContainEqual({ path: missing, reason: 'missing-deployment-identity-coverage' });
+    }
+  }
+});
+
 test('project path fixtures retain real native/root filesystem identity coverage', () => {
   const ordinary = 'tests/deploy/test_project_creation.py', privileged = 'tests/deploy/root/test_project_identity.py';
   for (const changed of [ordinary, privileged]) {
@@ -166,7 +191,7 @@ test('a rename is exposed as an old deletion and new addition without dropping e
 });
 
 test('missing independent native dependency is an explicit skip with nonzero exit', () => {
-  expect(nativePrerequisite(fixture(), '')).toEqual({ status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.164.0' });
+  expect(nativePrerequisite(fixture(), '')).toEqual({ status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.169.0' });
   expect(nativePrerequisite(fixture(), path.resolve('outside-native-fixture'))).toEqual({ status: 'failed', reason: 'native-binary-must-belong-to-independent-runtime' });
   vi.stubEnv('HARNESS_TEST_CODEX_BIN', '');
   const result = runSelection(selectTests(['src/runtime/service.ts'], available), 'native', fixture()); expect(result.status).toBe('skipped'); expect(result.exitCode).toBe(3);
@@ -181,10 +206,10 @@ test('unioning every affected domain cannot turn targeted orchestration into a f
 });
 
 test('CI entrypoints select exact changes and reconcile real identities without inventing audit rounds', () => {
-  const workflow = readFileSync(path.resolve('.github/workflows/affected.yml'), 'utf8');
+  const workflow = readFileSync(path.resolve('.github/workflows/affected.yml'), 'utf8').replaceAll('\r\n', '\n');
   expect(workflow).toContain('scripts/ci-checks.mjs'); expect(workflow).toContain('scripts/reviewed-history.mjs');
   expect(workflow).not.toMatch(/(?:vitest[^\n]*\brun|--full|test:full|audits\.json|passWithNoTests)/);
-  expect(workflow).toContain('0.164.0'); expect(workflow).toContain('scripts/prepare-ci-native.mjs');
+  expect(workflow).toContain('0.169.0'); expect(workflow).toContain('scripts/prepare-ci-native.mjs');
   const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  coverage:\n')[0];
   expect(rootJob).toContain('runs-on: ubuntu-24.04');
   expect(rootJob).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');

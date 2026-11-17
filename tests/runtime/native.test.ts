@@ -59,6 +59,10 @@ describe('bounded native delivery', () => {
     // kernel backpressure and native child are real. UID policy has separate tests.
     const command = vi.spyOn(nativeLaunch, 'nativeCommand').mockReturnValue({ bin, args, cwd: path.resolve('.'), env: { PATH: '/usr/bin:/bin', PYTHONPATH: path.resolve('.') } });
     const rpc = new NativeRpc({ bin: '/unused', home: cwd, cwd, env: {}, launcher: { path: '/unused', user: 'ch-fixture-worker' } });
+    // Capture the actual owned child before it can exit. An old numeric PID
+    // may already belong to another process after close completes.
+    const child = rpc['child'];
+    const childClose = vi.fn(); child.once('close', childClose);
     let fatal = 0, cleanupUnknown = 0, written = false;
     rpc.on('fatal', () => fatal++); rpc.on('cleanup-unknown', () => cleanupUnknown++);
     try {
@@ -73,12 +77,24 @@ describe('bounded native delivery', () => {
       else await expect(closed).rejects.toThrow('without confirming cleanup');
       expect(fatal).toBe(1); expect(cleanupUnknown).toBe(confirmed ? 0 : 1);
       expect(written).toBe(false); expect(rpc.budget).toEqual({ pending: 0, retainedBytes: 0 });
-      expect(() => process.kill(rpc.processId!, 0)).toThrow();
+      expect(childClose).toHaveBeenCalledTimes(1);
+      expect(child.exitCode).not.toBeNull(); expect(child.signalCode).toBeNull();
+      if (confirmed) expect(child.exitCode).toBe(0);
+      else expect(child.exitCode).not.toBe(0);
     } finally { command.mockRestore(); await rpc.close().catch(() => {}); }
   }, 15000);
   test('preserves upstream error code/data and server request id type', async () => {
     const rpc = await native(); await expect(rpc.call('error', {})).rejects.toMatchObject({ code: 'native_error', delivery: 'not_sent', data: { code: -32000, data: { kind: 'fixture' } } });
     let id: unknown; rpc.on('request', request => { id = request.id; }); await rpc.call('prompt', {}); expect(id).toBe('original-string-id');
+  });
+  test('native error diagnostics redact managed multi-provider credentials without changing delivery evidence', async () => {
+    const cwd = mkdtempSync(path.join(roots, 'redaction-'));
+    const key = 'HARNESS_PROVIDER_KEY_' + 'B2'.repeat(16);
+    const defaultValue = ['fixture', 'default', 'credential'].join('-'), namedValue = ['fixture', 'named', 'credential'].join('-');
+    const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/native-fixture.mjs')], home: cwd, cwd, env: { HARNESS_PROVIDER_KEY_DEFAULT: defaultValue, [key]: namedValue }, requestTimeoutMs: 2000 }); natives.push(rpc);
+    await rpc.initialize();
+    await expect(rpc.call('fixture/error/reflect', { code: -32000, message: `Rejected ${defaultValue} and ${namedValue}`, data: { [key]: 'unregistered-value', reason: `error for ${namedValue}`, kind: 'fixture' } })).rejects.toMatchObject({ code: 'native_error', delivery: 'not_sent', message: 'Rejected [redacted] and [redacted]', data: { code: -32000, data: { [key]: '[redacted]', reason: 'error for [redacted]', kind: 'fixture' } } });
+    await expect(rpc.call('echo', { usable: true })).resolves.toEqual({ usable: true });
   });
   test('malformed native responses reject all waiters instead of hanging or claiming not_sent', async () => {
     const rpc = await native(); await expect(rpc.call('malformed', {})).rejects.toMatchObject({ delivery: 'unknown' }); expect(rpc.connected).toBe(false);

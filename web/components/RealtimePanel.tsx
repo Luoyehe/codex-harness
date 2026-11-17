@@ -90,6 +90,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
     [captions, setCaptions] = useState<Caption[]>([]),
     [dropped, setDropped] = useState(false);
   const textRevision = useRef(0);
+  const [playbackAvailable, setPlaybackAvailable] = useState(false);
   const audio = useRef<HTMLAudioElement>(null),
     media = useRef<RealtimeMedia | undefined>(undefined),
     native = useRef<Snapshot | undefined>(undefined),
@@ -369,7 +370,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
               });
             }
           }
-        });
+        }, available => { if (current()) setPlaybackAvailable(available); });
         media.current = active;
         transport = { type: 'webrtc', sdp: await active.offer() };
       }
@@ -525,12 +526,12 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
     <section className="stack realtime-panel">
       <div className="section-heading">
         <h3>实时语音</h3>
-        <span className="badge">{state?.state ?? '未启动'}</span>
+        <span className="badge">{state ? ({ starting: '正在启动', active: '进行中', stopping: '正在结束', closed: '已结束' })[state.state] : '未启动'}</span>
       </div>
       <p className="small muted">
         启动后语音服务可使用当前会话上下文和已授权工具。语音期间暂停普通输入；结束并完整重读历史后恢复。关闭页面或切换会话会关闭麦克风并请求结束，不会自动重连。
       </p>
-      <audio ref={audio} autoPlay controls aria-label="语音播放" />
+      <audio ref={audio} autoPlay controls={playbackAvailable} hidden={!playbackAvailable} aria-label="语音播放" />
       {!active && (
         <>
           <label className="field">
@@ -635,6 +636,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
               </button>
               <button
                 className="button"
+                disabled={!playbackAvailable}
                 onClick={() => void audio.current?.play().catch((e) => setError(message(e)))}
               >
                 播放语音
@@ -703,7 +705,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
         <div className="stack" aria-label="本次实时转录预览">
           {captions.map((row) => (
             <p key={row.id}>
-              <strong>{row.role}：</strong>
+              <strong>{({ user: '你', assistant: '助手', system: '系统' } as Record<string,string>)[row.role] ?? row.role}：</strong>
               {row.text}
             </p>
           ))}

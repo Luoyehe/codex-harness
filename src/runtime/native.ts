@@ -5,6 +5,7 @@ import { APP_VERSION } from './metadata.js';
 import { DiagnosticRedactor } from './redaction.js';
 import { nativeCommand, type NativeLauncher } from './native-launch.js';
 import { windowsJob } from './windows-job.js';
+import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
 export interface NativeOptions { beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
@@ -18,6 +19,7 @@ export class NativeRpc extends EventEmitter {
   private nextId = 1;
   private retained = 0;
   private input = Buffer.alloc(0);
+  private inputBytes = 0;
   private writing = false;
   private ready = false;
   private failed = false;
@@ -26,6 +28,7 @@ export class NativeRpc extends EventEmitter {
   private closePromise?: Promise<void>;
   private exitPromise: Promise<void>;
   private windowsSignal?: () => Promise<void>;
+  private posixController = false;
   private redactor: DiagnosticRedactor;
   constructor(readonly config: NativeConfig) {
     super();
@@ -33,12 +36,16 @@ export class NativeRpc extends EventEmitter {
     let command = nativeCommand({ ...config, env: { ...config.env, CODEX_HOME: config.home } }, 'app-server');
     if (process.platform === 'win32' && !config.launcher && (config.dev || config.isolatedGroup)) {
       const job = windowsJob(command); command = job.command; this.windowsSignal = job.signal;
+    } else if (process.platform !== 'win32' && !config.launcher && (config.dev || config.isolatedGroup)) {
+      command = posixNative(command); this.posixController = true;
     }
-    // Exactly three descriptors: control sockets and any parent service descriptors never enter the native UID.
-    this.child = spawn(command.bin, command.args, { cwd: command.cwd, env: command.env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: !config.launcher && (config.dev === true || config.isolatedGroup === true) && process.platform !== 'win32' });
+    // The local POSIX controller alone gets a separate stop pipe. Its native
+    // child receives exactly three descriptors; service descriptors stay out.
+    this.child = spawn(command.bin, command.args, { cwd: command.cwd, env: command.env, stdio: this.posixController ? ['pipe', 'pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'], windowsHide: true }) as ChildProcessWithoutNullStreams;
+    this.child.stdio[3]?.on('error', error => this.fail(error));
     this.child.once('exit', code => { this.exitCode = code; this.fail(new Error('Native process exited')); });
     this.exitPromise = new Promise(resolve => {
-      this.child.once('close', () => { this.exited = true; this.fail(new Error('Native process exited')); this.pending.clear(); this.queue = []; this.retained = 0; this.input = Buffer.alloc(0); resolve(); });
+      this.child.once('close', () => { this.exited = true; this.fail(new Error('Native process exited')); this.pending.clear(); this.queue = []; this.retained = 0; this.input = Buffer.alloc(0); this.inputBytes = 0; resolve(); });
     });
     this.child.on('error', error => this.fail(error));
     this.child.stdin.on('error', error => this.fail(error));
@@ -115,10 +122,14 @@ export class NativeRpc extends EventEmitter {
     while (offset < chunk.length) {
       const newline = chunk.indexOf(10, offset); const end = newline < 0 ? chunk.length : newline;
       const piece = chunk.subarray(offset, end);
-      if (this.input.length + piece.length > LIMITS.frameBytes) { this.fail(new Error('Native frame exceeds byte budget')); return; }
-      this.input = Buffer.concat([this.input, piece]);
+      if (this.inputBytes + piece.length > LIMITS.frameBytes) { this.fail(new Error('Native frame exceeds byte budget')); return; }
+      if (this.inputBytes + piece.length > this.input.length) {
+        const next = Buffer.allocUnsafe(Math.min(LIMITS.frameBytes, Math.max(this.inputBytes + piece.length, this.input.length * 2, 8192)));
+        this.input.copy(next, 0, 0, this.inputBytes); this.input = next;
+      }
+      piece.copy(this.input, this.inputBytes); this.inputBytes += piece.length;
       if (newline < 0) return;
-      const line = this.input; this.input = Buffer.alloc(0); offset = newline + 1;
+      const line = this.input.subarray(0, this.inputBytes); this.input = Buffer.alloc(0); this.inputBytes = 0; offset = newline + 1;
       if (!line.length) continue;
       try {
         const decoded = new TextDecoder('utf-8', { fatal: true }).decode(line);
@@ -184,26 +195,21 @@ export class NativeRpc extends EventEmitter {
       } finally { if (timeout) clearTimeout(timeout); }
       return;
     }
-    const pid = this.child.pid;
-    const isolated = this.config.dev || this.config.isolatedGroup;
-    if (this.exited && !isolated) return;
-    const kill = (signal: NodeJS.Signals): void => {
-      try { if (pid && isolated && process.platform !== 'win32') process.kill(-pid, signal); else this.child.kill(signal); } catch {}
-    };
-    kill('SIGTERM');
-    const force = setTimeout(() => {
-      kill('SIGKILL');
-    }, 1500);
-    try {
-      await this.exitPromise;
-      if (pid && isolated && process.platform !== 'win32') {
-        try { process.kill(-pid, 0); process.kill(-pid, 'SIGKILL'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
-        for (let attempt = 0; attempt < 20; attempt++) {
-          try { process.kill(-pid, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return; throw error; }
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        throw new Error('Native process group termination was not confirmed');
-      }
-    } finally { clearTimeout(force); }
+    if (this.posixController) {
+      // The bound controller handles stop independently of native stdin and
+      // keeps its own child identities until descendant cleanup is confirmed.
+      const control = this.child.stdio[3];
+      if (control && 'destroy' in control) control.destroy();
+      let timeout: NodeJS.Timeout | undefined;
+      try {
+        await Promise.race([this.exitPromise, new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error('POSIX native cleanup was not confirmed')), 6000); })]);
+        if (this.exitCode !== 0) throw new Error('POSIX native controller exited without confirming cleanup');
+      } finally { if (timeout) clearTimeout(timeout); }
+      return;
+    }
+    if (this.exited) return;
+    this.child.kill('SIGTERM');
+    const force = setTimeout(() => this.child.kill('SIGKILL'), 1500);
+    try { await this.exitPromise; } finally { clearTimeout(force); }
   }
 }

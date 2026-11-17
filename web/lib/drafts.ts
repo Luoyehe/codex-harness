@@ -120,10 +120,25 @@ export function listDrafts(storage: Storage = sessionStorage): Draft[] {
   const drafts: Draft[] = [];
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i);
-    if (key?.startsWith(prefix))
-      drafts.push(readDraft(decodeURIComponent(key.slice(prefix.length)), storage));
+    if (key?.startsWith(prefix)) {
+      try { drafts.push(readDraft(decodeURIComponent(key.slice(prefix.length)), storage)); }
+      catch { /* Keep damaged bytes untouched; the recovery catalog exposes them. */ }
+    }
   }
   return drafts.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+export function damagedDrafts(storage: Storage = sessionStorage) {
+  const damaged: { storageKey: string; raw: string }[] = [];
+  for (const storageKey of Object.keys(storage).filter(key => key.startsWith(prefix))) {
+    try { readDraft(decodeURIComponent(storageKey.slice(prefix.length)), storage); }
+    catch { damaged.push({ storageKey, raw: storage.getItem(storageKey) ?? '' }); }
+  }
+  return damaged;
+}
+export function discardDamagedDraft(storageKey: string, expectedRaw: string, storage: Storage = sessionStorage) {
+  if (!storageKey.startsWith(prefix) || storage.getItem(storageKey) !== expectedRaw)
+    throw new Error('草稿已变化，请重新检查后再处理。');
+  storage.removeItem(storageKey); draftChanged('');
 }
 export function discardDraft(key: string, storage: Storage = sessionStorage) {
   storage.removeItem(storageKey(key));

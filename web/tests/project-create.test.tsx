@@ -44,6 +44,26 @@ test('existing directories remain a separate flow and show a useful permission e
   expect(screen.getByRole('textbox', { name: '项目路径' })).toHaveProperty('value', '/root/project');
 });
 
+test('an already registered directory keeps its name and offers the existing project', async () => {
+  const api = new Api();
+  vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+    const request = JSON.parse(init.body);
+    return { status: 200, ok: true, json: async () => ({ ok: true, result: request.method === 'project/defaults'
+      ? { directory: '/native/projects' } : { id: 'existing', name: 'Original name', path: '/native/projects/project', existing: true } }) };
+  }));
+  const onOpen = vi.fn(), onClose = vi.fn();
+  render(<ProjectDialog executionMode={native} executionModeConfirmed api={api} onAdded={vi.fn()} onClose={onClose} onOpen={onOpen} />);
+  fireEvent.click(screen.getByRole('button', { name: '添加已有目录' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'Different name' } });
+  fireEvent.change(screen.getByRole('textbox', { name: '项目路径' }), { target: { value: 'project' } });
+  const submit = screen.getByRole('button', { name: '添加项目' });
+  await waitFor(() => expect(submit).toHaveProperty('disabled', false)); fireEvent.click(submit);
+  expect(await screen.findByText(/已保留原名称/)).toBeTruthy();
+  expect(onOpen).not.toHaveBeenCalled(); expect(onClose).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '打开已有项目' }));
+  expect(onOpen).toHaveBeenCalledWith('existing'); expect(onClose).toHaveBeenCalledOnce();
+});
+
 test('an accepted project without an ID stays visible for reconciliation and cannot be resubmitted', async () => {
   const requests: string[] = [];
   vi.stubGlobal('fetch', vi.fn(async (_url, init) => {

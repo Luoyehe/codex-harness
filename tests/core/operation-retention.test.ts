@@ -75,10 +75,12 @@ test('fencing and rotation success proof survive reopening the database', () => 
   expect(value.newOperationId()).toMatch(/^00000000-0001-8/);
 });
 
-test('export cache expires and only retains the most recently prepared snapshot', () => {
+test('two tabs can export independent snapshots; expiry and bounded eviction remain enforced', () => {
   let now = 0; const value = ledger(() => now), source = preview(value);
   now = 600_001; expect(() => value.maintenanceChunk({ digest: String(source.digest), offset: 0 })).toThrow(expect.objectContaining({ code: 'journal_changed' }));
   const fresh = preview(value); accept(value); preview(value);
+  expect(value.maintenanceChunk({ digest: String(fresh.digest), offset: 0 })).toMatchObject({ digest: fresh.digest });
+  accept(value); preview(value);
   expect(() => value.maintenanceChunk({ digest: String(fresh.digest), offset: 0 })).toThrow(expect.objectContaining({ code: 'journal_changed' }));
 });
 

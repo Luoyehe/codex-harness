@@ -4,6 +4,7 @@ import type { GuardianApprovalReview } from '../../protocol/ts/v2/GuardianApprov
 import type { Api } from '../lib/api';
 import type { Events } from '../lib/events';
 import { object } from '../lib/types';
+import { statusLabel, guardianRisk, guardianAuthorization } from '../lib/status-labels';
 import { useResource } from '../hooks/useResource';
 import { Dialog } from './Dialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
@@ -23,7 +24,7 @@ type Denial = {
 function checked(
   value: Record<string, unknown>,
   threadId: string,
-): { data: Denial[]; captureExhausted: boolean } {
+): { data: Denial[]; captureExhausted: boolean; captureIssues?: { reviewId: string; reason: string }[] } {
   if (
     !Array.isArray(value.data) ||
     value.data.length > 10 ||
@@ -42,11 +43,11 @@ function checked(
       ) ||
       seen.has(String(row.approvalId)) ||
       review.status !== 'denied' ||
-      (review.riskLevel !== null &&
+      (review.riskLevel != null &&
         !['low', 'medium', 'high', 'critical'].includes(String(review.riskLevel))) ||
-      (review.userAuthorization !== null &&
+      (review.userAuthorization != null &&
         !['unknown', 'low', 'medium', 'high'].includes(String(review.userAuthorization))) ||
-      (review.rationale !== null && typeof review.rationale !== 'string') ||
+      (review.rationale != null && typeof review.rationale !== 'string') ||
       !['available', 'pending', 'registered', 'unknown'].includes(String(row.state)) ||
       !Number.isSafeInteger(row.createdAt) ||
       !Number.isSafeInteger(row.expiresAt) ||
@@ -73,10 +74,10 @@ function checked(
       (action.type === 'networkAccess' && !Number.isSafeInteger(action.port)) ||
       (action.type === 'mcpToolCall' &&
         ['connectorId', 'connectorName', 'toolTitle'].some(
-          (field) => action[field] !== null && typeof action[field] !== 'string',
+          (field) => action[field] != null && typeof action[field] !== 'string',
         )) ||
       (action.type === 'requestPermissions' &&
-        action.reason !== null &&
+        action.reason != null &&
         typeof action.reason !== 'string') ||
       (action.type === 'requestPermissions' &&
         (!action.permissions ||
@@ -86,7 +87,10 @@ function checked(
       throw new Error('Guardian 操作类型或内容无效，不能批准。');
     seen.add(String(row.approvalId));
   }
-  return value as { data: Denial[]; captureExhausted: boolean };
+  if (value.captureIssues !== undefined && (!Array.isArray(value.captureIssues) || value.captureIssues.length > 64 ||
+    value.captureIssues.some(issue => typeof object(issue).reviewId !== 'string' || typeof object(issue).reason !== 'string')))
+    throw new Error('Guardian 审查摘要状态无效。');
+  return value as { data: Denial[]; captureExhausted: boolean; captureIssues?: { reviewId: string; reason: string }[] };
 }
 function ActionDetails({ action }: { action: GuardianApprovalReviewAction }) {
   switch (action.type) {
@@ -216,8 +220,8 @@ function DenialCard({
         <span className="badge">Guardian 已拒绝</span>
       </div>
       <p className="small">
-        风险等级：{row.review.riskLevel ?? '未提供'} · 已有用户授权：
-        {row.review.userAuthorization ?? '未提供'}
+        风险等级：{statusLabel(row.review.riskLevel, guardianRisk)} · 已有用户授权：
+        {statusLabel(row.review.userAuthorization, guardianAuthorization)}
       </p>
       <p className="queue-text">{row.review.rationale ?? '原生审查未提供拒绝理由。'}</p>
       <ActionDetails action={row.action} />
@@ -240,7 +244,7 @@ function DenialCard({
       <p className="small muted">
         {row.expiresAt <= now
           ? '授权记录已过期，请重新读取。'
-          : `有效至 ${new Date(row.expiresAt).toLocaleString()}`}{' '}
+          : `有效至 ${new Date(row.expiresAt).toLocaleString('zh-CN')}`}{' '}
         · 状态：
         {
           {
@@ -381,6 +385,9 @@ export function GuardianReviewPanel({
         <ReadState {...resource} />
         <ExtensionStatus api={api} action={action} recoveryLabel="查询原一次重试授权回执" />
         {notice && <p role="status">{notice}</p>}
+        {Boolean(resource.data?.captureIssues?.length) && <p className="workspace-warning" role="status">
+          部分审查内容过大或暂不支持，未生成可重试授权。原始拒绝仍有效，可在会话历史中查看；其他审批和会话可继续使用。
+        </p>}
         {resource.data?.captureExhausted && (
           <p className="workspace-warning">
             本次服务的拒绝捕获已达到上限或遇到不一致，可能没有展示全部记录；不能据此认定没有被拒绝的操作。

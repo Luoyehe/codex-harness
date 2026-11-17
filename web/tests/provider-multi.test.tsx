@@ -63,7 +63,7 @@ it('allows choosing a type only for a new provider and fixes it after creation',
     current = { ...registry, revision: 'd'.repeat(32), connections: [...registry.connections, {
       id: addedId, name: params.name, kind: params.kind, enabled: true, hasApiKey: true,
     }] };
-    return current;
+    return { providerId: addedId, revision: current.revision };
   });
   render(<ProviderSettings api={api} epoch="a" onChanged={vi.fn()} />);
   fireEvent.click(await screen.findByRole('button', { name: '添加供应商' }));

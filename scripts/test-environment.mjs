@@ -1,18 +1,23 @@
-import { chmodSync, mkdirSync, mkdtempSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
 import path from 'node:path';
+import { beginTestWorkspace, finishTestWorkspace } from './test-retention.mjs';
+const workspaces = new Set();
+let cleanupRegistered = false;
 
 export function isolatedPaths(base, rootFixtures = false) {
   const parent = path.join(base, '.work/test-homes'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'run-'));
+  beginTestWorkspace(home); workspaces.add(home);
   // Root fixtures drop UID. Their temp ancestor must be traversable even when
   // the checkout and the test home are private; never use inherited TMPDIR.
-  const temporary = rootFixtures && process.platform !== 'win32' ? mkdtempSync('/tmp/harness-test-root-') : path.join(home, 'tmp');
-  if (temporary !== path.join(home, 'tmp')) chmodSync(temporary, 0o755); else mkdirSync(temporary);
+  const temporary = rootFixtures && process.platform !== 'win32' ? realpathSync(mkdtempSync('/tmp/harness-test-root-')) : path.join(home, 'tmp');
+  if (temporary !== path.join(home, 'tmp')) { chmodSync(temporary, 0o755); beginTestWorkspace(temporary); workspaces.add(temporary); } else mkdirSync(temporary);
   for (const folder of ['appdata', 'localappdata', 'config', 'cache', 'data', 'state']) mkdirSync(path.join(home, folder));
   return { home, temporary };
 }
 
 /** Share one allowlist across local and CI runners; never copy host credentials. */
+/** @returns {NodeJS.ProcessEnv} */
 export function isolatedTestEnvironment(base, inherited = process.env, { rootFixtures = process.getuid?.() === 0 } = {}) {
   const { home, temporary } = isolatedPaths(base, rootFixtures);
   const env = {};
@@ -33,6 +38,10 @@ export function isolatedTestEnvironment(base, inherited = process.env, { rootFix
 
 /** Public CLI planning also invokes Git, before any test subprocess exists. */
 export function isolateTestProcess(base, options) {
+  if (!cleanupRegistered) {
+    cleanupRegistered = true;
+    process.once('exit', code => { for (const directory of workspaces) { try { finishTestWorkspace(directory, code === 0); } catch { /* Keep unconfirmed cleanup for manual inspection. */ } } });
+  }
   const env = isolatedTestEnvironment(base, process.env, options);
   for (const key of Object.keys(process.env)) delete process.env[key];
   Object.assign(process.env, env);

@@ -315,7 +315,7 @@ it.each([false, true])(
       true,
     );
     await act(async () => reject(new Error('settings response lost')));
-    await screen.findByText(/settings response lost/);
+    await screen.findByText(/连接中断或请求超时/);
     expect(summary.matches(':disabled')).toBe(false);
     expect(summary.value).toBe('concise');
     expect(s.calls.filter((c) => c.method === method)).toHaveLength(1);

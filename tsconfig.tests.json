@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2024", "lib": ["ES2024", "DOM"],
+    "module": "ESNext", "moduleResolution": "Bundler", "jsx": "react-jsx",
+    "strict": true, "exactOptionalPropertyTypes": true, "skipLibCheck": true, "noEmit": true,
+    "allowJs": true, "checkJs": false, "esModuleInterop": true,
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "tests/**/*.tsx"]
+}

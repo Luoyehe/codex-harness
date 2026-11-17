@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import type { Api } from '../lib/api';
 import type { Events } from '../lib/events';
 import { message, object } from '../lib/types';
@@ -64,7 +65,10 @@ function Executor({
     [token, setToken] = useState(''),
     [confirmed, setConfirmed] = useState(false),
     [selected, setSelected] = useState('');
+  const [secretNotice, setSecretNotice] = useState('');
+  useSettingsDraft(Boolean(name || url || token));
   useEffect(() => {
+    if (token || confirmed) setSecretNotice('连接状态或页面已变化，访问令牌与确认已清除。提交前请重新填写并核对目标。');
     setToken('');
     setConfirmed(false);
   }, [epoch, visible, enabled]);
@@ -99,6 +103,7 @@ function Executor({
         连接会持续到执行服务重启，关闭网页不会断开。原生接口没有单独删除环境功能。注册远端后，无法证明执行环境的旧会话可能需要先重启执行服务、断开远端，才能安全恢复。
       </p>
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原远端配置回执" />
+      {secretNotice && <p className="small muted" role="status">{secretNotice}</p>}
       <ReadState {...environments} />
       <label className="field">
         已注册执行环境
@@ -492,7 +497,7 @@ function RemoteControl({
                 setPairingId(result.pairingId);
                 setClaimed(undefined);
                 setExpired(false);
-                setPairError('');
+                setPairError(result.secretAvailable === false ? '配对已创建，但原连接已失效，不能取回配对码。请等待该配对过期后重新创建；如需立即撤销，请停用远程控制后再启用。' : '');
                 setPairConfirmed(false);
               }
             }}
@@ -512,7 +517,7 @@ function RemoteControl({
                   <input readOnly value={pair.data.manualPairingCode} />
                 </label>
               )}
-              <p>到期时间：{new Date(expiry(pair.data.expiresAt)).toLocaleString()}</p>
+              <p>到期时间：{new Date(expiry(pair.data.expiresAt)).toLocaleString('zh-CN')}</p>
               <button className="button" disabled={checking} onClick={() => void checkPairing()}>
                 检查是否已配对
               </button>
@@ -535,7 +540,7 @@ function RemoteControl({
           <p className="small">
             {client.platform ?? '平台未提供'} · {client.deviceType ?? '设备类型未提供'}
             {client.lastSeenAt
-              ? ` · 最近活动 ${new Date(expiry(client.lastSeenAt)).toLocaleString()}`
+              ? ` · 最近活动 ${new Date(expiry(client.lastSeenAt)).toLocaleString('zh-CN')}`
               : ''}
           </p>
           <p className="small path">{client.clientId}</p>

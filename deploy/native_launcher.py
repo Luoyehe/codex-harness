@@ -154,25 +154,55 @@ def direct_children() -> list[int]:
     return [int(item) for item in text.split()]
 
 
+def child_exit(child: subprocess.Popen) -> int | None:
+    """Observe the owned leader without releasing its PID/process-group identity."""
+    if child.returncode is not None:
+        raise ChildProcessError("Native group leader was already reaped")
+    result = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    if result is None:
+        return None
+    return result.si_status if result.si_code == os.CLD_EXITED else -result.si_status
+
+
+def wait_child_exit(child: subprocess.Popen, timeout: float) -> int:
+    deadline = time.monotonic() + timeout
+    while True:
+        result = child_exit(child)
+        if result is not None:
+            return result
+        if time.monotonic() >= deadline:
+            raise subprocess.TimeoutExpired(child.args, timeout)
+        time.sleep(min(0.01, max(0, deadline - time.monotonic())))
+
+
 def clean_children(child: subprocess.Popen, deadline: float) -> bool:
     def send(pid, signum, group=False):
         try:
             (os.killpg if group else os.kill)(pid, signum)
         except ProcessLookupError:
             pass
+    # Every caller must retain the leader until this function finishes. A
+    # reaped PID is no longer authority to signal its historical process group.
+    try:
+        child_exit(child)
+    except ChildProcessError:
+        return False
     send(child.pid, signal.SIGTERM, True)
     started = time.monotonic()
     while time.monotonic() < deadline:
-        child.poll()
         children = direct_children()
         for pid in children:
+            if pid == child.pid:
+                continue  # Keep even a zombie leader pinned until its tree ends.
             send(pid, signal.SIGKILL if time.monotonic() - started > 0.5 else signal.SIGTERM)
-            if pid != child.pid:
-                try:
-                    os.waitpid(pid, os.WNOHANG)
-                except ChildProcessError:
-                    pass
-        if not direct_children() and child.poll() is not None:
+            try:
+                os.waitpid(pid, os.WNOHANG)
+            except ChildProcessError:
+                pass
+        if child_exit(child) is not None and not [pid for pid in direct_children() if pid != child.pid]:
+            # A dead leader cannot fork; every other descendant has been
+            # adopted/reaped. No further group signal follows this final wait.
+            child.wait()
             return True
         if time.monotonic() - started > 0.5:
             send(child.pid, signal.SIGKILL, True)
@@ -208,7 +238,7 @@ def supervise(command: list[str], environment: dict[str, str], cwd: str, *, stre
             # unregistered a full input buffer, and must not wait for it to drain.
             input_closed = select.poll()
             input_closed.register(sys.stdin.fileno(), select.POLLRDHUP)
-        while child.poll() is None and not stop_requested:
+        while child_exit(child) is None and not stop_requested:
             if input_closed is not None and ended_at is None and any(
                     events & (select.POLLHUP | select.POLLRDHUP) for _, events in input_closed.poll(0)):
                 ended_at = time.monotonic()
@@ -249,7 +279,7 @@ def supervise(command: list[str], environment: dict[str, str], cwd: str, *, stre
                 elif not pending and output_registered:
                     selector.unregister(child.stdin.fileno())
                     output_registered = False
-        natural = child.poll()
+        natural = child_exit(child)
     finally:
         selector.close()
         if child.stdin is not None and not child.stdin.closed:

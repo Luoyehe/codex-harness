@@ -24,6 +24,28 @@ const operationNames: Record<string, string> = {
   'system/provider/write': '保存模型供应商', 'system/models/refresh': '刷新模型目录',
   'system/restart': '重启服务', 'system/recover': '强制停止并恢复', 'system/execution-mode/write': '切换执行权限',
   'mcp/oauth': 'MCP 浏览器授权',
+  'thread/fork': '复制会话分支', 'thread/compact': '压缩会话上下文', 'thread/revert': '回退会话',
+  'thread/settings/update': '修改会话设置', 'turn/settings/update': '修改回合设置',
+  'thread/queue/add': '添加待办消息', 'thread/queue/update': '修改待办消息',
+  'thread/queue/delete': '删除待办消息', 'thread/queue/start': '执行待办消息', 'thread/queue/reorder': '调整待办顺序',
+  'thread/goal/set': '设置持续目标', 'thread/goal/clear': '清除持续目标',
+  'thread/unsubscribe': '停止会话订阅', 'thread/shellCommand': '执行会话命令',
+  'thread/backgroundTerminals/clean': '停止会话后台进程',
+  'thread/realtime/start': '启动实时会话', 'thread/realtime/stop': '结束实时会话',
+  'review/start': '启动审查', 'review/startNew': '在新会话启动审查',
+  'automation/create': '创建自动化', 'automation/update': '修改自动化', 'automation/remove': '删除自动化',
+  'automation/run': '立即运行自动化', 'automation/pause': '暂停自动化', 'automation/resume': '启用自动化',
+  'workspace/write': '保存文件', 'workspace/delete': '删除文件', 'workspace/move': '移动文件',
+  'workspace/mkdir': '创建目录', 'workspace/git/commit': '提交 Git 修改',
+  'attachment/upload': '上传附件', 'attachment/delete': '删除附件',
+  'process/start': '启动进程', 'process/kill': '停止进程树', 'process/remove': '移除进程输出',
+  'process/writeStdin': '发送进程输入', 'process/resize': '调整进程终端',
+  'account/login/start': '登录模型账号', 'account/login/cancel': '取消模型账号登录', 'account/logout': '退出模型账号',
+  'settings/write': '保存项目配置', 'mcp/configuration/write': '保存 MCP 配置',
+  'mcp/call': '调用 MCP 工具', 'remoteControl/pairing/start': '创建远端配对',
+  'plugin/install': '安装插件', 'plugin/uninstall': '卸载插件', 'marketplace/add': '添加插件市场',
+  'marketplace/remove': '移除插件市场', 'marketplace/upgrade': '更新插件市场',
+  'operation/maintenance/rotate': '清理服务回执', 'import/apply': '导入配置',
 };
 export function useOperations(withHistory = false) {
   const [operations, setOperations] = useState<Operation[]>([]),
@@ -171,7 +193,7 @@ export function Recovery({
                   <small className="path">{o.resourceId}</small>
                 )}
                 <small>
-                  {o.id.slice(0, 8)} · {historyView ? new Date(o.createdAt).toLocaleString() : new Date(o.createdAt).toLocaleTimeString()} ·{' '}
+                  {o.id.slice(0, 8)} · {historyView ? new Date(o.createdAt).toLocaleString('zh-CN') : new Date(o.createdAt).toLocaleTimeString('zh-CN')} ·{' '}
                   {
                     {
                       pending: '正在确认',
@@ -189,6 +211,7 @@ export function Recovery({
                     ? String(object(receipt.error).message).slice(0, 2000)
                     : '暂未取得该操作的失败原因，请核对原操作页面的提示；不会自动重试。'}
                 </p>}
+                {!o.closed && receipt?.state === 'pending' && <p className="small" role="status">服务已收到请求，仍在处理。请稍后查询；不要重复提交。</p>}
                 {!o.closed && ['pending', 'unknown'].includes(o.state) && receipt?.state === 'not_received' && (
                   <div className="stack">
                     <p className="small">
@@ -288,6 +311,13 @@ export function Recovery({
                   >
                     关闭提醒
                   </button>
+                )}
+                {historyView && !o.closed && o.state === 'accepted' && o.method !== 'system/recover' && (
+                  <details><summary>无法打开目标？</summary><p className="small muted">目标已删除或无法加载时，可将已确认受理的本地交接归入历史；不会删除服务器内容或停止执行，已发送的相同草稿会清理。</p>
+                  <button className="button small" title="仅关闭已确认成功的本地交接，保留历史；不会改变服务器会话或执行。"
+                    onClick={async () => { try { await acknowledgeOperation(o.id); } catch (e) { setError(message(e)); } }}>
+                    关闭交接并保留历史
+                  </button></details>
                 )}
               </div>
             </div>

@@ -348,8 +348,8 @@ class ControlUpdater:
         values = {key: base64.b64decode(value, validate=True) for key, value in state["sudoPolicies"].items()}
         path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
         require(path.read_bytes() in values.values(), "Control transaction sudo policy changed", "integrity")
-        atomic_write(path, values[kind], 0o440)
-        run(["/usr/sbin/visudo", "-cf", str(path)])
+        from .sudo_publish import publish
+        publish(path, values[kind], 0o440)
 
     def validate_state(self, state: dict) -> None:
         require(state.get("format") == 1 and state.get("kind") == "control" and state.get("instance") == self.layout.instance and
@@ -546,6 +546,10 @@ class ControlUpdater:
     def require_dns_guard(self, capabilities: dict) -> None:
         """Control selection cannot discard installed DNS, identity or proxy support."""
         require(isinstance(capabilities, dict), "Invalid retained control capabilities", "integrity")
+        metadata_path = self.layout.config / "https.json"
+        if metadata_path.exists():
+            require(read_json(metadata_path).get("clientIdentity") != 1 or capabilities.get("trustedProxyIdentity") == 1,
+                    "Rollback target predates authenticated edge client identity; retain current control tools", "configuration_conflict")
         from .execution_identity import require_control
         require_control(capabilities, self.config)
         from .execution_identity import require_history_control
@@ -607,8 +611,10 @@ class ControlUpdater:
                 require(isinstance(candidate, dict), "Invalid candidate HTTPS metadata snapshot", "corrupt_state")
                 require_selection(candidate, "Rollback target lacks the pending DNS challenge recovery support or its selection is invalid")
             before = state.get("before")
-            require(isinstance(before, dict) and isinstance(before.get("metadata"), dict),
+            require(isinstance(before, dict) and "metadata" in before and (before["metadata"] is None or isinstance(before["metadata"], dict)),
                     "Invalid retained HTTPS metadata snapshot", "corrupt_state")
+            if before["metadata"] is None:
+                continue
             try:
                 metadata = json.loads(base64.b64decode(before["metadata"]["data"], validate=True))
             except (KeyError, TypeError, ValueError) as error:
@@ -622,8 +628,24 @@ class ControlUpdater:
         self.validate_proxy_selection()
         self.prepare_paths()
         require(not self.pending(), "Run control-recover before another control update", "recovery_required")
-        require(len(list(self.records.iterdir())) < 32, "Control generation retention budget reached; inspect and archive completed records", "budget")
         old_manifest = tree_manifest(self.layout.control)
+        if rollback is None:
+            from .install import control_material
+            material = control_material(self.layout)
+            expected = {name: {"type": "file", "mode": mode, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()} for name, (data, mode) in material.items()}
+            for name in list(expected):
+                for parent in Path(name).parents:
+                    if str(parent) != ".":
+                        expected[parent.as_posix()] = {"type": "dir", "mode": 0o755}
+            code = {name: value for name, value in old_manifest.items() if name != "edge" and not name.startswith("edge/")}
+            if code == expected:
+                capabilities = json.loads(material["capabilities.json"][0])
+                policies = self.sudo_policies(capabilities)
+                if policies["old"] == policies["candidate"]:
+                    from .manager import Manager
+                    Manager(self.layout, self.system).verify(https_probe=False)
+                    return {"controlUpdated": False, "changed": False, "servicesRestored": True}
+        require(len(list(self.records.iterdir())) < 32, "Control generation retention budget reached; inspect and archive completed records", "budget")
         retained = None
         if rollback is not None:
             require(ID.fullmatch(rollback) is not None, "Invalid control rollback transaction")

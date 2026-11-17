@@ -41,11 +41,12 @@ export function WorkspaceSearch({
     [path, setPath] = useState(''),
     [mode, setMode] = useState('path'),
     [sensitive, setSensitive] = useState(false),
+    [exclusions, setExclusions] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [result, setResult] = useState<{ key: string; value: Result }>();
   const identity = `${project.id}:${epoch}:${connected}`,
-    key = JSON.stringify([identity, query, path, mode, sensitive]),
+    key = JSON.stringify([identity, query, path, mode, sensitive, exclusions]),
     current = useRef(key);
   current.current = key;
   const currentResult = result?.key === key ? result.value : undefined;
@@ -63,6 +64,8 @@ export function WorkspaceSearch({
           setResult(undefined);
           try {
             const scope = workspacePath(path, true);
+            const excludeNames = [...new Set(exclusions.split(',').map(name => name.trim()).filter(Boolean))];
+            if (excludeNames.length > 32 || excludeNames.some(name => name === '.' || name === '..' || /[\x00-\x1f\x7f/\\]/u.test(name) || new TextEncoder().encode(name).length > 255)) throw new Error('排除项须为目录名，用逗号分隔，最多 32 项；不能包含路径分隔符。');
             const value = await api.call<Result>('workspace/search', {
               projectId: project.id,
               path: scope,
@@ -70,6 +73,7 @@ export function WorkspaceSearch({
               mode,
               caseSensitive: sensitive,
               limit: 100,
+              excludeNames,
             });
             if (
               value.query !== query ||
@@ -113,6 +117,7 @@ export function WorkspaceSearch({
             <option value="text">UTF-8 文本内容</option>
           </select>
         </label>
+        <label className="field">排除目录名（可选，逗号分隔）<input value={exclusions} maxLength={4096} onChange={event => setExclusions(event.target.value)} placeholder="例如 node_modules, dist" /></label>
         <label className="check-row">
           <input
             type="checkbox"
@@ -139,7 +144,7 @@ export function WorkspaceSearch({
               </p>
             )}
             <p className="small muted">
-              扫描 {currentResult.visitedEntries} 项 · 匹配 {currentResult.matches.length} 处 · 跳过{' '}
+              排除：{currentResult.excludedNames.join('、')}。扫描 {currentResult.visitedEntries} 项 · 匹配 {currentResult.matches.length} 处 · 跳过{' '}
               {currentResult.skippedEntries} 项
             </p>
             <ul className="search-hits">

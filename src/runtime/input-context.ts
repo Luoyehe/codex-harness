@@ -17,7 +17,7 @@ export class InputContext {
     jsonBytes({ refs, extras }, 256 * 1024);
     const input: JsonValue[] = [], queuedInput: JsonValue[] = [], additionalContext: JsonObject = {}, seen = new Set<string>();
     let bytes = 0;
-    const add = (source: string, label: string, text: string): void => {
+    const add = (kind: 'reference' | 'extra', source: string, label: string, text: string): void => {
       bytes += Buffer.byteLength(text); if (bytes > 256 * 1024) throw new DeliveryError('capacity', 'Selected context exceeds 256 KiB');
       const key = marker + createHash('sha256').update(source).digest('hex');
       if (Object.hasOwn(additionalContext, key)) throw new DeliveryError('invalid_params', 'Duplicate context source');
@@ -25,7 +25,8 @@ export class InputContext {
       additionalContext[key] = { kind: 'untrusted', value: content };
       // Queue/steer only accept UserInput. Preserve this source as an opaque,
       // labelled text element so editing the main message cannot erase it.
-      queuedInput.push({ type: 'text', text: content, text_elements: [{ byteRange: { start: 0, end: Buffer.byteLength(content) }, placeholder: key }] });
+      const provenance = `${marker}v2:${kind}:${createHash('sha256').update(content).digest('hex')}`;
+      queuedInput.push({ type: 'text', text: content, text_elements: [{ byteRange: { start: 0, end: Buffer.byteLength(content) }, placeholder: provenance }] });
     };
     for (const entry of refs) {
       const ref = object(entry); const identity = canonical(ref); if (seen.has(identity)) throw new DeliveryError('invalid_params', 'Duplicate reference'); seen.add(identity);
@@ -58,20 +59,26 @@ export class InputContext {
         const lines = file.text.split('\n'), start = integer(ref.startLine ?? 1, 'start line', 1, Math.max(lines.length, 1)), end = integer(ref.endLine ?? lines.length, 'end line', start, lines.length);
         if (end - start >= 2000) throw new DeliveryError('capacity', 'A file reference can contain at most 2000 lines');
         const text = lines.slice(start - 1, end).join('\n');
-        add(canonical({ cwd, relative, revision, start, end }), `${JSON.stringify(relative)} lines ${start}-${end} (revision ${revision})`, text);
+        add('reference', canonical({ cwd, relative, revision, start, end }), `${JSON.stringify(relative)} lines ${start}-${end} (revision ${revision})`, text);
       } else throw new DeliveryError('invalid_params', 'Unknown reference type');
     }
     for (const [index, entry] of extras.entries()) {
       const extra = object(entry); onlyKeys(extra, ['label', 'text']); const label = string(extra.label, 'context label', 128), text = string(extra.text, 'context note', 64 * 1024);
-      add(`user-note:${index}:${label}`, JSON.stringify(label), text);
+      add('extra', `user-note:${index}:${label}`, JSON.stringify(label), text);
     }
     const result = { input, additionalContext, queuedInput: [...input, ...queuedInput] }; jsonBytes(result, 768 * 1024); return result;
   }
 }
 export function isContextText(value: JsonObject): boolean {
-  if (value.type !== 'text' || typeof value.text !== 'string' || !Array.isArray(value.text_elements) || value.text_elements.length !== 1) return false;
-  const element = value.text_elements[0]; if (!element || typeof element !== 'object' || Array.isArray(element)) return false;
+  return contextSource(value) !== undefined;
+}
+export function contextSource(value: JsonObject): 'reference' | 'extra' | 'legacy' | undefined {
+  if (value.type !== 'text' || typeof value.text !== 'string' || !Array.isArray(value.text_elements) || value.text_elements.length !== 1) return undefined;
+  const element = value.text_elements[0]; if (!element || typeof element !== 'object' || Array.isArray(element)) return undefined;
   const range = element.byteRange;
-  return typeof element.placeholder === 'string' && /^harness-context:[a-f0-9]{64}$/.test(element.placeholder) && !!range && typeof range === 'object' && !Array.isArray(range) && range.start === 0 && range.end === Buffer.byteLength(value.text);
+  if (typeof element.placeholder !== 'string' || !range || typeof range !== 'object' || Array.isArray(range) || range.start !== 0 || range.end !== Buffer.byteLength(value.text)) return undefined;
+  if (/^harness-context:[a-f0-9]{64}$/.test(element.placeholder)) return 'legacy';
+  const match = /^harness-context:v2:(reference|extra):([a-f0-9]{64})$/.exec(element.placeholder);
+  return match && match[2] === createHash('sha256').update(value.text).digest('hex') ? match[1] as 'reference' | 'extra' : undefined;
 }
 export { outputSchema } from './structured-output.js';

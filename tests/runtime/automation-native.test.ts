@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,14 +22,14 @@ test('scheduled runs use actual worker leases and official CLI after the browser
   const provider = await loopbackProvider(); defer(() => provider.close());
   const catalog = path.join(root, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
-  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: project, env, dev: true }); const pid = runtime.native.processId;
+  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: project, env, dev: true });
   const turnEvents: { method: string; id: unknown; status: unknown }[] = [];
   runtime.native.on('notification', message => {
     const event = object(message); if (event.method !== 'turn/started' && event.method !== 'turn/completed') return;
     const turn = object(object(event.params).turn); if (turnEvents.length < 32) turnEvents.push({ method: event.method, id: turn.id, status: turn.status });
   });
   let handle: Awaited<ReturnType<typeof startWorkerServer>> | undefined, worker: WorkerClient | undefined, ledger: Ledger | undefined, scheduler: AutomationScheduler | undefined;
-  defer(() => { if (pid) expect(() => process.kill(pid, 0)).toThrow(); });
+  defer(() => { expectNativeClosed(runtime.native); });
   defer(() => ledger?.close()); defer(() => runtime.close()); defer(() => handle?.close()); defer(() => worker?.close()); defer(() => scheduler?.close());
     const token = randomBytes(32).toString('hex'); handle = await startWorkerServer(runtime, { devPort: 0, token }); worker = new WorkerClient({ port: (handle.server.address() as AddressInfo).port, token });
     let now = Date.now(); ledger = new Ledger(path.join(root, 'gateway.sqlite'), () => now); const dispatcher = new Dispatcher(ledger, worker, { call: async () => { throw new Error('Unexpected management call'); } });

@@ -1,6 +1,8 @@
 """Server-only proxy changes share the existing stop/recovery transaction gate."""
 from __future__ import annotations
 
+from .config_layer import edge_running
+
 import base64
 import json
 import os
@@ -157,7 +159,7 @@ def restore(manager, journal, *, old=False, upstream=False):
         manager.system.start([manager.layout.unit(role) for role in PROXY_ROLES if role in desired])
     restore_activity(manager, journal["mainActive"])
     require(set(proxy_activity(manager, manager.config)) == set(desired), "Proxy service activity was not restored", "proxy_health")
-    manager.verify(https_probe=set(journal["mainActive"]) == {"worker", "gateway"})
+    manager.verify(https_probe=(set(journal["mainActive"]) == {"worker", "gateway"}) and edge_running(manager))
     if enabled(manager.config) and journal["mainActive"]:
         ready(manager, upstream=upstream)
 
@@ -209,7 +211,7 @@ def previous_selection(manager):
     return sorted(eligible, key=lambda row: row[:2])[-1][2]
 
 
-def change(manager, *, action, confirm_restart, input_file=None, version=None, port=18793, download_proxy=None,
+def change(manager, *, action, confirm_restart, input_file=None, version=None, port=18793, download_proxy=None, expected_sha256=None,
            direct_domains=None):
     from .candidate_archive import require_idle
     from .config_layer import active_services
@@ -223,15 +225,17 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
     require_capability(manager)
     manager.require_update_ready(persist=False)
     require_idle(manager)
-    manager.verify(https_probe=set(active_services(manager)) == {"worker", "gateway"})
+    manager.verify(https_probe=(set(active_services(manager)) == {"worker", "gateway"}) and edge_running(manager))
     current = selection(manager.config)
+    from .service_proxy import require_available_ports
     if action == "configure":
+        require_available_ports(manager, port)
         prerequisites()
         require(input_file is not None and version is not None, "Proxy configuration file and exact core version are required")
         domains = configured_direct_domains(manager.layout, current) if direct_domains is None else direct_domains
         require_capability(manager, direct_domains=bool(domains))
         ident = prepare_configuration(manager.layout, input_file, port, domains)
-        core = prepare_core(manager.layout, version, download_proxy=download_proxy)
+        core = prepare_core(manager.layout, version, download_proxy=download_proxy, expected_sha256=expected_sha256)
         following = {"enabled": True, "port": port, "core": core["core"], "configuration": ident}
     elif action == "direct-domains":
         require(current is not None, "Configure the proxy before changing its direct domains")
@@ -240,9 +244,12 @@ def change(manager, *, action, confirm_restart, input_file=None, version=None, p
         following = {**current, "configuration": ident}
     elif action == "core-update":
         require(current is not None and version is not None, "Configure the proxy before updating its core")
-        core = prepare_core(manager.layout, version, download_proxy=download_proxy)
+        core = prepare_core(manager.layout, version, download_proxy=download_proxy, expected_sha256=expected_sha256)
         following = {**current, "core": core["core"]}
     elif action == "enable":
+        if current is not None:
+            prerequisites()
+            require_available_ports(manager, current["port"])
         require(current is not None, "No saved proxy configuration; configure a VLESS node first", "not_installed")
         following = {**current, "enabled": True}
     elif action == "disable":

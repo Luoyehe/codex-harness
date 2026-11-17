@@ -899,3 +899,15 @@ it('preserves loaded run pages on refresh and discards responses from a previous
   );
   expect(result.current.items.some((item) => item.id === 'foreign')).toBe(false);
 });
+
+it('coalesces changes received during a run-list request into one follow-up read', async () => {
+  let finish!: (value: unknown) => void;
+  const api = { call: vi.fn().mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+    .mockResolvedValue({ data: [{ ...run, id: 'latest', automationId: job.id, state: 'completed' }], next: null }) } as unknown as Api;
+  const view = renderHook(() => useAutomationRuns(api, job.id, 'epoch', true));
+  act(() => { void view.result.current.refresh(); void view.result.current.refresh(); });
+  expect(api.call).toHaveBeenCalledTimes(1);
+  await act(async () => finish({ data: [{ ...run, id: 'old', automationId: job.id }], next: null }));
+  await waitFor(() => expect(view.result.current.items[0]?.id).toBe('latest'));
+  expect(api.call).toHaveBeenCalledTimes(2);
+});

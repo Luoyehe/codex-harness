@@ -50,11 +50,13 @@ export function Login({ api, onLogin, initialError, externalAuthentication = fal
           onLogin();
         } catch (e) {
           if (!mounted.current) return;
-          if (e instanceof RpcError && e.code === 'mfa_required' && e.delivery !== 'unknown') setMfaRequired(true);
-          else { setPassword(''); setConfirmPassword(''); setOtp(''); setToken(''); }
+          const mfaRejected = e instanceof RpcError && e.delivery !== 'unknown' && ['mfa_required', 'mfa_invalid'].includes(e.code);
+          const challenge = mfaRejected && e.code === 'mfa_required';
+          if (mfaRejected) setMfaRequired(true);
+          if (!challenge) { setPassword(''); setConfirmPassword(''); setOtp(''); setToken(''); }
           if (e instanceof RpcError && e.code === 'access_authentication_required') setExternal(true);
           if (e instanceof RpcError && e.delivery === 'unknown') setUncertain(true);
-          setError(message(e));
+          setError(`${message(e)}${challenge ? '' : ' 密码、验证码及令牌已清除，请重新填写。'}`);
         } finally {
           pending.current = false;
           if (mounted.current) setBusy(false);
@@ -77,7 +79,7 @@ export function Login({ api, onLogin, initialError, externalAuthentication = fal
               <input name="username" autoComplete="username" value={username} maxLength={64} pattern="[A-Za-z0-9_.\-]+" onChange={(e) => { setUsername(e.target.value); setMfaRequired(false); setOtp(''); }} required autoFocus />
             </label>
             <label className="field">{setup ? '设置密码' : '密码'}
-              <input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} value={password} maxLength={512} onChange={(e) => { setPassword(e.target.value); setMfaRequired(false); setOtp(''); }} required />
+              <input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} value={password} maxLength={512} onChange={(e) => { setPassword(e.target.value); setOtp(''); }} required />
             </label>
             {setup ? <>
               <p className="small muted">用户名使用字母、数字、下划线、点或短横线；密码为 12–256 个字符，空格会保留。</p>

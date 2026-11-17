@@ -7,19 +7,27 @@ import secrets
 import stat
 from pathlib import Path
 
-from .common import fsync_directory, mkdir, read_json, require, write_json
+from .common import atomic_write, canonical, fsync_directory, mkdir, read_json, require
 
 MAX_PROFILES = 16
 MAX_GENERATIONS = 128
 KEEP_HISTORY = 3
+PROVIDER_JSON_LIMIT = 4 * 1024 * 1024
 GENERATION = re.compile(r"[0-9a-f]{32}")
 GENERATION_FILES = {"settings.json", "models.json", "runtime.json", "config.toml", "host-layers.json", "system-config.toml",
                     "requirements.toml", "provider.env", "native-env.json"}
 
 
+def provider_json(value: dict, label: str) -> bytes:
+    """Check exactly what bounded readers will consume, including the final LF."""
+    data = canonical(value) + b"\n"
+    require(len(data) <= PROVIDER_JSON_LIMIT, label + " exceeds the 4 MiB storage budget; reduce the model catalog", "catalog_budget")
+    return data
+
+
 def private_file(path: Path) -> None:
     details = path.lstat()
-    require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= 4 * 1024 * 1024,
+    require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= PROVIDER_JSON_LIMIT,
             "Unsafe provider profile", "corrupt_state")
     if os.name == "posix":
         require(details.st_uid == os.geteuid() and not details.st_mode & 0o077,
@@ -43,7 +51,7 @@ class Profiles:
             require(len(records) < MAX_PROFILES and re.fullmatch(r"[0-9a-f]{32}\.json", path.name),
                     "Provider profile inventory exceeds its bound or contains unknown material", "corrupt_state")
             private_file(path)
-            value = read_json(path, 4 * 1024 * 1024)
+            value = read_json(path, PROVIDER_JSON_LIMIT)
             require(isinstance(value, dict) and set(value) == {"id", "name", "settings"} and
                     value["id"] == path.stem and isinstance(value["name"], str) and isinstance(value["settings"], dict),
                     "Invalid provider profile", "corrupt_state")
@@ -62,9 +70,12 @@ class Profiles:
         return selected
 
     def public(self) -> list[dict]:
+        from .provider_registry import entries
         return [{"id": row["id"], "name": row["name"], **{key: value for key, value in row["settings"].items()
                  if key in ("kind", "baseUrl", "region", "model", "revision")},
-                 "hasApiKey": bool(row["settings"].get("apiKey"))} for row in self.records()]
+                 "hasApiKey": any(bool(entry["settings"].get("apiKey")) for entry in entries(row["settings"])),
+                 "defaultProviderId": row["settings"].get("defaultProviderId", "default"),
+                 "connections": [{"id": entry["id"], "name": entry["name"], "enabled": entry["enabled"]} for entry in entries(row["settings"])]} for row in self.records()]
 
     def validate_save(self, name: object) -> str:
         from .provider import small_text
@@ -78,9 +89,10 @@ class Profiles:
 
     def save(self, name: object, settings: dict) -> None:
         name = self.validate_save(name)
-        mkdir(self.root, 0o700)
         identity = secrets.token_hex(16)
-        write_json(self.root / (identity + ".json"), {"id": identity, "name": name, "settings": settings}, mode=0o600)
+        data = provider_json({"id": identity, "name": name, "settings": settings}, "Provider profile")
+        mkdir(self.root, 0o700)
+        atomic_write(self.root / (identity + ".json"), data, mode=0o600)
 
     def remove(self, identity: object) -> None:
         record = self.read(identity)

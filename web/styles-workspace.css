@@ -342,7 +342,7 @@
 }
 @media (max-width: 600px) {
   .topbar .breadcrumb { overflow: hidden; }
-  .topbar .connection { font-size: 0; gap: 0; flex-shrink: 0; }
+  .topbar .connection { font-size: 10px; gap: 3px; flex-shrink: 0; }
   .topbar .desktop-header-action { display: none; }
   .topbar .workspace-menu { display: block; }
   .menu-popover .mobile-header-action { display: block; }

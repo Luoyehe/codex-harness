@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 type Trust = {
   userVersion: string | null;
   configuredTrust: 'trusted' | 'untrusted' | null;
@@ -15,28 +16,32 @@ export function ProjectTrustSettings({
   epoch,
   enabled,
   onChanged,
+  visible = true,
 }: {
   api: Api;
   project: Project;
   epoch: string;
   enabled: boolean;
   onChanged: () => void;
+  visible?: boolean;
 }) {
-  const action = useExtensionAction(api, enabled, onChanged),
+  const action = useExtensionAction(api, enabled && visible, onChanged),
     state = useResource(`${project.id}:${epoch}:${action.revision}`, (signal) =>
       api.call<Trust>('project/trust/read', { projectId: project.id }, signal),
     );
   const [choice, setChoice] = useState(''),
     [confirmation, setConfirmation] = useState('');
   const frozen = action.busy || ['pending', 'unknown'].includes(action.operation?.state ?? '');
+  useSettingsDraft(Boolean(choice));
+  useEffect(() => { setConfirmation(''); }, [visible, enabled, epoch]);
   const version = state.data?.userVersion;
   const choiceKey = `${project.id}:${version}:${choice}`;
   return (
     <section className="info-card stack">
       <div className="section-heading">
         <h3>项目配置的信任</h3>
-        <button className="button small" onClick={action.refresh}>
-          重新读取项目信任
+        <button className="button small" disabled={state.loading || action.busy} onClick={action.refresh}>
+          {state.loading ? '正在读取项目信任…' : '重新读取项目信任'}
         </button>
       </div>
       <ReadState {...state} />

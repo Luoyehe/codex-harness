@@ -1,3 +1,4 @@
+import { composing } from '../lib/types';
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { usePaged } from '../hooks/usePaged';
@@ -161,6 +162,7 @@ export function BranchDialog({
       onClose={close}
     >
       <form
+        onKeyDown={event => { if (event.key === 'Enter' && composing(event)) event.preventDefault(); }}
         className="stack"
         onSubmit={(e) => {
           e.preventDefault();
@@ -351,6 +353,7 @@ export function ReviewDialog({
   return (
     <Dialog title="启动代码审查" onClose={close}>
       <form
+        onKeyDown={event => { if (event.key === 'Enter' && composing(event)) event.preventDefault(); }}
         className="stack"
         onSubmit={(e) => {
           e.preventDefault();

@@ -38,7 +38,7 @@ class CandidateArchiveTests(unittest.TestCase):
         self.system.stop.side_effect = lambda _: self.events.append("stop")
         self.system.no_instance_processes.side_effect = lambda *_: self.events.append("no-processes")
         self.manager = types.SimpleNamespace(layout=self.layout, system=self.system, config={},
-                                             verify_release=Mock(), require_service_ownership=Mock())
+                                             verify_release=Mock(), require_service_ownership=Mock(), verify=Mock())
         self.root = archive.archive_root(self.layout)
         self.target = self.root / self.source.name
         self.inventory = self.root / (self.candidate + ".json")
@@ -102,6 +102,14 @@ class CandidateArchiveTests(unittest.TestCase):
         self.events.clear()
         self.assertTrue(self.perform()["alreadyArchived"])
         self.assertEqual(self.events, [])
+
+    def test_integrity_preflight_failure_never_removes_services(self):
+        self.manager.verify.side_effect = DeployError("integrity", "provider generation changed")
+        with self.assertRaisesRegex(DeployError, "provider generation"):
+            self.perform()
+        self.assertNotIn("remove", self.events)
+        self.assertTrue(self.source.exists())
+        self.assertFalse(self.inventory.exists())
 
     def test_missing_or_incomplete_probe_never_stops_services(self):
         for key in archive.PROBES:
@@ -253,7 +261,7 @@ class CandidateArchiveBoundaryTests(unittest.TestCase):
         with patch.object(archive, "require_initialization_complete"), \
              patch.object(archive, "initialization_lock", side_effect=lambda _: lock("initialization")), \
              patch.object(archive, "management_lock", side_effect=lambda _: lock("management")), \
-             patch.object(archive, "Manager"), patch.object(archive, "archive_locked", side_effect=lambda *_: events.append("archive")):
+             patch.object(archive, "Manager"), patch.object(archive, "archive_locked", side_effect=lambda *_, **kwargs: events.append("archive")):
             archive.archive_candidate(Layout("fixture"), "a" * 32, confirm_stop=True)
         self.assertEqual(events, ["enter initialization", "enter management", "archive", "exit management", "exit initialization"])
 

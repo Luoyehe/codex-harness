@@ -1,3 +1,4 @@
+import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
@@ -23,23 +24,23 @@ function answer(res: ServerResponse, id: number): void {
 }
 test('official CLI persists queues and goals, steers active turns, forks/reverts history and starts inline reviews using loopback only', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/workflows-native'); mkdirSync(parent, { recursive: true }); const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temporary = path.join(home, 'tmp'); mkdirSync(codex); mkdirSync(project); mkdirSync(temporary);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.164.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.164.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
   let requests = 0; let hold = false; const held = new Set<ServerResponse>(); const errors: string[] = [];
   const provider = createServer((req, res) => { void (async () => {
     if (req.method !== 'POST' || req.url !== '/v1/responses') throw new Error(`Unexpected fixture route ${req.method} ${req.url}`);
     let bytes = 0; for await (const chunk of req) { bytes += chunk.length; if (bytes > 4 * 1024 * 1024) throw new Error('Fixture request exceeds budget'); }
     requests++; if (hold) { held.add(res); res.on('close', () => held.delete(res)); res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.write(`event: response.created\ndata: ${JSON.stringify({ type: 'response.created', sequence_number: 0, response: { id: `held_${requests}`, object: 'response', status: 'in_progress', model: 'harness-loopback-fixture', output: [] } })}\n\n`); } else answer(res, requests);
   })().catch(error => { errors.push(String(error)); res.destroy(); }); });
-  let runtime: RuntimeService | undefined; const events: RuntimeEvent[] = []; const context = { clientId: 'native-workflows' }; const pids: number[] = [];
+  let runtime: RuntimeService | undefined; const events: RuntimeEvent[] = []; const context = { clientId: 'native-workflows' }; const natives: RuntimeService['native'][] = [];
     await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve));
     defer(async () => { for (const item of held) item.destroy(); const closed = new Promise<void>((resolve, reject) => provider.close(error => error ? reject(error) : resolve())); provider.closeAllConnections(); await closed; expect(provider.listening).toBe(false); });
-    defer(() => { for (const pid of pids) expect(() => process.kill(pid, 0)).toThrow(); });
+    defer(() => { for (const native of natives) expectNativeClosed(native); });
     defer(() => runtime?.close());
     const port = (provider.address() as AddressInfo).port; const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
     writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = "http://127.0.0.1:${port}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
-    const create = async () => { const service = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true }); pids.push(service.native.processId!); service.on('event', event => events.push(event)); return service; };
+    const create = async () => { const service = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true }); natives.push(service.native); service.on('event', event => events.push(event)); return service; };
     runtime = await create();
     const done = async (id: JsonValue, status = 'completed') => { await expect.poll(() => events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(object(event.data).params).turn).id === id), { timeout: 15000 }).toBeTruthy(); const completed = events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(object(event.data).params).turn).id === id)!; expect(object(object(object(completed.data).params).turn).status).toBe(status); };
     const created = object(await runtime.call('conversation/start', { cwd: project, text: 'First workflow message.' }, context)); const threadId = object(created.thread).id!; await done(object(created.turn).id!);
@@ -113,7 +114,7 @@ test('official CLI agent metadata from non-default providers remains visible wit
     const source = ancestor ? { subagent: { thread_spawn: { parent_thread_id: ancestor, depth: 1,
       agent_path: null, agent_nickname: null, agent_role: null } } } : 'cli';
     const payload = { id, session_id: parentId, timestamp: '2026-01-01T00:00:00Z', cwd: project,
-      originator: 'offline-metadata-fixture', cli_version: '0.164.0', model_provider: provider,
+      originator: 'offline-metadata-fixture', cli_version: '0.169.0', model_provider: provider,
       parent_thread_id: ancestor ?? null, source, history_mode: 'legacy', base_instructions: { text: 'Fixture only.' } };
     writeFileSync(path.join(directory, `rollout-2026-01-01T00-00-00-${id}.jsonl`),
       JSON.stringify({ timestamp: payload.timestamp, type: 'session_meta', payload }) + '\n' +

@@ -13,6 +13,19 @@ import { nativeThread } from './fixture-values.js';
 
 const png = (size = 3 * 1024 * 1024) => { const bytes = Buffer.alloc(size, 17); Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(bytes); return bytes; };
 const item = (bytes: Buffer, id = 'image'): JsonObject => ({ type: 'imageGeneration', id, status: 'completed', revisedPrompt: 'A test image', failure: null, result: bytes.toString('base64'), savedPath: '/not-an-authorized-file.png' });
+test('deferred history outputs are fetched once and a changed identity never becomes complete history', async () => {
+  const state = setup(); let wrong = false; const methods: string[] = [];
+  const native = async (method: string, _params: JsonValue): Promise<JsonValue> => {
+    methods.push(method);
+    if (method === 'thread/turns/list') return { data: [{ id: 'turn', items: [], itemsView: 'notLoaded' }], nextCursor: null };
+    if (method === 'thread/items/list') return { data: [{ turnId: 'turn', item: { id: 'command', type: 'commandExecution', aggregatedOutput: '' }, outputDeferred: true }], nextCursor: null };
+    expect(method).toBe('thread/items/read'); return { data: [{ turnId: 'turn', item: { id: wrong ? 'other' : 'command', type: 'commandExecution', aggregatedOutput: 'retained output' } }] };
+  };
+  const request = { threadId: 'thread', itemsView: 'full' };
+  expect(await readMediaHistory(native, state.media, 'thread/turns/list', request)).toMatchObject({ data: [{ items: [{ aggregatedOutput: 'retained output' }] }] });
+  expect(methods).toEqual(['thread/turns/list', 'thread/items/list', 'thread/items/read']); wrong = true;
+  await expect(readMediaHistory(native, state.media, 'thread/turns/list', request)).rejects.toMatchObject({ code: 'invalid_native_response' });
+});
 function setup(bytes = png()) {
   let revision = 0, closed = false; let current: JsonValue[] = [{ turnId: 'turn', item: item(bytes) }];
   const native = vi.fn(async (method: string, params: JsonValue): Promise<JsonValue> => {

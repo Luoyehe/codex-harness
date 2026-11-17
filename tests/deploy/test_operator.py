@@ -244,11 +244,17 @@ class OperatorTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, "already_installed")
         self.assertFalse(self.calls)
 
+    def installed_layout(self):
+        layout = Layout("fixture", self.directory)
+        layout.config.mkdir(parents=True, exist_ok=True)
+        (layout.config / "instance.json").write_text("{}")
+        return layout
+
     def test_upgrade_orders_control_configuration_and_application(self):
         menu = self.console(["y"])
-        with patch.object(menu, "prepare_dependencies"), patch.object(menu, "status") as status:
+        with patch("deploy.operator.Layout", return_value=self.installed_layout()), patch.object(menu, "prepare_dependencies"), patch.object(menu, "status") as status:
             menu.update()
-        self.assertEqual([args.command for args in self.calls], ["pack-source", "control-update", "config-layer-migrate", "update"])
+        self.assertEqual([args.command for args in self.calls], ["pack-source", "control-update", "config-layer-migrate", "https-refresh-client-identity", "update"])
         self.assertFalse(self.calls[-1].source.exists())
         status.assert_called_once()
 
@@ -258,7 +264,7 @@ class OperatorTests(unittest.TestCase):
                 raise DeployError("recovery_required", "Stopped-tree recovery needed")
             return {}
         menu = self.console(["y"], fail)
-        with patch.object(menu, "prepare_dependencies"), self.assertRaises(DeployError):
+        with patch("deploy.operator.Layout", return_value=self.installed_layout()), patch.object(menu, "prepare_dependencies"), self.assertRaises(DeployError):
             menu.update()
         self.assertEqual([args.command for args in self.calls], ["pack-source", "control-update"])
         archive = self.calls[0].output
@@ -267,7 +273,7 @@ class OperatorTests(unittest.TestCase):
         archive.parent.rmdir()
 
     def test_full_candidate_budget_stops_before_any_upgrade_step(self):
-        layout = Layout("fixture", self.directory)
+        layout = self.installed_layout()
         for number in range(8):
             (layout.work / ("candidate-" + str(number))).mkdir(parents=True)
         menu = self.console([])
@@ -296,7 +302,8 @@ class OperatorTests(unittest.TestCase):
         self.assertIn("没有通过完整验证", "\n".join(self.output))
 
     def test_cancelled_upgrade_and_account_reset_have_no_side_effects(self):
-        self.console(["n"]).update()
+        with patch("deploy.operator.Layout", return_value=self.installed_layout()):
+            self.console(["n"]).update()
         self.console(["operator", "n"]).reset_account()
         self.assertEqual(self.calls, [])
 
@@ -347,7 +354,7 @@ class OperatorTests(unittest.TestCase):
             return {}
         # host, TLS port, HTTP port, origin, DNS mode/provider, confirmation,
         # 2FA, credential input mode. Username is retained from installation.
-        menu = self.console(["work.example.test", "10000", "", "", "1", "1", "y", "n", "1"], run,
+        menu = self.console(["work.example.test", "10000", "", "", "1", "1", "y", "", "n", "1"], run,
                             ["fixture-access-123456", "fixture-secret-123456"])
         menu.https(username="admin")
         self.assertEqual([args.command for args in self.calls], ["https-read", "https-plan", "https"])
@@ -362,7 +369,7 @@ class OperatorTests(unittest.TestCase):
                    "settings": {"host": "old.example.test", "httpsPort": 18443, "httpPort": 18081,
                                 "publicOrigin": "https://old.example.test:18443", "tls": "acme", "dnsProvider": "alidns",
                                 "authentication": "builtin", "phase": "active"}}
-        menu = self.console(["new.example.test", "10000", "", "", "", "", "y", "n", ""],
+        menu = self.console(["new.example.test", "10000", "", "", "", "", "y", "", "n", ""],
                             lambda args: current if args.command == "https-read" else {})
         menu.https(username="admin")
         args = self.calls[-1]
@@ -380,7 +387,7 @@ class OperatorTests(unittest.TestCase):
                                "settings": {"host": "work.example.test", "tls": "internal", "httpPort": 18081,
                                             "httpsPort": 18443, "publicOrigin": public,
                                             "authentication": authentication, "phase": phase}}
-                    self.console(["", "", "", "", "", "y", "n"],
+                    self.console(["", "", "", "", "", "y", "", "n"],
                                  lambda args: current if args.command == "https-read" else {}).https(username="admin")
                     args = self.calls[-1]
                     migration = authentication == "builtin" and phase == "active"
@@ -392,7 +399,7 @@ class OperatorTests(unittest.TestCase):
         current = {"origin": "http://127.0.0.1:3300", "httpsRevision": "a" * 64,
                    "settings": {"host": "work.example.test", "tls": "internal", "httpPort": 18081,
                                 "httpsPort": 18443, "publicOrigin": None, "authentication": "builtin", "phase": "prepared"}}
-        self.console(["", "", "", "https://WORK.example.test:18443/", "", "y", "n"],
+        self.console(["", "", "", "https://WORK.example.test:18443/", "", "y", "", "n"],
                      lambda args: current if args.command == "https-read" else {}).https(username="admin")
         self.assertEqual(self.calls[-1].command, "https")
         self.assertIsNone(self.calls[-1].public_origin)
@@ -401,7 +408,7 @@ class OperatorTests(unittest.TestCase):
         current = {"origin": "https://work.example.test", "httpsRevision": "a" * 64,
                    "settings": {"host": "work.example.test", "tls": "internal", "httpPort": 80,
                                 "httpsPort": 443, "publicOrigin": None, "authentication": None, "phase": "active"}}
-        self.console(["", "", "", "", "", "y", "n"],
+        self.console(["", "", "", "", "", "y", "", "n"],
                      lambda args: current if args.command == "https-read" else {}).https(username="admin")
         args = self.calls[-1]
         self.assertEqual((args.command, args.http_port, args.https_port, args.public_origin), ("https", 80, 443, None))
@@ -417,7 +424,7 @@ class OperatorTests(unittest.TestCase):
                 inputs = ["work.example.test", "", "", "", mode, "y"]
                 if mode == "3":
                     inputs += ["/root/cert.pem", "/root/key.pem", ""]
-                inputs += ["y"]
+                inputs += ["", "y"]
                 self.console(inputs, run).https(username="operator")
                 args = self.calls[-1]
                 self.assertTrue(args.two_factor)
@@ -467,7 +474,7 @@ class OperatorTests(unittest.TestCase):
 
     def test_recovery_routes_to_original_commands_without_replacing_credentials(self):
         for value, command in (("1", "repair"), ("2", "control-recover"), ("4", "restore-services"), ("5", "rollback")):
-            self.console([value, "y"]).recover()
+            self.console([value, *(["1"] if command in ("repair", "control-recover") else []), "y"]).recover()
             self.assertEqual(self.calls[-1].command, command)
         self.console(["3", "y"]).recover()
         self.assertEqual(self.calls[-1].command, "install-resume")

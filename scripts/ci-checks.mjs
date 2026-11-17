@@ -17,6 +17,7 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = file => JSON.parse(readFileSync(file, 'utf8'));
 const save = (file, value) => { mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, JSON.stringify(value, null, 2) + '\n'); };
 
+/** @param {{changed:string[], available:string[], head:string, sourceDigest:string, authorization?:{sourceDigest:string, [key:string]:unknown}}} options */
 export function selectCiPlan({ changed, available, head, sourceDigest, authorization }) {
   if (!commit(head)) throw Error('CI must inspect an explicit head commit');
   const selected = selectTests(changed, available);
@@ -38,12 +39,20 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   const head = env.HARNESS_CI_HEAD || event.pull_request?.head?.sha || env.GITHUB_SHA;
   let baseCommit = env.HARNESS_CI_BASE || event.pull_request?.base?.sha || event.before;
   const pullRequestBase = !env.HARNESS_CI_BASE && event.pull_request?.base?.sha;
+  // Repository approval is only a PR trust anchor. Its previous-release value
+  // must not override trusted main's committed source-bound authorization.
+  const explicitChecksum = env.HARNESS_AUTHORIZATION_SHA;
+  const expectedChecksum = explicitChecksum || (event.pull_request ? env.HARNESS_PR_AUTHORIZATION_SHA : undefined);
   let authorization;
   const file = path.join(base, authorizationPath);
-  if (existsSync(file)) {
-    const checksum = env.HARNESS_AUTHORIZATION_SHA || hash(readFileSync(file));
+  const hasAuthorizationFile = existsSync(file);
+  if (explicitChecksum && !hasAuthorizationFile) throw Error('Explicit authorization checksum requires its source-bound authorization file');
+  // A PR-controlled file cannot authenticate its own approval. Maintainer-run
+  // manual checks can supply the exact checksum outside the proposed source.
+  if (hasAuthorizationFile && (!event.pull_request || expectedChecksum)) {
+    const checksum = expectedChecksum || hash(readFileSync(file));
     try { authorization = releaseAuthorization(base, authorizationPath, checksum); }
-    catch (error) { if (env.HARNESS_AUTHORIZATION_SHA) throw error; }
+    catch (error) { if (expectedChecksum) throw error; }
   }
   // A new ref/tag has a zero before SHA. Only an explicitly reviewed base may
   // replace it; HEAD~1 could silently omit most of a new branch or rewrite.

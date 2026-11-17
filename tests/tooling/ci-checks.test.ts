@@ -86,6 +86,66 @@ test('zero-base new refs require an explicit reviewed ancestor, rather than HEAD
   expect(() => buildCiPlan(base, { ...env, HARNESS_CI_HEAD: 'a'.repeat(40) })).toThrow(/checkout/);
 });
 
+test('main and manual plans ignore stale PR approval while explicit manual checksums stay mandatory', () => {
+  const { base, baseCommit } = fixture();
+  writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Reviewed release change' }));
+  const approval = approve(base, baseCommit);
+  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed change'], { cwd: base, windowsHide: true });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const stale = '0'.repeat(64), env = { GITHUB_SHA: currentHead, HARNESS_PR_AUTHORIZATION_SHA: stale };
+  const main = buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main' }, { before: baseCommit });
+  expect(main).toMatchObject({ mode: 'authorized-full', authorization: { sha256: approval.sha256 } });
+  expect(main.files).toEqual(available);
+  const manual = { ...env, GITHUB_EVENT_NAME: 'workflow_dispatch', HARNESS_CI_BASE: baseCommit };
+  expect(buildCiPlan(base, manual, {}).mode).toBe('authorized-full');
+  expect(() => buildCiPlan(base, { ...manual, HARNESS_AUTHORIZATION_SHA: stale }, {})).toThrow(/checksum/);
+  expect(buildCiPlan(base, { ...manual, HARNESS_AUTHORIZATION_SHA: approval.sha256 }, {}).mode).toBe('authorized-full');
+  // The workflow must preserve the two independent trust sources at the call boundary.
+  const workflow = readFileSync('.github/workflows/affected.yml', 'utf8');
+  expect(workflow).toContain('HARNESS_AUTHORIZATION_SHA: ${{ inputs.authorization_sha256 }}');
+  expect(workflow).toContain("HARNESS_PR_AUTHORIZATION_SHA: ${{ github.event_name == 'pull_request' && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}");
+  expect(workflow).not.toContain('inputs.authorization_sha256 || vars.HARNESS_RELEASE_AUTHORIZATION_SHA256');
+});
+
+test('a committed PR authorization cannot approve itself and external PR approval remains exact-source', () => {
+  const { base, baseCommit } = fixture();
+  writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Proposed release change' }));
+  const approval = approve(base, baseCommit);
+  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'proposed change'], { cwd: base, windowsHide: true });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
+  const env = { GITHUB_SHA: currentHead, GITHUB_EVENT_NAME: 'pull_request' };
+  expect(() => buildCiPlan(base, env, event)).toThrow(/complete review/);
+  expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, event)).toThrow(/checksum/);
+  expect(buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event)).toMatchObject({ mode: 'authorized-full', authorization: { sha256: approval.sha256 } });
+  writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Unreviewed bytes' }));
+  expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event)).toThrow(/source/);
+});
+
+test('an explicit checksum requires its file while absent optional approval preserves only narrow plans', () => {
+  const { base, baseCommit } = fixture();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// Reviewed narrow fixture change.\n');
+  git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'narrow change');
+  const currentHead = git('rev-parse', 'HEAD'), optional = '0'.repeat(64);
+  const env = { GITHUB_SHA: currentHead, HARNESS_CI_BASE: baseCommit, GITHUB_EVENT_NAME: 'workflow_dispatch' };
+  expect(buildCiPlan(base, env, {})).toMatchObject({ mode: 'selected', files: ['tests/core/example.test.ts'] });
+  for (const checksum of ['not-a-checksum', optional]) {
+    expect(() => buildCiPlan(base, { ...env, HARNESS_AUTHORIZATION_SHA: checksum }, {})).toThrow(/requires.*authorization file/);
+  }
+  const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
+  const pr = { GITHUB_SHA: currentHead, GITHUB_EVENT_NAME: 'pull_request', HARNESS_PR_AUTHORIZATION_SHA: optional };
+  expect(buildCiPlan(base, pr, event)).toMatchObject({ mode: 'selected', files: ['tests/core/example.test.ts'] });
+  // Optional missing approval never authorizes an unrelated broad change.
+  writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Broad unapproved change' }));
+  git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'broad change');
+  const broadHead = git('rev-parse', 'HEAD');
+  expect(() => buildCiPlan(base, { ...env, GITHUB_SHA: broadHead }, {})).toThrow(/complete review/);
+  expect(() => buildCiPlan(base, { ...pr, GITHUB_SHA: broadHead }, { pull_request: { base: { sha: baseCommit }, head: { sha: broadHead } } })).toThrow(/complete review/);
+});
+
 test('a PR uses the shared ancestor when its target branch advanced independently', () => {
   const { base, baseCommit } = fixture();
   const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -174,6 +234,10 @@ test('hosted root work is scoped and every matrix result is reconciled before th
   expect(workflow).toContain('scripts/ci-checks.mjs plan'); expect(workflow).toContain('scripts/ci-checks.mjs reconcile');
   expect(workflow).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');
   expect(workflow).toContain('/usr/bin/sudo -n -- /usr/bin/env -i');
-  expect(workflow).toContain('if: always() && needs.plan.result');
+  const coverage = workflow.replaceAll('\r\n', '\n').split('\n  coverage:\n')[1]!;
+  expect(coverage).toContain('if: always()');
+  expect(coverage).not.toContain("needs.plan.result == 'success'");
+  expect(coverage).toContain('scripts/ci-job-status.mjs');
+  expect(coverage).toContain('HARNESS_CI_NEEDS: ${{ toJSON(needs) }}');
   expect(workflow).not.toContain('pull_request_target:');
 });

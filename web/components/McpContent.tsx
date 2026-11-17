@@ -236,7 +236,7 @@ function McpItems({ content, identity = content, onResource }: ContentProps) {
               <code className="path">{String(resource.uri ?? '')}</code>
               <p>
                 二进制资源 · {String(resource.mimeType ?? '未知类型')} · Base64{' '}
-                {resource.blob.length.toLocaleString()} 字符
+                {resource.blob.length.toLocaleString('zh-CN')} 字符
               </p>
             </div>
           );

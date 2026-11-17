@@ -8,12 +8,14 @@ export function downloadBlob(data: Blob, filename: string): void {
     link.click();
   } finally {
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Downloads can be handed off asynchronously on mobile browsers. Keep the
+    // URL alive for a bounded grace period; never revoke it during the click.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 }
 export function downloadJson(value: unknown, filename: string): void {
   const text = JSON.stringify(value, null, 2);
   if (new TextEncoder().encode(text).length > 1024 * 1024)
-    throw new Error('诊断摘要超过 1 MiB 下载上限。');
+    throw new Error('JSON 文件超过 1 MiB 下载上限，请缩小导出范围。');
   downloadBlob(new Blob([text], { type: 'application/json' }), filename);
 }

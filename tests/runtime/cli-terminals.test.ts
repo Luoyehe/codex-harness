@@ -32,7 +32,7 @@ afterEach(async () => { await Promise.all(services.splice(0).map(service => serv
 
 test('fixed CLI argv, private connection ownership, and independent cleanup proof protect the maintenance lease', async () => {
   const f = setup(); await expect(f.service.call('terminal/open', { cwd: f.cwd, program: 'codex', args: ['--dangerously-bypass-hook-trust'] }, owner)).rejects.toMatchObject({ code: 'invalid_params' });
-  const result = object(await f.open()), terminalId = result.terminalId!, processHandle = handle(f.native); expect(Object.keys(result)).toEqual(['terminalId']); expect(fixture.commands).toEqual([[process.execPath, '--no-alt-screen']]);
+  const result = object(await f.open()), terminalId = result.terminalId!, processHandle = handle(f.native); expect(result).toMatchObject({ maxLifetimeMs: 3600000, outputHistoryBytes: 1048576 }); expect(Object.keys(result).sort()).toEqual(['maxLifetimeMs', 'outputHistoryBytes', 'terminalId']); expect(fixture.commands).toEqual([[process.execPath, '--no-alt-screen']]);
   for (const changed of [{ ...owner, clientId: 'other' }, { ...owner, eventChannelId: 'other' }]) await expect(f.service.call('terminal/write', { terminalId, text: '/hooks' }, changed)).rejects.toMatchObject({ code: 'not_found' });
   f.native.emit('notification', { method: 'process/outputDelta', params: { processHandle, stream: 'stdout', deltaBase64: 'YQ==', capReached: false } });
   const event = f.events.find(event => event.type === 'terminal')!; expect(event).toMatchObject({ eventChannelId: 'channel', data: { terminalId, clientId: 'owner', type: 'output' } }); expect(object(event.data)).not.toHaveProperty('processHandle');

@@ -2,8 +2,9 @@ import { requireRecoveryProtocol } from './recovery-protocol.js';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { Socket } from 'node:net';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { isIP, type Socket } from 'node:net';
+import { MAX_EVENT_BYTES } from '../shared/event-limits.js';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Authentication } from './auth.js';
 import { Dispatcher } from './dispatch.js';
@@ -12,6 +13,7 @@ import type { HarnessEvent, JsonValue } from '../core/contracts.js';
 import { LIMITS } from '../core/contracts.js';
 import { HarnessError, errorBody } from '../core/errors.js';
 import { Budget } from '../core/budget.js';
+import { httpErrorStatus } from './http-errors.js';
 import { object, rpcCall, safeJson } from '../core/validation.js';
 
 const contentTypes: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
@@ -49,6 +51,7 @@ export class GatewayServer {
   readonly #connecting = new Set<string>();
   readonly #disconnecting = new Map<string, Promise<void>>();
   readonly #budget = new Budget(LIMITS.concurrentRequests, LIMITS.retainedRequestBytes);
+  readonly #anonymousRequests = new Budget(8, 64 * 1024);
   readonly #responses = new Budget(LIMITS.httpConnections, LIMITS.retainedResponseBytes);
   // Recovery must remain reachable when ordinary backend work or slow response
   // consumers exhaust their budgets. Only this authenticated, fixed route owns
@@ -63,7 +66,7 @@ export class GatewayServer {
     for (const connection of this.#browsers.values()) if (!this.auth.session(connection.cookie)) connection.socket.close(4001, 'session revoked');
   };
   #closing = false;
-  constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string) {
+  constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string, private readonly options: { trustedProxyToken?: string } = {}) {
     auth.on('revoked', this.#revoke);
     this.server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 20000, headersTimeout: 10000, keepAliveTimeout: 5000 }, (req, res) => { void this.handle(req, res); });
     this.server.maxRequestsPerSocket = 500;
@@ -136,11 +139,20 @@ export class GatewayServer {
   private send(connection: BrowserConnection, event: HarnessEvent): void {
     if (connection.socket.readyState !== WebSocket.OPEN) return;
     if (!this.auth.session(connection.cookie)) { connection.socket.close(4001, 'session expired'); return; }
-    const payload = JSON.stringify(event);
-    if (Buffer.byteLength(payload) > LIMITS.responseBytes || connection.socket.bufferedAmount + Buffer.byteLength(payload) > LIMITS.socketBufferedBytes) {
+    let payload = JSON.stringify(event);
+    if (Buffer.byteLength(payload) > MAX_EVENT_BYTES) {
+      payload = JSON.stringify({ type: 'resync', data: { reason: 'event_capacity', message: '一条实时结果超过显示预算，请重新读取会话历史。' } });
+    }
+    if (connection.socket.bufferedAmount + Buffer.byteLength(payload) > LIMITS.socketBufferedBytes) {
       connection.socket.close(1013, 'Resynchronization required'); return;
     }
     connection.socket.send(payload, error => { if (error) connection.socket.terminate(); });
+  }
+  private peer(req: IncomingMessage): string {
+    const peer = req.socket.remoteAddress ?? 'unknown', expected = this.options.trustedProxyToken;
+    const supplied = header(req, 'x-harness-proxy-token'), address = header(req, 'x-harness-client-ip');
+    if (expected && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer) && supplied && address && isIP(address) && Buffer.byteLength(supplied) === Buffer.byteLength(expected) && timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return address;
+    return peer;
   }
   private broadcast(event: HarnessEvent): void {
     let target: string | null = null;
@@ -200,7 +212,8 @@ export class GatewayServer {
         this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
         this.#recoveryOutput.add(res);
       }
-      const reservation = (recoveryRequest ? this.#recoveryRequests : this.#budget).reserve(); release = reservation.release;
+      const authenticated = !!this.auth.session(header(req, 'cookie'));
+      const reservation = (recoveryRequest ? this.#recoveryRequests : authenticated ? this.#budget : this.#anonymousRequests).reserve(); release = reservation.release;
       if (url.pathname === '/health' && req.method === 'GET') {
         const state = this.dispatcher.status(); object(state); object(state.activity);
         const ready = state.connected === true && state.activity.unknown === false;
@@ -220,7 +233,7 @@ export class GatewayServer {
         if (req.method === 'POST') {
           const value = await body(req, 8192, reservation.add); object(value);
           authenticationMutationStarted = true;
-          const login = await this.auth.login(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
+          const login = await this.auth.login(value, this.peer(req), header(req, 'user-agent'));
           authenticationMutationCompleted = true;
           res.setHeader('set-cookie', login.cookie); this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration(), operationRecoveryProtocol: 2 } as JsonValue); return;
         }
@@ -239,7 +252,7 @@ export class GatewayServer {
         this.auth.checkOrigin(header(req, 'origin'));
         const value = await body(req, 8192, reservation.add); object(value);
         authenticationMutationStarted = true;
-        const login = await this.auth.setup(value, req.socket.remoteAddress ?? 'unknown', header(req, 'user-agent'));
+        const login = await this.auth.setup(value, this.peer(req), header(req, 'user-agent'));
         authenticationMutationCompleted = true;
         res.setHeader('set-cookie', login.cookie);
         this.json(res, { ...this.auth.status(login.cookie), operationGeneration: this.dispatcher.ledger.operationGeneration(), operationRecoveryProtocol: 2 } as JsonValue); return;
@@ -253,7 +266,7 @@ export class GatewayServer {
         this.auth.checkOrigin(header(req, 'origin'));
         const session = this.auth.require(cookie, header(req, 'x-harness-csrf') ?? '');
         const value = await body(req, 8192, reservation.add); object(value);
-        const peer = req.socket.remoteAddress ?? 'unknown';
+        const peer = this.peer(req);
         authenticationMutationStarted = true;
         if (url.pathname === '/api/account/password') {
           await this.auth.changePassword(session, value, peer); authenticationMutationCompleted = true; res.setHeader('set-cookie', this.auth.logout(cookie)); this.json(res, { authenticated: false }); return;
@@ -272,13 +285,15 @@ export class GatewayServer {
         this.auth.checkOrigin(header(req, 'origin'));
         const session = this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? '');
         const clientId = this.auth.client(session, header(req, 'x-harness-client'));
+        // Bind this request to its admission-time lease. A slow body must not
+        // borrow a replacement tab's authority after the original disconnects.
+        const connection = this.#browsers.get(clientId);
         // Keep admission until both backend work and the HTTP response settle.
         const call = rpcCall(await body(req, recoveryRequest ? 8192 : LIMITS.requestBytes, reservation.add));
         if (recoveryRequest && call.method !== 'system/recover') throw new HarnessError('invalid', '恢复入口仅接受强制停止并恢复服务操作。');
         const requireAuthorization = () => { this.auth.require(header(req, 'cookie'), header(req, 'x-harness-csrf') ?? ''); };
         requireAuthorization();
         requireRecoveryProtocol(call.method, header(req, 'x-harness-recovery'));
-        const connection = this.#browsers.get(clientId);
         const requireConnection = () => {
           requireAuthorization();
           if (!connection || this.#browsers.get(clientId) !== connection || connection.socket.readyState !== WebSocket.OPEN || this.#connecting.has(clientId) || this.#disconnecting.has(clientId))
@@ -288,7 +303,12 @@ export class GatewayServer {
         rpcCompleted = true;
         this.json(res, { ok: true, result }); return;
       }
+      if (['/api/rpc', '/api/recover'].includes(url.pathname)) {
+        res.setHeader('allow', 'POST');
+        throw new HarnessError('method_not_allowed', '此接口仅支持 POST。');
+      }
       if (url.pathname.startsWith('/api/')) throw new HarnessError('not_found', '接口不存在。');
+      res.setHeader('allow', 'GET, HEAD');
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HarnessError('method_not_allowed', '不支持此请求方法。');
       await this.serveStatic(url.pathname, req, res);
     } catch (error) {
@@ -296,7 +316,7 @@ export class GatewayServer {
       // Response encoding/admission can fail after the operation committed. Its
       // original receipt remains authoritative; never invite a fresh retry.
       if (authenticationMutationCompleted || rpcCompleted) failure.delivery = 'unknown';
-      const status = ['unauthorized', 'mfa_required'].includes(failure.code) ? 401 : ['csrf', 'host', 'origin'].includes(failure.code) ? 403 : failure.code === 'not_found' ? 404 : failure.code === 'rate_limited' ? 429 : 400;
+      const status = httpErrorStatus(failure.code);
       try { if (!res.headersSent) this.json(res, { ok: false, error: { ...failure } }, status); else { res.destroy(); req.socket.destroy(); } }
       catch { res.destroy(); req.socket.destroy(); } // An exhausted output budget cannot allocate an unbounded error response.
       req.resume();
@@ -345,6 +365,10 @@ export class GatewayServer {
         if (data && data.length !== info.size) throw new HarnessError('unavailable', '资源正在变化，请稍后重试。');
         if (res.destroyed) { release(); return; }
         release = this.retainResponse(res, 0, release);
+        // Vite content-addressed assets are immutable. HTML, arbitrary files,
+        // authentication and all API responses retain the no-store default.
+        if (/^\/assets\/[A-Za-z0-9_.-]+-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2|png|svg|ico)$/.test(decoded))
+          res.setHeader('cache-control', 'public, max-age=31536000, immutable');
         res.writeHead(200, { 'content-type': contentTypes[path.extname(file)] ?? 'application/octet-stream', 'content-length': info.size });
         res.end(data);
       } catch (error) { release(); throw error; }

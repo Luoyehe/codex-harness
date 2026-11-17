@@ -89,7 +89,7 @@ export function AttachmentButton({
       const bytes = mediaBytes(result.base64, true);
       if (bytes.length !== result.size) throw new Error('附件响应的字节数不匹配。');
       let image = false,
-        downloadMime = mime ?? 'application/octet-stream',
+        downloadMime = 'application/octet-stream',
         notice: string | undefined = mime
           ? undefined
           : '附件声明的类型无法安全预览，已按普通文件提供下载。';
@@ -97,6 +97,7 @@ export function AttachmentButton({
         try {
           if (mediaMime(bytes, 'image') !== mime) throw new Error('图片声明类型与文件内容不匹配。');
           image = true;
+          downloadMime = mime;
         } catch (e) {
           downloadMime = 'application/octet-stream';
           notice = `${message(e)} 可下载原文件到本地查看。`;

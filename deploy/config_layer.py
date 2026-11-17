@@ -98,6 +98,15 @@ def user_layer(manager) -> None:
             os.close(fd)
 
 
+def edge_running(manager) -> bool:
+    if not (manager.layout.config / "https.json").exists():
+        return False
+    value = manager.system.state(manager.layout.unit("caddy"))
+    active = value["ActiveState"] == "active" and value["SubState"] == "running" and value["MainPID"] != "0" and value["ControlPID"] == "0"
+    require(active or value["stopped"], "HTTPS edge state is not stable", "stop_unknown")
+    return active
+
+
 def active_services(manager) -> list[str]:
     active = []
     for role in ROLES:

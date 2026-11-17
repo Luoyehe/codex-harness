@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import type { Api } from '../lib/api';
 import { useExtensionAction } from './ExtensionControls';
 import { isArchivedReceipt, reconcileOperation } from '../lib/operations';
@@ -48,6 +49,7 @@ export function ModelCatalog({
   enabled = true,
   visible: active = true,
   scopeKey = '',
+  onDraftChange,
 }: {
   api: Api;
   provider: Record<string, unknown>;
@@ -55,6 +57,7 @@ export function ModelCatalog({
   enabled?: boolean;
   visible?: boolean;
   scopeKey?: string;
+  onDraftChange?: (dirty: boolean) => void;
 }) {
   const automatic = typeof provider.providerId === 'string';
   const native = automatic &&
@@ -73,7 +76,18 @@ export function ModelCatalog({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [status, setStatus] = useState('');
-  // Discovery is a preview. Refreshing the provider here would unmount this editor.
+  const hasDraft = Boolean(manual || rows.length);
+  useSettingsDraft(hasDraft);
+  useEffect(() => { onDraftChange?.(hasDraft); }, [hasDraft, onDraftChange]);
+  useEffect(() => () => { onDraftChange?.(false); }, [onDraftChange]);
+  const previousRevision = useRef(provider.revision);
+  useEffect(() => {
+    if (previousRevision.current !== provider.revision && hasDraft)
+      setStatus('供应商配置已更新，未保存的目录编辑仍保留。请核对当前配置与模型能力后重新确认。');
+    previousRevision.current = provider.revision;
+  }, [provider.revision, hasDraft]);
+  // Discovery is a preview. Registry refreshes retain this provider's editor,
+  // while the action scope below still rejects results from older revisions.
   const action = useExtensionAction(
     api,
     enabled && active,
@@ -257,6 +271,10 @@ export function ModelCatalog({
         >
           {busy ? '正在读取…' : '发现模型'}
         </button>
+        {hasDraft && <button type="button" className="button" disabled={editingDisabled}
+          onClick={() => { setRows([]); setManual(''); setConfirmed(false); setStatus('未保存的目录编辑已放弃。'); }}>
+          放弃目录编辑
+        </button>}
       </div>
       {['responses', 'zhipu-coding'].includes(String(provider.kind)) && (
         <>

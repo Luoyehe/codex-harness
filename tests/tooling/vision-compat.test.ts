@@ -2,8 +2,25 @@ import { expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 const root = process.cwd();
+test('installed schema consumers convert and validate both supported Zod schema forms', async () => {
+  const vision = path.dirname(realpathSync('node_modules/@z_ai/mcp-server/package.json'));
+  const visionRequire = createRequire(path.join(vision, 'package.json'));
+  const sdkServer = visionRequire.resolve('@modelcontextprotocol/sdk/server/mcp.js');
+  const sdkRequire = createRequire(sdkServer);
+  const converter = await import(pathToFileURL(path.join(path.dirname(sdkServer), 'zod-json-schema-compat.js')).href);
+  for (const entry of ['zod/v3', 'zod/v4']) {
+    const { z } = await import(pathToFileURL(sdkRequire.resolve(entry)).href);
+    const schema = z.object({ text: z.string().min(1), count: z.number().int().min(0) });
+    const converted = converter.toJsonSchemaCompat(schema, { target: 'draft-7' });
+    expect(converted).toMatchObject({ type: 'object', properties: { text: { type: 'string', minLength: 1 }, count: { type: 'integer', minimum: 0 } } });
+    expect(converter.parseWithCompat(schema, { text: 'fixture', count: 1 })).toEqual({ text: 'fixture', count: 1 });
+    expect(() => converter.parseWithCompat(schema, { text: '', count: -1 })).toThrow();
+  }
+});
 function directory() {
   const parent = path.resolve('.work/vision-compat'); mkdirSync(parent, { recursive: true });
   return mkdtempSync(path.join(parent, 'case-'));

@@ -6,7 +6,7 @@ import { DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, t
 import type { NativeOptions } from './native.js';
 type Write = (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>;
 interface Host { bin: string; cwd: string; native: Write; redactor: DiagnosticRedactor; configure(operation: (write: Write) => Promise<JsonValue>, context: CallContext): Promise<JsonValue>; available(): void; failEpoch(): Promise<void> }
-interface Entry { resultId: string; kind: 'doctor' | 'models-bundled'; owner: CallContext; revoked: boolean; result?: JsonObject; process?: Processes; processHandle?: string; reject(error: Error): void; timer?: NodeJS.Timeout }
+interface Entry { resultId: string; kind: 'doctor' | 'models-bundled'; owner: CallContext; revoked: boolean; cleanupConfirmed?: boolean; cleanup?: Promise<void>; result?: JsonObject; process?: Processes; processHandle?: string; done(): void; reject(error: Error): void; timer?: NodeJS.Timeout }
 export const cliDiagnosticMethods = new Set(['diagnostics/cli/run', 'diagnostics/cli/result/read']);
 /** Fixed read-only CLI diagnostics use the same independently owned process tree as terminals. */
 export class CliDiagnostics {
@@ -23,7 +23,7 @@ export class CliDiagnostics {
     if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime is closing');
     if (this.entries.size >= 8) { const expired = [...this.entries.values()].find(entry => entry.result); if (!expired) throw new DeliveryError('capacity', 'Diagnostic result capacity exhausted'); this.remove(expired); }
     let done!: () => void, reject!: (error: Error) => void; const ended = new Promise<void>((resolve, fail) => { done = resolve; reject = fail; }); void ended.catch(() => {});
-    const entry: Entry = { resultId: randomUUID(), kind: params.kind, owner: { ...context }, revoked: false, reject }; this.entries.set(entry.resultId, entry);
+    const entry: Entry = { resultId: randomUUID(), kind: params.kind, owner: { ...context }, revoked: false, done, reject }; this.entries.set(entry.resultId, entry);
     try {
       return await this.host.configure(async write => {
         const available = (): void => { if (entry.revoked || this.closed) throw new DeliveryError('client_disconnected', 'Diagnostic owner disconnected'); this.host.available(); };
@@ -34,12 +34,16 @@ export class CliDiagnostics {
         }); entry.process = processes;
         const command = entry.kind === 'doctor' ? [this.host.bin, 'doctor', '--json'] : [this.host.bin, 'debug', 'models', '--bundled'];
         await processes.call('process/spawn', { cwd: this.host.cwd, command, timeoutMs: 20000, outputBytesCap: 1024 * 1024 }, context); await ended;
-        if (entry.revoked) throw new DeliveryError('client_disconnected', 'Diagnostic owner disconnected', 'unknown');
+        if (entry.revoked) {
+          await entry.cleanup;
+          if (entry.cleanupConfirmed) return { resultId: entry.resultId, kind: entry.kind, status: 'canceled', cleanupConfirmed: true };
+          throw new DeliveryError('client_disconnected', 'Diagnostic owner disconnected before cleanup was confirmed', 'unknown');
+        }
         const result = object(await processes.call('process/read', { processHandle: entry.processHandle! }, context));
         const stdout = Buffer.from(string(result.stdoutBase64, 'diagnostic output', 1500000, true), 'base64'), stderr = Buffer.from(string(result.stderrBase64, 'diagnostic error', 1500000, true), 'base64');
         let report: JsonObject;
         try {
-          if (result.timedOut || result.stdoutCapReached || result.stderrCapReached || stderr.length > 65536) throw new Error('Output or execution budget exceeded');
+          if (result.timedOut || result.stdoutCapReached || result.stderrCapReached || result.outputDrainTimedOut || stderr.length > 65536) throw new Error('Output or execution budget exceeded');
           report = object(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(stdout))); jsonBytes(report, 1024 * 1024);
           if (entry.kind === 'doctor') { if (report.schemaVersion !== 1 || typeof report.generatedAt !== 'string' || typeof report.codexVersion !== 'string' || !['ok', 'warn', 'warning', 'fail'].includes(String(report.overallStatus))) throw new Error('Unsupported doctor report'); object(report.checks); }
           else if (result.exitCode !== 0 || !Array.isArray(report.models)) throw new Error('Invalid bundled model catalog');
@@ -62,7 +66,7 @@ export class CliDiagnostics {
   async disconnect(clientId?: string, channel?: string): Promise<void> {
     const owned = [...this.entries.values()].filter(entry => (clientId === undefined || entry.owner.clientId === clientId) && (channel === undefined || entry.owner.eventChannelId === channel));
     owned.forEach(entry => { entry.revoked = true; });
-    await Promise.all(owned.map(async entry => { await entry.process?.disconnect(clientId, channel); entry.reject(new DeliveryError('client_disconnected', 'Diagnostic connection closed after process cleanup', 'unknown')); this.remove(entry); }));
+    await Promise.all(owned.map(entry => entry.cleanup ??= Promise.resolve().then(async () => { await entry.process?.disconnect(clientId, channel); entry.cleanupConfirmed = true; entry.done(); this.remove(entry); })));
   }
   reset(): void { this.closed = true; for (const entry of this.entries.values()) { entry.revoked = true; entry.reject(new DeliveryError('runtime_unavailable', 'Runtime closed during diagnostic work', 'unknown')); this.remove(entry); } }
 }

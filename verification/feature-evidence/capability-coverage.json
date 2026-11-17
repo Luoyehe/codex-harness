@@ -2,19 +2,20 @@
   "schemaVersion": 1,
   "kind": "capability-coverage-inventory",
   "createdAt": "2026-10-25T20:37:58.332258+00:00",
-  "cliVersion": "0.164.0",
+  "cliVersion": "0.169.0",
   "sourceFrozen": false,
   "formalAudit": false,
   "independentCleanRounds": 0,
   "fullSuiteRun": false,
   "newRuntimeCalls": false,
   "methodology": [
-    "Enumerated all 178 typed ClientRequest methods and matched the 175 generated JSON variants plus independently generated 106 stable variants; three TS-only legacy methods remain explicit.",
+    "Enumerated all 187 typed ClientRequest methods and matched 184 regenerated JSON variants and 109 independently generated stable variants for CLI 0.169.0; three TS-only legacy methods remain explicit.",
     "Followed named gateway/core routing into actual runtime/helper behavior and web action construction. Literal token matches were discovery aids only, never acceptance evidence.",
     "Read relevant test implementations and existing targeted reports. Referenced evidence retains its original boundaries; a passing historical report is not proof of the current moving source snapshot or external account eligibility.",
     "Coverage is at the named user-workflow level, not support for every optional/deprecated native parameter. Controlled equivalents document intentional narrower semantics.",
-    "No application source changed, old implementation/history or personal credentials inspected, inference requested, external MCP invoked, or full test suite run. Only these documentation artifacts were written.",
-    "Final source and evidence for previously pending prediction, nudge email, loaded threads, cloud CLI, diagnostics, memory and hook UI were reread before closure. Implementation coverage is separate from account/service acceptance. This inventory earns zero clean audit rounds."
+    "The v2.4.0 inventory refresh follows the implemented audit fixes and actual isolated 0.169.0 targeted fixtures. It adds no live account, paid inference or external MCP acceptance and is not a full suite or clean audit round.",
+    "Final source and evidence for previously pending prediction, nudge email, loaded threads, cloud CLI, diagnostics, memory and hook UI were reread before closure. Implementation coverage is separate from account/service acceptance. This inventory earns zero clean audit rounds.",
+    "Existing evidenceGroups source hashes and lastRecordedRun refer to the original 0.164.0 inventory and remain historical. Current contract/parameter hashes and cliUpgradeEvidence are separate; no historical report is relabeled as a 0.169.0 execution."
   ],
   "classificationLegend": {
     "web-workflow": "A named user flow reaches controlled native code; still subject to listed integration limits.",
@@ -22,28 +23,30 @@
     "builtin-cli-entry": "The fixed official CLI provides interaction rather than reimplementing its UI; pending entries are not accepted.",
     "internal-protocol": "Handshake, bookkeeping, developer-only/legacy/test primitive with no independent ordinary user flow claimed.",
     "platform-or-service-limit": "Explicit host/account/operator product boundary; not a hidden success or permanent placeholder.",
-    "gap": "A real user workflow has no completed safe entry; pending implementation/design is not completion."
+    "gap": "A real user workflow has no completed safe entry; pending implementation/design is not completion.",
+    "native-extension-not-exposed": "New optional native feature not exposed in this product release; explicitly not counted as an implemented workflow or live-service acceptance."
   },
   "counts": {
-    "typedMethods": 178,
-    "jsonMethods": 175,
-    "stableJsonMethods": 106,
-    "experimentalJsonMethods": 69,
+    "typedMethods": 187,
+    "jsonMethods": 184,
+    "stableJsonMethods": 109,
+    "experimentalJsonMethods": 75,
     "legacyTypescriptOnly": [
-      "getAuthStatus",
       "getConversationSummary",
-      "gitDiffToRemote"
+      "gitDiffToRemote",
+      "getAuthStatus"
     ],
     "methodClassifications": {
       "internal-protocol": 11,
       "web-workflow": 137,
-      "platform-or-service-limit": 7,
-      "controlled-equivalent": 23
+      "platform-or-service-limit": 8,
+      "native-extension-not-exposed": 6,
+      "controlled-equivalent": 25
     },
     "methodStatuses": {
-      "implemented": 161,
-      "not-supported": 7,
-      "not-exposed": 7,
+      "implemented": 163,
+      "not-supported": 8,
+      "not-exposed": 13,
       "legacy-not-exposed": 3
     }
   },
@@ -51,27 +54,27 @@
     {
       "path": "protocol/ts/ClientRequest.ts",
       "line": 1,
-      "sha256": "2e3313e6213863410cfd8b7437f79ca9c5fda2f214de37e2a9fcbe1abc3b4c4e"
+      "sha256": "62fc91cfa04d290a7722e7f0e3aafd2fe27035540e0e736b8102db5c7c72a6a3"
     },
     {
       "path": "protocol/json/ClientRequest.json",
       "line": 1,
-      "sha256": "503d09a12ae36fca152e044877d22e93b0094c2d08c3a53ed731f3c8cf33b9ce"
+      "sha256": "b47eb1e37bf93ba91e01df12ed56ddd55c23d1f31ea04f91c77aa812bda9fd3a"
     },
     {
-      "path": ".work/cli-feature-stable/ClientRequest.json",
+      "path": ".work/v240/protocol-stable/ClientRequest.json",
       "line": 1,
-      "sha256": "9b89e2459362d20cec67a429ef9430fe6b0e9fb8bd87d445d4c9a6acccd87450"
+      "sha256": "e3e0ba22dec2b229df277fac2de7405c71a351cda248ff6e6bf3620fe5a7f70b"
     },
     {
       "path": "reference/PROTOCOL-CONTRACT.md",
       "line": 1,
-      "sha256": "702ebf4452c18f803a05735fa98c92ff83c537491fe91ff33e931feb9ea3ccc1"
+      "sha256": "86b68027b98e6dfbf4558271d768beffc5edd398b7ab30d6d4660434414d50c9"
     },
     {
       "path": "FEATURES.md",
       "line": 1,
-      "sha256": "1a933858ec2bce88e3653230f7d7594521d84fdcc122a7ad299a4a72555ad0b9"
+      "sha256": "d26850e868965a717c89fa8b9d15d4f4dad153efb8f0d9103aa913da4c6aafae"
     }
   ],
   "commonRouting": [
@@ -326,7 +329,7 @@
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadForkParams.ts",
         "line": 1,
-        "sha256": "ca65c9b1e8be841b52184b5c5bf83a2e21ec1945966e31d781af589daec3ef7f"
+        "sha256": "e3eecdc9689ab8554df2104217d67a0da78fc45f3e15fdc345625b2c97cbfddf"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -334,7 +337,7 @@
       "publicWorkflows": [
         "thread/fork"
       ],
-      "assessment": "Fork anchors before/through a turn, preserves edited draft and defers inherited goal continuation. Revert explicitly changes conversation history only; file recovery is separate."
+      "assessment": "Fork anchors preserve edited drafts and defer inherited goals. Durable attachment copy reservations and bounded inherited-history indexing preserve independent references across fork, conversion, deletion and restart. Cross-provider conversion creates the target under its final provider; source bytes and native provider lock stay unchanged."
     },
     {
       "method": "thread/sample",
@@ -344,7 +347,7 @@
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSampleParams.ts",
         "line": 1,
-        "sha256": "e0336c6ec0e7f9df57ed52d2a72dd95bdb491973af72a16997da658cbf0060a6"
+        "sha256": "30d928a343d2ab83c2a130b9b738614baf03bd8ff9a3a230490539996adf9a7f"
       },
       "classification": "internal-protocol",
       "status": "not-exposed",
@@ -552,7 +555,7 @@
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadQueueAddParams.ts",
         "line": 1,
-        "sha256": "723482f57d633f9eb985f47932f2e444b0ef58f90220aa39d7cfac2d495ade02"
+        "sha256": "450a09d5b5105552ad977e9d08531ef17c5c1a6d05de2ca1b78dc9b9c435c3a7"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -588,7 +591,7 @@
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadQueueUpdateParams.ts",
         "line": 1,
-        "sha256": "54080291dd9d6208505a3fbfc8a29aa15714c6838e79ceaef3c6dcc485a668cd"
+        "sha256": "d88ba86973de5dc6f70dd541c9f719228765a0669a3f513f4b3aa32449553d61"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -768,7 +771,7 @@
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSettingsUpdateParams.ts",
         "line": 1,
-        "sha256": "820e4eaa164d2702070fcaa05af109b48a2187d22027dcb3783c46e81b1b63f8"
+        "sha256": "86422a04421de14e8533fab6ab9101d74738132643f217b03b2e77ed8241ed3a"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -797,10 +800,26 @@
       "assessment": "Native status/reset and per-thread memory mode are explicit. Storage compression reports trigger only, not completion. Global generation/use settings compare effective and exact user-layer values; leaf-only version CAS, explicit diff confirmation and original unknown receipt recovery preserve unrelated settings."
     },
     {
+      "method": "thread/memory/read",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "Selected native memory summary has no browser read route. Existing thread memory-mode writes and global status/reset remain supported; summary:null would not establish a current memory mode.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "ThreadMemoryReadParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/36",
+      "paramsSource": {
+        "path": "protocol/ts/v2/ThreadMemoryReadParams.ts",
+        "line": 1,
+        "sha256": "1c7f1bf8978b084e421b418218703fee282999c44f4f4c1c7fdb946f344bcaef"
+      }
+    },
+    {
       "method": "memory/status",
       "nativeSurface": "experimental-json",
       "paramsType": "MemoryStatusParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/36",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/37",
       "paramsSource": {
         "path": "protocol/ts/v2/MemoryStatusParams.ts",
         "line": 1,
@@ -818,35 +837,35 @@
       "method": "memory/reset",
       "nativeSurface": "experimental-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/37",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/38",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "memory",
       "publicWorkflows": [
         "memory/reset"
       ],
-      "assessment": "Native status/reset and per-thread memory mode are explicit. Storage compression reports trigger only, not completion. Global generation/use settings compare effective and exact user-layer values; leaf-only version CAS, explicit diff confirmation and original unknown receipt recovery preserve unrelated settings."
+      "assessment": "Native status/reset and per-thread memory mode are explicit. Storage compression reports trigger only, not completion. Global generation/use settings compare effective and exact user-layer values; leaf-only version CAS, explicit diff confirmation and original unknown receipt recovery preserve unrelated settings.",
+      "paramsSource": null
     },
     {
       "method": "rollout/compress",
       "nativeSurface": "experimental-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/38",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/39",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "memory",
       "publicWorkflows": [
         "rollout/compress"
       ],
-      "assessment": "Native status/reset and per-thread memory mode are explicit. Storage compression reports trigger only, not completion. Global generation/use settings compare effective and exact user-layer values; leaf-only version CAS, explicit diff confirmation and original unknown receipt recovery preserve unrelated settings."
+      "assessment": "Native status/reset and per-thread memory mode are explicit. Storage compression reports trigger only, not completion. Global generation/use settings compare effective and exact user-layer values; leaf-only version CAS, explicit diff confirmation and original unknown receipt recovery preserve unrelated settings.",
+      "paramsSource": null
     },
     {
       "method": "thread/unarchive",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadUnarchiveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/39",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/40",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadUnarchiveParams.ts",
         "line": 1,
@@ -864,7 +883,7 @@
       "method": "thread/compact/start",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadCompactStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/40",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/41",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadCompactStartParams.ts",
         "line": 1,
@@ -882,7 +901,7 @@
       "method": "thread/shellCommand",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadShellCommandParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/41",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/42",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadShellCommandParams.ts",
         "line": 1,
@@ -900,7 +919,7 @@
       "method": "thread/approveGuardianDeniedAction",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadApproveGuardianDeniedActionParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/42",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/43",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadApproveGuardianDeniedActionParams.ts",
         "line": 1,
@@ -918,7 +937,7 @@
       "method": "thread/backgroundTerminals/clean",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadBackgroundTerminalsCleanParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/43",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/44",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadBackgroundTerminalsCleanParams.ts",
         "line": 1,
@@ -936,7 +955,7 @@
       "method": "thread/backgroundTerminals/list",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadBackgroundTerminalsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/44",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/45",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadBackgroundTerminalsListParams.ts",
         "line": 1,
@@ -954,7 +973,7 @@
       "method": "thread/backgroundTerminals/terminate",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadBackgroundTerminalsTerminateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/45",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/46",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadBackgroundTerminalsTerminateParams.ts",
         "line": 1,
@@ -972,7 +991,7 @@
       "method": "thread/revert",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadRevertParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/46",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/47",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRevertParams.ts",
         "line": 1,
@@ -990,11 +1009,11 @@
       "method": "thread/list",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/47",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/48",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadListParams.ts",
         "line": 1,
-        "sha256": "56fd3aac01d3face771bf511df22a33922b93fb21a88837cedb94d45964841e7"
+        "sha256": "95ab138e19d82b974ff982eb28baf3b2244142438ec3a5420265d845d68d4d20"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -1008,7 +1027,7 @@
       "method": "project/list",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/48",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/49",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectListParams.ts",
         "line": 1,
@@ -1026,7 +1045,7 @@
       "method": "project/read",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/49",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/50",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectReadParams.ts",
         "line": 1,
@@ -1044,7 +1063,7 @@
       "method": "project/create",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectCreateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/50",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/51",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectCreateParams.ts",
         "line": 1,
@@ -1062,7 +1081,7 @@
       "method": "project/import",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectImportParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/51",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/52",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectImportParams.ts",
         "line": 1,
@@ -1080,7 +1099,7 @@
       "method": "project/update",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectUpdateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/52",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/53",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectUpdateParams.ts",
         "line": 1,
@@ -1098,7 +1117,7 @@
       "method": "project/move",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectMoveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/53",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/54",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectMoveParams.ts",
         "line": 1,
@@ -1116,7 +1135,7 @@
       "method": "project/delete",
       "nativeSurface": "experimental-json",
       "paramsType": "ProjectDeleteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/54",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/55",
       "paramsSource": {
         "path": "protocol/ts/v2/ProjectDeleteParams.ts",
         "line": 1,
@@ -1134,7 +1153,7 @@
       "method": "threadSection/list",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadSectionListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/55",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/56",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSectionListParams.ts",
         "line": 1,
@@ -1152,7 +1171,7 @@
       "method": "threadSection/create",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadSectionCreateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/56",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/57",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSectionCreateParams.ts",
         "line": 1,
@@ -1170,7 +1189,7 @@
       "method": "threadSection/update",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadSectionUpdateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/57",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/58",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSectionUpdateParams.ts",
         "line": 1,
@@ -1188,7 +1207,7 @@
       "method": "threadSection/delete",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadSectionDeleteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/58",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/59",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSectionDeleteParams.ts",
         "line": 1,
@@ -1206,11 +1225,11 @@
       "method": "thread/search",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadSearchParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/59",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/60",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSearchParams.ts",
         "line": 1,
-        "sha256": "3d42d72363a6913bc48d3907a2611a8891573a1f09fe57e7dffc6866de3f5cb8"
+        "sha256": "b930a19ea5fc38c5f97a4406863f0a97fc8b9c8c0d2e1a8e7002235a73ae8a94"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -1224,7 +1243,7 @@
       "method": "thread/searchOccurrences",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadSearchOccurrencesParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/60",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/61",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadSearchOccurrencesParams.ts",
         "line": 1,
@@ -1242,7 +1261,7 @@
       "method": "thread/loaded/list",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadLoadedListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/61",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/62",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadLoadedListParams.ts",
         "line": 1,
@@ -1260,7 +1279,7 @@
       "method": "thread/read",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/62",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/63",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadReadParams.ts",
         "line": 1,
@@ -1278,7 +1297,7 @@
       "method": "thread/readState/update",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadReadStateUpdateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/63",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/64",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadReadStateUpdateParams.ts",
         "line": 1,
@@ -1296,7 +1315,7 @@
       "method": "thread/turns/list",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadTurnsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/64",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/65",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadTurnsListParams.ts",
         "line": 1,
@@ -1316,11 +1335,11 @@
       "method": "thread/items/list",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadItemsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/65",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/66",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadItemsListParams.ts",
         "line": 1,
-        "sha256": "46d6f8aeb7d683df33bccf1637c91bdc949cd98f8548c5499b2fe06a46d98f8b"
+        "sha256": "4ff15fed784f93e7f1a88d46443d0812d0223373643da4db3a2860090e0f9f7a"
       },
       "classification": "controlled-equivalent",
       "status": "implemented",
@@ -1328,13 +1347,13 @@
       "publicWorkflows": [
         "thread/history"
       ],
-      "assessment": "No raw item-list endpoint. Full items are hydrated through turn pages, so ordinary history inspection is covered within explicit traversal limits."
+      "assessment": "No arbitrary raw item-list endpoint. Generated-media recovery uses bounded item listing and resolves outputDeferred through exact thread/items/read identities; ordinary full history remains bounded turn/timeline traversal."
     },
     {
       "method": "thread/items/read",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadItemsReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/66",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/67",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadItemsReadParams.ts",
         "line": 1,
@@ -1346,13 +1365,29 @@
       "publicWorkflows": [
         "mcp/result/read"
       ],
-      "assessment": "Used internally to validate an originating MCP call before retrieving its result; no arbitrary history-item read tunnel. Full conversation rendering uses hydrated turns."
+      "assessment": "Used internally for verified MCP call origins and 0.169.0 deferred generated-output hydration with exact thread/turn/item validation; no arbitrary history-item tunnel."
+    },
+    {
+      "method": "thread/guardianReview",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "Manual native Guardian review is not exposed. Existing captured-denial approval/retry remains the controlled workflow; this new RPC subscribes a thread and is not treated as a harmless replacement read.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "ThreadGuardianReviewParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/68",
+      "paramsSource": {
+        "path": "protocol/ts/v2/ThreadGuardianReviewParams.ts",
+        "line": 1,
+        "sha256": "c8e29724c3f07ffe5a5283b03b0776c4165a2ebe3fd4bdc45bcf8a64aee81eb0"
+      }
     },
     {
       "method": "thread/inject_items",
       "nativeSurface": "stable-json",
       "paramsType": "ThreadInjectItemsParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/67",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/69",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadInjectItemsParams.ts",
         "line": 1,
@@ -1365,10 +1400,26 @@
       "assessment": "Raw Responses history injection is developer protocol, deliberately not exposed. Typed skill/app/file references and clearly untrusted context cover normal context supply without granting arbitrary history roles."
     },
     {
+      "method": "thread/prepareApprovedPlan",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "Preparing an approved plan for the first turn of a fresh thread, including its optional host attachment path, is not exposed. Existing native plan-mode interactions are preserved without arbitrary attachment paths or implied approval.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "ThreadPrepareApprovedPlanParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/70",
+      "paramsSource": {
+        "path": "protocol/ts/v2/ThreadPrepareApprovedPlanParams.ts",
+        "line": 1,
+        "sha256": "d36f614fcb86bde6f62e8bab2f325491e95e629aa1b41b0f4dccbc10a46e2eca"
+      }
+    },
+    {
       "method": "skills/list",
       "nativeSurface": "stable-json",
       "paramsType": "SkillsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/68",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/71",
       "paramsSource": {
         "path": "protocol/ts/v2/SkillsListParams.ts",
         "line": 1,
@@ -1386,7 +1437,7 @@
       "method": "skills/extraRoots/set",
       "nativeSurface": "stable-json",
       "paramsType": "SkillsExtraRootsSetParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/69",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/72",
       "paramsSource": {
         "path": "protocol/ts/v2/SkillsExtraRootsSetParams.ts",
         "line": 1,
@@ -1404,11 +1455,11 @@
       "method": "hooks/list",
       "nativeSurface": "stable-json",
       "paramsType": "HooksListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/70",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/73",
       "paramsSource": {
         "path": "protocol/ts/v2/HooksListParams.ts",
         "line": 1,
-        "sha256": "2218161912153575b710dc5aaa492a75572ec5a22eb9b0b9d43c04cd207b32e9"
+        "sha256": "68be2c1eee80709a2d1c524ef8761e27bbc79db6dee9cdb20a6cf74482c166fa"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -1422,7 +1473,7 @@
       "method": "marketplace/add",
       "nativeSurface": "stable-json",
       "paramsType": "MarketplaceAddParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/71",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/74",
       "paramsSource": {
         "path": "protocol/ts/v2/MarketplaceAddParams.ts",
         "line": 1,
@@ -1440,7 +1491,7 @@
       "method": "marketplace/remove",
       "nativeSurface": "stable-json",
       "paramsType": "MarketplaceRemoveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/72",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/75",
       "paramsSource": {
         "path": "protocol/ts/v2/MarketplaceRemoveParams.ts",
         "line": 1,
@@ -1458,7 +1509,7 @@
       "method": "marketplace/upgrade",
       "nativeSurface": "stable-json",
       "paramsType": "MarketplaceUpgradeParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/73",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/76",
       "paramsSource": {
         "path": "protocol/ts/v2/MarketplaceUpgradeParams.ts",
         "line": 1,
@@ -1476,7 +1527,7 @@
       "method": "plugin/list",
       "nativeSurface": "stable-json",
       "paramsType": "PluginListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/74",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/77",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginListParams.ts",
         "line": 1,
@@ -1494,7 +1545,7 @@
       "method": "plugin/search",
       "nativeSurface": "experimental-json",
       "paramsType": "PluginSearchParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/75",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/78",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginSearchParams.ts",
         "line": 1,
@@ -1512,7 +1563,7 @@
       "method": "plugin/installed",
       "nativeSurface": "stable-json",
       "paramsType": "PluginInstalledParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/76",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/79",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginInstalledParams.ts",
         "line": 1,
@@ -1530,7 +1581,7 @@
       "method": "plugin/reconcile",
       "nativeSurface": "stable-json",
       "paramsType": "PluginReconcileParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/77",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/80",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginReconcileParams.ts",
         "line": 1,
@@ -1548,7 +1599,7 @@
       "method": "plugin/read",
       "nativeSurface": "stable-json",
       "paramsType": "PluginReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/78",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/81",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginReadParams.ts",
         "line": 1,
@@ -1566,7 +1617,7 @@
       "method": "plugin/skill/read",
       "nativeSurface": "stable-json",
       "paramsType": "PluginSkillReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/79",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/82",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginSkillReadParams.ts",
         "line": 1,
@@ -1584,7 +1635,7 @@
       "method": "plugin/share/save",
       "nativeSurface": "stable-json",
       "paramsType": "PluginShareSaveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/80",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/83",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginShareSaveParams.ts",
         "line": 1,
@@ -1602,7 +1653,7 @@
       "method": "plugin/share/updateTargets",
       "nativeSurface": "stable-json",
       "paramsType": "PluginShareUpdateTargetsParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/81",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/84",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginShareUpdateTargetsParams.ts",
         "line": 1,
@@ -1620,7 +1671,7 @@
       "method": "plugin/share/list",
       "nativeSurface": "stable-json",
       "paramsType": "PluginShareListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/82",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/85",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginShareListParams.ts",
         "line": 1,
@@ -1638,7 +1689,7 @@
       "method": "plugin/share/checkout",
       "nativeSurface": "stable-json",
       "paramsType": "PluginShareCheckoutParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/83",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/86",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginShareCheckoutParams.ts",
         "line": 1,
@@ -1656,7 +1707,7 @@
       "method": "plugin/share/delete",
       "nativeSurface": "stable-json",
       "paramsType": "PluginShareDeleteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/84",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/87",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginShareDeleteParams.ts",
         "line": 1,
@@ -1674,7 +1725,7 @@
       "method": "app/read",
       "nativeSurface": "stable-json",
       "paramsType": "AppsReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/85",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/88",
       "paramsSource": {
         "path": "protocol/ts/v2/AppsReadParams.ts",
         "line": 1,
@@ -1692,7 +1743,7 @@
       "method": "app/list",
       "nativeSurface": "stable-json",
       "paramsType": "AppsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/86",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/89",
       "paramsSource": {
         "path": "protocol/ts/v2/AppsListParams.ts",
         "line": 1,
@@ -1710,7 +1761,7 @@
       "method": "app/installed",
       "nativeSurface": "stable-json",
       "paramsType": "AppsInstalledParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/87",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/90",
       "paramsSource": {
         "path": "protocol/ts/v2/AppsInstalledParams.ts",
         "line": 1,
@@ -1728,7 +1779,7 @@
       "method": "fs/readFile",
       "nativeSurface": "stable-json",
       "paramsType": "FsReadFileParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/88",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/91",
       "paramsSource": {
         "path": "protocol/ts/v2/FsReadFileParams.ts",
         "line": 1,
@@ -1747,7 +1798,7 @@
       "method": "fs/writeFile",
       "nativeSurface": "stable-json",
       "paramsType": "FsWriteFileParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/89",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/92",
       "paramsSource": {
         "path": "protocol/ts/v2/FsWriteFileParams.ts",
         "line": 1,
@@ -1765,7 +1816,7 @@
       "method": "fs/createDirectory",
       "nativeSurface": "stable-json",
       "paramsType": "FsCreateDirectoryParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/90",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/93",
       "paramsSource": {
         "path": "protocol/ts/v2/FsCreateDirectoryParams.ts",
         "line": 1,
@@ -1783,7 +1834,7 @@
       "method": "fs/getMetadata",
       "nativeSurface": "stable-json",
       "paramsType": "FsGetMetadataParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/91",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/94",
       "paramsSource": {
         "path": "protocol/ts/v2/FsGetMetadataParams.ts",
         "line": 1,
@@ -1801,7 +1852,7 @@
       "method": "fs/readDirectory",
       "nativeSurface": "stable-json",
       "paramsType": "FsReadDirectoryParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/92",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/95",
       "paramsSource": {
         "path": "protocol/ts/v2/FsReadDirectoryParams.ts",
         "line": 1,
@@ -1819,7 +1870,7 @@
       "method": "fs/remove",
       "nativeSurface": "stable-json",
       "paramsType": "FsRemoveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/93",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/96",
       "paramsSource": {
         "path": "protocol/ts/v2/FsRemoveParams.ts",
         "line": 1,
@@ -1837,7 +1888,7 @@
       "method": "fs/copy",
       "nativeSurface": "stable-json",
       "paramsType": "FsCopyParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/94",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/97",
       "paramsSource": {
         "path": "protocol/ts/v2/FsCopyParams.ts",
         "line": 1,
@@ -1855,7 +1906,7 @@
       "method": "fs/watch",
       "nativeSurface": "stable-json",
       "paramsType": "FsWatchParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/95",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/98",
       "paramsSource": {
         "path": "protocol/ts/v2/FsWatchParams.ts",
         "line": 1,
@@ -1873,7 +1924,7 @@
       "method": "fs/unwatch",
       "nativeSurface": "stable-json",
       "paramsType": "FsUnwatchParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/96",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/99",
       "paramsSource": {
         "path": "protocol/ts/v2/FsUnwatchParams.ts",
         "line": 1,
@@ -1891,7 +1942,7 @@
       "method": "skills/config/write",
       "nativeSurface": "stable-json",
       "paramsType": "SkillsConfigWriteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/97",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/100",
       "paramsSource": {
         "path": "protocol/ts/v2/SkillsConfigWriteParams.ts",
         "line": 1,
@@ -1909,7 +1960,7 @@
       "method": "plugin/install",
       "nativeSurface": "stable-json",
       "paramsType": "PluginInstallParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/98",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/101",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginInstallParams.ts",
         "line": 1,
@@ -1927,7 +1978,7 @@
       "method": "plugin/uninstall",
       "nativeSurface": "stable-json",
       "paramsType": "PluginUninstallParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/99",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/102",
       "paramsSource": {
         "path": "protocol/ts/v2/PluginUninstallParams.ts",
         "line": 1,
@@ -1945,7 +1996,7 @@
       "method": "turn/start",
       "nativeSurface": "stable-json",
       "paramsType": "TurnStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/100",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/103",
       "paramsSource": {
         "path": "protocol/ts/v2/TurnStartParams.ts",
         "line": 1,
@@ -1963,11 +2014,11 @@
       "method": "turn/settings/update",
       "nativeSurface": "experimental-json",
       "paramsType": "TurnSettingsUpdateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/101",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/104",
       "paramsSource": {
         "path": "protocol/ts/v2/TurnSettingsUpdateParams.ts",
         "line": 1,
-        "sha256": "6f0fc46fde34283ffb0b790f4ed65665bef8ffa1ae276aaa7d3d6a75821abbf7"
+        "sha256": "130b0a0f617c1a5596954d4be57f1fdbc7df1d82019779693665af799a0a45b7"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -1981,7 +2032,7 @@
       "method": "turn/steer",
       "nativeSurface": "stable-json",
       "paramsType": "TurnSteerParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/102",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/105",
       "paramsSource": {
         "path": "protocol/ts/v2/TurnSteerParams.ts",
         "line": 1,
@@ -1999,7 +2050,7 @@
       "method": "turn/interrupt",
       "nativeSurface": "stable-json",
       "paramsType": "TurnInterruptParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/103",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/106",
       "paramsSource": {
         "path": "protocol/ts/v2/TurnInterruptParams.ts",
         "line": 1,
@@ -2017,7 +2068,7 @@
       "method": "thread/realtime/start",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/104",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/107",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeStartParams.ts",
         "line": 1,
@@ -2035,7 +2086,7 @@
       "method": "thread/realtime/appendAudio",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeAppendAudioParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/105",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/108",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeAppendAudioParams.ts",
         "line": 1,
@@ -2053,7 +2104,7 @@
       "method": "thread/realtime/appendText",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeAppendTextParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/106",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/109",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeAppendTextParams.ts",
         "line": 1,
@@ -2071,7 +2122,7 @@
       "method": "thread/realtime/appendSpeech",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeAppendSpeechParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/107",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/110",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeAppendSpeechParams.ts",
         "line": 1,
@@ -2089,7 +2140,7 @@
       "method": "thread/realtime/stop",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeStopParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/108",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/111",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeStopParams.ts",
         "line": 1,
@@ -2107,7 +2158,7 @@
       "method": "thread/timeline/list",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadTimelineListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/109",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/112",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadTimelineListParams.ts",
         "line": 1,
@@ -2125,7 +2176,7 @@
       "method": "thread/realtime/listVoices",
       "nativeSurface": "experimental-json",
       "paramsType": "ThreadRealtimeListVoicesParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/110",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/113",
       "paramsSource": {
         "path": "protocol/ts/v2/ThreadRealtimeListVoicesParams.ts",
         "line": 1,
@@ -2143,11 +2194,11 @@
       "method": "review/start",
       "nativeSurface": "stable-json",
       "paramsType": "ReviewStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/111",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/114",
       "paramsSource": {
         "path": "protocol/ts/v2/ReviewStartParams.ts",
         "line": 1,
-        "sha256": "68a36a37871bde50981d684b03366ab99ed201c08a1ab0c7e80248335a82b96f"
+        "sha256": "19a168735da52f6a3d72dc3a583d8a4c61c0722de98b38e89b5394e5dcf2224b"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -2161,11 +2212,11 @@
       "method": "model/list",
       "nativeSurface": "stable-json",
       "paramsType": "ModelListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/112",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/115",
       "paramsSource": {
         "path": "protocol/ts/v2/ModelListParams.ts",
         "line": 1,
-        "sha256": "9749040f93232fee23f044d307fd69eb08fea77eb6c56b1d04593d7533dd7bf4"
+        "sha256": "d1bd9aedff2d5e25a47e1330ad7450d9dcac35bc47ee023878cd7868eb35d112"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -2173,55 +2224,99 @@
       "publicWorkflows": [
         "model/list"
       ],
-      "assessment": "Uses fresh native modes/models/permission profiles and reliable session snapshots. Current-turn update targets exact active turn, while thread settings affect later execution. Not every deprecated/ignored native parameter gets a UI control."
+      "assessment": "Uses the native 0.169.0 modelProvider selector to read enabled provider catalogs without a per-provider process; shared catalogs invalidate on account/configuration changes. Existing threads retain their provider lock; cross-provider conversion creates a new independent target-provider thread."
     },
     {
       "method": "account/gatewayOAuth/read",
       "nativeSurface": "stable-json",
-      "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/113",
-      "paramsSource": null,
+      "paramsType": "GatewayOAuthReadParams | null | undefined",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/116",
+      "paramsSource": {
+        "path": "protocol/ts/v2/GatewayOAuthReadParams.ts",
+        "line": 1,
+        "sha256": "6aa27f1729e6bdfac6501699f465ca97983629beebb81e96f9cd2cf707989063"
+      },
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "gateway-oauth",
       "publicWorkflows": [
         "account/gatewayOAuth/read"
       ],
-      "assessment": "Root-managed HTTPS/cookie gateway definition enables actual required OAuth. Owner-private handoff, explicit auth and cancellation tombstone; restart before reusing an uncorrelated native OAuth epoch. Readiness has real native proof, not real remote login."
+      "assessment": "Root-managed gateway identity is mapped through the native 0.169.0 provider selector. Login prompt:null/browser/device variants, owner-private device handoff and cancellation tombstones are handled; changed notifications retain identity checks. Isolated native readiness and mocked state/races are verified, not live remote account login."
     },
     {
       "method": "account/gatewayOAuth/login",
       "nativeSurface": "stable-json",
-      "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/114",
-      "paramsSource": null,
+      "paramsType": "GatewayOAuthLoginParams | null | undefined",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/117",
+      "paramsSource": {
+        "path": "protocol/ts/v2/GatewayOAuthLoginParams.ts",
+        "line": 1,
+        "sha256": "8ae575e50785522aa4840d9d1d34a04f26cd3a9c03e88dbdf1cd6455409d3b6c"
+      },
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "gateway-oauth",
       "publicWorkflows": [
         "account/gatewayOAuth/login"
       ],
-      "assessment": "Root-managed HTTPS/cookie gateway definition enables actual required OAuth. Owner-private handoff, explicit auth and cancellation tombstone; restart before reusing an uncorrelated native OAuth epoch. Readiness has real native proof, not real remote login."
+      "assessment": "Root-managed gateway identity is mapped through the native 0.169.0 provider selector. Login prompt:null/browser/device variants, owner-private device handoff and cancellation tombstones are handled; changed notifications retain identity checks. Isolated native readiness and mocked state/races are verified, not live remote account login."
     },
     {
       "method": "account/gatewayOAuth/cancel",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/115",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/118",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "gateway-oauth",
       "publicWorkflows": [
         "account/gatewayOAuth/cancel"
       ],
-      "assessment": "Root-managed HTTPS/cookie gateway definition enables actual required OAuth. Owner-private handoff, explicit auth and cancellation tombstone; restart before reusing an uncorrelated native OAuth epoch. Readiness has real native proof, not real remote login."
+      "assessment": "Root-managed gateway identity is mapped through the native 0.169.0 provider selector. Login prompt:null/browser/device variants, owner-private device handoff and cancellation tombstones are handled; changed notifications retain identity checks. Isolated native readiness and mocked state/races are verified, not live remote account login.",
+      "paramsSource": null
+    },
+    {
+      "method": "modelProvider/list",
+      "classification": "controlled-equivalent",
+      "status": "implemented",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [
+        "provider/read"
+      ],
+      "assessment": "Managed provider/read returns configured profiles and their model catalogs through the existing deployment transaction authority. This does not claim enumeration of all provider types newly known to the native binary.",
+      "nativeSurface": "stable-json",
+      "paramsType": "ModelProviderListParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/119",
+      "paramsSource": {
+        "path": "protocol/ts/v2/ModelProviderListParams.ts",
+        "line": 1,
+        "sha256": "9555d19036a93c61b1c23e36763f7944b51bb084e2b4d9042586a5676bd08e8a"
+      }
+    },
+    {
+      "method": "modelProvider/config/write",
+      "classification": "controlled-equivalent",
+      "status": "implemented",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [
+        "provider/write"
+      ],
+      "assessment": "Managed provider/write retains idle admission, revision checks, shared configuration and secret handling. Raw native settings patches are not exposed and cannot bypass the root-managed provider transaction.",
+      "nativeSurface": "stable-json",
+      "paramsType": "ModelProviderConfigWriteParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/120",
+      "paramsSource": {
+        "path": "protocol/ts/v2/ModelProviderConfigWriteParams.ts",
+        "line": 1,
+        "sha256": "94d55af58586702dc62f99ceecb041f791f17257665266232d013ea431e1853e"
+      }
     },
     {
       "method": "modelProvider/capabilities/read",
       "nativeSurface": "stable-json",
       "paramsType": "ModelProviderCapabilitiesReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/116",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/121",
       "paramsSource": {
         "path": "protocol/ts/v2/ModelProviderCapabilitiesReadParams.ts",
         "line": 1,
@@ -2239,7 +2334,7 @@
       "method": "experimentalFeature/list",
       "nativeSurface": "stable-json",
       "paramsType": "ExperimentalFeatureListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/117",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/122",
       "paramsSource": {
         "path": "protocol/ts/v2/ExperimentalFeatureListParams.ts",
         "line": 1,
@@ -2257,7 +2352,7 @@
       "method": "permissionProfile/list",
       "nativeSurface": "stable-json",
       "paramsType": "PermissionProfileListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/118",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/123",
       "paramsSource": {
         "path": "protocol/ts/v2/PermissionProfileListParams.ts",
         "line": 1,
@@ -2275,7 +2370,7 @@
       "method": "experimentalFeature/enablement/set",
       "nativeSurface": "stable-json",
       "paramsType": "ExperimentalFeatureEnablementSetParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/119",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/124",
       "paramsSource": {
         "path": "protocol/ts/v2/ExperimentalFeatureEnablementSetParams.ts",
         "line": 1,
@@ -2293,7 +2388,7 @@
       "method": "remoteControl/enable",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlEnableParams | null",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/120",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/125",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlEnableParams.ts",
         "line": 1,
@@ -2311,7 +2406,7 @@
       "method": "remoteControl/disable",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlDisableParams | null",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/121",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/126",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlDisableParams.ts",
         "line": 1,
@@ -2329,21 +2424,21 @@
       "method": "remoteControl/status/read",
       "nativeSurface": "experimental-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/122",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/127",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "remote-control",
       "publicWorkflows": [
         "remoteControl/status/read"
       ],
-      "assessment": "Explicit independent remote access authority, ephemeral default, private connection-owned pairing secret/status and selected client revoke. Local native status/exec-server fixtures do not establish live account relay pairing."
+      "assessment": "Explicit independent remote access authority, ephemeral default, private connection-owned pairing secret/status and selected client revoke. Local native status/exec-server fixtures do not establish live account relay pairing.",
+      "paramsSource": null
     },
     {
       "method": "remoteControl/pairing/start",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlPairingStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/123",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/128",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlPairingStartParams.ts",
         "line": 1,
@@ -2361,7 +2456,7 @@
       "method": "remoteControl/pairing/status",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlPairingStatusParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/124",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/129",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlPairingStatusParams.ts",
         "line": 1,
@@ -2379,7 +2474,7 @@
       "method": "remoteControl/client/list",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlClientsListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/125",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/130",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlClientsListParams.ts",
         "line": 1,
@@ -2397,7 +2492,7 @@
       "method": "remoteControl/client/revoke",
       "nativeSurface": "experimental-json",
       "paramsType": "RemoteControlClientsRevokeParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/126",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/131",
       "paramsSource": {
         "path": "protocol/ts/v2/RemoteControlClientsRevokeParams.ts",
         "line": 1,
@@ -2415,7 +2510,7 @@
       "method": "collaborationMode/list",
       "nativeSurface": "experimental-json",
       "paramsType": "CollaborationModeListParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/127",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/132",
       "paramsSource": {
         "path": "protocol/ts/v2/CollaborationModeListParams.ts",
         "line": 1,
@@ -2433,7 +2528,7 @@
       "method": "mock/experimentalMethod",
       "nativeSurface": "experimental-json",
       "paramsType": "MockExperimentalMethodParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/128",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/133",
       "paramsSource": {
         "path": "protocol/ts/v2/MockExperimentalMethodParams.ts",
         "line": 1,
@@ -2449,7 +2544,7 @@
       "method": "environment/add",
       "nativeSurface": "experimental-json",
       "paramsType": "EnvironmentAddParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/129",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/134",
       "paramsSource": {
         "path": "protocol/ts/v2/EnvironmentAddParams.ts",
         "line": 1,
@@ -2467,7 +2562,7 @@
       "method": "environment/info",
       "nativeSurface": "experimental-json",
       "paramsType": "EnvironmentInfoParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/130",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/135",
       "paramsSource": {
         "path": "protocol/ts/v2/EnvironmentInfoParams.ts",
         "line": 1,
@@ -2485,7 +2580,7 @@
       "method": "environment/status",
       "nativeSurface": "experimental-json",
       "paramsType": "EnvironmentStatusParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/131",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/136",
       "paramsSource": {
         "path": "protocol/ts/v2/EnvironmentStatusParams.ts",
         "line": 1,
@@ -2503,7 +2598,7 @@
       "method": "mcpServer/oauth/login",
       "nativeSurface": "stable-json",
       "paramsType": "McpServerOauthLoginParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/132",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/137",
       "paramsSource": {
         "path": "protocol/ts/v2/McpServerOauthLoginParams.ts",
         "line": 1,
@@ -2521,21 +2616,21 @@
       "method": "config/mcpServer/reload",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/133",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/138",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "mcp",
       "publicWorkflows": [
         "mcp/reload"
       ],
-      "assessment": "mcp/* aliases use fresh schema-discovered tools/resources, explicit tool calls/OAuth, output budgets and connection-owned stream cleanup. Media requires explicit signature/size/dimension-checked loading, with one preview across the panel; rejected previews retain results and raw JSON download. stdio/HTTP config has per-server CAS and secret preservation. OAuth logout is a separate operator CLI workflow, not equivalent to disabling/deleting configuration."
+      "assessment": "mcp/* aliases use fresh schema-discovered tools/resources, explicit tool calls/OAuth, output budgets and connection-owned stream cleanup. Media requires explicit signature/size/dimension-checked loading, with one preview across the panel; rejected previews retain results and raw JSON download. stdio/HTTP config has per-server CAS and secret preservation. OAuth logout is a separate operator CLI workflow, not equivalent to disabling/deleting configuration.",
+      "paramsSource": null
     },
     {
       "method": "mcpServerStatus/list",
       "nativeSurface": "stable-json",
       "paramsType": "ListMcpServerStatusParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/134",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/139",
       "paramsSource": {
         "path": "protocol/ts/v2/ListMcpServerStatusParams.ts",
         "line": 1,
@@ -2553,11 +2648,11 @@
       "method": "mcpServer/resource/read",
       "nativeSurface": "stable-json",
       "paramsType": "McpResourceReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/135",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/140",
       "paramsSource": {
         "path": "protocol/ts/v2/McpResourceReadParams.ts",
         "line": 1,
-        "sha256": "68e5d44798d10810e3b75faad06f3abcd426d583033ee39ab5a0f991cd24a75c"
+        "sha256": "d86c2e30e267a873a0967a542e37af6222b4d45d3c337a59ac4dc6f16406727d"
       },
       "classification": "web-workflow",
       "status": "implemented",
@@ -2571,7 +2666,7 @@
       "method": "mcpServer/event/stream/start",
       "nativeSurface": "experimental-json",
       "paramsType": "McpServerEventStreamStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/136",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/141",
       "paramsSource": {
         "path": "protocol/ts/v2/McpServerEventStreamStartParams.ts",
         "line": 1,
@@ -2589,7 +2684,7 @@
       "method": "mcpServer/event/stream/stop",
       "nativeSurface": "experimental-json",
       "paramsType": "McpServerEventStreamStopParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/137",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/142",
       "paramsSource": {
         "path": "protocol/ts/v2/McpServerEventStreamStopParams.ts",
         "line": 1,
@@ -2607,7 +2702,7 @@
       "method": "mcpServer/tool/call",
       "nativeSurface": "stable-json",
       "paramsType": "McpServerToolCallParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/138",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/143",
       "paramsSource": {
         "path": "protocol/ts/v2/McpServerToolCallParams.ts",
         "line": 1,
@@ -2625,7 +2720,7 @@
       "method": "windowsSandbox/setupStart",
       "nativeSurface": "stable-json",
       "paramsType": "WindowsSandboxSetupStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/139",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/144",
       "paramsSource": {
         "path": "protocol/ts/v2/WindowsSandboxSetupStartParams.ts",
         "line": 1,
@@ -2641,19 +2736,19 @@
       "method": "windowsSandbox/readiness",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/140",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/145",
       "classification": "platform-or-service-limit",
       "status": "not-supported",
       "evidenceGroup": "windows-sandbox",
       "publicWorkflows": [],
-      "assessment": "Production targets Linux native worker; no Windows host setup or elevation workflow is implemented. Windows local development tests do not certify Windows production sandbox installation."
+      "assessment": "Production targets Linux native worker; no Windows host setup or elevation workflow is implemented. Windows local development tests do not certify Windows production sandbox installation.",
+      "paramsSource": null
     },
     {
       "method": "account/login/start",
       "nativeSurface": "stable-json",
       "paramsType": "LoginAccountParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/141",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/146",
       "paramsSource": {
         "path": "protocol/ts/v2/LoginAccountParams.ts",
         "line": 1,
@@ -2672,7 +2767,7 @@
       "method": "account/bedrock/discover",
       "nativeSurface": "experimental-json",
       "paramsType": "BedrockDiscoverParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/142",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/147",
       "paramsSource": {
         "path": "protocol/ts/v2/BedrockDiscoverParams.ts",
         "line": 1,
@@ -2691,7 +2786,7 @@
       "method": "account/bedrock/setup",
       "nativeSurface": "experimental-json",
       "paramsType": "BedrockSetupParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/143",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/148",
       "paramsSource": {
         "path": "protocol/ts/v2/BedrockSetupParams.ts",
         "line": 1,
@@ -2706,10 +2801,26 @@
       "assessment": "Managed bearer+explicit commercial region replaces unrestricted native setup/profile discovery. Native model catalog is used. This is a narrower supported root transaction, not parity with IAM profiles/SDK credential processes."
     },
     {
+      "method": "account/gcp/setup",
+      "classification": "platform-or-service-limit",
+      "status": "not-supported",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "GCP/Vertex ADC or host credential-file setup has no supported managed provider/UI route. No arbitrary credentialFile path or implicit native configuration mutation is accepted.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "GcpSetupParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/149",
+      "paramsSource": {
+        "path": "protocol/ts/v2/GcpSetupParams.ts",
+        "line": 1,
+        "sha256": "e9ada73833508c1aeff1dbe4c3da3bdbb0d781c648b34a09670d228b453129d9"
+      }
+    },
+    {
       "method": "account/bedrock/checkGovCloudRequirements",
       "nativeSurface": "experimental-json",
       "paramsType": "BedrockCheckGovCloudRequirementsParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/144",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/150",
       "paramsSource": {
         "path": "protocol/ts/v2/BedrockCheckGovCloudRequirementsParams.ts",
         "line": 1,
@@ -2725,7 +2836,7 @@
       "method": "account/login/cancel",
       "nativeSurface": "stable-json",
       "paramsType": "CancelLoginAccountParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/145",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/151",
       "paramsSource": {
         "path": "protocol/ts/v2/CancelLoginAccountParams.ts",
         "line": 1,
@@ -2740,24 +2851,68 @@
       "assessment": "Device-code login uses owner/epoch private handoff, explicit cancel/logout and native completion; credentials are not ordinary receipts. API/Bedrock provider credentials use root provider transactions rather than raw account/login/start variants. Missing accepted identity or unknown outcomes retain recovery barriers; no real account authentication was performed."
     },
     {
+      "method": "accountSession/list",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "Native stored-account session enumeration is not exposed. The product continues to share one active ChatGPT login across execution modes; this does not imply multi-account/workspace selection.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "AccountSessionsListParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/152",
+      "paramsSource": {
+        "path": "protocol/ts/v2/AccountSessionsListParams.ts",
+        "line": 1,
+        "sha256": "f7650db1a4dea8e5c6ff6a6b103ae034341c39a30d9318831a696f456df9c5ee"
+      }
+    },
+    {
+      "method": "accountSession/switch",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "Stored login/workspace switching and its optional SSO browser flow are not exposed. Existing explicit account login/logout remains supported; no generic RPC tunnel bypasses account ownership/recovery.",
+      "nativeSurface": "experimental-json",
+      "paramsType": "AccountSessionsSwitchParams",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/153",
+      "paramsSource": {
+        "path": "protocol/ts/v2/AccountSessionsSwitchParams.ts",
+        "line": 1,
+        "sha256": "85f7e04afc255571cf296abe4d2ab0fb95772e34fa012f2e5e5ae90abbc3b1e6"
+      }
+    },
+    {
       "method": "account/logout",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/146",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/154",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "account-login",
       "publicWorkflows": [
         "account/logout"
       ],
-      "assessment": "Device-code login uses owner/epoch private handoff, explicit cancel/logout and native completion; credentials are not ordinary receipts. API/Bedrock provider credentials use root provider transactions rather than raw account/login/start variants. Missing accepted identity or unknown outcomes retain recovery barriers; no real account authentication was performed."
+      "assessment": "Device-code login uses owner/epoch private handoff, explicit cancel/logout and native completion; credentials are not ordinary receipts. API/Bedrock provider credentials use root provider transactions rather than raw account/login/start variants. Missing accepted identity or unknown outcomes retain recovery barriers; no real account authentication was performed.",
+      "paramsSource": null
+    },
+    {
+      "method": "account/securitySetup/read",
+      "classification": "native-extension-not-exposed",
+      "status": "not-exposed",
+      "evidenceGroup": "cli-0169-additions",
+      "publicWorkflows": [],
+      "assessment": "New native account security-setup summary is not exposed. Harness administrator MFA and model-account login are separate existing workflows, neither claims this native account security surface.",
+      "nativeSurface": "stable-json",
+      "paramsType": "undefined",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/155",
+      "paramsSource": null
     },
     {
       "method": "account/rateLimits/read",
       "nativeSurface": "stable-json",
       "paramsType": "GetAccountRateLimitsParams | undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/147",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/156",
       "paramsSource": {
         "path": "protocol/ts/v2/GetAccountRateLimitsParams.ts",
         "line": 1,
@@ -2775,7 +2930,7 @@
       "method": "account/rateLimitResetCredit/consume",
       "nativeSurface": "stable-json",
       "paramsType": "ConsumeAccountRateLimitResetCreditParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/148",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/157",
       "paramsSource": {
         "path": "protocol/ts/v2/ConsumeAccountRateLimitResetCreditParams.ts",
         "line": 1,
@@ -2794,7 +2949,7 @@
       "method": "account/usage/read",
       "nativeSurface": "stable-json",
       "paramsType": "GetAccountTokenUsageParams | undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/149",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/158",
       "paramsSource": {
         "path": "protocol/ts/v2/GetAccountTokenUsageParams.ts",
         "line": 1,
@@ -2812,21 +2967,21 @@
       "method": "account/workspaceMessages/read",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/150",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/159",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "account-usage",
       "publicWorkflows": [
         "account/workspaceMessages/read"
       ],
-      "assessment": "Actual usage/workspace messages and preview-bound explicit credit redemption. Account/credit identity is rechecked and operation UUID supplies native idempotency. Real spending was not performed."
+      "assessment": "Actual usage/workspace messages and preview-bound explicit credit redemption. Account/credit identity is rechecked and operation UUID supplies native idempotency. Real spending was not performed.",
+      "paramsSource": null
     },
     {
       "method": "account/sendAddCreditsNudgeEmail",
       "nativeSurface": "stable-json",
       "paramsType": "SendAddCreditsNudgeEmailParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/151",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/160",
       "paramsSource": {
         "path": "protocol/ts/v2/SendAddCreditsNudgeEmailParams.ts",
         "line": 1,
@@ -2844,7 +2999,7 @@
       "method": "feedback/upload",
       "nativeSurface": "stable-json",
       "paramsType": "FeedbackUploadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/152",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/161",
       "paramsSource": {
         "path": "protocol/ts/v2/FeedbackUploadParams.ts",
         "line": 1,
@@ -2862,7 +3017,7 @@
       "method": "feedback/save",
       "nativeSurface": "stable-json",
       "paramsType": "FeedbackSaveParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/153",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/162",
       "paramsSource": {
         "path": "protocol/ts/v2/FeedbackSaveParams.ts",
         "line": 1,
@@ -2880,7 +3035,7 @@
       "method": "command/exec",
       "nativeSurface": "stable-json",
       "paramsType": "CommandExecParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/154",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/163",
       "paramsSource": {
         "path": "protocol/ts/v2/CommandExecParams.ts",
         "line": 1,
@@ -2898,7 +3053,7 @@
       "method": "command/exec/write",
       "nativeSurface": "stable-json",
       "paramsType": "CommandExecWriteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/155",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/164",
       "paramsSource": {
         "path": "protocol/ts/v2/CommandExecWriteParams.ts",
         "line": 1,
@@ -2916,7 +3071,7 @@
       "method": "command/exec/terminate",
       "nativeSurface": "stable-json",
       "paramsType": "CommandExecTerminateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/156",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/165",
       "paramsSource": {
         "path": "protocol/ts/v2/CommandExecTerminateParams.ts",
         "line": 1,
@@ -2934,7 +3089,7 @@
       "method": "command/exec/resize",
       "nativeSurface": "stable-json",
       "paramsType": "CommandExecResizeParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/157",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/166",
       "paramsSource": {
         "path": "protocol/ts/v2/CommandExecResizeParams.ts",
         "line": 1,
@@ -2952,7 +3107,7 @@
       "method": "process/spawn",
       "nativeSurface": "experimental-json",
       "paramsType": "ProcessSpawnParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/158",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/167",
       "paramsSource": {
         "path": "protocol/ts/v2/ProcessSpawnParams.ts",
         "line": 1,
@@ -2970,7 +3125,7 @@
       "method": "process/writeStdin",
       "nativeSurface": "experimental-json",
       "paramsType": "ProcessWriteStdinParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/159",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/168",
       "paramsSource": {
         "path": "protocol/ts/v2/ProcessWriteStdinParams.ts",
         "line": 1,
@@ -2988,7 +3143,7 @@
       "method": "process/kill",
       "nativeSurface": "experimental-json",
       "paramsType": "ProcessKillParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/160",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/169",
       "paramsSource": {
         "path": "protocol/ts/v2/ProcessKillParams.ts",
         "line": 1,
@@ -3006,7 +3161,7 @@
       "method": "process/resizePty",
       "nativeSurface": "experimental-json",
       "paramsType": "ProcessResizePtyParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/161",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/170",
       "paramsSource": {
         "path": "protocol/ts/v2/ProcessResizePtyParams.ts",
         "line": 1,
@@ -3024,7 +3179,7 @@
       "method": "config/read",
       "nativeSurface": "stable-json",
       "paramsType": "ConfigReadParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/162",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/171",
       "paramsSource": {
         "path": "protocol/ts/v2/ConfigReadParams.ts",
         "line": 1,
@@ -3042,7 +3197,7 @@
       "method": "externalAgentConfig/detect",
       "nativeSurface": "stable-json",
       "paramsType": "ExternalAgentConfigDetectParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/163",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/172",
       "paramsSource": {
         "path": "protocol/ts/v2/ExternalAgentConfigDetectParams.ts",
         "line": 1,
@@ -3060,7 +3215,7 @@
       "method": "externalAgentConfig/import",
       "nativeSurface": "stable-json",
       "paramsType": "ExternalAgentConfigImportParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/164",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/173",
       "paramsSource": {
         "path": "protocol/ts/v2/ExternalAgentConfigImportParams.ts",
         "line": 1,
@@ -3078,7 +3233,7 @@
       "method": "externalAgentConfig/import/recordHistory",
       "nativeSurface": "stable-json",
       "paramsType": "ExternalAgentConfigImportHistoryRecordParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/165",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/174",
       "paramsSource": {
         "path": "protocol/ts/v2/ExternalAgentConfigImportHistoryRecordParams.ts",
         "line": 1,
@@ -3094,21 +3249,21 @@
       "method": "externalAgentConfig/import/readHistories",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/166",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/175",
       "classification": "web-workflow",
       "status": "implemented",
       "evidenceGroup": "imports",
       "publicWorkflows": [
         "import/history"
       ],
-      "assessment": "Selected registered project plus optional explicit native-home scope, fresh inventory preview, extra executable-config consent, matching asynchronous completion and partial per-type results. Native records are read back; inventory is not a frozen byte snapshot."
+      "assessment": "Selected registered project plus optional explicit native-home scope, fresh inventory preview, extra executable-config consent, matching asynchronous completion and partial per-type results. Native records are read back; inventory is not a frozen byte snapshot.",
+      "paramsSource": null
     },
     {
       "method": "config/value/write",
       "nativeSurface": "stable-json",
       "paramsType": "ConfigValueWriteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/167",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/176",
       "paramsSource": {
         "path": "protocol/ts/v2/ConfigValueWriteParams.ts",
         "line": 1,
@@ -3126,7 +3281,7 @@
       "method": "config/batchWrite",
       "nativeSurface": "stable-json",
       "paramsType": "ConfigBatchWriteParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/168",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/177",
       "paramsSource": {
         "path": "protocol/ts/v2/ConfigBatchWriteParams.ts",
         "line": 1,
@@ -3146,21 +3301,21 @@
       "method": "configRequirements/read",
       "nativeSurface": "stable-json",
       "paramsType": "undefined",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/169",
-      "paramsSource": null,
+      "schema": "protocol/json/ClientRequest.json#/oneOf/178",
       "classification": "controlled-equivalent",
       "status": "implemented",
       "evidenceGroup": "configuration",
       "publicWorkflows": [
         "configRequirements/read"
       ],
-      "assessment": "settings/read returns effective configuration/layer origins; settings/write uses expectedVersion and allowlisted batch edits, with conflict draft preservation and no masked-value writeback. Single value/write is safely equivalent to one batch edit. Root provider requirements remain immutable."
+      "assessment": "settings/read returns effective configuration/layer origins; settings/write uses expectedVersion and allowlisted batch edits, with conflict draft preservation and no masked-value writeback. Single value/write is safely equivalent to one batch edit. Root provider requirements remain immutable.",
+      "paramsSource": null
     },
     {
       "method": "account/read",
       "nativeSurface": "stable-json",
       "paramsType": "GetAccountParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/170",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/179",
       "paramsSource": {
         "path": "protocol/ts/v2/GetAccountParams.ts",
         "line": 1,
@@ -3226,7 +3381,7 @@
       "method": "fuzzyFileSearch",
       "nativeSurface": "stable-json",
       "paramsType": "FuzzyFileSearchParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/171",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/180",
       "paramsSource": {
         "path": "protocol/ts/FuzzyFileSearchParams.ts",
         "line": 1,
@@ -3244,7 +3399,7 @@
       "method": "fuzzyFileSearch/sessionStart",
       "nativeSurface": "experimental-json",
       "paramsType": "FuzzyFileSearchSessionStartParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/172",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/181",
       "paramsSource": {
         "path": "protocol/ts/FuzzyFileSearchSessionStartParams.ts",
         "line": 1,
@@ -3262,7 +3417,7 @@
       "method": "fuzzyFileSearch/sessionUpdate",
       "nativeSurface": "experimental-json",
       "paramsType": "FuzzyFileSearchSessionUpdateParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/173",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/182",
       "paramsSource": {
         "path": "protocol/ts/FuzzyFileSearchSessionUpdateParams.ts",
         "line": 1,
@@ -3280,7 +3435,7 @@
       "method": "fuzzyFileSearch/sessionStop",
       "nativeSurface": "experimental-json",
       "paramsType": "FuzzyFileSearchSessionStopParams",
-      "schema": "protocol/json/ClientRequest.json#/oneOf/174",
+      "schema": "protocol/json/ClientRequest.json#/oneOf/183",
       "paramsSource": {
         "path": "protocol/ts/FuzzyFileSearchSessionStopParams.ts",
         "line": 1,
@@ -6592,6 +6747,35 @@
       ],
       "existingEvidence": [],
       "assessment": "Explicit thread/compact alias enters work admission and waits for actual lifecycle events. It can invoke model work and is distinct from memory reset and rollout storage compression."
+    },
+    {
+      "id": "cli-0169-additions",
+      "methods": [
+        "thread/memory/read",
+        "thread/guardianReview",
+        "thread/prepareApprovedPlan",
+        "modelProvider/list",
+        "modelProvider/config/write",
+        "account/gcp/setup",
+        "accountSession/list",
+        "accountSession/switch",
+        "account/securitySetup/read"
+      ],
+      "classification": "mixed-explicit-boundaries",
+      "status": "reviewed",
+      "assessment": "Nine new native requests were compared with actual named routing; two use existing controlled provider equivalents, one unsupported GCP boundary and six unexposed optional extensions are explicit. This review adds no UI or live service acceptance.",
+      "sources": [
+        {
+          "path": "src/core/feature-methods.ts",
+          "line": 1,
+          "sha256": "a891427a63d0de4133651e3b788d40c6b50209ee62225ef5d08dc8a2854fac2c"
+        },
+        {
+          "path": "src/runtime/service.ts",
+          "line": 1,
+          "sha256": "e83af173761083a713934aebab7c1f8ef5da7eb4d4a74b80bc8ef1e12e642cd3"
+        }
+      ]
     }
   ],
   "additionalWorkflows": [
@@ -7622,15 +7806,55 @@
     {
       "id": "formal-audit-and-release",
       "status": "not-started-by-this-inventory",
-      "details": "[private deployment detail omitted]"
+      "details": "This inventory does not authorize release or count as a clean audit. The current v2.4.0 user instruction requires targeted tests, one full audit with no findings after repairs, then release; source-bound full test/deployment results are recorded separately."
     }
   ],
   "limits": [
-    "This is a read-only capability trace of moving source, not a complete security audit or acceptance of all optional fields.",
+    "This is a current contract/routing comparison with separately labeled historical implementation evidence, not a complete security audit or acceptance of all optional fields.",
     "No real ChatGPT login, paid model, external voice, AWS account, cloud submission, remote marketplace sharing, OAuth logout or workspace-owner email was performed.",
     "Existing local-native fixtures prove their bounded protocol and process paths; mock UI tests prove interaction and payload construction, not live service access.",
     "Production helper paths are Linux native UID boundaries. The separate Linux fixed CLI/diagnostics cross-UID fixture passed 40 checks at production TasksMax=256/MemoryMax=3GiB, with observed peak112/max-events0 and confirmed UID cleanup. Its bounded terminal client emulated xterm query responses; this is not browser screenshot acceptance or full Linux /hooks trust interaction. It used no real credentials or external business service. Windows development fallbacks do not certify Windows sandbox setup.",
     "Unknown operations remain unknown without independent proof; feature coverage never authorizes replay or converts helper-owned journals into positive acceptance."
   ],
-  "publicCopyNotice": "Public historical summary. Operator-specific deployment details have been removed. The private original is the record of the original execution."
+  "updatedAt": "2026-11-17T13:22:53.321378+00:00",
+  "historicalEvidenceCliVersion": "0.164.0",
+  "cliUpgradeEvidence": {
+    "version": "0.169.0",
+    "formalAudit": false,
+    "fullSuite": false,
+    "paidInference": false,
+    "externalMcp": false,
+    "reports": [
+      {
+        "path": ".work/v240/runtime-native-169.log",
+        "line": 1,
+        "sha256": "1b0c4676a6d821433382b26084d2fee18af315d107604945fc068580b958994c"
+      },
+      {
+        "path": ".work/v240/runtime-conversion-169.log",
+        "line": 1,
+        "sha256": "e35cbe88acb86574c871046838275152bd1c79e811dfb8da358f4fe8dbb2d86a"
+      },
+      {
+        "path": ".work/v240/runtime-attachment-native-final.log",
+        "line": 1,
+        "sha256": "ae614870c95e20f3bc20bf5b79fe21dc31228fbf3bc2fa462689dba043c6867e"
+      },
+      {
+        "path": ".work/v240/deploy-linux-runtime-unit6.log",
+        "line": 1,
+        "sha256": "50e4ac39bedcba5be2a21d5529f051ef1117da2d070027c22f9715ba107cc421"
+      },
+      {
+        "path": ".work/v240/deploy-linux-process-native6.log",
+        "line": 1,
+        "sha256": "b209a27dc53530123994e2d47b89c6b49f64e8d4a71018c1c39ed3633e0abe58"
+      }
+    ],
+    "notes": [
+      "Initial native batch contains two failures and is retained honestly; corrected provider conversion and process ownership evidence is separate.",
+      "The timeline JSON snake_case versus generated TS camelCase difference was reconfirmed from regenerated 0.169.0 schemas; no live paid realtime test is claimed.",
+      "New environment/remove RPC is still absent; registrations remain native-lifetime scoped."
+    ]
+  }
 }

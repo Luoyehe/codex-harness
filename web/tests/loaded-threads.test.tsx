@@ -67,7 +67,7 @@ it('discovers paginated ids and opens only the explicitly selected thread withou
   );
   fireEvent.click(await screen.findByRole('button', { name: '加载更多已加载会话' }));
   fireEvent.click(await screen.findByRole('button', { name: 'second' }));
-  await screen.findByText('Name second');
+  await screen.findByRole('heading', { name: 'Name second' });
   fireEvent.click(screen.getByRole('button', { name: '打开此会话' }));
   expect(s.onOpenThread).toHaveBeenCalledWith('second');
   expect(s.calls.some((c) => c.method === 'thread/resume')).toBe(false);

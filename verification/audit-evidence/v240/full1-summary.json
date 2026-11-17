@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-1",
+  "status": "findings-and-inspection-depth-gaps-require-new-full-audit",
+  "complete": false,
+  "source": {
+    "files": 2115,
+    "digest": "7e831a6686afed6afb3e533f2c24782ada93a3aced8147e35c72e02b18c1ca65",
+    "baseCommit": "historical-commit-077"
+  },
+  "startedAt": "2026-11-17T13:24:15.485Z",
+  "recordedAt": "2026-11-17T14:00:09.964Z",
+  "reports": [
+    {
+      "path": "verification/audit-evidence/v240/full1-runtime-gateway.json",
+      "sha256": "788de5e3d91228dd7bf108c95e506255c0d4c201d7c3683ca20a4a3fb37f4c5a",
+      "findings": [
+        {
+          "id": "FULL1-RUNTIME-01",
+          "priority": 2,
+          "description": "Gateway ReceiptMaintenance retains only one ExportLease. A preview in another tab overwrites the first live tab export identity, so its next chunk/rotate rejects archive_expired even though the core now retains both export snapshots. This defeats the implemented independent-tab export behavior."
+        },
+        {
+          "id": "FULL1-RUNTIME-02",
+          "priority": 3,
+          "description": "A definitively rejected stop writes a nextStop cooldown. If turn/completed later finishes the run via the notification path, it deletes nextRead but not nextStop. The run leaves outstanding(), so that cooldown is never visited again; repeated affected runs grow the Map without retention bounds."
+        },
+        {
+          "id": "FULL1-RUNTIME-03",
+          "priority": 2,
+          "description": "DiagnosticRedactor does not register HARNESS_PROVIDER_KEY_DEFAULT or HARNESS_PROVIDER_KEY_<32HEX> values, although configFromEnvironment explicitly supports those managed provider variables. A diagnostic/native error containing the configured credential as a bare value survives both text and structured redaction, unlike the legacy HARNESS_PROVIDER_API_KEY path."
+        },
+        {
+          "id": "FULL1-RUNTIME-04",
+          "priority": 3,
+          "description": "After awaiting rpc.close() and its owned cleanup proof, the Linux launcher test probes rpc.processId using process.kill(pid, 0). A reused numeric PID can falsely fail an otherwise successful cleanup assertion. This particular call is signal 0 and does not kill an unrelated process."
+        }
+      ],
+      "completedAt": "2026-11-17T13:42:25.855Z"
+    },
+    {
+      "path": "verification/audit-evidence/v240/full1-deploy.json",
+      "sha256": "bd06d1b93d448515cd75a3653bff96d49f6d6e4836e98312bcce76223f9285bc",
+      "findings": [
+        {
+          "id": "V240-FULL1-DEPLOY-001",
+          "priority": "P2",
+          "description": "prepare checks only the compact public view, then serializes private model instructions and native catalogs without enforcing the 4 MiB settings read limit. Two individually valid provider catalogs can therefore create a generation that read/verify refuses; activation stops services before this late failure. Profiles.save independently adds metadata around a valid near-limit settings object and can persist an oversized profile, after which Profiles.records/public and provider/read reject the retained profile."
+        },
+        {
+          "id": "V240-FULL1-DEPLOY-002",
+          "priority": "P1",
+          "description": "Builder.toolchain reuses the fixed toolchain directory whenever its contents match the stored manifest, without binding that manifest to current Node/pnpm/Codex versions or distribution hashes. No control-update or application-update path refreshes this cache. An existing 0.164 installation therefore reuses 0.164 while preparing the 0.169 candidate, and the explicit runtime probe rejects it only after dependency fetch/install/build. Repeated attempts cannot self-correct and consume retained candidate slots. The final probe prevents publishing the old CLI; this is an upgrade blocker rather than a claim of silent successful downgrade."
+        }
+      ],
+      "completedAt": "2026-11-17T13:38:58.717465+00:00"
+    },
+    {
+      "path": "verification/audit-evidence/v240/full1-web.json",
+      "sha256": "7b9d82d4eb32ba49637aba2bb463f1cc49b2bbeb4f306b98a458ccebfe71dd95",
+      "findings": [
+        {
+          "id": "FULL1-WEB-01",
+          "priority": 2,
+          "description": "Unsaved settings edits are guarded only by Settings Dialog.onClose. Internal project rename/remove, draft/history opening and native-terminal navigation invoke parent callbacks directly and can replace/unmount Settings with dirty provider/profile/extension/remote fields still present. The extension project selector also remounts its keyed child editors immediately, dropping unprepared skill/plugin/sharing edits without confirmation."
+        }
+      ],
+      "completedAt": "2026-11-17T13:40:06.345Z"
+    },
+    {
+      "path": "verification/audit-evidence/v240/full1-tooling-protocol.json",
+      "sha256": "ca80696aa34832f3c2656b1fd473707185880421a1075a9838b5053267840016",
+      "findings": [
+        {
+          "id": "FULL1-DOC-01",
+          "priority": 3,
+          "description": "Current architecture and generated-protocol notice still claim 2.3.3/CLI 0.164.0. Architecture conversion also claims creation under source provider, whereas 0.169 compatibility requires target provider from creation. Update current contract only; retain explicitly historical evidence."
+        },
+        {
+          "id": "FULL1-TOOL-02",
+          "priority": 2,
+          "description": "After awaiting the owned child/controller exit proof, the preflight checks and finally kills the old numeric child PID. PID reuse can both falsely fail verification and kill an unrelated process. Use bound controller/Job/exited proof and owned ChildProcess termination, never raw historical PID fallback."
+        }
+      ],
+      "completedAt": "2026-11-17T13:38:26.004Z"
+    }
+  ],
+  "reportedFindings": 9,
+  "coverageGaps": [
+    "tests/core/automation-retention.test.ts",
+    "tests/core/ledger-capacity.test.ts",
+    "tests/core/ledger.test.ts",
+    "tests/core/schedule.test.ts",
+    "tests/deploy/vision_stdio_probe.mjs",
+    "tests/gateway/auth.test.ts",
+    "tests/gateway/dispatch.test.ts",
+    "tests/gateway/emergency-http.test.ts",
+    "tests/gateway/execution-mode.test.ts",
+    "tests/gateway/http.test.ts",
+    "tests/gateway/manager-client.test.ts",
+    "tests/gateway/mcp-oauth.test.ts",
+    "tests/gateway/receipt-result.test.ts",
+    "tests/gateway/worker-client.test.ts",
+    "tests/gateway/workspace-ack.test.ts",
+    "tests/gateway/worktrees.test.ts",
+    "tests/runtime/README.md",
+    "tests/runtime/account-tools.test.ts",
+    "tests/runtime/approval-native.test.ts",
+    "tests/runtime/automation-native.test.ts",
+    "tests/runtime/cli-diagnostics-native.test.ts",
+    "tests/runtime/cli-diagnostics.test.ts",
+    "tests/runtime/cli-terminals.test.ts",
+    "tests/runtime/defaults-lifecycle.test.ts",
+    "tests/runtime/dev-resources-special-file-fixture.mjs",
+    "tests/runtime/dev-resources.test.ts",
+    "tests/runtime/device-login.test.ts",
+    "tests/runtime/entrypoint.test.ts",
+    "tests/runtime/execution-mode.test.ts",
+    "tests/runtime/extensions-native.test.ts",
+    "tests/runtime/extensions.test.ts",
+    "tests/runtime/fixture-cleanup.test.ts",
+    "tests/runtime/fixture-cleanup.ts",
+    "tests/runtime/fixture-model-catalog.json",
+    "tests/runtime/fixture-values.ts",
+    "tests/runtime/gateway-native.test.ts",
+    "tests/runtime/gateway-oauth-native.test.ts",
+    "tests/runtime/generated-media.test.ts",
+    "tests/runtime/guardian-native.test.ts",
+    "tests/runtime/guardian.test.ts",
+    "tests/runtime/imports.test.ts",
+    "tests/runtime/input-context.test.ts",
+    "tests/runtime/input-modalities.test.ts",
+    "tests/runtime/input-native.test.ts",
+    "tests/runtime/linux-process.test.ts",
+    "tests/runtime/live-thread-list.test.ts",
+    "tests/runtime/loopback-provider.ts",
+    "tests/runtime/mcp-configuration.test.ts",
+    "tests/runtime/mcp-fixture.mjs",
+    "tests/runtime/mcp-native.test.ts",
+    "tests/runtime/mcp-oauth-fixture.mjs",
+    "tests/runtime/mcp-schema.test.ts",
+    "tests/runtime/mcp.test.ts",
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native-smoke.test.ts",
+    "tests/runtime/organization-native.test.ts",
+    "tests/runtime/organization.test.ts",
+    "tests/runtime/permission-validation.test.ts",
+    "tests/runtime/predictions.test.ts",
+    "tests/runtime/process-native.test.ts",
+    "tests/runtime/project-trust.test.ts",
+    "tests/runtime/projects.test.ts",
+    "tests/runtime/providers.test.ts",
+    "tests/runtime/pty-transcript.test.ts",
+    "tests/runtime/pty-transcript.ts",
+    "tests/runtime/realtime.test.ts",
+    "tests/runtime/reasoning-summary.test.ts",
+    "tests/runtime/remote-native.test.ts",
+    "tests/runtime/remote.test.ts",
+    "tests/runtime/server.test.ts",
+    "tests/runtime/sharing-feedback.test.ts",
+    "tests/runtime/skill-resources.test.ts",
+    "tests/runtime/terminal-cleanup-fixture.mjs",
+    "tests/runtime/terminal-cleanup.test.ts",
+    "tests/runtime/thread-list-native.test.ts",
+    "tests/runtime/thread-terminals.test.ts",
+    "tests/runtime/timeline-contract.test.ts",
+    "tests/runtime/windows-job-fixture.mjs",
+    "tests/runtime/windows-job-owner.mjs",
+    "tests/runtime/windows-job.test.ts",
+    "tests/runtime/windows-module-bootstrap.test.ts",
+    "tests/runtime/windows-process.test.ts",
+    "tests/runtime/workflows-native.test.ts",
+    "tests/runtime/workflows.test.ts",
+    "tests/runtime/workspace-index.test.ts",
+    "tests/runtime/workspace-service.test.ts",
+    "tests/runtime/workspace-witness-durability.test.ts",
+    "tests/runtime/workspace-witness.test.ts",
+    "tests/runtime/workspace.test.ts",
+    "tests/runtime/worktree-witness.test.ts"
+  ],
+  "note": "The native test historical-PID finding and tooling preflight finding share a failure class but have separate affected paths. Scoped reports are complete at their declared inspection depth; aggregated explicit inspectedFiles omit 90 mostly runtime test/fixture files that were inventoried broadly. The next round must expand content and semantic review, not relabel that inventory as completed inspection. This round is not a clean audit or full-test authorization."
+}

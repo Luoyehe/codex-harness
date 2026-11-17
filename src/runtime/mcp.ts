@@ -142,7 +142,15 @@ export class Mcp {
     }
     if (method !== 'mcpServer/event/stream/notification') return false;
     validateOfficial('McpServerEventStreamNotification', params); const entry = this.streams.get(string(params.subscriptionId, 'subscriptionId')); if (!entry || entry.revoked) return true;
-    jsonBytes(params, 1024 * 1024); this.host.emit({ ...this.publicStream(entry), clientId: entry.clientId, type: 'event', notification: params.notification! }, entry.eventChannelId); return true;
+    try { jsonBytes(params, 1024 * 1024); }
+    catch (error) {
+      if (!(error instanceof DeliveryError) || error.code !== 'capacity') throw error;
+      this.host.emit({ ...this.publicStream(entry), clientId: entry.clientId, type: 'error', code: 'event_capacity' }, entry.eventChannelId);
+      // A local subscription budget is not a native protocol failure. Release
+      // just this subscription; an unconfirmed stop retains the epoch fence.
+      void this.stop(entry).catch(async () => { try { await this.host.failEpoch(); } catch { /* Runtime recovery retains cleanup failure. */ } }); return true;
+    }
+    this.host.emit({ ...this.publicStream(entry), clientId: entry.clientId, type: 'event', notification: params.notification! }, entry.eventChannelId); return true;
   }
   async disconnect(clientId?: string, eventChannelId?: string): Promise<void> {
     const match = (entry: Owner): boolean => (clientId === undefined || entry.clientId === clientId) && (eventChannelId === undefined || entry.eventChannelId === eventChannelId);

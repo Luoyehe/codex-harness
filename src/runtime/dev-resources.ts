@@ -27,7 +27,14 @@ export async function devResource(cwd: string, action: string, params: JsonObjec
   const digest = (value: JsonValue): string => createHash('sha256').update(canonical(value)).digest('hex');
   if (action === 'resource/skill/read') {
     const filename = string(params.path, 'skill path'); if (!path.isAbsolute(filename) || path.basename(filename) !== 'SKILL.md') throw new DeliveryError('resource_scope', 'Only catalog skill documents can be read');
-    const root = [cwd, ...skillRoots].find(root => { try { relative(root, filename); return true; } catch { return false; } });
+    const ancestors: string[] = []; let current = path.resolve(cwd), repository = false;
+    for (let depth = 0; depth < 64; depth++) {
+      ancestors.push(path.join(current, '.agents', 'skills'));
+      try { const marker = await lstat(path.join(current, '.git')); if (marker.isSymbolicLink()) break; if (marker.isDirectory() || marker.isFile()) { repository = true; break; } }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') break; }
+      const parent = path.dirname(current); if (parent === current) break; current = parent;
+    }
+    const root = [cwd, ...skillRoots, ...(repository ? ancestors : [])].find(root => { try { relative(root, filename); return true; } catch { return false; } });
     if (!root) throw new DeliveryError('resource_scope', 'Skill is outside explicit development roots'); await walk(root, filename);
     const { data, mode } = await read(filename, 512 * 1024); let text: string;
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(data); } catch { throw new DeliveryError('resource_binary', 'Skill must contain UTF-8 text'); }

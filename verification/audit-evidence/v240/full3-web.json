@@ -1,0 +1,1794 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-3",
+  "reviewerId": "v240-web-independent",
+  "digest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+  "startedAt": "2026-11-17T14:55:52.982Z",
+  "completedAt": "2026-11-17T15:11:04.486Z",
+  "complete": true,
+  "scopes": [
+    "web-ux"
+  ],
+  "snapshotStart": {
+    "files": 2126,
+    "digest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+    "verified": true
+  },
+  "snapshotEnd": {
+    "files": 2126,
+    "digest": "13461e6f8f53376026a9aa0b9425f0f23d55358c943a62c2d685df93351e27e6",
+    "verified": true
+  },
+  "findings": [
+    {
+      "id": "FULL3-WEB-01",
+      "priority": "P2",
+      "status": "confirmed",
+      "title": "Deleted selected provider falls back to the default while retaining another provider catalog draft",
+      "files": [
+        {
+          "path": "web/components/ProviderSettings.tsx",
+          "line": 78
+        },
+        {
+          "path": "web/components/ModelCatalog.tsx",
+          "line": 178
+        },
+        {
+          "path": "deploy/manager.py",
+          "line": 587
+        }
+      ],
+      "trigger": "Select provider B in a registry containing default custom Responses provider A. Add or edit a manual model catalog for B. Another browser or whole-profile restore removes B. Refresh settings (new epoch/revision) and confirm/apply the retained catalog.",
+      "actual": "ProviderSettings keeps effectiveId=B and the ModelCatalog key, but its unresolved row falls back to the top-level default-provider summary. That summary has no providerId. ModelCatalog consequently omits providerId from system/models/refresh and accepts the default-shaped receipt. The manager selects the default A for a missing providerId, so the retained B catalog can overwrite A.",
+      "consequence": "The user can apply capability/model entries to a different provider from the one originally being edited. The original draft-preservation fix must also preserve its target identity.",
+      "proof": "An isolated .work React + real Api/IndexedDB probe reached an actual system/models/refresh request after B was removed; its params.providerId was undefined. The probe failed exactly at expected providerId=b. Backend selected(current, params.get(providerId)) and public registry shape were read to verify the resulting default-provider route; no live provider was called.",
+      "recommendation": "Distinguish legacy single-provider payloads from a missing selected connection in a multi-provider registry. Keep the missing target editor/draft under its original identity, show a target-removed warning, and disable all target-bound operations until an explicit valid selection. Require an explicit stable provider identity for the catalog rather than inferring legacy mode from an accidentally absent field. Add removal and profile-replacement regressions while retaining existing late-receipt and draft-preservation safeguards.",
+      "relatedEntrypoints": "Provider save/remove/default actions currently send explicit effectiveId=B and should be rejected by the backend rather than mutate A; nonetheless gate their misleading missing-target UI consistently. ProviderProfiles resolves selected profile with find and hides actions when absent. ChatGPT login is deliberately shared across instance ChatGPT connections and is not a provider-specific misroute.",
+      "evidence": [
+        {
+          "path": ".work/v240/provider-missing-target.test.tsx",
+          "sha256": "a012f4e166f02fa233ba2d874e891d079161484c6a4988f50079de9326a8b485"
+        },
+        {
+          "path": ".work/v240/provider-missing-target.config.mjs",
+          "sha256": "3f00b7fe6325f27929e4e78544524af7ae28b2e047f483593c6ec4616728aca6"
+        },
+        {
+          "path": ".work/v240/full3-provider-missing-target.json",
+          "sha256": "3c7931e62e236fa7acf6797726d9c60370a78f0b5238d9489912e4a8e646e251"
+        },
+        {
+          "path": ".work/v240/full3-provider-missing-target.log",
+          "sha256": "6ca2ff3edfa6755748516032d60e40e820f18e96b3ada67aeb4d1f92796fbc4f"
+        }
+      ]
+    }
+  ],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/App.tsx",
+    "web/VERIFICATION.md",
+    "web/Workspace.tsx",
+    "web/components/AccountLimits.tsx",
+    "web/components/AccountSettings.tsx",
+    "web/components/AccountToolsPanel.tsx",
+    "web/components/AdminSettings.tsx",
+    "web/components/ArchiveActions.tsx",
+    "web/components/AttachmentButton.tsx",
+    "web/components/AutomationForm.tsx",
+    "web/components/AutomationsPanel.tsx",
+    "web/components/CliDiagnosticsPanel.tsx",
+    "web/components/CompactThreshold.tsx",
+    "web/components/Composer.tsx",
+    "web/components/ComposerOptions.tsx",
+    "web/components/ConfigSettings.tsx",
+    "web/components/CreditNudge.tsx",
+    "web/components/DeferredPanel.tsx",
+    "web/components/DiagnosticsPanel.tsx",
+    "web/components/Dialog.tsx",
+    "web/components/DraftsSettings.tsx",
+    "web/components/EmergencyRecovery.tsx",
+    "web/components/EnvironmentPicker.tsx",
+    "web/components/ExecutionModeSettings.tsx",
+    "web/components/ExtensionControls.tsx",
+    "web/components/ExtensionsPanel.tsx",
+    "web/components/FileEditor.tsx",
+    "web/components/GuardianReviewPanel.tsx",
+    "web/components/HistoryTools.tsx",
+    "web/components/HookEventsPanel.tsx",
+    "web/components/Icon.tsx",
+    "web/components/ImportPanel.tsx",
+    "web/components/InputContextPicker.tsx",
+    "web/components/InputPreferences.tsx",
+    "web/components/LoadedThreadsPanel.tsx",
+    "web/components/Login.tsx",
+    "web/components/McpArguments.tsx",
+    "web/components/McpAuthorization.tsx",
+    "web/components/McpConfiguration.tsx",
+    "web/components/McpContent.tsx",
+    "web/components/McpPanel.tsx",
+    "web/components/MemorySettings.tsx",
+    "web/components/MessageItem.tsx",
+    "web/components/MessageMedia.tsx",
+    "web/components/Messages.tsx",
+    "web/components/ModelCatalog.tsx",
+    "web/components/ModelDirectoryStatus.tsx",
+    "web/components/ModelPicker.tsx",
+    "web/components/NativeProjects.tsx",
+    "web/components/OperationHistory.tsx",
+    "web/components/OrganizationPanel.tsx",
+    "web/components/PluginSettings.tsx",
+    "web/components/PluginSharing.tsx",
+    "web/components/PredictionPanel.tsx",
+    "web/components/ProcessPanel.tsx",
+    "web/components/ProjectDialog.tsx",
+    "web/components/ProjectTrustSettings.tsx",
+    "web/components/PromptFields.tsx",
+    "web/components/Prompts.tsx",
+    "web/components/ProviderProfiles.tsx",
+    "web/components/ProviderSettings.tsx",
+    "web/components/RealtimePanel.tsx",
+    "web/components/ReceiptMaintenance.tsx",
+    "web/components/Recovery.tsx",
+    "web/components/RemoteSettings.tsx",
+    "web/components/RenameDialog.tsx",
+    "web/components/RuntimeInsights.tsx",
+    "web/components/SafeMarkdown.tsx",
+    "web/components/SecuritySettings.tsx",
+    "web/components/Settings.tsx",
+    "web/components/SettingsDraftDialog.tsx",
+    "web/components/Sidebar.tsx",
+    "web/components/SidebarManagementDialog.tsx",
+    "web/components/SkillLibraryTools.tsx",
+    "web/components/SkillSettings.tsx",
+    "web/components/TaskPanel.tsx",
+    "web/components/TerminalPanel.tsx",
+    "web/components/ThreadConversionDialog.tsx",
+    "web/components/ThreadExecutionSettings.tsx",
+    "web/components/ThreadOrganization.tsx",
+    "web/components/ThreadTerminals.tsx",
+    "web/components/TurnFooter.tsx",
+    "web/components/UsagePopover.tsx",
+    "web/components/Welcome.tsx",
+    "web/components/WorkspaceCommit.tsx",
+    "web/components/WorkspaceDownload.tsx",
+    "web/components/WorkspaceGit.tsx",
+    "web/components/WorkspaceIndex.tsx",
+    "web/components/WorkspaceIndexRecovery.tsx",
+    "web/components/WorkspacePanel.tsx",
+    "web/components/WorkspaceRecovery.tsx",
+    "web/components/WorkspaceSearch.tsx",
+    "web/components/WorkspaceWorktrees.tsx",
+    "web/hooks/useAutomationRuns.ts",
+    "web/hooks/useConversation.ts",
+    "web/hooks/useDiagnostics.tsx",
+    "web/hooks/useDraft.ts",
+    "web/hooks/useEvents.ts",
+    "web/hooks/useModelCatalogRefresh.ts",
+    "web/hooks/useModelDirectory.tsx",
+    "web/hooks/usePageVisible.ts",
+    "web/hooks/usePaged.ts",
+    "web/hooks/usePrompts.ts",
+    "web/hooks/useResource.ts",
+    "web/hooks/useResume.ts",
+    "web/hooks/useSettingsDraft.ts",
+    "web/hooks/useSidebarRefresh.ts",
+    "web/hooks/useWorkflow.ts",
+    "web/hooks/useWorkspaceWatch.ts",
+    "web/index.html",
+    "web/lib/api.ts",
+    "web/lib/automations.ts",
+    "web/lib/download.ts",
+    "web/lib/drafts.ts",
+    "web/lib/emergency-recovery.ts",
+    "web/lib/events.ts",
+    "web/lib/execution-mode.ts",
+    "web/lib/file-drafts.ts",
+    "web/lib/form-values.ts",
+    "web/lib/generated-media.ts",
+    "web/lib/git-state.ts",
+    "web/lib/history.ts",
+    "web/lib/ids.ts",
+    "web/lib/imports.ts",
+    "web/lib/input-context.ts",
+    "web/lib/input-modalities.ts",
+    "web/lib/input-preference.ts",
+    "web/lib/mcp-session.ts",
+    "web/lib/media.ts",
+    "web/lib/operation-store.ts",
+    "web/lib/operations.ts",
+    "web/lib/organization.ts",
+    "web/lib/prompt-validation.ts",
+    "web/lib/provider-models.ts",
+    "web/lib/realtime-media.ts",
+    "web/lib/receipt-archive.ts",
+    "web/lib/status-labels.ts",
+    "web/lib/stream-items.ts",
+    "web/lib/timeline.ts",
+    "web/lib/types.ts",
+    "web/lib/workflows.ts",
+    "web/lib/workspace.ts",
+    "web/main.tsx",
+    "web/public/favicon.svg",
+    "web/styles-automations.css",
+    "web/styles-entry.css",
+    "web/styles-extensions.css",
+    "web/styles-input-context.css",
+    "web/styles-responsive.css",
+    "web/styles-usability.css",
+    "web/styles-workflows.css",
+    "web/styles-workspace.css",
+    "web/styles.css",
+    "web/tests/account-app.test.tsx",
+    "web/tests/account-tools.test.tsx",
+    "web/tests/app-lifecycle.test.tsx",
+    "web/tests/attachments.test.tsx",
+    "web/tests/automations.test.tsx",
+    "web/tests/builtin-auth.test.tsx",
+    "web/tests/cli-diagnostics.test.tsx",
+    "web/tests/compact-threshold.test.tsx",
+    "web/tests/composer.test.tsx",
+    "web/tests/conversation-recovery.test.tsx",
+    "web/tests/conversation.test.tsx",
+    "web/tests/credit-nudge.test.tsx",
+    "web/tests/defaults.test.tsx",
+    "web/tests/deferred-panel.test.tsx",
+    "web/tests/device-login.test.tsx",
+    "web/tests/dialog.test.tsx",
+    "web/tests/draft-navigation.test.tsx",
+    "web/tests/drafts.test.tsx",
+    "web/tests/emergency-recovery.test.ts",
+    "web/tests/emergency-recovery.test.tsx",
+    "web/tests/enabled-button.ts",
+    "web/tests/environment-picker.test.tsx",
+    "web/tests/events.test.tsx",
+    "web/tests/execution-drafts.test.tsx",
+    "web/tests/execution-mode.test.tsx",
+    "web/tests/execution-settings.test.tsx",
+    "web/tests/extension-mcp-drafts.test.tsx",
+    "web/tests/extensions.test.tsx",
+    "web/tests/generated-media.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/guardian-review.test.tsx",
+    "web/tests/history.test.ts",
+    "web/tests/hook-events.test.tsx",
+    "web/tests/import-ui.test.tsx",
+    "web/tests/input-context.test.tsx",
+    "web/tests/input-modalities.test.tsx",
+    "web/tests/input-preference.test.tsx",
+    "web/tests/loaded-threads.test.tsx",
+    "web/tests/mcp-media.test.tsx",
+    "web/tests/mcp-oauth.test.tsx",
+    "web/tests/mcp-ui.test.tsx",
+    "web/tests/memory-settings.test.tsx",
+    "web/tests/message-media.test.tsx",
+    "web/tests/modal-mutations.test.tsx",
+    "web/tests/model-consumers.test.tsx",
+    "web/tests/model-picker.test.tsx",
+    "web/tests/operation-generation.test.ts",
+    "web/tests/operation-history.test.tsx",
+    "web/tests/operation-setup.ts",
+    "web/tests/operation-storage.test.ts",
+    "web/tests/operations.test.ts",
+    "web/tests/organization.test.tsx",
+    "web/tests/paged-models.test.tsx",
+    "web/tests/paged-threads.test.tsx",
+    "web/tests/prediction.test.tsx",
+    "web/tests/preview-server.mjs",
+    "web/tests/preview-server.test.ts",
+    "web/tests/process-remote.test.tsx",
+    "web/tests/project-create.test.tsx",
+    "web/tests/project-handoff.test.tsx",
+    "web/tests/prompt-fields.test.tsx",
+    "web/tests/prompts.test.tsx",
+    "web/tests/provider-advanced.test.tsx",
+    "web/tests/provider-catalog.test.tsx",
+    "web/tests/provider-multi.test.tsx",
+    "web/tests/provider-profiles.test.tsx",
+    "web/tests/provider.test.tsx",
+    "web/tests/realtime.test.tsx",
+    "web/tests/receipt-maintenance.test.tsx",
+    "web/tests/recovery.test.tsx",
+    "web/tests/render-budget.test.tsx",
+    "web/tests/resources.test.tsx",
+    "web/tests/resume.test.tsx",
+    "web/tests/session.test.ts",
+    "web/tests/settings-drafts.test.tsx",
+    "web/tests/settings-internal-drafts.test.tsx",
+    "web/tests/settings.test.tsx",
+    "web/tests/shared-model-directory.test.tsx",
+    "web/tests/sharing-diagnostics.test.tsx",
+    "web/tests/sidebar-management.test.tsx",
+    "web/tests/sidebar-refresh.test.tsx",
+    "web/tests/sidebar.test.tsx",
+    "web/tests/skill-library.test.tsx",
+    "web/tests/stream-items.test.ts",
+    "web/tests/terminal.test.tsx",
+    "web/tests/thread-conversion.test.tsx",
+    "web/tests/thread-terminals.test.tsx",
+    "web/tests/timeline-history.test.tsx",
+    "web/tests/turn-footer.test.tsx",
+    "web/tests/usage.test.tsx",
+    "web/tests/v240-audit-regressions.test.tsx",
+    "web/tests/workflows.test.tsx",
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tsconfig.json",
+    "web/vite.config.ts"
+  ],
+  "method": [
+    "Whole WEB scope is 253 current source/test/style/entry files. This round newly read the complete contents listed in inspectionDepth.freshFullContent, re-traced the high-risk caller/ownership paths listed in currentImpactReview, and reused the complete per-file semantic reviews from round 2 for unchanged portions. A file list alone was not treated as content review.",
+    "Round 2 frontend content coverage came from full2-web, full2-tooling-protocol and this reviewer full2-workspace-web-tests; the only new uncovered files were SettingsDraftDialog and settings-internal-drafts, both freshly read in full. Round 2 repair reports and exact changed consumers were reviewed against the current frozen snapshot.",
+    "Followed settings draft registry -> pending navigation intent -> nested selectors -> guarded mutation -> compact receipt -> refreshed target. Checked account/session and runtime generations, stale asynchronous completion, explicit recovery and non-replay across these consumers.",
+    "Performed one isolated offline adversarial probe in .work, with fixture HTTP responses and no source edits, to establish the cross-provider request defect. No full-suite run or commercial/external MCP call occurred in this audit."
+  ],
+  "inspectionDepth": {
+    "freshFullContent": [
+      "web/App.tsx",
+      "web/Workspace.tsx",
+      "web/components/Login.tsx",
+      "web/lib/api.ts",
+      "web/hooks/useEvents.ts",
+      "web/hooks/useSettingsDraft.ts",
+      "web/components/SettingsDraftDialog.tsx",
+      "web/tests/settings-internal-drafts.test.tsx",
+      "web/components/ProviderSettings.tsx",
+      "web/components/ModelCatalog.tsx",
+      "web/components/ProviderProfiles.tsx",
+      "web/components/McpConfiguration.tsx",
+      "web/components/PluginSharing.tsx",
+      "web/components/Settings.tsx",
+      "web/components/ExtensionsPanel.tsx",
+      "web/components/ExtensionControls.tsx",
+      "web/hooks/useWorkflow.ts",
+      "web/hooks/useResource.ts",
+      "web/components/WorkspaceWorktrees.tsx",
+      "web/components/SecuritySettings.tsx",
+      "web/hooks/useModelCatalogRefresh.ts",
+      "web/lib/provider-models.ts",
+      "web/components/DeferredPanel.tsx",
+      "web/hooks/useModelDirectory.tsx",
+      "web/hooks/useSidebarRefresh.ts",
+      "web/hooks/useResume.ts",
+      "web/components/ThreadConversionDialog.tsx",
+      "web/hooks/useConversation.ts",
+      "web/components/Composer.tsx",
+      "web/hooks/usePrompts.ts",
+      "web/lib/events.ts",
+      "web/components/Dialog.tsx",
+      "web/tests/builtin-auth.test.tsx",
+      "web/tests/events.test.tsx",
+      "web/tests/provider-catalog.test.tsx",
+      "web/styles-entry.css",
+      "web/styles-usability.css",
+      "web/styles-responsive.css",
+      "web/main.tsx",
+      "web/index.html",
+      "web/vite.config.ts",
+      "web/tsconfig.json",
+      "web/tests/operation-setup.ts"
+    ],
+    "currentPartialContent": [
+      {
+        "file": "web/components/AccountSettings.tsx",
+        "ranges": [
+          [
+            1,
+            310
+          ],
+          [
+            370,
+            530
+          ]
+        ],
+        "focus": "Account identity, owner cache, explicit login/cancel/logout and callback wiring; remaining unchanged content retains prior semantic review."
+      },
+      {
+        "file": "web/components/AccountToolsPanel.tsx",
+        "ranges": [
+          [
+            1,
+            220
+          ]
+        ],
+        "focus": "Gateway and reset-credit resource identity, completion receipts, expiry, account event coalescing; remainder retains prior review."
+      },
+      {
+        "file": "web/components/AttachmentButton.tsx",
+        "ranges": [
+          [
+            1,
+            150
+          ]
+        ],
+        "focus": "Identity-bound read, size/MIME validation, URL revocation and cancellation."
+      },
+      {
+        "file": "web/lib/drafts.ts",
+        "ranges": [
+          [
+            1,
+            100
+          ]
+        ],
+        "focus": "Execution namespaces and draft schema/capacity admission; full persistence/clearing semantics inherited and checked through current Workspace/API call paths."
+      },
+      {
+        "file": "web/lib/operations.ts",
+        "ranges": [
+          [
+            1,
+            90
+          ]
+        ],
+        "focus": "Safe history projection and identity contract, checked through current API/recovery callers."
+      },
+      {
+        "file": "web/lib/workflows.ts",
+        "ranges": [
+          [
+            65,
+            120
+          ]
+        ],
+        "focus": "Provider effort validation and export result contract."
+      },
+      {
+        "file": "web/components/HistoryTools.tsx",
+        "ranges": [
+          [
+            440,
+            620
+          ]
+        ],
+        "focus": "Current export/locate caller to fixed gateway export leases, no automatic mutation or local premature success."
+      },
+      {
+        "file": "web/tests/workspace-management.test.tsx",
+        "ranges": [
+          [
+            1,
+            100
+          ],
+          [
+            465,
+            495
+          ]
+        ],
+        "focus": "New retirement regression and existing fixture exact revision contract; full prior review by this reviewer remains applicable."
+      },
+      {
+        "file": "web/tests/mcp-ui.test.tsx",
+        "ranges": [
+          [
+            915,
+            1085
+          ]
+        ],
+        "focus": "Read cancellation A-B-A, retained tool inputs and aborted downloads; full prior test review retained."
+      },
+      {
+        "file": "web/tests/settings-drafts.test.tsx",
+        "ranges": [
+          [
+            1,
+            90
+          ]
+        ],
+        "focus": "Settings producer/consumer retain-text, hide-secrets and block-hidden-submission contract."
+      },
+      {
+        "file": "web/VERIFICATION.md",
+        "ranges": [
+          [
+            1,
+            120
+          ]
+        ],
+        "focus": "Historical verification scope and current caller compatibility; past runtime results not represented as current-round results."
+      }
+    ],
+    "reusedFullSemanticReview": [
+      {
+        "path": "web/VERIFICATION.md",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AccountLimits.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AccountSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AccountToolsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AdminSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ArchiveActions.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AttachmentButton.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AutomationForm.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/AutomationsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/CliDiagnosticsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/CompactThreshold.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ComposerOptions.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ConfigSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/CreditNudge.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/DiagnosticsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/DraftsSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/EmergencyRecovery.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/EnvironmentPicker.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ExecutionModeSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/FileEditor.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/GuardianReviewPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/HistoryTools.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/HookEventsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Icon.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ImportPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/InputContextPicker.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/InputPreferences.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/LoadedThreadsPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/McpArguments.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/McpAuthorization.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/McpContent.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/McpPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/MemorySettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/MessageItem.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/MessageMedia.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Messages.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ModelDirectoryStatus.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ModelPicker.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/NativeProjects.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/OperationHistory.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/OrganizationPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/PluginSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/PredictionPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ProcessPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ProjectDialog.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ProjectTrustSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/PromptFields.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Prompts.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/RealtimePanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ReceiptMaintenance.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Recovery.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/RemoteSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/RenameDialog.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/RuntimeInsights.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/SafeMarkdown.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Sidebar.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/SidebarManagementDialog.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/SkillLibraryTools.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/SkillSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/TaskPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/TerminalPanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ThreadExecutionSettings.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ThreadOrganization.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/ThreadTerminals.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/TurnFooter.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/UsagePopover.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/Welcome.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceCommit.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceDownload.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceGit.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceIndex.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceIndexRecovery.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspacePanel.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceRecovery.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/components/WorkspaceSearch.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/useAutomationRuns.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/useDiagnostics.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/useDraft.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/usePageVisible.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/usePaged.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/hooks/useWorkspaceWatch.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/automations.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/download.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/drafts.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/emergency-recovery.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/execution-mode.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/file-drafts.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/form-values.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/generated-media.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/git-state.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/history.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/ids.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/imports.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/input-context.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/input-modalities.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/input-preference.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/mcp-session.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/media.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/operation-store.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/operations.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/organization.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/prompt-validation.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/realtime-media.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/receipt-archive.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/status-labels.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/stream-items.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/timeline.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/types.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/workflows.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/lib/workspace.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/public/favicon.svg",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles-automations.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles-extensions.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles-input-context.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles-workflows.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles-workspace.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/styles.css",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/account-app.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/account-tools.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/app-lifecycle.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/attachments.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/automations.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/cli-diagnostics.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/compact-threshold.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/composer.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/conversation-recovery.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/conversation.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/credit-nudge.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/defaults.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/deferred-panel.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/device-login.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/dialog.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/draft-navigation.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/drafts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/emergency-recovery.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/emergency-recovery.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/enabled-button.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/environment-picker.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/execution-drafts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/execution-mode.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/execution-settings.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/extension-mcp-drafts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/extensions.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/generated-media.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/git-index-ui.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/guardian-review.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/history.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/hook-events.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/import-ui.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/input-context.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/input-modalities.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/input-preference.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/loaded-threads.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/mcp-media.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/mcp-oauth.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/mcp-ui.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/memory-settings.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/message-media.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/modal-mutations.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/model-consumers.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/model-picker.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/operation-generation.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/operation-history.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/operation-storage.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/operations.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/organization.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/paged-models.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/paged-threads.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/prediction.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/preview-server.mjs",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/preview-server.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/process-remote.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/project-create.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/project-handoff.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/prompt-fields.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/prompts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/provider-advanced.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/provider-multi.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/provider-profiles.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/provider.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/realtime.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/receipt-maintenance.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/recovery.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/render-budget.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/resources.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/resume.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/session.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/settings-drafts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/settings.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/shared-model-directory.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/sharing-diagnostics.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/sidebar-management.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/sidebar-refresh.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/sidebar.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/skill-library.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/stream-items.test.ts",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/terminal.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/thread-conversion.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/thread-terminals.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/timeline-history.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-tooling-protocol.json"
+        ]
+      },
+      {
+        "path": "web/tests/turn-footer.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/usage.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/v240-audit-regressions.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/workflows.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-web.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-git-drafts.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-handoff.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-management.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-search.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-ui.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      },
+      {
+        "path": "web/tests/workspace-watch.test.tsx",
+        "previousReports": [
+          "verification/audit-evidence/v240/full2-workspace-web-tests.json"
+        ]
+      }
+    ],
+    "currentImpactReview": [
+      {
+        "group": "Authentication, transport, operations and emergency recovery",
+        "detail": "App/Api/Login/useEvents and current SecuritySettings/Workflow callers were read against known-MFA errors, exact UTF-8 4MiB frames, stale-session and reconnect fences. Reused unchanged operations store/recovery tests retain original durable identity and no-replay semantics; the MFA and byte-boundary new regression bodies were read in full."
+      },
+      {
+        "group": "Workspace, conversation, provider model selection, subagents, history, drafts and input",
+        "detail": "Read full current Workspace, useConversation/useResume, model directory/refresh and provider-relations, Composer and conversion dialog. Traced root mode namespace, retained draft routing, same-provider gating, explicit two-step copy conversion, direct-input admission for subagents, history synchronization and export caller. Unchanged history/timeline/media/workflow reducers and their complete tests retain the round-2 content review."
+      },
+      {
+        "group": "Settings, extensions, MCP, remote/plugin configuration and accounts",
+        "detail": "Fresh full review of changed internal navigation targets and containing Settings/Extensions owners; checked old visibility/epoch/auth generation and secret invalidation through the new draft registry. Reviewed profiles and shared ChatGPT/account wiring for the same missing-target fallback. New internal-draft regression bodies cover cancel/confirm, stale pending destinations, and exact save acknowledgement; the deleted-provider case was absent and independently reproduced."
+      },
+      {
+        "group": "Workspace tools, terminals/process/voice, organization and automations",
+        "detail": "Rechecked current Workspace mount retention, enablement, resource epoch and recovery bindings to unchanged panels. WorkspaceWorktrees was read in full with nullable revision guard and shortened retirement label. Retained full semantic coverage of file/Git/search/download/recovery and terminal/process/media/automation components plus their tests from round 2; no new consumer contract mismatch was observed."
+      },
+      {
+        "group": "Rendering, CSS, dialogs, entry, configuration and test fixtures",
+        "detail": "Read current Dialog, deferred panels, CSS entry/order, responsive/usability overrides, main/index/vite/tsconfig and operation test setup. Rechecked lazy failure containment, terminal mount retention, nested modal focus, root/connection single-row layout and mobile control font rule against current Workspace structure. Unchanged other CSS/renderers/preview fixtures retain prior full semantic review; no fresh real-browser or Safari result is claimed."
+      }
+    ]
+  },
+  "observations": [
+    "MFA rejection stays local and preserves the known challenge stage; sensitive fields are cleared without treating it as an external authentication redirect. New tests assert the real Api error-shaped contract.",
+    "Event tests now construct exact encoded byte sizes, including >2MiB legal ASCII, maximum legal UTF-8 and an oversized multibyte frame followed by reconnection without any mutation replay.",
+    "Settings outer and internal navigation guard closures are bound to the active owner and intended destination. Hidden sensitive values/consent are cleared; current providers/model catalog draft target fallback is the exception recorded above.",
+    "The conversion modal remains keyed to thread/resource/mode/provider, uses two confirmations, and passes thread/convert as a separate copy request; no current frontend source path mutates the original thread as part of conversion.",
+    "The shortened worktree retirement action retains its detailed permanent-retirement warning and exact revision confirmation; its new test checks both wording and submitted identity/revision."
+  ],
+  "limitations": [
+    "This is a semantic source/fixture audit plus one offline reproduction, not a new full test matrix. Previously passing tests are not counted again.",
+    "Round-2 full semantic coverage was reused for unchanged sections as authorized; inspectedFiles therefore includes both fresh and explicitly inherited reviews. There is no independent per-file freeze2 hash inventory, so this report does not claim a new byte-by-byte comparison for every inherited file.",
+    "No live authentication, paid inference, real external MCP, physical mobile/Safari or screen-reader speech test was performed in this round. Prior browser evidence remains separate.",
+    "The snapshot stayed frozen. FULL3-WEB-01 is reported and not repaired in this round."
+  ]
+}

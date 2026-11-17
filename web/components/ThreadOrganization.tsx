@@ -1,3 +1,4 @@
+import { composing } from '../lib/types';
 import { useEffect, useRef, useState } from 'react';
 import type { ThreadReadResponse } from '../../protocol/ts/v2/ThreadReadResponse';
 import type { Api } from '../lib/api';
@@ -91,6 +92,7 @@ export function SectionSettings({
       )}
       {edit && (
         <form
+        onKeyDown={event => { if (event.key === 'Enter' && composing(event)) event.preventDefault(); }}
           className="info-card stack"
           onSubmit={async (event) => {
             event.preventDefault();
@@ -680,6 +682,7 @@ function ThreadLinks({
         </div>
       )}
       <form
+        onKeyDown={event => { if (event.key === 'Enter' && composing(event)) event.preventDefault(); }}
         className="info-card stack"
         onSubmit={(event) => {
           event.preventDefault();

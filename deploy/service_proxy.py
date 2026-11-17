@@ -383,7 +383,41 @@ def remove_routes(layout, value):
     run(["/usr/sbin/nft", "delete", "table", "inet", table_name(layout)])
 
 
+def require_available_ports(manager, port):
+    require(type(port) is int and 1024 <= port <= 65534, "Proxy port must be 1024–65534")
+    protected = {manager.config["port"]}
+    metadata = manager.layout.config / "https.json"
+    if metadata.exists() or metadata.is_symlink():
+        from .https import read_https_metadata
+        edge = read_https_metadata(manager.layout)
+        protected.update(edge.get(key) for key in ("httpPort", "httpsPort", "authPort") if type(edge.get(key)) is int)
+    require(not protected.intersection((port, port + 1)), "Proxy listeners conflict with this instance's gateway or HTTPS ports", "port_conflict")
+    # Existing owned listeners may be reused. Unrelated listeners are checked
+    # again by the atomic bind, which remains part of rollback semantics.
+    current = selection(manager.config)
+    if current is not None and current["enabled"] and current["port"] == port:
+        return
+    for candidate in (port, port + 1):
+        for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
+            try:
+                with socket.socket(family, socket.SOCK_STREAM) as probe:
+                    if family == socket.AF_INET6: probe.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+                    probe.bind((address, candidate))
+            except OSError as exc:
+                import errno
+                from .common import DeployError
+                if exc.errno in (errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL, errno.EPROTONOSUPPORT):
+                    raise DeployError("proxy_unsupported", "Service proxy requires IPv4 and IPv6 loopback; enable both before changing running services") from exc
+                raise DeployError("port_conflict", "Proxy listener is occupied or cannot be bound") from exc
+
+
 def prerequisites():
+    try:
+        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as probe:
+            probe.bind(("::1", 0))
+    except OSError as exc:
+        from .common import DeployError
+        raise DeployError("proxy_unsupported", "Service proxy requires IPv6 loopback; enable ::1 before changing running services") from exc
     version = run(["/usr/bin/systemctl", "--version"]).stdout.splitlines()[0].split()
     require(len(version) >= 2 and version[1].isdigit() and int(version[1]) >= 255 and
             Path("/sys/fs/cgroup/cgroup.controllers").is_file() and Path("/usr/sbin/nft").is_file(),

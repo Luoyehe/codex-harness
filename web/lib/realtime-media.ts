@@ -11,6 +11,7 @@ export class RealtimeMedia {
   constructor(
     private audio: HTMLAudioElement,
     private failed: (message: string, fatal?: boolean) => void,
+    private playbackChanged: (available: boolean) => void = () => {},
   ) {}
   static supported(): boolean {
     return (
@@ -30,6 +31,10 @@ export class RealtimeMedia {
       }
       this.remote = event.streams[0] ?? new MediaStream([event.track]);
       this.audio.srcObject = this.remote;
+      this.playbackChanged(true);
+      event.track.addEventListener('ended', () => {
+        if (!this.closed) this.playbackChanged(Boolean(this.remote?.getAudioTracks().some(track => track.readyState === 'live')));
+      }, { once: true });
       void this.audio.play().catch(() => {
         if (!this.closed) this.failed('浏览器阻止了自动播放，请点击“播放语音”。');
       });
@@ -40,16 +45,33 @@ export class RealtimeMedia {
         this.failed('音频连接已中断，麦克风已关闭并请求结束本次语音。', true);
       }
     };
-    const stream = await navigator.mediaDevices.getUserMedia({
+    const request = navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
       video: false,
+    });
+    // Permission prompts may remain open indefinitely. Closing this owner must
+    // settle the UI immediately; any late microphone belongs to this old owner.
+    const stream = await new Promise<MediaStream>((resolve, reject) => {
+      const cancelled = () => reject(new Error('语音启动已取消。'));
+      this.abort.signal.addEventListener('abort', cancelled, { once: true });
+      request.then(value => {
+        this.abort.signal.removeEventListener('abort', cancelled);
+        if (this.closed) { value.getTracks().forEach(track => track.stop()); cancelled(); }
+        else resolve(value);
+      }, error => { this.abort.signal.removeEventListener('abort', cancelled); reject(error); });
+      if (this.closed) cancelled();
     });
     if (this.closed) {
       stream.getTracks().forEach((track) => track.stop());
       throw new Error('语音启动已取消。');
     }
     this.microphone = stream;
-    for (const track of stream.getAudioTracks()) peer.addTrack(track, stream);
+    for (const track of stream.getAudioTracks()) {
+      track.addEventListener('ended', () => {
+        if (!this.closed) { this.close(); this.failed('麦克风已断开或权限已撤销，已请求结束本次语音。', true); }
+      }, { once: true });
+      peer.addTrack(track, stream);
+    }
     // The native sideband owns commands and canonical transcripts. Do not send duplicate
     // application commands over the browser data channel or trust it as history proof.
     this.channel = peer.createDataChannel('oai-events');
@@ -112,5 +134,6 @@ export class RealtimeMedia {
     }
     this.audio.pause();
     this.audio.srcObject = null;
+    this.playbackChanged(false);
   }
 }

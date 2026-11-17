@@ -12,7 +12,7 @@ test('fixed CLI doctor and bundled catalog diagnostics use private results and e
     for (const kind of ['doctor', 'models-bundled']) {
       const result = object(await runtime.call('diagnostics/cli/run', { kind }, context)); expect(result).toMatchObject({ kind, status: 'completed' }); expect(Object.keys(result).sort()).toEqual(['kind', 'resultId', 'status']);
       const read = object(await runtime.call('diagnostics/cli/result/read', { resultId: result.resultId! }, context)); expect(read.status).toBe('completed');
-      if (kind === 'doctor') { expect(object(read.data)).toMatchObject({ schemaVersion: 1, codexVersion: '0.164.0' }); expect(read.exitCode).toBe(1); }
+      if (kind === 'doctor') { expect(object(read.data)).toMatchObject({ schemaVersion: 1, codexVersion: '0.169.0' }); expect(read.exitCode).toBe(1); }
       else { expect(read.exitCode).toBe(0); expect(object(read.data).models).toBeInstanceOf(Array); }
       expect(receiptResult('diagnostics/cli/run', read)).toEqual(result);
       await expect(runtime.call('diagnostics/cli/result/read', { resultId: result.resultId! }, { ...context, clientId: 'other' })).rejects.toMatchObject({ code: 'not_found' });

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-2",
+  "reviewerId": "v240-web-cross-review-workspace-tests",
+  "digest": "4bc22e8045d38350c0fca8264ce080bcd0a4c5225dff1b398da5ec7c04c0f256",
+  "startedAt": "2026-11-17T14:24:21.375Z",
+  "completedAt": "2026-11-17T14:26:39.908Z",
+  "complete": true,
+  "scopes": [
+    "workspace-web-tests"
+  ],
+  "findings": [],
+  "skipped": [],
+  "inspectedFiles": [
+    "web/tests/workspace-git-drafts.test.tsx",
+    "web/tests/workspace-handoff.test.tsx",
+    "web/tests/workspace-management.test.tsx",
+    "web/tests/workspace-search.test.tsx",
+    "web/tests/workspace-ui.test.tsx",
+    "web/tests/workspace-watch.test.tsx",
+    "web/tests/git-index-ui.test.tsx",
+    "web/tests/project-create.test.tsx",
+    "web/tests/project-handoff.test.tsx"
+  ],
+  "method": "Content-read all nine complete test files, comparing fixture shapes, real Api/IndexedDB durable boundaries, navigation ownership and workflow revisions to production contracts already examined in runtime/deployment review. No source edits and no tests executed during frozen audit. This is a test-semantic supplement for the independent web reviewer, not independent approval of frontend implementation authored by this reviewer.",
+  "observations": [
+    "workspace-git-drafts: draft retention and hidden inert controls, stale preview abort, fresh confirmation, owner ABA invalidation, original receipt query and no resend, late old-owner receipt remains global.",
+    "workspace-handoff: real Workspace callbacks with presentation hooks replaced; tests actual draft revision rather than text equality, storage failure navigation guard, accepted receipt versus HTTP arrival ordering, new text/attachments/options/context/schema while sending, archive and branch/review handoff without navigation theft.",
+    "workspace-management: recovery not_found versus generic error, exact source revision and manifest, backup-local status never promotes global accepted, live worktree phase/revision, idle gate, original unknown receipt, complete HEAD/index re-read, discard and per-action consent ownership.",
+    "workspace-search: literal project-scoped request, explicit exclusion list and incomplete result explanation, query-change stale response fencing. Second title mentions project change but body actually exercises query change only; do not use it as separate project-change evidence.",
+    "workspace-ui: path/identity guards, UTF-8/NUL limits, fresh overwrite revision, post-submit draft rebasing only after readback, no replay of unknown mutation, failed local intent storage blocks dispatch, late owner response, binary/large content limits, explicit nonrecursive deletion, project-separated file drafts and constrained Git review target.",
+    "workspace-watch: no overlapping reads, complete baseline kept on one sibling failure, timer and signal cancellation on disable/disconnect/unmount, old epoch cannot restart replacement schedule.",
+    "git-index-ui: staging both rename paths, deletion only after exact not_found, HEAD/index version binding, unstage without touching worktree content, original receipt only, backup manifest and whole-index explicit restore.",
+    "project-create: new/add flows, duplicate existing project retains original name, accepted-without-id and unknown outcomes never resend, relative/absolute normalization on root/native plus Windows dev paths, unsafe/control/Unicode/byte budgets, actual execution identity changes discard defaults but preserve typed text.",
+    "project-handoff: full App integration through real IndexedDB/API admission with fake transport; keeps old project draft, navigates accepted destination only when safe, blocks submission when ROOT identity becomes unconfirmed. No browser-layout or real backend evidence is inferred from jsdom."
+  ],
+  "limitations": [
+    "Read-only semantic audit; does not claim these tests passed in this round.",
+    "Mock network/native shapes do not establish real production I/O or mobile rendering; native and browser evidence is separate.",
+    "No new actionable defects found in these nine test files."
+  ],
+  "snapshot": {
+    "after": {
+      "files": 2117,
+      "digest": "4bc22e8045d38350c0fca8264ce080bcd0a4c5225dff1b398da5ec7c04c0f256"
+    },
+    "unchanged": true
+  },
+  "lineCounts": {
+    "web/tests/workspace-git-drafts.test.tsx": 244,
+    "web/tests/workspace-handoff.test.tsx": 340,
+    "web/tests/workspace-management.test.tsx": 543,
+    "web/tests/workspace-search.test.tsx": 91,
+    "web/tests/workspace-ui.test.tsx": 517,
+    "web/tests/workspace-watch.test.tsx": 178,
+    "web/tests/git-index-ui.test.tsx": 285,
+    "web/tests/project-create.test.tsx": 295,
+    "web/tests/project-handoff.test.tsx": 130
+  },
+  "startTimeBasis": "Earliest bound: began immediately after completing the runtime report and accepting the remaining test review; per-tool timestamps were not separately persisted."
+}

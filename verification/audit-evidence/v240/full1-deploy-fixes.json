@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-1-fixes",
+  "completedAt": "2026-11-17T14:00:18.713057+00:00",
+  "findingsResolved": [
+    "V240-FULL1-DEPLOY-001",
+    "V240-FULL1-DEPLOY-002"
+  ],
+  "resolutions": {
+    "V240-FULL1-DEPLOY-001": "Compute exact complete persisted UTF-8 JSON plus final LF before any generation/profile publication or retention mutation; reject over 4 MiB with catalog_budget before service stop. Write the same checked bytes. Tests cover individually valid aggregate catalogs, exact-limit settings/profile wrapper with multibyte names/content, one-byte overflow and no first profile directory on rejection.",
+    "V240-FULL1-DEPLOY-002": "Select immutable toolchain generations keyed by all reviewed versions, architecture and official archive hashes. Retain legacy cache and previous generations unchanged. Validate root-owned tree, manifest pins and actual package/header versions before expensive candidate work; publish manifest and runtime together, resync completed interrupted publication, reject tampering, and use selected Node in isolated stage PATH. Bound retained generations/preparations; only successful attempt archives are removed."
+  },
+  "targeted": {
+    "windows": {
+      "uniqueCases": 174,
+      "passed": 139,
+      "skipped": 35,
+      "failures": {},
+      "files": [
+        "tests.deploy.test_cross_audit_remediation",
+        "tests.deploy.test_deployment",
+        "tests.deploy.test_provider_bedrock",
+        "tests.deploy.test_provider_gateway",
+        "tests.deploy.test_provider_layers",
+        "tests.deploy.test_provider_lifecycle",
+        "tests.deploy.test_provider_registry",
+        "tests.deploy.test_sandbox",
+        "tests.deploy.test_toolchain",
+        "tests.deploy.test_workspace"
+      ],
+      "logs": [
+        {
+          "path": ".work/v240/full1-deploy-fixes-windows1.log",
+          "sha256": "fdf7627c20622832297a2d618dcabcc46d1e07720de132d67fc1e15499fcfb45"
+        },
+        {
+          "path": ".work/v240/full1-deploy-fixes-windows2.log",
+          "sha256": "8ac160f341fe78fd81a32655e8f5605539614619ebfc9389eabd7621eb1c87f0"
+        },
+        {
+          "path": ".work/v240/full1-deploy-fixes-windows3.log",
+          "sha256": "f8b2eaf237fa6f624aa2b792d731eebef8845fed1913ea27680e39c091fb569b"
+        }
+      ]
+    },
+    "linuxOrdinary": {
+      "uniqueCases": 174,
+      "passed": 174,
+      "skipped": 0,
+      "failures": {},
+      "files": [
+        "tests.deploy.test_cross_audit_remediation",
+        "tests.deploy.test_deployment",
+        "tests.deploy.test_provider_bedrock",
+        "tests.deploy.test_provider_gateway",
+        "tests.deploy.test_provider_layers",
+        "tests.deploy.test_provider_lifecycle",
+        "tests.deploy.test_provider_registry",
+        "tests.deploy.test_sandbox",
+        "tests.deploy.test_toolchain",
+        "tests.deploy.test_workspace"
+      ],
+      "logs": [
+        {
+          "path": ".work/v240/full1-deploy-fixes-ordinary.log",
+          "sha256": "71806bbe977b2d03cd2cfa503b5116fb8b202bde36c04cd4677812b259cce5f7"
+        },
+        {
+          "path": ".work/v240/full1-deploy-fixes-final-ordinary.log",
+          "sha256": "bedb815582bb31750159a7eed8fde2e1f0ab3c63a48c5ce4c9d4fc2637d95051"
+        }
+      ]
+    },
+    "linuxRoot": {
+      "uniqueCases": 88,
+      "passed": 88,
+      "skipped": 0,
+      "failures": {},
+      "files": [
+        "tests.deploy.root.test_config_layer",
+        "tests.deploy.root.test_provider_extended",
+        "tests.deploy.root.test_provider_layers",
+        "tests.deploy.root.test_service_lifecycle",
+        "tests.deploy.root.test_toolchain",
+        "tests.deploy.root.test_tree_durability"
+      ],
+      "logs": [
+        {
+          "path": ".work/v240/full1-deploy-fixes-root.log",
+          "sha256": "022bbd9cf9324bdab14c177391fd3e40b0d620057f6d2305a4584c2496bac90e"
+        },
+        {
+          "path": ".work/v240/full1-deploy-fixes-final-root.log",
+          "sha256": "1de456a1ae82e37c15dc89b99dab295788ccbc746e60cc71d82bca6246782046"
+        }
+      ]
+    }
+  },
+  "additionalExplicitEvidence": {
+    "M021": "tests/deploy/test_workspace.py: WorkspaceFilesystemTests.test_control_character_expansion_returns_structured_budget_error_without_mutation (actual Linux descriptor helper; structured budget/not_sent and unchanged source).",
+    "M131": "tests/deploy/test_cross_audit_remediation.py: CrossAuditContracts.test_hsts_and_edge_identity_are_explicit; policy disabled by default and explicit public TLS opt-in.",
+    "M249": "ProviderProfilesTests.test_profile_restores_entire_bound_endpoint_without_exposing_key strengthened for exact default connection set; ExtendedProviderGenerationTests.test_legacy_saved_profile_restores_an_independent_complete_runtime_registry verifies actual root-owned runtime publication and original selection unchanged."
+  },
+  "sourceFiles": [
+    {
+      "path": "deploy/provider.py",
+      "sha256": "c580f19408b948ce9fe6ca7f4ab8936812d89ad6ae35f1d5a439c8c1458a502b"
+    },
+    {
+      "path": "deploy/provider_lifecycle.py",
+      "sha256": "0584b9e3b68c308180bf79866c17649cbc24e08b572e50dfff2b6738757e0591"
+    },
+    {
+      "path": "deploy/build.py",
+      "sha256": "8fc61f3fd00bad0a6965dee660f4d920ce963f358e8043e42cb4a4763ebe8868"
+    },
+    {
+      "path": "deploy/system.py",
+      "sha256": "ec43d23ad86ab6d1e38c341ded2f9c8e73fdacf16c5effb843c64b6dfc6a6039"
+    },
+    {
+      "path": "deploy/README.md",
+      "sha256": "95d380edb5eefc1423ff14aead3badb975098d071a9efdcf06eb2065e77ffe5f"
+    },
+    {
+      "path": "tests/deploy/test_toolchain.py",
+      "sha256": "7016c4a006e93352e556d87842f1b4430e17306e9584eb6492adb5628a7f8fd0"
+    },
+    {
+      "path": "tests/deploy/root/test_toolchain.py",
+      "sha256": "dbaaab90072fd98b8b0373f2041244019f943143a589043b0eb31fe1143e4aac"
+    },
+    {
+      "path": "tests/deploy/root/test_tree_durability.py",
+      "sha256": "5905a0d993648cdb0d4849fb239aff99ff7900b4df9e9ce94db1efb719c1f876"
+    },
+    {
+      "path": "tests/deploy/test_provider_lifecycle.py",
+      "sha256": "ac58e57f97e00dbfbf55a664a9293a99e1ddd1944fbf297571ae4fe4e7518424"
+    },
+    {
+      "path": "tests/deploy/test_workspace.py",
+      "sha256": "ff954a60c9c2224a47849b98a1ae9d41f74e9f60853e3244c6727e2a263a0414"
+    },
+    {
+      "path": "tests/deploy/root/test_provider_extended.py",
+      "sha256": "df8cb1334f07041afa367ef08fe5f2a286320e090be66c49d47299e7b08e170e"
+    }
+  ],
+  "localFailureReview": [
+    {
+      "log": ".work/v240/full1-deploy-fixes-windows1.log",
+      "cause": "New aggregate-provider fixture constructed Manager without required instance.json; product size guard was not reached. Fixture now creates the same minimal explicit instance configuration as existing manager cases.",
+      "repair": "Added isolated instance config before constructing Manager; re-ran provider_lifecycle module; original failed log retained."
+    }
+  ],
+  "limits": [
+    "No full suite, production deployment, live service/account/provider/MCP mutation or paid inference.",
+    "Toolchain fixtures exercise real extracted archives/files and Linux root ownership/fsync with synthetic offline package contents; they do not replace final complete candidate prepare or official distribution network acceptance.",
+    "Official Linux 0.169 archive package metadata was independently checked locally. Actual download digest logic remains unchanged. Windows platform skips are covered by separate Linux ordinary/root runs, not counted as passes.",
+    "Final docs change describes toolchain lifecycle and existing four dependency overrides; it does not change tested executable bytes."
+  ]
+}

@@ -12,7 +12,7 @@ import { EMERGENCY_RECOVERY_KEY, OperationRetention, operationId } from './opera
 import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 
 type Row = Record<string, unknown>;
-const workspaceConfirmations = new Set(['workspace/write', 'workspace/mkdir', 'workspace/copy', 'workspace/remove', 'workspace/recovery/restore', 'workspace/recovery/discard', 'workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/git/commit', 'workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore', 'workspace/git/index/recovery/discard']);
+const workspaceConfirmations = new Set(['workspace/write', 'workspace/mkdir', 'workspace/copy', 'workspace/remove', 'workspace/recovery/restore', 'workspace/recovery/discard', 'workspace/worktree/create', 'workspace/worktree/attach', 'workspace/worktree/archive', 'workspace/worktree/restore', 'workspace/worktree/retire', 'workspace/git/commit', 'workspace/git/stage', 'workspace/git/unstage', 'workspace/git/index/recovery/restore', 'workspace/git/index/recovery/discard']);
 const payloadBytes = "length(CAST(coalesce(result,'') AS BLOB)) + length(CAST(coalesce(error,'') AS BLOB))";
 const receiptAllowance = `CASE WHEN method='system/recover' THEN ${LIMITS.recoveryReceiptBytes} ELSE ${LIMITS.receiptBytes} END`;
 const allowance = (method: string) => method === 'system/recover' ? LIMITS.recoveryReceiptBytes : LIMITS.receiptBytes;
@@ -55,11 +55,12 @@ export class Ledger {
     this.#db.exec(`UPDATE receipts SET bytes=${payloadBytes} WHERE bytes<>(${payloadBytes})`);
     this.retention = new OperationRetention(this.#db, now);
     this.automations = new Automations(this.#db, now, () => this.newOperationId());
-    this.worktrees = new Worktrees(this.#db, now);
+    this.worktrees = new Worktrees(this.#db, now, id => this.automations.projectRemoved(id));
   }
   operationGeneration(): number { return this.retention.generation(); }
   newOperationId(): string { return operationId(this.operationGeneration()); }
   maintenancePreview(): JsonValue { return this.retention.preview(); }
+  releaseMaintenanceExport(digest: string): void { this.retention.release(digest); }
   maintenanceChunk(params: { digest: string; offset: number; limit?: number }): JsonValue {
     return this.retention.chunk(params.digest, params.offset, params.limit);
   }
@@ -258,10 +259,10 @@ export class Ledger {
     if (!found) throw new HarnessError('project_missing', '项目已移除，请重新选择项目。');
     return found;
   }
-  addProject(path: string, name: string): Project {
+  addProject(path: string, name: string): Project & { existing?: true } {
     validText(path, 4096); validText(name, 128);
     const found = this.projects().find(project => project.path === path);
-    if (found) return found;
+    if (found) return { ...found, existing: true };
     if (this.projects().length >= 128) throw new HarnessError('capacity', '项目数量已达上限。');
     const id = randomUUID();
     this.#db.prepare('INSERT INTO projects(id,name,path) VALUES(?,?,?)').run(id, name, path);
@@ -275,6 +276,6 @@ export class Ledger {
     this.#db.prepare('UPDATE projects SET name=? WHERE id=?').run(label, id);
     return { id, name: label, path: String(row.path) };
   }
-  removeProject(id: string): void { this.worktrees.protectRemoval(id); this.#db.prepare('DELETE FROM projects WHERE id=?').run(id); }
+  removeProject(id: string): void { this.worktrees.protectRemoval(id); this.automations.projectRemoved(id); this.#db.prepare('DELETE FROM projects WHERE id=?').run(id); }
   close(): void { this.#db.close(); }
 }

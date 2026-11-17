@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, statSync, renameSync, utimesSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Authentication } from '../../src/gateway/auth.js';
@@ -15,6 +15,39 @@ async function fixture(now: () => number = Date.now) {
   return { token, auth, login, cookie: cookieOf(login.cookie) };
 }
 describe('single administrator authentication', () => {
+  it('checks bootstrap identity on every streaming authorization and immediately revokes same-mtime replacements', async () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'harness-auth-cache-'));
+    const file = path.join(directory, 'bootstrap.json');
+    const record = { schemaVersion: 1, revision: randomUUID(), username: credentials.username, passwordHash: await hashPassword(credentials.password) };
+    writeFileSync(file, JSON.stringify(record));
+    const auth = new Authentication({ database: ':memory:', bootstrapFile: file }, 'https://harness.example');
+    try {
+      const sessions: string[] = [];
+      for (let i = 0; i < 8; i++) sessions.push(cookieOf((await auth.login(credentials, `peer-${i}`)).cookie));
+      const times: number[] = [];
+      for (let i = 0; i < 1600; i++) {
+        const start = performance.now(); expect(auth.session(sessions[i % sessions.length])).not.toBeNull();
+        times.push(performance.now() - start);
+      }
+      const prior = statSync(file), replacement = path.join(directory, 'next.json');
+      writeFileSync(replacement, JSON.stringify({ ...record, revision: randomUUID() }));
+      utimesSync(replacement, prior.atime, prior.mtime); renameSync(replacement, file);
+      const resetStarted = performance.now();
+      expect(auth.session(sessions[0])).toBeNull();
+      const resetMs = performance.now() - resetStarted;
+      for (const cookie of sessions) expect(auth.session(cookie)).toBeNull();
+      const login = await auth.login(credentials, 'new-owner');
+      const unchangedTime = statSync(file);
+      writeFileSync(file, readFileSync(file, 'utf8').replace('"admin"', '"other"'));
+      utimesSync(file, unchangedTime.atime, unchangedTime.mtime);
+      expect(auth.session(cookieOf(login.cookie))).toBeNull();
+      mkdirSync('.work/v240', { recursive: true });
+      times.sort((a, b) => a - b);
+      writeFileSync('.work/v240/auth-stream-probe.json', JSON.stringify({ platform: process.platform, node: process.version,
+        sessions: 8, authorizations: times.length, p95Ms: times[Math.floor(times.length * .95)], resetMs,
+        note: 'Local warmed authorization path, includes test assertion; not a network or mobile latency claim.' }, null, 2));
+    } finally { auth.close(); rmSync(directory, { recursive: true, force: true }); }
+  });
   it('separates origin, password, CSRF, and browser-tab ownership', async () => {
     const { auth, login, cookie } = await fixture();
     try {
@@ -115,17 +148,18 @@ describe('single administrator authentication', () => {
     try {
       const second = await auth.login(credentials, 'second'), secondCookie = cookieOf(second.cookie), expectedRevision = revision(auth, cookie);
       const pending = await auth.startTotp(auth.require(cookie), { password: credentials.password, expectedRevision }, 'peer');
+      expect(decodeURIComponent(String(pending.uri))).toContain('admin (harness.example)');
       const code = totp(String(pending.secret), Math.floor(now / 30_000));
       expect(() => auth.confirmTotp(second.session, { expectedRevision, enrollmentId: pending.enrollmentId, code }, 'second')).toThrow();
       const recovery = auth.confirmTotp(auth.require(cookie), { expectedRevision, enrollmentId: pending.enrollmentId, code }, 'peer');
       expect(recovery).toHaveLength(10); expect(auth.session(secondCookie)).toBeNull(); expect(auth.session(cookie)).not.toBeNull();
       await expect(auth.login(credentials, 'peer')).rejects.toMatchObject({ code: 'mfa_required' });
-      await expect(auth.login({ ...credentials, otp: code }, 'peer')).rejects.toMatchObject({ code: 'unauthorized' });
+      await expect(auth.login({ ...credentials, otp: code }, 'peer')).rejects.toMatchObject({ code: 'mfa_invalid' });
       now += 30_000; const fresh = totp(String(pending.secret), Math.floor(now / 30_000));
       const newLogin = await auth.login({ ...credentials, otp: fresh }, 'new-peer'); expect(newLogin.session.id).toBeTruthy();
-      await expect(auth.login({ ...credentials, otp: fresh }, 'new-peer')).rejects.toMatchObject({ code: 'unauthorized' });
+      await expect(auth.login({ ...credentials, otp: fresh }, 'new-peer')).rejects.toMatchObject({ code: 'mfa_invalid' });
       await expect(auth.login({ ...credentials, otp: recovery[0] }, 'new-peer')).resolves.toHaveProperty('session');
-      await expect(auth.login({ ...credentials, otp: recovery[0] }, 'new-peer')).rejects.toMatchObject({ code: 'unauthorized' });
+      await expect(auth.login({ ...credentials, otp: recovery[0] }, 'new-peer')).rejects.toMatchObject({ code: 'mfa_invalid' });
       expect(auth.security(auth.require(cookie)).recoveryCodesRemaining).toBe(9);
       await auth.disableTotp(auth.require(cookie), { expectedRevision: revision(auth, cookie), password: credentials.password, otp: recovery[1] }, 'disable-peer');
       expect(auth.session(cookieOf(newLogin.cookie))).toBeNull(); expect(auth.security(auth.require(cookie)).mfaEnabled).toBe(false);
@@ -139,7 +173,7 @@ describe('single administrator authentication', () => {
       const old = auth.confirmTotp(auth.require(cookie), { expectedRevision: revision(auth, cookie), enrollmentId: pending.enrollmentId, code: totp(String(pending.secret), now / 30_000) }, 'peer');
       const next = await auth.replaceRecovery(auth.require(cookie), { expectedRevision: revision(auth, cookie), password: credentials.password, otp: old[0] }, 'peer');
       expect(next).toHaveLength(10); expect(next).not.toEqual(old);
-      await expect(auth.login({ ...credentials, otp: old[1] }, 'peer')).rejects.toMatchObject({ code: 'unauthorized' });
+      await expect(auth.login({ ...credentials, otp: old[1] }, 'peer')).rejects.toMatchObject({ code: 'mfa_invalid' });
       await expect(auth.login({ ...credentials, otp: next[0] }, 'peer')).resolves.toHaveProperty('session');
     } finally { auth.close(); }
   });

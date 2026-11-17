@@ -23,13 +23,15 @@ NODE_HASHES = {
 }
 PNPM_INTEGRITY = "H/hwxMYTPf2I+yr8Rt0T1H8JyXlLQ4xv20fKmMrzvBY4HuC+k6CRuOOCTPAfiJ9G19niCRD7C+GrD7W6qA3WIQ=="
 CODEX_INTEGRITIES = {
-    "x64": "XLAoaWsGOT2khzl+P4FYDPTkzAr9W0VFXFaVkqlFdkM0soa1gH/4S0wSD57Ek3HHwkirAEGz2/Mwehseh+l5Mg==",
-    "arm64": "LL5iTQjyDL4YRX44EWqhIfEQ5uGnmgxkQBJSxjZSeJ8L1Og83pdlzUJW/PRJ76oaVwOVgh6HXwuPEiBNEHU4lg==",
+    "x64": "o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww==",
+    "arm64": "NZ/DaQUpcQmxmqee7Z9uC1rzw3GhSbooawcaTe1LN5Yk+WlinUKGdTXJgClRT/9ogQEEM9TWxYzvxPfj5G/xFg==",
 }
 SOURCE_ROOTS = {"src", "web", "protocol"}
 SOURCE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.server.json", "tsconfig.base.json"}
 MAX_LOCK_BYTES = 8 * 1024**2
-APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7"}
+APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7",
+                      "@modelcontextprotocol/sdk@1.32.2>@hono/node-server": "1.19.19",
+                      "hono": "4.13.16"}
 WORKSPACE_SETTINGS = {"packages": ["."], "minimumReleaseAge": 1440, "blockExoticSubdeps": True,
                       "trustPolicy": "no-downgrade", "strictDepBuilds": True, "ignoreScripts": True,
                       "overrides": APPROVED_OVERRIDES}
@@ -192,6 +194,30 @@ def pnpm_command(tools: Path, store: Path, project: Path, metadata: Path) -> lis
             "--config.package-import-method=copy", "--config.cache-dir=" + str(metadata), "--store-dir", str(store)]
 
 
+def toolchain_spec(arch: str) -> dict:
+    return {"schemaVersion": 1, "architecture": arch,
+            "node": {"version": NODE_VERSION, "sha256": NODE_HASHES[arch]},
+            "pnpm": {"version": PNPM_VERSION, "sha512": PNPM_INTEGRITY},
+            "codex": {"version": CODEX_VERSION, "sha512": CODEX_INTEGRITIES[arch]}}
+
+
+def verify_tool_versions(runtime: Path, arch: str) -> None:
+    # Authentic archives were already checked against official distribution
+    # digests; reject a wrong archive layout/version before dependency work.
+    with (runtime / "node/include/node/node_version.h").open("rb") as source:
+        data = source.read(65537)
+    require(len(data) <= 65536, "Cached Node version header exceeds its budget", "integrity")
+    header = data.decode("utf-8")
+    version = ".".join(re.search(r"^#define NODE_" + part + r"_VERSION (\d+)$", header, re.M).group(1)
+                       if re.search(r"^#define NODE_" + part + r"_VERSION (\d+)$", header, re.M) else "?"
+                       for part in ("MAJOR", "MINOR", "PATCH"))
+    require(version == NODE_VERSION, "Cached Node version differs from the reviewed pin", "integrity")
+    pnpm, codex = read_json(runtime / "pnpm/package.json"), read_json(runtime / "codex/package.json")
+    require(isinstance(pnpm, dict) and pnpm.get("version") == PNPM_VERSION and
+            isinstance(codex, dict) and codex.get("version") == f"{CODEX_VERSION}-linux-{arch}",
+            "Cached npm tool versions differ from the reviewed pins", "integrity")
+
+
 def publish_release(layout: Layout, export: Path, manifest: dict) -> str:
     release = digest(manifest)
     target = layout.app / "releases" / release
@@ -240,20 +266,33 @@ class Builder:
         return image
 
     def toolchain(self) -> Path:
-        root = self.layout.work / "toolchain"
-        if root.exists():
-            actual = inspect_tree(root, root_owned=True)
-            require(actual == read_json(self.layout.config / "toolchain-manifest.json", 32 * 1024**2), "Toolchain changed", "integrity")
+        arch = architecture()
+        spec = toolchain_spec(arch)
+        generations = self.layout.work / "toolchains"
+        mkdir(generations, 0o755)
+        root = generations / digest(spec)
+        runtime = root / "runtime"
+        # Legacy work/toolchain and its old manifest are retained untouched for
+        # recovery. They do not attest current pins and must never be selected.
+        if root.exists() or root.is_symlink():
+            inspect_tree(root, root_owned=True)
+            require({entry.name for entry in root.iterdir()} == {"runtime", "manifest.json"}, "Unexpected toolchain material", "integrity")
+            record = read_json(root / "manifest.json", 32 * 1024**2)
+            require(isinstance(record, dict) and set(record) == {"spec", "tree"} and record["spec"] == spec and
+                    record["tree"] == inspect_tree(runtime, root_owned=True), "Toolchain changed", "integrity")
+            verify_tool_versions(runtime, arch)
             durable_tree(root)
             fsync_directory(root.parent)
+            fsync_directory(self.layout.work)
             fsync_directory(self.layout.work.parent)
             fsync_directory(self.layout.work.parent.parent)
-            return root
-        arch = architecture()
-        mkdir(self.layout.work, 0o755)
+            return runtime
         # Both the per-instance cache and its codex-harness parent may be new.
+        fsync_directory(self.layout.work)
         fsync_directory(self.layout.work.parent)
         fsync_directory(self.layout.work.parent.parent)
+        require(len(list(generations.iterdir())) < 16, "Toolchain generation budget reached; retain recovery versions and remove unused caches explicitly", "budget")
+        require(len(list(self.layout.work.glob("tools-*"))) < 8, "Toolchain preparation budget reached; inspect retained preparations before retrying", "budget")
         incoming = self.layout.work / ("tools-" + uuid.uuid4().hex)
         mkdir(incoming)
         node_file = incoming / "node.tar.xz"
@@ -264,17 +303,32 @@ class Builder:
         download(f"https://registry.npmjs.org/@openai/codex/-/codex-{CODEX_VERSION}-linux-{arch}.tgz", codex_file, CODEX_INTEGRITIES[arch], "sha512")
         assembled = incoming / "assembled"
         mkdir(assembled)
-        extract_tar(node_file, assembled / "node", strip=1)
-        extract_tar(pnpm_file, assembled / "pnpm", strip=1)
+        prepared = assembled / "runtime"
+        mkdir(prepared)
+        extract_tar(node_file, prepared / "node", strip=1)
+        extract_tar(pnpm_file, prepared / "pnpm", strip=1)
         # The complete official platform package is the CLI runtime object. It is
         # installed as-is, not projected to just its executable/vendor subtree.
-        extract_tar(codex_file, assembled / "codex", strip=1)
+        extract_tar(codex_file, prepared / "codex", strip=1)
+        manifest = inspect_tree(prepared, root_owned=True)
+        verify_tool_versions(prepared, arch)
+        durable_tree(prepared)
+        write_json(assembled / "manifest.json", {"spec": spec, "tree": manifest})
         durable_tree(assembled)
-        write_json(self.layout.config / "toolchain-manifest.json", inspect_tree(assembled, root_owned=True))
         os.rename(assembled, root)
         fsync_directory(root.parent)
         fsync_directory(assembled.parent)
-        return root
+        # Completed archives are redundant with the immutable generation.
+        # Interrupted preparations stay retained; only this owned successful
+        # attempt's three regular files can be removed here.
+        for archive in (node_file, pnpm_file, codex_file):
+            info = archive.lstat()
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Toolchain preparation changed", "integrity")
+        for archive in (node_file, pnpm_file, codex_file):
+            archive.unlink()
+        incoming.rmdir()
+        fsync_directory(incoming.parent)
+        return runtime
 
     def prepare(self, source_archive: Path) -> str:
         from .sandbox import require_host
@@ -304,7 +358,7 @@ class Builder:
         chown_tree(fetch, self.uid, self.gid)
         node = str(tools / "node/bin/node")
         base = pnpm_command(tools, fetch / "store", fetch, fetch / "metadata")
-        self.system.isolated(self.layout, "fetch-" + identity, base + ["fetch", "--ignore-scripts", "--frozen-lockfile"], fetch, fetch, network=True)
+        self.system.isolated(self.layout, "fetch-" + identity, base + ["fetch", "--ignore-scripts", "--frozen-lockfile"], fetch, fetch, network=True, toolchain=tools)
         # Root hashes all exported content after systemd confirmed producer exit.
         cache = stage / "cache"
         store_manifest = snapshot(fetch / "store", cache, producer_stopped=True, expected_uid=self.uid)
@@ -324,12 +378,12 @@ class Builder:
         chown_tree(build, self.uid, self.gid)
         offline = pnpm_command(tools, build / "store", build / "app", build / "metadata")
         self.system.isolated(self.layout, "install-" + identity,
-                             offline + ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"], build / "app", build, network=False)
+                             offline + ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"], build / "app", build, network=False, toolchain=tools)
         for label, command in (("tsc", [node, "node_modules/typescript/bin/tsc", "-p", "tsconfig.server.json"]),
                                ("web", [node, "node_modules/vite/bin/vite.js", "build", "--config", "web/vite.config.ts"]),
                                ("gateway-check", [node, "--check", "dist/src/gateway/main.js"]),
                                ("worker-check", [node, "--check", "dist/src/runtime/main.js"])):
-            self.system.isolated(self.layout, label + "-" + identity, command, build / "app", build, network=False)
+            self.system.isolated(self.layout, label + "-" + identity, command, build / "app", build, network=False, toolchain=tools)
         # Candidate-controlled success files are never read or used as attestations.
         releases = self.layout.app / "releases"
         mkdir(releases)

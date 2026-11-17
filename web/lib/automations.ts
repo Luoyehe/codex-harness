@@ -117,7 +117,7 @@ export function zonedTime(value: string, timeZone: string): number {
 export function displayTime(at: number | null, timeZone: string) {
   return at === null
     ? '无'
-    : new Intl.DateTimeFormat(undefined, {
+    : new Intl.DateTimeFormat('zh-CN', {
         timeZone,
         dateStyle: 'medium',
         timeStyle: 'short',

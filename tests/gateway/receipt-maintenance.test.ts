@@ -52,3 +52,57 @@ test('dispatcher locks mutation admission while worker idle proof is outstanding
   await expect(pending).rejects.toMatchObject({ code: 'journal_changed' });
   expect(dispatcher.maintenanceActive()).toBe(false); expect(ledger.operationGeneration()).toBe(0);
 });
+
+test('two gateway connections independently export sequential snapshots and only the current complete export rotates', async () => {
+  const ledger = new Ledger(':memory:'); ledgers.push(ledger);
+  const worker: WorkerPort = { connected: true, call: async () => ({ idle: true, workspaceWitness: { total: 0 } }) };
+  const dispatcher = new Dispatcher(ledger, worker, { call: async () => ({}) });
+  dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+  vi.spyOn(dispatcher.workspaceAcknowledgements, 'drain').mockResolvedValue();
+  const first = { clientId: 'tab-a', requireConnection: () => {} }, second = { ...first, clientId: 'tab-b' };
+  const call = (method: string, params: JsonObject, context = first) => dispatcher.call({ method: 'operation/maintenance/' + method, params }, context);
+  const a = await call('preview', {}) as JsonObject;
+  const chunkA = await call('chunk', { exportId: a.exportId!, digest: a.digest!, offset: 0, limit: 16 }) as JsonObject;
+  const id = randomUUID(); ledger.reserve(id, 'project/remove', {}, 'project'); ledger.settle(id, { ok: true, value: {} });
+  const b = await call('preview', {}, second) as JsonObject;
+  expect(a.digest).not.toBe(b.digest);
+  await expect(call('chunk', { exportId: a.exportId!, digest: a.digest!, offset: chunkA.nextOffset! }, second)).rejects.toMatchObject({ code: 'archive_expired' });
+  await expect(call('chunk', { exportId: a.exportId!, digest: a.digest!, offset: 0 })).rejects.toMatchObject({ code: 'invalid' });
+  await expect(call('rotate', { exportId: b.exportId!, digest: b.digest!, nextGeneration: b.nextGeneration!, exportedDigest: b.digest!, confirm: true }, second)).rejects.toMatchObject({ code: 'archive_required' });
+  const tailA = await call('chunk', { exportId: a.exportId!, digest: a.digest!, offset: chunkA.nextOffset! }) as JsonObject;
+  expect(tailA.nextOffset).toBeNull();
+  expect(JSON.parse(Buffer.concat([Buffer.from(String(chunkA.base64), 'base64'), Buffer.from(String(tailA.base64), 'base64')]).toString()).receipts).toEqual([]);
+  await expect(call('rotate', { exportId: a.exportId!, digest: a.digest!, nextGeneration: a.nextGeneration!, exportedDigest: a.digest!, confirm: true })).rejects.toMatchObject({ code: 'journal_changed' });
+  const fullB = await call('chunk', { exportId: b.exportId!, digest: b.digest!, offset: 0 }, second) as JsonObject;
+  expect(JSON.parse(Buffer.from(String(fullB.base64), 'base64').toString()).receipts).toHaveLength(1);
+  await expect(call('rotate', { exportId: b.exportId!, digest: b.digest!, nextGeneration: b.nextGeneration!, exportedDigest: b.digest!, confirm: true }, second)).resolves.toMatchObject({ rotated: true, generation: 1 });
+  await expect(call('chunk', { exportId: a.exportId!, digest: a.digest!, offset: tailA.totalBytes! })).rejects.toMatchObject({ code: 'archive_expired' });
+});
+
+test('capacity, own-preview replacement and disconnect preserve the other gateway export', () => {
+  const { ledger, maintenance, context: a } = fixture();
+  const b = { ...a, clientId: 'tab-b' }, c = { ...a, clientId: 'tab-c' };
+  const preview = (context: typeof a) => maintenance.call('operation/maintenance/preview', {}, context) as JsonObject;
+  const change = () => { const id = randomUUID(); ledger.reserve(id, 'project/remove', {}, 'project'); ledger.settle(id, { ok: true, value: {} }); };
+  change(); const retainedB = preview(b); preview(a); // Both owners now share one snapshot.
+  expect(() => preview(c)).toThrow('两个页面');
+  change(); preview(a); change(); preview(a); // Replacing A must not evict B's older snapshot.
+  maintenance.forget(a.clientId); const admittedC = preview(c);
+  const chunkB = maintenance.call('operation/maintenance/chunk', { exportId: retainedB.exportId!, digest: retainedB.digest!, offset: 0 }, b) as JsonObject;
+  expect(JSON.parse(Buffer.from(String(chunkB.base64), 'base64').toString()).receipts).toHaveLength(1);
+  maintenance.forget(c.clientId);
+  expect(() => maintenance.validateRotation({ exportId: retainedB.exportId!, digest: retainedB.digest!, nextGeneration: retainedB.nextGeneration!, exportedDigest: retainedB.digest!, confirm: true }, b)).not.toThrow();
+  expect(() => maintenance.call('operation/maintenance/chunk', { exportId: admittedC.exportId!, digest: admittedC.digest!, offset: 0 }, c)).toThrow('归档已过期');
+});
+
+test('one expiring connection releases only its lease even when both exports share bytes', () => {
+  let now = 0; const ledger = new Ledger(':memory:', () => now); ledgers.push(ledger);
+  const maintenance = new ReceiptMaintenance(ledger, () => now);
+  const a = { clientId: 'a' }, b = { clientId: 'b' }, c = { clientId: 'c' };
+  const first = maintenance.call('operation/maintenance/preview', {}, a) as JsonObject;
+  now = 1000; const second = maintenance.call('operation/maintenance/preview', {}, b) as JsonObject;
+  expect(first.digest).toBe(second.digest);
+  now = 600000; maintenance.call('operation/maintenance/preview', {}, c);
+  expect(() => maintenance.call('operation/maintenance/chunk', { exportId: first.exportId!, digest: first.digest!, offset: 0 }, a)).toThrow('归档已过期');
+  expect(maintenance.call('operation/maintenance/chunk', { exportId: second.exportId!, digest: second.digest!, offset: 0 }, b)).toMatchObject({ nextOffset: null });
+});

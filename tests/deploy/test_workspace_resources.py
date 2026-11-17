@@ -71,6 +71,19 @@ class ResourceFilesystemTests(unittest.TestCase):
             with self.subTest(path=base), self.assertRaises(DeployError):
                 self.read(self.skill(base))
 
+    def test_catalog_ancestor_skill_is_limited_to_nearest_git_worktree(self):
+        (self.project / ".git").mkdir()
+        child = self.project / "nested"; child.mkdir()
+        target = self.skill(self.project / ".agents/skills/ancestor")
+        outside = self.skill(self.base / ".agents/skills/outside")
+        secret = self.skill(self.project / "secrets")
+        nested = Root(str(child), self.forbidden)
+        try:
+            self.assertEqual(read_skill(nested, {"path": str(target)}, self.layout, self.settings, self.forbidden)["text"], target.read_text())
+            for rejected in (outside, secret):
+                with self.assertRaises(DeployError): read_skill(nested, {"path": str(rejected)}, self.layout, self.settings, self.forbidden)
+        finally: nested.close()
+
     def test_symlink_hardlink_fifo_and_ancestor_links_are_refused(self):
         source = self.skill(self.project / ".agents/skills/source")
         for kind in ("link", "hard", "fifo"):

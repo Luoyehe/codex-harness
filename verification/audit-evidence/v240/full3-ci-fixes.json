@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "findingIds": [
+    "FULL3-CI-01"
+  ],
+  "completedAt": "2026-11-17T15:19:21.089695+00:00",
+  "status": "fixed-targeted-verified",
+  "files": [
+    ".github/workflows/affected.yml",
+    "scripts/ci-checks.mjs",
+    "tests/tooling/ci-checks.test.ts",
+    "scripts/RELEASE-PREFLIGHT.md"
+  ],
+  "change": "Keep manual HARNESS_AUTHORIZATION_SHA separate from PR-only repository HARNESS_PR_AUTHORIZATION_SHA in the workflow and planner. Main and manual events ignore repository approval values; PR approval remains externally bound; explicit checksums still take precedence and reject mismatches. No authorization or source checks were relaxed.",
+  "consumerReview": [
+    "release-preflight invokes buildCiPlan for push and PR with its explicit reviewed checksum; this path remains unchanged.",
+    "Only the workflow plan step consumes repository PR approval; test execution/reconciliation jobs do not need it.",
+    "Direct release-preflight and selector/audit-remediation consumers were exercised alongside planner tests.",
+    "Actual Git-backed regressions cover trusted main, optional and explicit manual approval, PR self-approval rejection, stale PR approval, and source bytes changed after approval."
+  ],
+  "verification": [
+    {
+      "command": "Node 24.22.1 scripts/run-tests.mjs --targeted tests/tooling/ci-checks.test.ts tests/tooling/release-preflight.test.ts tests/tooling/select-tests.test.ts tests/tooling/audit-remediation.test.ts",
+      "platform": "Windows",
+      "cases": 61,
+      "passed": 60,
+      "skipped": [
+        "tests/tooling/ci-checks.test.ts::root fixtures have a traversable disposable temp outside their private home"
+      ],
+      "exitCode": 3,
+      "log": ".work/v240/full3-ci-fixes-targeted.log"
+    },
+    {
+      "command": "Node 24.22.1 runVitest(same four modules), isolated Linux UID 65534",
+      "platform": "Linux",
+      "cases": 61,
+      "passed": 61,
+      "skipped": [],
+      "exitCode": 0,
+      "log": ".work/v240/full3-ci-fixes-linux-final.log"
+    },
+    {
+      "command": "Node 24.22.1 node_modules/typescript/bin/tsc -p tsconfig.tests.json --pretty false",
+      "exitCode": 0,
+      "log": ".work/v240/full3-ci-fixes-types.log"
+    },
+    {
+      "command": "git diff --check -- .github/workflows/affected.yml scripts/ci-checks.mjs scripts/RELEASE-PREFLIGHT.md tests/tooling/ci-checks.test.ts",
+      "exitCode": 0
+    }
+  ],
+  "finalSourceFiles": [
+    {
+      "path": ".github/workflows/affected.yml",
+      "sha256": "2c92bb76bd1a9bc8a91441e6e51fc32b6301340b89e1f757b7390589a737e5ce"
+    },
+    {
+      "path": "scripts/ci-checks.mjs",
+      "sha256": "d6a556c254b06df3c35814c0f17568cc5a0105a8d9b0870f8f467330b69067fd"
+    },
+    {
+      "path": "tests/tooling/ci-checks.test.ts",
+      "sha256": "c4731286e018bf3a7d31409346eceecaaf4f6b812d9d7992692c086424cacd2a"
+    },
+    {
+      "path": "scripts/RELEASE-PREFLIGHT.md",
+      "sha256": "c0e6be153c2340aed38858e759e82923fb637f6aaea9f07bc6e2e1ac29903b52"
+    }
+  ],
+  "evidence": [
+    {
+      "path": ".work/v240/full3-ci-fixes-targeted.log",
+      "sha256": "7a9c352b96b1b58bccfba7908e5089e31447bc76a49ce153cb4d79bbd4d6b140"
+    },
+    {
+      "path": ".work/v240/full3-ci-fixes-linux-final.log",
+      "sha256": "1e7aecf84d5c5a7d2c53dd9b59ee6a85ad0c4f8baa1e448b3db66b53f224ee1f"
+    },
+    {
+      "path": ".work/v240/full3-ci-fixes-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".work/v240/full3-ci-current-tooling.json",
+      "sha256": "7c92b5dba3beed38da59db888b8671a1043c71e4502f591b01a8b812fa7efcc4"
+    },
+    {
+      "path": ".work/v240/full3-ci-tooling-remote-verified.json",
+      "sha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f"
+    }
+  ],
+  "retainedAttempts": [
+    {
+      "path": ".work/v240/full3-ci-fixes-linux-upload-error.log",
+      "result": "Test process never started: task script subdirectory did not yet exist; created exact task directory and reran."
+    },
+    {
+      "path": ".work/v240/full3-ci-fixes-linux.log",
+      "result": "59 cases passed but two existing consumer cases were absent in older isolated fixture; not used as final verification. Compared 48 tooling/config hashes, synchronized 11 stale public files, verified zero remaining differences and reran 61 cases."
+    }
+  ],
+  "limits": [
+    "No GitHub workflow was dispatched and no repository variable was read or changed. Hosted execution remains pending.",
+    "No production service or deployed configuration changed; Linux verification used the existing isolated task checkout.",
+    "Full-project tests, clean full audit and publication are not claimed by this targeted report."
+  ]
+}

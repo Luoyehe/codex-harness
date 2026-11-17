@@ -5,6 +5,7 @@ import type { FormatsPlugin } from 'ajv-formats';
 import { canonical, DeliveryError, jsonBytes, object, type JsonObject, type JsonValue } from './types.js';
 import { outputSchema } from './structured-output.js';
 import { permissionsWithinRequest } from './permission-grants.js';
+import { validDateTime } from '../shared/date-time.js';
 
 const schemaRelative = 'protocol/json/codex_app_server_protocol.v2.schemas.json';
 const sourceSchema = new URL(`../../${schemaRelative}`, import.meta.url);
@@ -17,12 +18,14 @@ for (const [name, min, max] of [
 ] as const) ajv.addFormat(name, { type: 'number', validate: value => Number.isSafeInteger(value) && value >= min && value <= max });
 ajv.addFormat('double', { type: 'number', validate: Number.isFinite });
 const validators = new Map<string, ValidateFunction>();
+const officialSchemaId = 'urn:codex-harness:official-protocol';
+ajv.addSchema({ $id: officialSchemaId, definitions: document.definitions });
 const addFormats = createRequire(import.meta.url)('ajv-formats') as FormatsPlugin;
 export function validateOfficial(name: string, value: JsonValue): void {
   jsonBytes(value);
   let validate = validators.get(name);
   if (!validate) {
-    if (document.definitions[name]) validate = ajv.compile({ $ref: `#/definitions/${name}`, definitions: document.definitions });
+    if (document.definitions[name]) validate = ajv.getSchema(`${officialSchemaId}#/definitions/${name}`)!;
     else {
       const standalone = new URL(`${name}.json`, schemaFile);
       if (!existsSync(standalone)) throw new DeliveryError('unsupported_schema', `Missing official schema ${name}`);
@@ -117,6 +120,7 @@ export function validatePrompt(method: string, params: JsonObject, response: Jso
     const formAjv = new Ajv({ strict: true, allErrors: false, ownProperties: true, validateFormats: true });
     formAjv.addKeyword({ keyword: 'enumNames', schemaType: 'array', valid: true });
     addFormats(formAjv, { mode: 'full', formats: ['email', 'uri', 'date', 'date-time'] });
+    formAjv.addFormat('date-time', { type: 'string', validate: validDateTime });
     let validate: ValidateFunction;
     try { validate = formAjv.compile(params.requestedSchema as object); } catch { throw new DeliveryError('unsupported_schema', 'Unsupported or invalid form schema'); }
     if (!validate(answer.content)) throw new DeliveryError('invalid_params', `Invalid form: ${formAjv.errorsText(validate.errors)}`);

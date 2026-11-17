@@ -212,7 +212,11 @@ it.each(['discover', 'apply'] as const)('does not publish a late %s receipt into
   await waitFor(async () =>
     expect((await listOperations()).find((operation) => operation.id === operationId)?.state).toBe('accepted'),
   );
-  expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
+  // The old receipt cannot clear local edits or publish old discovered rows.
+  expect(Boolean(screen.queryByRole('checkbox', { name: 'model-x' }))).toBe(kind === 'apply');
+  if (kind === 'apply') expect(screen.getByRole('checkbox', {
+    name: '我已核对选中模型的能力；应用后将重启运行时。',
+  })).toHaveProperty('checked', false);
   expect(onChanged).not.toHaveBeenCalled();
   expect(calls.filter(call => call.method === 'system/provider/read')).toHaveLength(2);
 });
@@ -236,7 +240,10 @@ it('does not refresh from a late direct application acknowledgement after provid
     await settle();
   });
   expect(onChanged).not.toHaveBeenCalled();
-  expect(screen.queryByRole('checkbox', { name: 'model-x' })).toBeNull();
+  expect(screen.getByRole('checkbox', { name: 'model-x' })).toBeTruthy();
+  expect(screen.getByRole('checkbox', {
+    name: '我已核对选中模型的能力；应用后将重启运行时。',
+  })).toHaveProperty('checked', false);
 });
 
 it('keeps discovery gated when an accepted receipt carries a different configuration revision', async () => {

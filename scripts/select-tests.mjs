@@ -6,6 +6,7 @@ import { validateRelative } from './release-audit.mjs';
 import { evidencePath } from './snapshot.mjs';
 import { isolatedTestEnvironment, isolateTestProcess } from './test-environment.mjs';
 import { goTestFile, goTestPattern, runGoTests } from './go-tests.mjs';
+import { javascriptTestPattern as testPattern, pythonTestPattern as pythonPattern, validateTestPath } from './test-paths.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 export const nativeTestFiles = [
@@ -16,12 +17,13 @@ export const nativeTestFiles = [
   'tests/runtime/gateway-oauth-native.test.ts', 'tests/runtime/cli-diagnostics-native.test.ts', 'tests/runtime/provider-switch-native.test.ts', 'tests/runtime/thread-list-native.test.ts',
 ];
 const nativeNames = new Set(nativeTestFiles);
-const testPattern = /^(?:tests|web\/tests)\/.+\.test\.tsx?$/;
-const pythonPattern = /^tests\/deploy\/(?:[^/]+\/)*test_[^/]+\.py$/;
 const dnsCaddyPythonTests = ['tests/deploy/test_dns_caddy_build.py', 'tests/deploy/root/test_dns_caddy_build.py'];
 const builtinMcpTests = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
+const toolchainPythonTests = ['tests/deploy/test_toolchain.py', 'tests/deploy/root/test_toolchain.py', 'tests/deploy/root/test_tree_durability.py'];
 const deploymentPairs = [
   [...dnsCaddyPythonTests, goTestFile],
+  // Tree durability composes the ordinary toolchain archive fixture.
+  toolchainPythonTests,
   ['tests/deploy/test_directory_durability.py', 'tests/deploy/root/test_directory_durability.py'],
   ['tests/deploy/test_edge_diagnostics.py', 'tests/deploy/root/test_edge_diagnostics.py'],
   ['tests/deploy/test_initialization_resume.py', 'tests/deploy/root/test_initialization_resume.py'],
@@ -39,7 +41,7 @@ const deploymentPairs = [
   ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'],
   ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py'],
 ];
-const auditMetadata = new Set(['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
+const auditMetadata = new Set(['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
 const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
 
 export function testInventory(base = root) {
@@ -49,15 +51,15 @@ export function testInventory(base = root) {
     for (const entry of readdirSync(path.join(base, folder), { withFileTypes: true })) {
       const name = `${folder}/${entry.name}`;
       if (entry.isSymbolicLink()) throw new Error('Symlink test inventory is unsupported');
-      if (entry.isDirectory()) visit(name);
-      else if (entry.isFile() && (testPattern.test(name) || pythonPattern.test(name) || goTestPattern.test(name))) names.push(name);
+      if (entry.isDirectory() && !['node_modules', 'dist', '.work', 'coverage', '__pycache__'].includes(entry.name)) visit(name);
+      else if (entry.isFile() && (testPattern.test(name) || pythonPattern.test(name) || goTestPattern.test(name))) names.push(validateTestPath(name));
     }
   }
-  visit('tests'); visit('web/tests'); visit('deploy/caddy_dns_source'); return names.sort();
+  visit('tests'); visit('web'); visit('deploy/caddy_dns_source'); return names.sort();
 }
 
 export function selectTests(changed, available) {
-  const plan = { status: 'selected', changed: [], groups: { unit: [], deploy: [], 'deploy-root': [], native: [], go: [] }, mappings: [], requiresFullAudit: [], noBehaviorChange: [], checks: ['typecheck', 'build', 'source-security'] };
+  const plan = { status: 'selected', changed: [], groups: { unit: [], deploy: [], 'deploy-root': [], native: [], go: [] }, mappings: [], requiresFullAudit: /** @type {{path:string, reason:string}[]} */ ([]), noBehaviorChange: [], checks: ['typecheck', 'build', 'source-security'] };
   const inventory = new Set(available.map(validateRelative));
   const selected = new Set();
   const domain = prefix => [...inventory].filter(name => name.startsWith(prefix));
@@ -88,6 +90,9 @@ export function selectTests(changed, available) {
       if (documentation.has(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-only' });
       else {
         add(name, domain('tests/deploy/'), 'deployment-python');
+        if (['deploy/build.py', 'deploy/system.py'].includes(name)) {
+          for (const required of toolchainPythonTests) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
+        }
         if (name.startsWith('deploy/caddy_dns_source/') || name === 'deploy/dns_caddy_build.py') {
           for (const required of dnsCaddyPythonTests) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
           add(name, [goTestFile], 'sealed-dns-go-test-build-and-probe');
@@ -96,15 +101,17 @@ export function selectTests(changed, available) {
     } else if (name.startsWith('tests/deploy/')) {
       // Privileged integration helpers have no safe automatic local substitute.
       plan.requiresFullAudit.push({ path: name, reason: 'deployment-integration-helper-needs-isolated-review' });
-    } else if (name.startsWith('web/')) add(name, domain('web/tests/'), 'browser-behavior-and-shared-ui');
+    } else if (name.startsWith('web/')) add(name, domain('web/'), 'browser-behavior-and-shared-ui');
     else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, [...domain('tests/runtime/'), ...domain('tests/gateway/')], 'runtime-fixture');
-    else if (name === 'scripts/release-audit.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
+    else if (['scripts/release-audit.mjs', 'scripts/git-object-reader.mjs'].includes(name)) add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
     else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
-    else if (name === 'scripts/select-tests.mjs') add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');
+    else if (['scripts/select-tests.mjs', 'scripts/test-paths.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');
     else if (['scripts/go-tests.mjs', 'scripts/prepare-ci-go.py'].includes(name)) add(name, [goTestFile, 'tests/deploy/test_prepare_ci_go.py', 'tests/tooling/go-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/test-environment.test.ts'], 'go-preparation-offline-execution-and-coverage');
     else if (name === 'scripts/release-preflight.mjs') add(name, ['tests/tooling/release-preflight.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/select-tests.test.ts'], 'release-preflight-without-test-execution');
-    else if (['scripts/run-tests.mjs', 'scripts/test-environment.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/prepare-ci-native.test.ts', 'tests/tooling/go-tests.test.ts', goTestFile], 'test-execution-and-release-gates');
-    else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/release-preflight.test.ts'], 'source-snapshot-and-evidence-classification');
+    else if (['scripts/publish-release.mjs', '.github/workflows/release.yml'].includes(name)) add(name, ['tests/tooling/publish-release.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/select-tests.test.ts'], 'exact-commit-release-publication');
+    else if (['scripts/run-tests.mjs', 'scripts/test-environment.mjs', 'scripts/release-authorization.mjs', 'scripts/python-tests.py', 'scripts/ci-checks.mjs', 'scripts/ci-job-status.mjs', 'scripts/build-server.mjs', 'scripts/prepare-ci-native.mjs'].includes(name)) add(name, ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/prepare-ci-native.test.ts', 'tests/tooling/go-tests.test.ts', goTestFile], 'test-execution-and-release-gates');
+    else if (['scripts/prepare-ci-pnpm.mjs', 'scripts/test-retention.mjs', 'scripts/build-codeql-go.mjs'].includes(name)) add(name, ['tests/tooling/audit-remediation.test.ts', 'tests/tooling/go-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/release-preflight.test.ts'], 'audited-toolchain-boundaries');
+    else if (name === 'scripts/snapshot.mjs') add(name, ['tests/tooling/audit-remediation.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/release-preflight.test.ts'], 'source-snapshot-and-evidence-classification');
     else if (['.github/workflows/affected.yml', '.github/workflows/security.yml', '.github/workflows/compatibility.yml', 'scripts/compatibility-watch.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/compatibility-watch.test.ts', 'tests/tooling/release-audit.test.ts', goTestFile, ...domain('tests/deploy/')], 'ci-orchestration-and-deployment-identities');
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
@@ -140,29 +147,29 @@ export function gitChanges(base, head, cwd = root) {
 }
 
 export function nativePrerequisite(base = root, explicit = process.env.HARNESS_TEST_CODEX_BIN, inherited = process.env) {
-  if (!explicit) return { status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.164.0' };
+  if (!explicit) return { status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.169.0' };
   const runtime = path.resolve(base, 'reference/runtime');
   const candidate = path.resolve(explicit);
   if (!path.isAbsolute(explicit) || !candidate.startsWith(runtime + path.sep)) return { status: 'failed', reason: 'native-binary-must-belong-to-independent-runtime' };
-  if (!existsSync(candidate)) return { status: 'skipped', reason: 'independent-official-cli-not-installed', requiredVersion: '0.164.0' };
+  if (!existsSync(candidate)) return { status: 'skipped', reason: 'independent-official-cli-not-installed', requiredVersion: '0.169.0' };
   if (!lstatSync(candidate).isFile() || !realpathSync(candidate).startsWith(realpathSync(runtime) + path.sep)) return { status: 'failed', reason: 'invalid-native-binary-path' };
   // Provenance is the independently installed official package, not a PATH shim.
   let directory = path.dirname(candidate); let official = false;
   while (directory.startsWith(runtime + path.sep)) {
     const manifest = path.join(directory, 'package.json');
     if (existsSync(manifest)) {
-      try { const value = JSON.parse(readFileSync(manifest, 'utf8')); if (value.name === '@openai/codex' && /^0\.164\.0(?:-(?:linux|win32|darwin)-(?:x64|arm64)(?:-musl)?)?$/.test(value.version)) official = true; } catch { return { status: 'failed', reason: 'unreadable-native-package-metadata' }; }
+      try { const value = JSON.parse(readFileSync(manifest, 'utf8')); if (value.name === '@openai/codex' && /^0\.169\.0(?:-(?:linux|win32|darwin)-(?:x64|arm64)(?:-musl)?)?$/.test(value.version)) official = true; } catch { return { status: 'failed', reason: 'unreadable-native-package-metadata' }; }
     }
     directory = path.dirname(directory);
   }
-  if (!official) return { status: 'failed', reason: 'official-0.164.0-package-metadata-not-found' };
+  if (!official) return { status: 'failed', reason: 'official-0.169.0-package-metadata-not-found' };
   const homes = path.join(base, '.work/native-version'); mkdirSync(homes, { recursive: true }); const isolated = mkdtempSync(path.join(homes, 'check-'));
   const home = path.join(isolated, 'home'); const temporary = path.join(isolated, 'tmp'); mkdirSync(home); mkdirSync(temporary);
   const env = { HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, 'codex'), TEMP: temporary, TMP: temporary };
   for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (inherited[key]) env[key] = inherited[key];
   const checked = spawnSync(candidate, ['--version'], { cwd: base, env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
-  if (checked.error || checked.status !== 0 || checked.stdout.trim() !== 'codex-cli 0.164.0') return { status: 'failed', reason: 'native-version-check-failed' };
-  return { status: 'ready', version: '0.164.0', binary: candidate };
+  if (checked.error || checked.status !== 0 || checked.stdout.trim() !== 'codex-cli 0.169.0') return { status: 'failed', reason: 'native-version-check-failed' };
+  return { status: 'ready', version: '0.169.0', binary: candidate };
 }
 
 export function pythonPrerequisite(env = isolatedTestEnvironment(root)) {
@@ -221,7 +228,15 @@ export function runSelection(plan, group = 'all', base = root) {
   return { status: results.every(result => result.status === 'not-affected') ? 'not-affected' : exitCode === 0 ? 'passed' : exitCode === 3 ? 'skipped' : 'failed', exitCode, results };
 }
 
+export function selectionFailure(error, stage) {
+  const reason = error?.message === 'Invalid repository-relative path' ? 'invalid-relative-path'
+    : error?.code === 'ENOENT' ? 'missing-path-or-executable'
+    : ['EACCES', 'EPERM'].includes(error?.code) ? 'permission-denied'
+    : typeof error?.status === 'number' ? 'git-or-command-failed' : 'invalid-selection-input';
+  return { status: 'requires-full-audit', stage, reason };
+}
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  let stage = 'arguments';
   try {
     isolateTestProcess(root);
     const args = process.argv.slice(2); let changed; let run; let base; let head;
@@ -233,11 +248,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       else throw new Error('Unknown selection argument');
     }
     if (changed && (base || head)) throw new Error('Choose an explicit change list or base/head, not both');
-    const plan = selectTests(changed ?? gitChanges(base, head), testInventory());
+    stage = 'changed-files'; const names = changed ?? gitChanges(base, head);
+    stage = 'test-inventory'; const inventory = testInventory();
+    stage = 'selection'; const plan = selectTests(names, inventory);
     process.stdout.write(JSON.stringify(plan, null, 2) + '\n');
     if (plan.status === 'requires-full-audit') process.exitCode = 2;
     else if (run) { const result = runSelection(plan, run); process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exitCode = result.exitCode; }
-  } catch {
-    process.stderr.write(JSON.stringify({ status: 'requires-full-audit', reason: 'invalid-or-unreadable-change-selection' }) + '\n'); process.exitCode = 2;
+  } catch (error) {
+    process.stderr.write(JSON.stringify(selectionFailure(error, stage)) + '\n'); process.exitCode = 2;
   }
 }
