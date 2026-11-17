@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { message, type Project } from '../lib/types';
 import { commitState, type CommitState } from '../lib/git-state';
@@ -46,7 +46,9 @@ function CommitForm({
       onChanged();
     }, [onChanged]),
     action = useExtensionAction(api, enabled && visible, changed, `${project.id}:${ownerEpoch}`);
-  useEffect(() => {
+  // Finish invalidation before the newly enabled control can start a request;
+  // a later passive cleanup could otherwise abort that new controller.
+  useLayoutEffect(() => {
     setPreview(undefined);
     setConfirmed(false);
     setReading(false);

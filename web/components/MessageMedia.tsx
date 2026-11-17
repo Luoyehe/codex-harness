@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { RpcError, type Api } from '../lib/api';
 import { message, type Item, type Project } from '../lib/types';
 import { checkedSnapshot } from '../lib/workspace';
@@ -40,7 +40,9 @@ function Preview({
     heldReservation.current?.release();
     heldReservation.current = undefined;
   };
-  useEffect(() => {
+  // Reset the old source before its new control can be clicked. Passive cleanup
+  // could otherwise cancel a new read or erase a synchronously decoded preview.
+  useLayoutEffect(() => {
     setLoaded(undefined);
     setError('');
     setBusy(false);

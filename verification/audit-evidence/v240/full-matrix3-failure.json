@@ -1,0 +1,1151 @@
+{
+  "schemaVersion": 1,
+  "roundId": "v240-full-matrix-3",
+  "candidate": "historical-commit-101",
+  "sourceDigest": "9e098afe5556d056c1248e42883317c0dd422bb03191bb09fc9c2a4c198463b6",
+  "collectedAt": "2026-11-17T16:30:22.701399+00:00",
+  "status": "failed",
+  "publishable": false,
+  "selectedFiles": 284,
+  "sourceUnchangedAcrossAllTargets": true,
+  "authorization": {
+    "path": "verification/audit-evidence/release-closeout/authorization.json",
+    "sha256": "01ebfbda1f43f9c653f991f6952f76fa8a291c6b76b915e6999eeb750c8f53ed"
+  },
+  "distinctFailedAssertions": 1,
+  "distinctFailedFiles": 1,
+  "platforms": {
+    "windows": {
+      "exitCode": 3,
+      "files": 259,
+      "sourceUnchanged": true,
+      "javascript": {
+        "files": 208,
+        "cases": 2362,
+        "counts": {
+          "passed": 2350,
+          "skipped": 12
+        },
+        "skipped": [
+          {
+            "id": "tests/runtime/attachments.test.ts::symlink and FIFO substitutions never follow or block",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/attachments.test.ts::read-only native data group never gains metadata or directory write access",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/native.test.ts::bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (true)",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/native.test.ts::bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (false)",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native ownership cleanup confirms linux-stop without signaling a reaped PGID",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native ownership cleanup confirms linux-natural without signaling a reaped PGID",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native ownership cleanup confirms linux-pressure without signaling a reaped PGID",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native ownership cleanup confirms portable-stop without signaling a reaped PGID",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native ownership cleanup confirms portable-natural without signaling a reaped PGID",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::closing before the POSIX controller starts retains its stop request and confirms cleanup",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/posix-native.test.ts::native shutdown may finish and persist its acknowledgement before forced descendant cleanup",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/tooling/ci-checks.test.ts::root fixtures have a traversable disposable temp outside their private home",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          }
+        ],
+        "rawResult": ".work/v240/matrix3/windows-vitest.json"
+      },
+      "python": {
+        "files": 50,
+        "cases": 652,
+        "counts": {
+          "passed": 540,
+          "skipped": 112
+        },
+        "skipped": [
+          {
+            "id": "tests/deploy/test_auth_storage_policy.py::AuthenticationStoragePolicyTests.test_symlink_config_is_rejected_without_reading_or_mutating_target",
+            "file": "tests/deploy/test_auth_storage_policy.py",
+            "status": "skipped",
+            "reason": "POSIX file-link boundary"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditGitAttributes.test_info_attributes_block_raw_staging_without_running_filter",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux Git index"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorkspace.test_receipt_query_publishes_preexisting_terminal_state_without_repeating_write",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux descriptors and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorkspace.test_repeated_no_effect_failures_do_not_exhaust_receipts",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux descriptors and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorkspace.test_search_exclusions_are_explicit_and_reported",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux descriptors and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorkspace.test_staged_terminal_receipt_recovers_without_reexecuting",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux descriptors and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorktrees.test_clean_retirement_frees_active_slot_and_keeps_checkout",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux Git worktrees"
+          },
+          {
+            "id": "tests/deploy/test_cross_audit_remediation.py::CrossAuditWorktrees.test_generated_symlink_keeps_readable_identity_but_blocks_archive",
+            "file": "tests/deploy/test_cross_audit_remediation.py",
+            "status": "skipped",
+            "reason": "Real Linux Git worktrees"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::ArchiveTests.test_delayed_links_consume_entry_budget_before_parent_creation",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Real archive symlinks require Linux"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::ArchiveTests.test_snapshot_bounds_fd_enumeration_and_reserves_pending_siblings",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Descriptor-safe import requires Linux"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::ArchiveTests.test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Descriptor-safe import requires Linux"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::ArchiveTests.test_umask_077_does_not_hide_published_input",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Linux permissions"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_native_bridge_backpressures_without_losing_large_protocol_frames",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Linux pipe backpressure and subreaper"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_native_supervision_reaps_descendant_that_escaped_its_process_group",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Linux subreaper/process groups"
+          },
+          {
+            "id": "tests/deploy/test_deployment.py::NativeLauncherTests.test_stream_initialization_failure_reaps_the_already_started_child",
+            "file": "tests/deploy/test_deployment.py",
+            "status": "skipped",
+            "reason": "Linux descriptor registration and process cleanup"
+          },
+          {
+            "id": "tests/deploy/test_execution_mode.py::ExternalOperatorTests.test_nonroot_identity_cannot_authorize_even_outside_service",
+            "file": "tests/deploy/test_execution_mode.py",
+            "status": "skipped",
+            "reason": "POSIX real uid admission"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_buffered_eof_cannot_acknowledge_unconfirmed_cleanup",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_eof_acknowledges_cleanup_even_when_native_ignores_eof_and_term",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_eof_with_pending_bytes_still_stops_native_and_detached_descendant",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_natural_exit_keeps_leader_owned_through_every_group_signal",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_pipe_hangup_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_reaped_leader_cannot_authorize_a_historical_group_signal",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_reused_pid_is_distinct_from_the_recorded_process",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_service_signal_acknowledges_confirmed_cleanup",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_socket_half_close_stops_native_even_when_bridge_and_kernel_buffers_are_full",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_unconfirmed_cleanup_cannot_acknowledge_success",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_native_shutdown.py::NativeShutdownTests.test_unrequested_native_crash_preserves_failure",
+            "file": "tests/deploy/test_native_shutdown.py",
+            "status": "skipped",
+            "reason": "Linux subreaper and service signals"
+          },
+          {
+            "id": "tests/deploy/test_provider_lifecycle.py::ProviderRetentionTests.test_current_pending_recovery_and_recent_generations_are_retained",
+            "file": "tests/deploy/test_provider_lifecycle.py",
+            "status": "skipped",
+            "reason": "Real Linux symlink generation pointers"
+          },
+          {
+            "id": "tests/deploy/test_provider_lifecycle.py::ProviderRetentionTests.test_unexpected_material_refuses_cleanup_and_retired_cleanup_can_resume",
+            "file": "tests/deploy/test_provider_lifecycle.py",
+            "status": "skipped",
+            "reason": "Real Linux symlink generation pointers"
+          },
+          {
+            "id": "tests/deploy/test_thread_history.py::ThreadHistoryTests.test_symlink_history_is_rejected",
+            "file": "tests/deploy/test_thread_history.py",
+            "status": "skipped",
+            "reason": "Symlink creation unavailable: OSError"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_binary_download_is_exact_bounded_and_requires_current_bytes",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_binary_large_preview_and_listing_budget_are_explicit",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_collision_between_capture_and_publish_preserves_both_versions",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_control_character_expansion_returns_structured_budget_error_without_mutation",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_copy_and_delete_are_explicit_and_recoverable",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_directory_symlink_swap_does_not_follow_outside_root",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_download_rejects_large_and_linked_files_without_receipts",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_edit_preserves_executable_mode_and_git_metadata_symlinks_are_rejected",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_execute_only_ancestors_allow_scoped_read_write_without_listing_parent",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_git_view_detects_racy_equal_size_edit_without_refreshing_original_index",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_git_view_preserves_staged_unstaged_and_unborn_index_semantics",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_only_empty_directories_can_be_removed",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_protected_root_and_reserved_metadata_roots_rejected",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_real_git_status_diff_refs_disable_repository_programs",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_retained_receipt_budget_blocks_new_writes",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_revision_conflict_preserves_current_file",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_symlink_hardlink_and_special_file_previews_are_rejected",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_text_create_edit_readback_and_replay_preserve_before_image",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace.py::WorkspaceFilesystemTests.test_unresolvable_protected_boundary_is_not_silently_omitted",
+            "file": "tests/deploy/test_workspace.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_ack_retries_empty_directory_left_after_metadata_unlink",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_external_index_recovery_preserves_receipt_until_explicit_discard",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_failed_discard_consumes_the_single_reserved_slot",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_many_accepted_payload_free_operations_do_not_exhaust_lifetime_budget",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_mismatched_and_unknown_receipts_cannot_be_acknowledged",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_ack.py::AcknowledgementFilesystemTests.test_retained_payload_survives_ack_and_full_budget_allows_one_discard",
+            "file": "tests/deploy/test_workspace_ack.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_callbacks_signing_and_filters_do_not_execute",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_commit_only_staged_bytes_preserves_original_index_and_replays_once",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_empty_in_progress_and_unmerged_indexes_are_rejected",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_foreign_index_lock_and_symlinked_refs_are_not_modified",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_head_and_index_version_conflicts_do_not_publish_or_overwrite",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_lost_publication_result_stays_unknown_with_candidate_and_no_resend",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_prepared_transaction_rechecks_index_and_aborts_without_overwriting_external_change",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_query_refuses_existing_child_without_reaping_or_starting_a_sibling",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_unborn_and_detached_heads_commit_without_changing_mode",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_commit.py::CommitFilesystemTests.test_unknown_shutdown_retains_owned_lock_and_lock_replacement_is_never_unlinked",
+            "file": "tests/deploy/test_workspace_commit.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and Git ref transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_deletions_are_explicit_and_symlink_hardlink_directory_selections_fail",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_discard_requires_completed_current_manifest_and_frees_retention_slot",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_file_change_inside_prepared_fence_aborts_without_index_change",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_foreign_primary_git_pointer_cannot_authorize_status_stage_or_commit",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_prepared_fence_blocks_real_head_changes_and_git_add_before_index_publication",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_publish_collision_preserves_old_external_and_candidate_indexes_and_explicit_restore",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_raw_staging_never_runs_filters_hooks_or_signing_and_binds_file_mode",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_real_linked_worktree_backlinks_allow_scoped_stage_and_commit",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_recovery_revision_conflicts_and_record_paths_cannot_redirect_index_restore",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_replayed_stage_does_not_apply_again_or_recreate_discarded_material",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_split_index_snapshot_survives_original_shared_index_removal",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_stage_unstage_and_commit_only_selected_paths_preserve_worktree_and_other_index_entries",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_stale_head_index_and_file_versions_never_publish",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_index.py::IndexFilesystemTests.test_unborn_sha1_sha256_and_absent_original_index_restore",
+            "file": "tests/deploy/test_workspace_index.py",
+            "status": "skipped",
+            "reason": "Requires native Linux Git and descriptor transactions"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_discard_capture_race_keeps_every_payload_and_reports_unknown",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_discard_refuses_stale_manifest_and_unknown_or_failed_receipts",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_discard_releases_payload_and_retains_receipt_replay_even_under_byte_pressure",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_failed_store_parent_publication_is_retried_before_workspace_edit",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_publish_collision_retains_target_backup_source_and_new_content",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_recovery_inventory_is_bounded_and_cross_project_sources_are_absent",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_removed_file_and_empty_directory_restore_to_explicit_absent_destinations",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_restore_preserves_source_backup_captures_current_target_and_replays_once",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_recovery.py::RecoveryFilesystemTests.test_stale_source_destination_and_injected_record_path_never_redirect_restore",
+            "file": "tests/deploy/test_workspace_recovery.py",
+            "status": "skipped",
+            "reason": "Requires real Linux descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_binary_invalid_utf8_and_byte_overflow_are_bounded",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_catalog_ancestor_skill_is_limited_to_nearest_git_worktree",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_control_secret_and_nonallowlisted_global_locations_are_rejected",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_directory_preflight_returns_pinned_project_identity_and_rejects_links",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_fixed_skill_scopes_read_without_opening_general_codex_home",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_plugin_file_count_depth_and_byte_budgets_are_explicit",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_plugin_preview_hashes_relative_bytes_modes_and_empty_directories",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_plugin_preview_refuses_git_links_hardlinks_and_special_files",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_skill_parent_moved_after_open_is_conflict_not_success",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_resources.py::ResourceFilesystemTests.test_symlink_hardlink_fifo_and_ancestor_links_are_refused",
+            "file": "tests/deploy/test_workspace_resources.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_search.py::SearchFilesystemTests.test_links_metadata_fifo_and_binary_are_never_traversed_as_text",
+            "file": "tests/deploy/test_workspace_search.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_search.py::SearchFilesystemTests.test_moved_root_or_scope_cannot_return_outside_results",
+            "file": "tests/deploy/test_workspace_search.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_search.py::SearchFilesystemTests.test_path_and_literal_text_search_report_matching_lines",
+            "file": "tests/deploy/test_workspace_search.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_search.py::SearchFilesystemTests.test_result_entry_byte_depth_and_time_budgets_report_incomplete",
+            "file": "tests/deploy/test_workspace_search.py",
+            "status": "skipped",
+            "reason": "Requires Linux descriptors and procfs"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_archive_restore_preserve_dirty_staged_untracked_and_ignored_bytes_and_index",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_attach_requires_prior_binding_and_matching_current_revision",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_create_failure_and_retention_budget_preserve_all_partial_material",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_create_is_detached_scoped_and_materializes_raw_blobs_without_filters_or_hooks",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_exact_entry_and_depth_boundaries_create_readable_real_worktrees",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_interruption_after_archive_move_keeps_whole_tree_and_explicit_restore_repairs_backlink",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_over_budget_commit_creates_no_checkout_retention_holder_or_git_registration",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_restore_never_overwrites_an_occupied_active_uuid_and_forged_journal_is_not_authority",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          },
+          {
+            "id": "tests/deploy/test_workspace_worktrees.py::WorktreeFilesystemTests.test_user_lock_nested_repository_and_shared_directory_are_not_archived",
+            "file": "tests/deploy/test_workspace_worktrees.py",
+            "status": "skipped",
+            "reason": "Requires real Linux Git, descriptor paths and renameat2"
+          }
+        ]
+      },
+      "go": {
+        "files": 1,
+        "cases": 20,
+        "counts": {
+          "passed": 20
+        },
+        "phases": [
+          {
+            "name": "module-verification",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "test-discovery",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "go-test",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "executable-build",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "version-plugin-probe",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          }
+        ]
+      }
+    },
+    "linux": {
+      "exitCode": 1,
+      "files": 259,
+      "sourceUnchanged": true,
+      "javascript": {
+        "files": 208,
+        "cases": 2362,
+        "counts": {
+          "passed": 2345,
+          "skipped": 16,
+          "failed": 1
+        },
+        "skipped": [
+          {
+            "id": "tests/runtime/attachments.test.ts::real OS unlink denial leaves a durable tombstone and quota charge until restart can delete",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/defaults-lifecycle.test.ts::Windows identity lookup distinguishes absent processes from failed queries",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/processes.test.ts::forces the final Windows spawn environment to disable cache despite case-variant user overrides",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership keeps the real native controller cache disabled with parent override undefined",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership keeps the real native controller cache disabled with parent override PSModuleAnalysisCachePath",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership keeps the real native controller cache disabled with parent override PSMODULEANALYSISCACHEPATH",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership close confirms detached descendants are gone after spawn",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership close confirms detached descendants are gone after spawn-exit",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership shutdown remains responsive while native stdin is backpressured",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership owner process death kills its controller and detached descendants",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-job.test.ts::Windows job ownership controller failure kills the job but never reports a cleanup acknowledgement",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-module-bootstrap.test.ts::both real launchers reject an executable caller module with the inbox Utility name",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-process.test.ts::keeps real standalone launcher and signal caches disabled with custom parent path false",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-process.test.ts::keeps real standalone launcher and signal caches disabled with custom parent path true",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-process.test.ts::standalone Windows job preserves child exit and closes descendants before its separate proof",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          },
+          {
+            "id": "tests/runtime/windows-process.test.ts::job shutdown proof stays independent of stderr output and open stdin",
+            "status": "skipped",
+            "durationMs": null,
+            "failureSummary": null
+          }
+        ],
+        "rawResult": ".work/v240/matrix3/linux-vitest.json"
+      },
+      "python": {
+        "files": 50,
+        "cases": 652,
+        "counts": {
+          "passed": 651,
+          "skipped": 1
+        },
+        "skipped": [
+          {
+            "id": "tests/deploy/test_thread_history.py::ThreadHistoryTests.test_extended_drive_path_is_same_file_but_device_namespaces_are_rejected",
+            "file": "tests/deploy/test_thread_history.py",
+            "status": "skipped",
+            "reason": "Windows native rollout path prefix"
+          }
+        ]
+      },
+      "go": {
+        "files": 1,
+        "cases": 20,
+        "counts": {
+          "passed": 20
+        },
+        "phases": [
+          {
+            "name": "module-verification",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "test-discovery",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "go-test",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "executable-build",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          },
+          {
+            "name": "version-plugin-probe",
+            "file": "deploy/caddy_dns_source/main_test.go",
+            "status": "passed",
+            "exitCode": 0
+          }
+        ]
+      }
+    },
+    "linux-root": {
+      "exitCode": 0,
+      "files": 25,
+      "sourceUnchanged": true,
+      "cases": 355,
+      "counts": {
+        "passed": 355
+      }
+    }
+  },
+  "failure": {
+    "id": "web/tests/workspace-git-drafts.test.tsx::revokes commit confirmation on hiding, blocks hidden handlers and requires a fresh preview on return",
+    "classification": "production-preview-lifecycle-race",
+    "platformObservations": {
+      "windows": {
+        "status": "passed",
+        "durationMs": 71.20040000000017,
+        "failureSummary": null
+      },
+      "linux": {
+        "status": "failed",
+        "durationMs": 1057.7525569999998,
+        "failureSummary": "Error: Unable to find role=\"checkbox\" and name `/确认以上暂存修改/`"
+      }
+    },
+    "observedFailure": "After returning to Git, the preview helper clicks the enabled inspect control, but the explicit commit-confirmation checkbox never appears. The original full Linux failure points to preview helper line47 called from case line96.",
+    "controlledReproduction": {
+      "source": "256 public web/shared files copied byte-for-byte from frozen full7 source, plus four diagnostic files; all260 copied hashes verified before and after.",
+      "environment": "New task-owned Linux directory, ordinary UID65534, pinned Node24.22.1, existing verified public dependency cache, real React createRoot and Api; one explicitly selected diagnostic test.",
+      "trigger": "Hold the automatic Git status response after hide/show. A MutationObserver performs one real click at the first enabled DOM state; no hook mocking, sleep or retry.",
+      "trace": "clicked=true. Returned automatic status/diff/refs signals are not aborted. The first-enabled-click phase issues one new workspace/git/status whose signal becomes aborted; the staged diff and final status are never issued. The confirmation checkbox does not appear.",
+      "result": "One actual probe case failed with the same missing-checkbox outcome. This confirms that a fresh preview can be canceled by the current UI lifecycle; it does not assert that the original matrix scheduler was fully captured.",
+      "harnessPreparationFailure": "The initial diagnostic attempt executed zero tests because Vitest5 chose an unwritable parent workspace module-cache directory. Its log/raw result is retained separately. Only a new ignored runner supplied --fsModuleCachePath inside the diagnostic directory; copied source, probe/config, timeout and assertions remained unchanged before the single effective probe."
+    },
+    "repairEvidence": "verification/audit-evidence/v240/full-matrix3-web-fixes.json",
+    "causeStatus": "Fresh-preview cancellation reproduced; independent web reviewer owns the lifecycle repair and exact consumer regressions."
+  },
+  "previousMatrixTimeout": {
+    "id": "tests/tooling/release-preflight.test.ts::failed rebuild clears prior success and source changes during building never publish a record",
+    "matrix3": {
+      "windows": "passed",
+      "linux": "passed"
+    },
+    "note": "The previous timeout assertion passed on both platforms; this does not cancel the new Linux failure."
+  },
+  "originalArtifacts": [
+    {
+      "path": ".work/v240/matrix3/ci-plan.json",
+      "bytes": 1832311,
+      "sha256": "fe21e8b2cafa836e9fe2d8fac0dbd13039f6c54cb0b23a9080e99793b534836a"
+    },
+    {
+      "path": ".work/v240/matrix3/result-windows.json",
+      "bytes": 1503974,
+      "sha256": "76df4dfdbb3ac6fcc08aa0db224cebc9eeb14259df2e1cb797081a0b0fc48fa8"
+    },
+    {
+      "path": ".work/v240/matrix3/result-linux.json",
+      "bytes": 346476,
+      "sha256": "a338ce9782898c8b87859d42e7e7f66a0e7ce23f783c58d2bbf6dd635b7f612a"
+    },
+    {
+      "path": ".work/v240/matrix3/result-linux-root.json",
+      "bytes": 183009,
+      "sha256": "6ce45e5e0451b6b537bbeb17c22c9e811dd956d9def63d5ad17f62a277453bac"
+    },
+    {
+      "path": ".work/v240/matrix3/windows-vitest.json",
+      "bytes": 834344,
+      "sha256": "d95a6694dac8a0c4f84c8e4b1e5f9a2b83020d8447cff753138e5c27a504e490"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-vitest.json",
+      "bytes": 854925,
+      "sha256": "9a97d7fc1677856ac41d39bb595408e5519b056378f39b4d89f8e30f3427a373"
+    },
+    {
+      "path": ".work/v240/matrix3/windows.log",
+      "bytes": 157711,
+      "sha256": "a300148331bec7d1f6e73a6e8d647db5238bb3dc335bc605a5c94ddadfc806fe"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-full.log",
+      "bytes": 165093,
+      "sha256": "53c851d587e95503df7b56669417c0fa37a8c370d3cc986132dbaae843dff829"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-root-full.log",
+      "bytes": 66890,
+      "sha256": "d3589bc3532be027f6284b85d97fbc6252e32f86abd0a3b8c8a22caff7f8a49d"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-preparation.json",
+      "bytes": 1219,
+      "sha256": "2f4be16a312f59cf9ff911d21ec439bfc46022c3f2ee98eb9faeb6e3fd4bd1ce"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-preparation.log",
+      "bytes": 4433,
+      "sha256": "4414d25d64e49206e6fa18749bc33f2df761de8cb43193b2ec7d242e44bf3c6b"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-execution.json",
+      "bytes": 359,
+      "sha256": "a946a4c75f2bcdb1bf43de787671d6dbde67207d96587f437a98120bd20ade0f"
+    },
+    {
+      "path": ".work/v240/matrix3/linux-js-failure-snapshot.log",
+      "bytes": 164603,
+      "sha256": "cdce6cf94ec28444514c09b5145c508ac9753e6ca47f04498c239cf30c5c4a2a"
+    }
+  ],
+  "diagnosticArtifacts": [
+    {
+      "path": ".work/v240/matrix3-preview-probe-original-transfer.json",
+      "bytes": 27973,
+      "sha256": "cdb3dc1ee069a494715af7b0ec284dc5a397b20cbcdaf005a3798262eebb6260"
+    },
+    {
+      "path": ".work/v240/matrix3-preview-probe-original-linux.log",
+      "bytes": 884,
+      "sha256": "33cf58e2a4dbac37c0934fd5c820377e2c63baa60cb0324c39a5c45219326eea"
+    },
+    {
+      "path": ".work/v240/matrix3-preview-probe-cache-error.json",
+      "bytes": 807,
+      "sha256": "51cf0da0d014aa8c3f54598145e8036a3db9b18d7a23dafcb074eb7e28c9ae72"
+    },
+    {
+      "path": ".work/v240/matrix3-preview-probe-executed-linux.log",
+      "bytes": 17613,
+      "sha256": "5299c0f8519c81a60e219c380a0a15e47d0e382fe7187c30df87befd340cbe32"
+    },
+    {
+      "path": ".work/v240/matrix3-preview-probe-executed-linux.json",
+      "bytes": 16045,
+      "sha256": "af2ed720fdbb9b073f7fda89ea969832c74312a1cedb0bdb42a1c3ca6cd4583d"
+    }
+  ],
+  "rawWindowsSource": {
+    "path": ".work/test-results/run-2RjZJE/vitest.json",
+    "bytes": 834344,
+    "sha256": "d95a6694dac8a0c4f84c8e4b1e5f9a2b83020d8447cff753138e5c27a504e490"
+  },
+  "evidenceRules": [
+    "All original full reports/logs/raw Vitest data remain unchanged. Windows success does not erase the Linux failure.",
+    "Linux failed JavaScript aggregate omits case arrays; its raw2362-case Vitest report is the case-level authority. Windows and both raw reports retain all platform skips.",
+    "Root355 passes, Windows/Linux Python and Go passes remain separate groups. No zero coverage-gap claim or release approval is inferred.",
+    "Each full target ran once. The separately isolated diagnosis is not a full-run retry or additional matrix case.",
+    "Repairs and narrow validation are subsequent evidence. A new clean source-bound audit and complete authorized matrix are required before publishing."
+  ],
+  "limits": [
+    "Linux Python3.12.3 differs from the hosted standard3.12.10. Node24.22.1, CLI0.169.0 and Go1.26.10 were verified.",
+    "All three immutable candidate checkouts and production services were untouched by diagnosis or evidence collection.",
+    "This is local complete-matrix evidence, not a hosted GitHub run or a released version."
+  ]
+}

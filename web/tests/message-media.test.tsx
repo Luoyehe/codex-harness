@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { createRoot } from 'react-dom/client';
 import { MessageMedia } from '../components/MessageMedia';
 import { Messages } from '../components/Messages';
 import { RpcError, type Api } from '../lib/api';
@@ -26,6 +27,61 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+test('preserves an inline image opened at its first button publication and releases its URL on unmount', async () => {
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  let clicked = false;
+  const observer = new MutationObserver(() => {
+    if (clicked) return;
+    const button = [...container.querySelectorAll('button')].find((element) => element.textContent === '预览图片');
+    if (button && !button.disabled) { clicked = true; button.click(); }
+  });
+  try {
+    observer.observe(container, { childList: true, subtree: true });
+    root.render(<MessageMedia threadId="one" item={{ id: 'initial', type: 'imageGeneration', result: png }} />);
+    await waitFor(() => expect(clicked).toBe(true));
+    expect((await screen.findByRole('img', { name: '生成的图片' })).getAttribute('src')).toBe('blob:fixture');
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  } finally {
+    observer.disconnect(); await act(async () => root.unmount()); container.remove();
+  }
+  expect(URL.revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:fixture');
+});
+
+test('keeps a new media request when an unloaded same-key preview changes project', async () => {
+  const requests: AbortSignal[] = [];
+  const call = vi.fn(async (_method: string, _params: unknown, signal: AbortSignal) => {
+    requests.push(signal);
+    return { name: 'one.png', size: atob(png).length, base64: png };
+  });
+  const api = { call } as unknown as Api;
+  const project = { id: 'old', name: 'Old', cwd: '/old' }, next = { id: 'new', name: 'New', cwd: '/new' };
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  let clicked = false;
+  const observer = new MutationObserver(() => {
+    if (clicked || !container.querySelector('[data-project="new"]')) return;
+    const button = [...container.querySelectorAll('button')].find((element) => element.textContent === '预览图片');
+    if (button && !button.disabled) { clicked = true; button.click(); }
+  });
+  try {
+    await act(async () => { root.render(<div data-project="old"><MessageMedia api={api} threadId="one" project={project} item={image} /></div>); });
+    observer.observe(container, { attributes: true, childList: true, subtree: true });
+    root.render(<div data-project="new"><MessageMedia api={api} threadId="one" project={next} item={image} /></div>);
+    await waitFor(() => expect(clicked).toBe(true));
+    expect((await screen.findByRole('img', { name: '附加图片' })).getAttribute('src')).toBe('blob:fixture');
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.aborted).toBe(false);
+    expect(call).toHaveBeenCalledExactlyOnceWith('attachment/history/read', { threadId: 'one', path: '/native/attachments/one' }, requests[0]);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  } finally {
+    observer.disconnect(); await act(async () => root.unmount()); container.remove();
+  }
+  expect(URL.revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:fixture');
 });
 test.each([
   { scenario: 'pending generation', status: 'in_progress', result: '', expected: '图片正在生成，请等待结果。' },

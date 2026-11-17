@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { createRoot } from 'react-dom/client';
 import { Api } from '../lib/api';
 import { WorkspacePanel } from '../components/WorkspacePanel';
 import { WorkspaceCommit } from '../components/WorkspaceCommit';
@@ -96,6 +97,78 @@ it('revokes commit confirmation on hiding, blocks hidden handlers and requires a
   await preview();
   fireEvent.click(screen.getByRole('button', { name: '提交已暂存内容' }));
   await waitFor(() => expect(calls.filter((call) => call.method === 'workspace/git/commit')).toHaveLength(1));
+});
+
+it('keeps a preview started at the first enabled Git control after returning to the panel', async () => {
+  let hold = false, release!: () => void, phase = 'initial', clicked = false;
+  const requests: { method: string; signal: AbortSignal }[] = [];
+  const { api, calls } = setup((call, signal) => {
+    if (phase === 'first-enabled-click') requests.push({ method: call.method, signal });
+    if (hold && call.method === 'workspace/git/status') {
+      hold = false;
+      return new Promise((resolve) => { release = () => resolve(status); });
+    }
+    return undefined;
+  });
+  const initial = props(api), container = document.createElement('div');
+  document.body.append(container);
+  const root = createRoot(container);
+  // A real first-publication click exposes cleanup ordering. Do not replace it
+  // with a repeated click, a delay, or act-wrapped resource completion.
+  const observer = new MutationObserver(() => {
+    if (clicked || phase !== 'returned') return;
+    const button = [...container.querySelectorAll('button')].find((element) => element.textContent === '核对 HEAD 与已暂存修改');
+    if (button && !button.disabled) {
+      clicked = true; phase = 'first-enabled-click'; button.click();
+    }
+  });
+  try {
+    await act(async () => { root.render(<WorkspacePanel {...initial} />); });
+    fireEvent.click(screen.getByRole('button', { name: 'Git' }));
+    await screen.findByText('当前没有未提交的修改。');
+    fillDraft();
+    await preview();
+    await act(async () => { root.render(<WorkspacePanel {...initial} visible={false} />); });
+    hold = true; phase = 'returned';
+    await act(async () => { root.render(<WorkspacePanel {...initial} />); });
+    expect(release).toBeTypeOf('function');
+    expect(screen.getByRole('button', { name: '核对 HEAD 与已暂存修改' })).toHaveProperty('disabled', true);
+    observer.observe(container, { attributes: true, childList: true, subtree: true });
+    release();
+    await waitFor(() => expect(clicked).toBe(true));
+    await screen.findByRole('checkbox', { name: /确认以上暂存修改/ });
+    expect(requests.map((request) => request.method)).toEqual(['workspace/git/status', 'workspace/git/diff', 'workspace/git/status']);
+    expect(requests.some((request) => request.signal.aborted)).toBe(false);
+    expect(calls.some((call) => call.method === 'workspace/git/commit')).toBe(false);
+    expectDraft();
+  } finally {
+    observer.disconnect();
+    await act(async () => { root.unmount(); });
+    container.remove();
+  }
+});
+
+it('aborts a disabled preview and prevents disabled controls from starting another request', async () => {
+  let finish!: () => void, signal!: AbortSignal;
+  const { api, calls } = setup((call, abort) => call.method === 'workspace/git/status'
+    ? new Promise((resolve) => { finish = () => resolve(status); signal = abort; }) : undefined);
+  const initial = { api, project, epoch: 'one', enabled: true, onChanged: vi.fn() };
+  const view = render(<WorkspaceCommit {...initial} />);
+  fillDraft();
+  const inspect = screen.getByRole('button', { name: '核对 HEAD 与已暂存修改' });
+  fireEvent.click(inspect);
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  view.rerender(<WorkspaceCommit {...initial} enabled={false} />);
+  expect(signal.aborted).toBe(true);
+  fireEvent.click(inspect);
+  fireEvent.click(screen.getByRole('button', { name: '提交已暂存内容' }));
+  expect(calls).toHaveLength(1);
+  view.rerender(<WorkspaceCommit {...initial} />);
+  await act(async () => finish());
+  expect(calls).toHaveLength(1);
+  expect(screen.queryByRole('checkbox', { name: /确认以上暂存修改/ })).toBeNull();
+  expect(screen.getByRole('button', { name: '提交已暂存内容' })).toHaveProperty('disabled', true);
+  expectDraft();
 });
 
 it('aborts a hidden preview and ignores its late status before starting additional reads', async () => {
