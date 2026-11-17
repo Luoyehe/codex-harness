@@ -418,11 +418,11 @@
             "src/gateway/server.ts"
           ],
           "validation": [
-            ".work/v240/full1-gateway-boundaries2.log: oversized UTF-8 event -> bounded resync -> next event; 51/51 auth+HTTP cases"
+            ".work/v240/full1-gateway-boundaries2.log: oversized UTF-8 event -> bounded resync -> next event; 51/51 auth+HTTP cases",
+            "web/tests/events.test.tsx actual browser-hook regressions cover legal >2MiB ASCII, exact 4MiB ASCII/UTF-8 and oversized UTF-8 reconnect/no replay; .work/v240/full2-root-fixes.log and .work/v240/matrix2/linux-vitest.json record passing cases. This supersedes the earlier round-2 frontend-coverage gap."
           ],
           "remaining": [
-            "Final clean full-repository audit and authorized full matrix managed by parent.",
-            "Frontend direct regression for new UTF-8 byte-limit branch remains uncovered; web reviewer confirmed this gap in round 2. Server exact case passing does not establish this UI branch."
+            "Final clean full-repository audit and authorized full matrix managed by parent."
           ],
           "resolution": "Shared four-MiB event contract bounds serialized UTF-8 events; an oversized event is replaced with a small explicit resync notice and does not break subsequent delivery.",
           "owner": "runtime",
@@ -910,7 +910,7 @@
           "state": "implemented_and_targeted_verified",
           "files": [
             "web/components/TerminalPanel.tsx",
-            "node_modules/%40xterm/xterm/src/browser/CoreBrowserTerminal.ts"
+            "node_modules/@xterm/xterm/src/browser/CoreBrowserTerminal.ts"
           ],
           "verification": [
             "Targeted frontend logs: .work/v240/web-targeted-1.log through web-targeted-9.log; later passing reruns supersede earlier failed assertions.",
@@ -1244,10 +1244,11 @@
           ],
           "validation": [
             ".work/v240/runtime-final-delta.log",
-            ".work/v240/deploy-linux-runtime-unit6.log"
+            ".work/v240/deploy-linux-runtime-unit6.log",
+            "Matrix2 Linux .work/v240/matrix2/linux-vitest.json: the actual unauthenticated control-connection handshake regression and official CLI process-native terminal/output/timeout/descendant/disconnect case both passed. This supersedes the earlier Linux-counterpart-pending note; it does not make the failed overall matrix successful."
           ],
           "remaining": [
-            "Linux real CLI controller process-native counterpart pending"
+            "Final clean full-source audit and authorized complete matrix remain release gates; no Linux controller-counterpart implementation or verification is pending."
           ],
           "resolution": "Bounded concurrent unauthenticated candidates; wrong token cannot consume the sole handshake; fixed deadline and token claim remain.",
           "owner": "runtime",
@@ -3288,7 +3289,7 @@
           "status": "implemented-targeted-verified",
           "resolution": "Only content-hashed immutable public assets receive long-lived cache headers; HTML, APIs and nonhashed files remain no-store.",
           "files": [
-            "src/gateway/http.ts",
+            "src/gateway/server.ts",
             "tests/gateway/http.test.ts"
           ],
           "validation": [
@@ -3332,7 +3333,7 @@
           "resolution": "HTTP authentication, CSRF, method/media, capacity and availability failures use meaningful status codes and preserve delivery/error contracts.",
           "files": [
             "src/gateway/http-errors.ts",
-            "src/gateway/http.ts",
+            "src/gateway/server.ts",
             "tests/gateway/http.test.ts"
           ],
           "validation": [
@@ -4257,10 +4258,11 @@
           ],
           "resolution": "One bounded directory pass builds a trusted UUID-to-rollout map reused for every ancestor. Identity, canonical location, frozen prefix, no-symlink and byte/depth budgets preserved. More than 10000 entries yields explicit thread_history_limit/inspectionIssue; incomplete inventory cannot authorize attachment deletion.",
           "validation": [
-            ".work/v240/runtime-history-index-final.log"
+            ".work/v240/runtime-history-index-final.log",
+            "Matrix2 .work/v240/matrix2/result-linux.json: tests/deploy/test_thread_history.py has 32 passed plus one explicit Windows-native-path-only skip; bounded ancestor-index capacity and incomplete attachment-inventory regressions passed. This supersedes the earlier fresh-Linux-counterpart pending note, without claiming the failed whole matrix passed."
           ],
           "remaining": [
-            "Final full repository audit; fresh Linux Python counterpart"
+            "Final clean full-source audit and authorized complete matrix remain release gates. The Linux-specific counterpart is verified; its Windows-native-path-only skip is retained explicitly."
           ],
           "owner": "runtime",
           "state": "implemented-targeted-verified"
@@ -4638,7 +4640,9 @@
             "scripts/build-codeql-go.mjs"
           ],
           "validation": [],
-          "remaining": [],
+          "remaining": [
+            "Hosted Security has not yet been executed for the final release candidate. CodeQL JavaScript/TypeScript, Python, Actions and manual Go extraction plus dependency audit must run and be reviewed before claiming hosted security validation. Implemented workflow configuration and local checks are not hosted success."
+          ],
           "owner": "root",
           "state": "implemented-awaiting-hosted-security"
         }

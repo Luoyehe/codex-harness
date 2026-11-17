@@ -38,13 +38,13 @@ function fixture() {
   put(base, 'node_modules/typescript/bin/tsc', log + `if(!process.argv.includes('--noEmit')) { for(const name of ['gateway','runtime']) { fs.mkdirSync('dist/src/'+name,{recursive:true}); fs.writeFileSync('dist/src/'+name+'/main.js','export {};'); } }`);
   put(base, 'node_modules/vite/package.json', JSON.stringify({ version: pkg.devDependencies.vite }));
   put(base, 'node_modules/vite/bin/vite.js', log + `fs.mkdirSync('web/dist',{recursive:true}); fs.writeFileSync('web/dist/index.html','<html>Fixture</html>');`);
-  return { base, files, options: { head, pushBase, prBase, authorizationSha256: hash(bytes) } };
+  return { base, files, source: current, options: { head, pushBase, prBase, authorizationSha256: hash(bytes) } };
 }
 afterEach(() => { for (const base of fixtures.splice(0)) { if (!base.startsWith(realpathSync(fixtureRoot) + path.sep)) throw Error('Unsafe fixture cleanup'); rmSync(base, { recursive: true, force: true }); } });
 
 test('preflight binds two actual plans and reusable build outputs without executing tests', () => {
-  const { base, files, options } = fixture();
-  expect(() => releasePreflight(options, base)).toThrow(/build evidence is missing/);
+  const { base, files, source, options } = fixture();
+  expect(() => checkBuild(base, source, toolPins(base), options.head)).toThrow(/build evidence is missing/);
   put(base, 'dist/stale.js', 'Stale artifact must not survive a rebuild.');
   const result = releasePreflight({ ...options, build: true }, base);
   expect(result).toMatchObject({ status: 'ready-for-ci', testsExecuted: false, releaseGatePassed: false, head: options.head });
@@ -54,11 +54,12 @@ test('preflight binds two actual plans and reusable build outputs without execut
   expect(existsSync(path.join(base, 'dist/stale.js'))).toBe(false);
   const calls = readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8');
   expect(calls.trim().split('\n').map(line => JSON.parse(line))).toEqual([['--noEmit', '-p', 'web/tsconfig.json'], ['-p', 'tsconfig.server.json'], ['build', '--config', 'web/vite.config.ts']]);
-  expect(releasePreflight(options, base).build.rebuilt).toBe(false);
+  expect(checkBuild(base, source, result.pins, options.head).rebuilt).toBe(false);
   expect(readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8')).toBe(calls);
   // Evidence-only commits retain identical source; the original build identity remains honest.
   put(base, 'verification/reports/note.md', 'Fixture evidence only.'); const nextHead = commit(base, 'evidence');
-  expect(releasePreflight({ ...options, head: nextHead }, base).build.builtForHead).toBe(options.head);
+  expect(releasePreflight({ ...options, head: nextHead }, base).build).toMatchObject({ builtForHead: options.head, rebuilt: false });
+  expect(readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8')).toBe(calls);
 });
 
 test('wrong head, authorization checksum or uncommitted authorization cannot pass', () => {
@@ -93,13 +94,17 @@ test('altered, additional and missing emitted artifacts invalidate build evidenc
 });
 
 test('failed rebuild clears prior success and source changes during building never publish a record', () => {
-  const { base, options } = fixture(); releasePreflight({ ...options, build: true }, base);
+  const { base, source, options } = fixture();
+  const result = releasePreflight({ ...options, build: true }, base);
+  // checkBuild itself clears old evidence and verifies committed source after
+  // executing the builders; these failures do not need another authorization plan.
+  const verifyBuild = (rebuild = false) => checkBuild(base, source, result.pins, options.head, rebuild);
   put(base, 'node_modules/vite/bin/vite.js', 'process.exit(1);');
-  expect(() => releasePreflight({ ...options, build: true }, base)).toThrow();
+  expect(() => verifyBuild(true)).toThrow();
   expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
-  expect(() => releasePreflight(options, base)).toThrow(/build evidence is missing/);
+  expect(() => verifyBuild()).toThrow(/build evidence is missing/);
   put(base, 'node_modules/vite/bin/vite.js', `require('node:fs').writeFileSync('tests/core/example.test.ts','changed during build');`);
-  expect(() => releasePreflight({ ...options, build: true }, base)).toThrow(/bytes or executable bits/);
+  expect(() => verifyBuild(true)).toThrow(/bytes or executable bits/);
   expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
 });
 
