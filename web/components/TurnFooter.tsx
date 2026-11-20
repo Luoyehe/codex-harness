@@ -22,6 +22,8 @@ export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisa
   active?: boolean;
 }) {
   const completed = turn.status === 'completed' && !turn.error;
+  const partial = turn.itemsView === 'summary';
+  const copyLabel = partial ? '复制可见回答' : '复制最终回答';
   const answer = useMemo(() => finalAnswer(turn), [turn]);
   const scope = useMemo(() => ({}), [turn.id, answer]);
   const owner = useRef(scope), mounted = useRef(true), running = useRef(false);
@@ -54,7 +56,7 @@ export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisa
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(answer);
-      if (mounted.current && owner.current === scope) setFeedback({ owner: scope, error: false, text: '已复制最终回答' });
+      if (mounted.current && owner.current === scope) setFeedback({ owner: scope, error: false, text: partial ? '已复制可见回答' : '已复制最终回答' });
     } catch {
       if (mounted.current && owner.current === scope) setFeedback({ owner: scope, error: true, text: '复制失败，请选择回答文字手动复制。' });
     } finally {
@@ -73,14 +75,14 @@ export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisa
     }
   }}>
     {completed && <span className="turn-completed"><Icon name="check" size={15} />已完成</span>}
-    {answer && <button className="button subtle small turn-copy" aria-label="复制最终回答" title="复制最终回答"
+    {answer && <button className="button subtle small turn-copy" aria-label={copyLabel} title={copyLabel}
       disabled={copying} onClick={() => void copy()}><Icon name="copy" size={15} /><span>{copying ? '复制中…' : '复制'}</span></button>}
     {onAction && turn.status !== 'inProgress' && <button className="icon-button turn-actions" ref={menuButton}
       aria-label="回合操作" title="回合操作" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><Icon name="more" size={18} /></button>}
     {menuOpen && onAction && turn.status !== 'inProgress' && <div className="turn-menu-row" ref={menuContent}>
       <div className="turn-action-menu" role="group" aria-label="回合操作选项">
         <button className="button small" disabled={actionsDisabled} onClick={() => action('fork')}>从此处分支</button>
-        <button className="button small" disabled={actionsDisabled || !turn.items.some(item => item.type === 'userMessage')}
+        <button className="button small" disabled={actionsDisabled || partial || !turn.items.some(item => item.type === 'userMessage')}
           onClick={() => action('edit')}>从此前编辑消息</button>
         <button className="button danger small" disabled={actionsDisabled || active} onClick={() => action('revert')}>回退至此前</button>
       </div>

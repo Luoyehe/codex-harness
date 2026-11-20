@@ -3,6 +3,10 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Api, RpcError } from '../lib/api';
 import { Events } from '../lib/events';
+import { longConversationData } from '../../tests/runtime/history-window-fixture';
+import { fitHistoryWindow } from '../../src/runtime/history-window';
+import { object as runtimeObject } from '../../src/runtime/types';
+import { timelineRows } from '../lib/timeline';
 import { useConversation } from '../hooks/useConversation';
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -234,6 +238,28 @@ describe('bounded long conversations', () => {
     expect(h.call.mock.calls.filter(([m]) => m === 'thread/history').map(([, p]) => [p.intent, p.limit])).toEqual([
       [undefined, 30], ['window', 20], ['window', 20],
     ]);
+  });
+  it.each([20, 1])('shows the final answer after the real history crosses the browser budget at window limit %i', async limit => {
+    const { turns, timeline } = longConversationData();
+    const h = harness(params => {
+      if (limit === 1 && params.intent === 'window' && params.limit === 20) throw new RpcError('capacity', 'capacity');
+      const count = Number(params.limit), complete = count >= turns.length && count >= timeline.length;
+      const response = { turns: turns.slice(0, count).reverse(), timeline: timeline.slice(-count).map(row => {
+        const item = runtimeObject(row.item);
+        return { ...row, itemReference: true, item: { id: item.id!, type: item.type! } };
+      }), turnsComplete: complete, timelineComplete: complete, complete, truncated: !complete, executionReady: true,
+        historyVersion: 4, nextCursor: null, activeRealtimeSessionAtPageStart: null };
+      return params.intent === 'window' ? fitHistoryWindow(response) : response;
+    });
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    const conversation = view.result.current;
+    expect(conversation.truncated).toBe(true); expect(conversation.complete).toBe(false);
+    const latest = timelineRows(conversation.turns, conversation.timeline).filter(row => row.type === 'item' && row.turnId === 'latest');
+    expect(latest.map(row => row.type === 'item' && row.item.id)).toEqual(['prompt-latest', 'progress', 'answer-latest']);
+    expect(latest.at(-1)).toMatchObject({ item: { text: 'completed and visible final' } });
+    expect(h.call.mock.calls.filter(([method]) => method === 'thread/history').map(([, params]) => params.limit))
+      .toEqual(limit === 20 ? [30, 20] : [30, 20, 1]);
   });
   it('does not authorize the displayed window with an unresolved activity or after resync until the new proof arrives', async () => {
     const later = deferred(); let seen = 0;

@@ -33,7 +33,7 @@ export type Item = {
   };
   [key: string]: unknown;
 };
-export type Turn = { id: string; status: string; items: Item[]; error?: unknown };
+export type Turn = { id: string; status: string; items: Item[]; itemsView?: string; error?: unknown };
 export type Model = {
   id: string;
   modelProvider?: string;

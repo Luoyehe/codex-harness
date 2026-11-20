@@ -11,7 +11,7 @@ import { windowsJob } from './windows-job.js';
 import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
-export interface NativeOptions { historyImageDisplayChars?: number; beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
+export interface NativeOptions { historyWindowTail?: boolean; historyImageDisplayChars?: number; beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
 interface Pending { historyShape?: NativeHistoryShape | undefined; frameKind?: 'history' | 'queue-read' | 'queue-write' | undefined; id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
 
 /** One process, one protocol epoch. A failed process is never restarted in place. */

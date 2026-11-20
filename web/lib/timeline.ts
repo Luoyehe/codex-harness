@@ -89,12 +89,12 @@ export type TimelineRow =
   | { type: 'item'; key: string; turnId: string; item: Item }
   | { type: 'turn'; key: string; turn: Turn }
   | { type: 'realtime'; key: string; item: RealtimeItem };
-const turnItemIndexes = new WeakMap<Turn, Map<string, Item>>();
-function timelineItem(turn: Turn | undefined, id: string): Item | undefined {
+const turnItemIndexes = new WeakMap<Turn, Map<string, { item: Item; index: number }>>();
+function timelineItem(turn: Turn | undefined, id: string): { item: Item; index: number } | undefined {
   if (!turn) return undefined;
   let index = turnItemIndexes.get(turn);
   if (!index) {
-    index = new Map(turn.items.map(item => [item.id, item]));
+    index = new Map(turn.items.map((item, index) => [item.id, { item, index }]));
     turnItemIndexes.set(turn, index);
   }
   return index.get(id);
@@ -106,7 +106,7 @@ export function compactTimelineEntries(turns: Turn[], entries: TimelineEntry[]):
   return entries.map(entry => {
     if (entry.type !== 'item' || entry.itemReference) return entry;
     const { id, type } = entry.item;
-    if (timelineItem(byId.get(entry.turnId), id)?.type !== type) return entry;
+    if (timelineItem(byId.get(entry.turnId), id)?.item.type !== type) return entry;
     return { ...entry, itemReference: true, item: { id, type } };
   });
 }
@@ -130,12 +130,35 @@ export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): Timeline
       rows.push({ type: 'turn', key: `turn:${turn.id}`, turn });
     }
   };
+  // Turn and timeline pages can begin at different positions. Before a
+  // canonical anchor, emit only earlier bodies without their own position.
+  const positions = new Set(timeline.flatMap(entry => entry.type === 'item'
+    ? [JSON.stringify([entry.turnId, entry.item.id])] : []));
+  const turnAnchors = new Set(timeline.flatMap(entry => entry.type !== 'realtime' ? [entry.turnId] : []));
+  const turnOrder = new Map(turns.map((turn, index) => [turn.id, index]));
+  const nextItem = new Map<string, number>();
+  let nextTurn = 0;
+  const beforeAnchor = (turn: Turn, anchor: number) => {
+    const next = nextItem.get(turn.id) ?? 0;
+    for (let i = next; i < anchor; i++) {
+      const item = turn.items[i]!;
+      if (!positions.has(JSON.stringify([turn.id, item.id]))) add(turn.id, item);
+    }
+    nextItem.set(turn.id, Math.max(next, anchor + 1));
+  };
   for (const entry of timeline) {
+    if (entry.type !== 'realtime') {
+      const index = turnOrder.get(entry.turnId);
+      while (index !== undefined && nextTurn < index) {
+        const preceding = turns[nextTurn++]!;
+        if (!turnAnchors.has(preceding.id)) finish(preceding);
+      }
+    }
     if (entry.type === 'realtime')
       rows.push({ type: 'realtime', key: timelineIdentity(entry), item: entry.item });
     else if (entry.type === 'item') {
-      const body = timelineItem(byId.get(entry.turnId), entry.item.id);
-      if (body) add(entry.turnId, body);
+      const turn = byId.get(entry.turnId), body = timelineItem(turn, entry.item.id);
+      if (turn && body) { beforeAnchor(turn, body.index); add(entry.turnId, body.item); }
       else if (!entry.itemReference) add(entry.turnId, entry.item as Item);
     }
     else if (entry.type === 'turnCompleted') {

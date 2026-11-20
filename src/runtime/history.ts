@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
+import { advanceWindowVoice, fitHistoryWindow, WINDOW_CHARS } from './history-window.js';
 import { validateTimelineContract } from './timeline-contract.js';
 import type { Activity } from './thread-activity.js';
 type State = Activity;
-interface Host { native(method: string, params: JsonValue, imageDisplayChars?: number): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
+interface Host { native(method: string, params: JsonValue, imageDisplayChars?: number, windowTail?: boolean): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
 interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; referenceIndex?: HistoryReferenceIndex; completeVersion?: number; legacy: boolean; state: State; turnRevision: number; unknown: boolean }
 const key = (threadId: string, context: CallContext, scope = '') => canonical([context.eventChannelId ?? null, context.clientId, threadId, scope]);
 /** Charge each logical message once across independently paged streams. Reference
@@ -78,7 +79,7 @@ export class UnifiedHistory {
     if (object(meta.thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'History thread identity mismatch');
     this.host.observe(meta, revision);
     const turnRevision = state.turnRevision ?? 0;
-    const reader = this.isolated(context, references ? 1_000_000 : 0);
+    const reader = this.isolated(context, references ? WINDOW_CHARS : 0);
     let page: JsonObject;
     let size = limit;
     try {
@@ -87,48 +88,36 @@ export class UnifiedHistory {
         catch (error) {
           if (!(error instanceof DeliveryError) || error.code !== 'capacity') throw error;
           if (size > 1) { size = Math.max(1, Math.floor(size / 2)); continue; }
-          // One exceptionally large turn need not be materialized just to prove
-          // current voice state. Read the latest independent timeline entry.
-          const tail = object(await this.host.native('thread/timeline/list', { threadId, limit: 1 }, references ? 1_000_000 : 0));
-          validateTimelineContract('ThreadTimelineListResponse', tail);
-          page = { turns: [], timeline: tail.data!, complete: false, activeRealtimeSessionAtPageStart: tail.activeRealtimeSessionAtPageStart! };
+          // A lone turn can exceed the native aggregate budget. Its newest
+          // timeline row may be a turnCompleted marker just after the answer.
+          let count = Math.max(limit, 20);
+          for (;;) {
+            try {
+              const tail = object(await this.host.native('thread/timeline/list', { threadId, limit: count }, references ? WINDOW_CHARS : 0, true));
+              validateTimelineContract('ThreadTimelineListResponse', tail);
+              if (!Array.isArray(tail.data) || tail.data.length > count) throw new DeliveryError('invalid_native_response', 'Invalid tail page');
+              page = { turns: [], timeline: tail.data, complete: false, activeRealtimeSessionAtPageStart: tail.activeRealtimeSessionAtPageStart! };
+              break;
+            } catch (error) {
+              if (!(error instanceof DeliveryError) || error.code !== 'capacity' || count === 1) throw error;
+              count = Math.max(1, Math.floor(count / 2));
+            }
+          }
           break;
         }
       }
     } finally { reader.close(); }
-    const advanceVoice = (active: JsonValue, entry: JsonValue): JsonValue => {
-      const row = object(entry);
-      if (row.type !== 'realtime') return active;
-      const item = object(row.item);
-      if (item.type === 'realtimeSessionStarted') return item.realtimeSessionId!;
-      if (item.type === 'realtimeSessionClosed' && active === item.realtimeSessionId) return null;
-      return active;
-    };
-    const active = (page.timeline as JsonValue[]).reduce<JsonValue>(advanceVoice, page.activeRealtimeSessionAtPageStart!);
+    const active = (page.timeline as JsonValue[]).reduce<JsonValue>(advanceWindowVoice, page.activeRealtimeSessionAtPageStart!);
     if (!owns() || this.host.closed() || this.host.state(threadId) !== state || (state.historyRevision ?? 0) !== history ||
         (state.turnRevision ?? 0) !== turnRevision) throw new DeliveryError('history_stale', 'History changed during the window read');
     if (active === null && !state.unknown && !state.pending && state.turnId === null && state.status !== 'active') {
       if (this.windows.size >= 256) this.windows.delete(this.windows.keys().next().value!);
       this.windows.set(id, { threadId, context, state, revision: turnRevision, history });
     }
-    // Limit the UI-exclusive double representation as well as the native page.
-    const turns = [...page.turns as JsonValue[]], timeline = [...page.timeline as JsonValue[]];
-    const costs = (rows: JsonValue[]) => rows.map(row => JSON.stringify(row).length + 1);
-    const turnCosts = costs(turns), timelineCosts = costs(timeline);
-    let total = [...turnCosts, ...timelineCosts].reduce((sum, n) => sum + n, 7);
-    let firstTurn = 0, firstEntry = 0; let voiceAtStart: JsonValue = page.activeRealtimeSessionAtPageStart ?? null;
-    while (total > 1_000_000) {
-      if (turns.length - firstTurn > timeline.length - firstEntry) total -= turnCosts[firstTurn++]!;
-      else { total -= timelineCosts[firstEntry]!; voiceAtStart = advanceVoice(voiceAtStart, timeline[firstEntry++]!); }
-    }
-    const complete = !firstTurn && !firstEntry && page.complete === true;
-    const visibleTurns = turns.slice(firstTurn);
-    const ids = new Set(visibleTurns.map(turn => object(turn).id));
-    const visibleTimeline = timeline.slice(firstEntry).filter(entry => object(entry).itemReference !== true || ids.has(object(entry).turnId));
-    return { ...page, turns: visibleTurns, timeline: visibleTimeline, nextCursor: null,
-      backwardsCursor: null, legacy: page.legacy === true, activeRealtimeSessionAtPageStart: voiceAtStart,
+    const complete = page.complete === true;
+    return fitHistoryWindow({ ...page, nextCursor: null, backwardsCursor: null, legacy: page.legacy === true,
       turnsComplete: complete, timelineComplete: complete, complete, truncated: !complete,
-      executionReady: this.windowReady(threadId, context), historyVersion: history };
+      executionReady: this.windowReady(threadId, context), historyVersion: history });
   }
   async read(params: JsonObject, context: CallContext, scope = '', imageDisplayChars = 4_000_000): Promise<JsonValue> {
     if (params.timelineFormat !== undefined && params.timelineFormat !== 'references') throw new DeliveryError('invalid_params', '未知的历史时间线格式。');
@@ -144,7 +133,7 @@ export class UnifiedHistory {
         base.state === this.host.state(threadId) && (base.state.historyRevision ?? 0) === version;
       const matchedAtStart = valid();
       const result = await this.window(threadId, context, limit, references);
-      return { ...result, baseHistoryVerified: matchedAtStart && valid() && result.historyVersion === version };
+      return { ...result, baseHistoryVerified: result.windowClipped !== true && matchedAtStart && valid() && result.historyVersion === version };
     }
     onlyKeys(params, ['threadId', 'cursor', 'limit', 'timelineFormat']); const threadId = string(params.threadId, 'threadId'), limit = params.limit === undefined ? 25 : integer(params.limit, 'limit', 1, 100), id = key(threadId, context, scope);
     if (params.cursor != null) string(params.cursor, 'cursor', LIMITS.cursorBytes, true);

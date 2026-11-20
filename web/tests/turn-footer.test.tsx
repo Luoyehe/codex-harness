@@ -131,3 +131,13 @@ it('reveals the complete menu only on explicit expansion, not answer updates or 
   fireEvent.click(screen.getByRole('button', { name: '回合操作' }));
   expect(reveals).toHaveLength(2);
 });
+
+it('labels copies from a display summary and keeps excerpted prompts out of message editing', async () => {
+  const writeText = clipboard();
+  render(<Messages {...props} complete={false} truncated turns={[{ ...turn(), itemsView: 'summary' }]} onAction={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: '复制可见回答' }));
+  await screen.findByText('已复制可见回答');
+  expect(writeText).toHaveBeenCalledWith('**Public final**');
+  fireEvent.click(screen.getByRole('button', { name: '回合操作' }));
+  expect((screen.getByRole('button', { name: '从此前编辑消息' }) as HTMLButtonElement).disabled).toBe(true);
+});

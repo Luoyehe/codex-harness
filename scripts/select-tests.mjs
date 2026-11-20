@@ -61,6 +61,7 @@ const auditMetadata = new Set([patchFile, 'package.json', 'pnpm-lock.yaml', 'pnp
 const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
 
 const sharedConsumers = new Map([
+  ['tests/runtime/history-window-fixture.ts', ['tests/runtime/history-references.test.ts', 'web/tests/conversation-recovery.test.tsx']],
   ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'web/tests/prompt-fields.test.tsx', 'tests/runtime/service.test.ts', 'tests/runtime/mcp-schema.test.ts']],
   ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/attachments.test.ts', 'tests/runtime/visual-routing-native.test.ts',
     'tests/runtime/workflows-native.test.ts', 'tests/runtime/queue-handoff-native.test.ts']],
@@ -184,6 +185,7 @@ export function selectTests(changed, available) {
       ['deploy/mcp_enabled_override.py', 'src/runtime/mcp-configuration.ts', 'src/runtime/service.ts'].includes(name) ? overrideTests :
       ['deploy/thread_history.py', 'src/runtime/thread-history-compatibility.ts', 'src/runtime/queue-reply-identity.ts',
        'src/runtime/queue-image-bindings.ts'].includes(name) ? nativeHistoryConsumers :
+      ['src/runtime/history-window.ts', 'src/runtime/history.ts', 'src/runtime/media-history.ts'].includes(name) ? ['web/tests/conversation-recovery.test.tsx', 'web/tests/timeline-history.test.tsx', 'web/tests/turn-footer.test.tsx'] :
       name === 'src/runtime/native-media-event.ts' ? [...nativeHistoryConsumers, 'web/tests/conversation-recovery.test.tsx'] :
       name === 'scripts/prepare-ci-native.mjs' ? [systemMcpTest] :
       name === 'deploy/build_tool.mjs' ? ['tests/tooling/audit-remediation.test.ts', 'tests/runtime/entrypoint.test.ts', 'tests/deploy/test_control_update.py'] : [];

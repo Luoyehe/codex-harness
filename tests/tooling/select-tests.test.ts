@@ -14,6 +14,7 @@ test('shared transport, media and form changes select their browser, gateway and
   const inventory = testInventory();
   for (const [file, expected] of [
     ['src/shared/mcp-timeouts.ts', ['tests/runtime/mcp.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/native.test.ts', 'tests/gateway/worker-client.test.ts', 'web/tests/operations.test.ts']],
+    ['tests/runtime/history-window-fixture.ts', ['tests/runtime/history-references.test.ts', 'web/tests/conversation-recovery.test.tsx']],
     ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'tests/runtime/service.test.ts']],
     ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/visual-routing-native.test.ts']],
   ] as const) {

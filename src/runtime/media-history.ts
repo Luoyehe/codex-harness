@@ -1,3 +1,5 @@
+import { validateTimelineContract } from './timeline-contract.js';
+import { previewTimelineEntry, WINDOW_CHARS } from './history-window.js';
 import { fitHistoryImages } from './native-media-event.js';
 import { DeliveryError, integer, jsonBytes, LIMITS, object, string, type JsonValue } from './types.js';
 import type { NativeOptions } from './native.js';
@@ -66,13 +68,32 @@ export async function readMediaHistory(native: NativeCall, media: GeneratedMedia
     let batchLimit = Math.min(24, limit);
     for (let scans = 0; data.length < limit && scans < limit;) {
       const count = Math.min(batchLimit, limit - data.length);
-      const page = object(projected(await batch(method, { ...request, ...(cursor !== null ? { cursor } : {}) }, count)));
+      let page: Record<string, JsonValue>;
+      try { page = object(projected(await batch(method, { ...request, ...(cursor !== null ? { cursor } : {}) }, count))); }
+      catch (error) {
+        // A display-only tail already has newer, verified rows. Keep those if
+        // the following older item cannot fit; its cursor remains unconsumed.
+        if (options?.historyWindowTail && data.length && error instanceof DeliveryError && error.code === 'capacity') break;
+        throw error;
+      }
       if (!Array.isArray(page.data) || page.data.length > count) throw new DeliveryError('invalid_native_response', 'Invalid native timeline page');
-      const payload = Buffer.byteLength(jsonBytes(page.data, LIMITS.frameBytes));
+      let payload = Buffer.byteLength(jsonBytes(page.data, LIMITS.frameBytes));
+      if (options?.historyWindowTail && payload > WINDOW_CHARS) {
+        validateTimelineContract('ThreadTimelineListResponse', page);
+        page.data = page.data.flatMap(value => {
+          const row = object(value);
+          if (JSON.stringify(row).length <= WINDOW_CHARS) return [row];
+          const preview = previewTimelineEntry(row);
+          // Keep the cursor moving past an opaque oversized tool result. It
+          // carries no voice transition and may immediately follow the answer.
+          return row.type === 'item' && JSON.stringify(preview).length > WINDOW_CHARS ? [] : [preview];
+        });
+        payload = Buffer.byteLength(jsonBytes(page.data, LIMITS.frameBytes));
+      }
       if (retainedBytes + payload > LIMITS.historyBytes) {
         // The current cursor points to the first unconsumed native page.
         // Return only previously accepted pages, with their own opening voice state.
-        if (data.length) break;
+        if (data.length && (!options?.historyWindowTail || count === 1)) break;
         if (count === 1) throw new DeliveryError('capacity', '单条时间线记录超过读取容量。');
         batchLimit = Math.max(1, Math.floor(count / 2));
         continue;
