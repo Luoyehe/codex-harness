@@ -8231,6 +8231,59 @@
         "path": "verification/audit-evidence/v250-round7/builtin-mcp.json",
         "sha256": "af95171a9b84b9f9254b95e6ff2520b80a39838288eaca27c1d79ed53612a734"
       }
+    },
+    {
+      "id": "v250-round8",
+      "sequence": 89,
+      "digest": "9b8e32d7eea291cf3c3f3b67c54a495151ee31785f7dd9cd299d8d0eea5f4d4a",
+      "complete": true,
+      "startedAt": "2026-11-20T09:03:10.080Z",
+      "completedAt": "2026-11-20T09:11:20.313Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R8-01",
+          "severity": "P2",
+          "scope": "deployment-release",
+          "title": "A previously unvisited execution identity can lose single-plan MCP choices or apply them to another connection after migration",
+          "paths": [
+            "deploy/mcp_enabled_override.py:148",
+            "deploy/mcp_enabled_override.py:168",
+            "deploy/mcp_enabled_override.py:288",
+            "deploy/mcp_switch_owners.py:29",
+            "tests/deploy/test_mcp_enabled_override.py:209"
+          ],
+          "details": "Two separate homes start with identical pre-registry switches on a verified single default Coding Plan. Only the visited home runs the new helper before a second plan is added. Its reader=true/vision=false settings survive. The cold home returns empty launch arguments even after the original default plan is re-enabled. A third cold home holding the supported enabled-only native TOML first starts after the original plan is disabled. Migration binds its settings to the second plan that now renders the same bare names and removes the old TOML entries. After restoring the original default the second plan retains both flags under its suffixed names. Existing test migrates before the provider change.",
+          "impact": "Depending on the order in which native and root identities first launch, the original request to disable vision or enable the reader can be ignored. An unrelated enabled plan may receive an explicit reader opt-in originally made for another connection.",
+          "evidence": ".work/v250/round8/theta-cold-migration.json",
+          "reproducer": ".work/v250/round8/theta-cold-migration.py",
+          "conditions": "Per-home legacy unqualified switch JSON or enabled-only native TOML, and provider changes before that home is read by the upgraded implementation. Modern owner-qualified switches remained stable in the targeted tests.",
+          "reproductionMethod": "Actual Manager.provider_change, ProviderStore.prepare/select and published generation-aware inventory feeding launch_arguments with providers=store.root. Test paths and credentials were synthetic. Unit startup, health and host ownership operations were substituted. The probe was run twice."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "final-review-theta",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round8/independent.json",
+          "sha256": "1575cd695c7ebc3c6dc23b42a42a46b6a6f3a065ddb62afe9aedc37c97310d9c"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round8/builtin-mcp.json",
+        "sha256": "bcb9fd4361a592001d8ac4dd794544a9e88ecc2a883df1d6d99808cccf351b45"
+      }
     }
   ],
   "fullTests": {

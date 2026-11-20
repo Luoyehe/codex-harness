@@ -1,0 +1,29 @@
+{
+  "context": "old single-plan default; isolated homes; visited and cold homes store identical old unqualified switches",
+  "afterAddingOtherPlan": {
+    "visited": [
+      "-c",
+      "mcp_servers={\"web-reader\" = {enabled = true}, \"zai-mcp-server\" = {enabled = false}}"
+    ],
+    "cold": []
+  },
+  "afterDisablingOriginalBeforeLegacyTomlHomeFirstLaunch": {
+    "expected": [],
+    "actual": [
+      "-c",
+      "mcp_servers={\"web-reader\" = {enabled = true}, \"zai-mcp-server\" = {enabled = false}}"
+    ],
+    "boundToNewOwner": true
+  },
+  "afterReenablingOriginal": {
+    "visited": [
+      "-c",
+      "mcp_servers={\"web-reader\" = {enabled = true}, \"zai-mcp-server\" = {enabled = false}}"
+    ],
+    "cold": [],
+    "legacy-toml": [
+      "-c",
+      "mcp_servers={\"web-reader-SECOND\" = {enabled = true}, \"zai-mcp-server-SECOND\" = {enabled = false}}"
+    ]
+  }
+}
