@@ -7925,6 +7925,58 @@
         "path": "verification/audit-evidence/v250-round1/builtin-mcp.json",
         "sha256": "f2d1077f2605f11bc75ea64a4997126f40bc264392b70cd193e3b6b19f6dd98a"
       }
+    },
+    {
+      "id": "v250-round2",
+      "sequence": 83,
+      "digest": "0422adfa9da28c4c833e40267ce216aee72f630c0d15df9b396ab09143697ab8",
+      "complete": true,
+      "startedAt": "2026-11-20T07:14:08Z",
+      "completedAt": "2026-11-20T07:21:45.743Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R2-01",
+          "priority": "P1",
+          "title": "Recent-history fallback drops the complete most recent turn and its short final answer",
+          "where": [
+            "src/runtime/history.ts:120",
+            "src/runtime/history.ts:127",
+            "web/lib/history.ts:7",
+            "web/hooks/useConversation.ts:318"
+          ],
+          "details": "When aggregate transcript size requires fallback, whole-turn trimming consumes every timeline reference and finally drops its only turn if that turn exceeds 1,000,000 display characters. An independently viewable, short completed answer vanishes with earlier input and progress text. The reply advertises executionReady=true and supplies no continuation. The browser already committed to the truncated window, so reopening reproduces it.",
+          "reproduction": "The actual frozen UnifiedHistory module and native-shaped records cover five older 800,000-character prompts and one native-legal 900,000-character prompt, 120,000 characters of assistant commentary, then a short final reply. The 5,038,533-character reference history contains that answer and exceeds the web 4,000,000-character budget. Both production fallback sizes (20 and 1) yield empty turns and timeline, truncated=true and executionReady=true. A fresh TypeScript compilation of the frozen mirror yielded byte-identical history.js to the exercised module.",
+          "recommendation": "Retain bounded item bodies from the tail when a turn cannot fit whole, including the most recent final answer, and keep timeline references resolvable and ordering and realtime-state evidence valid. Add coverage for actual browser fallback after exceeding the shared display limit.",
+          "evidence": [
+            "window-observation.mjs",
+            "window-observation.jsonl"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "freeze-review-two",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round2/independent.json",
+          "sha256": "5ef96c76d77f50c5885e484b7c6a7b199a101bbb93c441d4c8e1fcd388084e59"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round2/builtin-mcp.json",
+        "sha256": "c8a60546f76541cb7ff004392bca6d0d6c80391afcad840a2d2de92c2beb7914"
+      }
     }
   ],
   "fullTests": {

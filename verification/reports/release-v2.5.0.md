@@ -11,3 +11,5 @@ v2.5.0 汇集对 v2.4.0 的 169 项修复，覆盖 51 个工作包。服务端�
 - **MCP 与恢复**分别展示启动、工具发现与执行状态。手动工具采用当前会话中该服务的实际时限，避免一个慢调用中断其他会话。改进多标签页的操作恢复、部署回退和网络延迟上线后的启动行为。
 
 对应实现、逐项验收与平台边界见 [169 项修复与验收报告](https://github.com/Luoyehe/codex-harness/blob/v2.5.0/verification/reports/v240-remediation-acceptance.md)。
+
+从 v2.4.0 升级时请先使用新版的 `control-update` 更新控制工具，再更新应用。新版网关需要能恢复新账本结构的控制工具。经 Debian 实例实测，升级保留旧登录、项目、暂停的自动化和已有操作回执。详情见[发布审计与验收](https://github.com/Luoyehe/codex-harness/blob/v2.5.0/verification/reports/v250-release-audit.md)。
