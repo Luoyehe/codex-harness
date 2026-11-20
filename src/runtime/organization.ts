@@ -43,7 +43,7 @@ export class Organization {
         const batch = await Promise.all(entries.slice(offset, offset + 4).map(async item => {
           const owner = object(item);
           try { const thread = await this.thread(string(owner.threadId, 'threadId')); return samePath(String(thread.cwd), cwd) ? owner : null; }
-          catch (error) { if (error instanceof DeliveryError && error.code === 'not_found' && error.delivery === 'not_sent') { listChanged = true; return null; } throw error; }
+          catch (error) { if (error instanceof DeliveryError && error.delivery === 'not_sent' && (error.code === 'not_found' || error.code === 'native_error' && error.data && typeof error.data === 'object' && !Array.isArray(error.data) && error.data.code === -32600 && error.message === 'thread not loaded: ' + owner.threadId)) { listChanged = true; return null; } throw error; }
         }));
         data.push(...batch.filter((item): item is JsonObject => item !== null));
       }

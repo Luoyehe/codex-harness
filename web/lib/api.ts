@@ -1,7 +1,10 @@
+import { MANUAL_MCP_BROWSER_WAIT_MS } from '../../src/shared/mcp-timeouts';
 import { operationId, uuid } from './ids';
+import { workspaceErrorMessage } from './workspace';
 import {
   acknowledgeOperation,
   checkedTerminalResult,
+  RecoveryAdmissionChanged,
   createOperation,
   isArchivedReceipt,
   reconcileOperation,
@@ -250,12 +253,13 @@ export class Api {
   private async performLogout() {
     const csrf = this.csrf,
       generation = this.sessionGeneration;
-    const r = await fetch('/api/session', {
+    let r: Response;
+    try { r = await fetch('/api/session', {
       method: 'DELETE',
       headers: this.headers(),
       credentials: 'same-origin',
       signal: AbortSignal.timeout(15000),
-    });
+    }); } catch { throw new RpcError('未能确认退出结果。请检查网络后重新读取账号状态。', 'transport_error'); }
     if (r.status === 401) {
       const error = await this.authenticationError(r, csrf, generation);
       if (error.code === 'access_authentication_required') throw error;
@@ -284,7 +288,8 @@ export class Api {
       generation = this.sessionGeneration;
     // Copying and verifying long history can take time. Wait for the gateway's
     // 350s receipt deadline; a lost result must never trigger another conversion.
-    const timeout = method === 'thread/convert' ? 360_000 : [
+    const timeout = method === 'mcp/tool/call' ? MANUAL_MCP_BROWSER_WAIT_MS :
+      ['thread/convert', 'plugin/install'].includes(method) ? 360_000 : [
       'import/apply',
       'workspace/worktree/create',
       'workspace/worktree/attach',
@@ -314,7 +319,7 @@ export class Api {
     if (body.ok !== true) {
       const error = object(body.error);
       throw new RpcError(
-        String(error.message ?? `请求失败（${r.status}）`),
+        workspaceErrorMessage(method, error, `请求失败（${r.status}）`),
         String(error.code ?? r.status),
         typeof error.delivery === 'string' ? error.delivery : undefined,
         operationId,
@@ -399,6 +404,7 @@ export class Api {
     params: Record<string, unknown> = {},
     prepare?: (operationId: string) => void,
     draftMode: DraftMode = 'native',
+    observedRecoveryId?: string | null,
   ): { operationId: string; result: Promise<T> } {
     try { params = JSON.parse(JSON.stringify(params)) as Record<string, unknown>; }
     catch { throw new RpcError('请求参数无法保存为 JSON，尚未发送请求。', 'local_intent_failed', 'not_sent'); }
@@ -407,6 +413,7 @@ export class Api {
       params.terminalId ??
       params.attachmentId ??
       params.queuedSubmissionId ??
+      params.handoffId ??
       params.subscriptionId ??
       params.resultId ??
       (method.startsWith('workspace/') ? params.path : undefined);
@@ -449,8 +456,11 @@ export class Api {
           ...(typeof params.threadId === 'string' ? { threadId: params.threadId } : {}),
           ...(typeof params.projectId === 'string' ? { projectId: params.projectId } : {}),
           ...(typeof resourceId === 'string' ? { resourceId } : {}), ...draftScope,
-        }, this.operationGeneration, id);
-      } catch (error) { throw new RpcError(message(error), 'recovery_storage_unavailable', 'not_sent', id); }
+          ...(INPUT_METHODS.includes(method) ? { settingsOverride: Object.keys(object(params.options)).length > 0 } : {}),
+        }, this.operationGeneration, id, observedRecoveryId);
+      } catch (error) {
+        throw new RpcError(message(error), error instanceof RecoveryAdmissionChanged ? 'recovery_admission_changed' : 'recovery_storage_unavailable', 'not_sent', id);
+      }
       try {
         if (session !== this.sessionGeneration || connection !== this.connectionRevision)
           throw new Error('请求所属登录或连接已变化，尚未发送请求。');
@@ -467,7 +477,8 @@ export class Api {
           await updateOperation(
             id,
             e instanceof RpcError && e.delivery === 'not_sent' ? 'not_sent' : 'unknown',
-            e instanceof RpcError && typeof e.data?.threadId === 'string'
+            e instanceof RpcError && typeof e.data?.threadId === 'string' &&
+              (method !== 'conversation/start' || e.delivery !== 'not_sent' || e.data.threadCreated === true && e.data.inputSent === false)
               ? e.data.threadId
               : undefined,
           );

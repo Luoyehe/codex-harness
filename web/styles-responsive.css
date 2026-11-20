@@ -5,7 +5,13 @@
     --surface-2: #2d3430;
     --sidebar: #181c1a;
     --text: #dbe1dc;
-    --muted: #8c998f;
+    --muted: #a4b1a8;
+    --welcome-blue-surface: #273545;
+    --welcome-blue-icon: #abc9ed;
+    --welcome-amber-surface: #393224;
+    --welcome-amber-icon: #e9c587;
+    --welcome-green-surface: #28382b;
+    --welcome-green-icon: #b4d1a7;
     --line: #333a35;
     --accent: #81ab97;
     --on-accent: #1c201f;
@@ -42,7 +48,13 @@
   --surface-2: #2d3430;
   --sidebar: #181c1a;
   --text: #dbe1dc;
-  --muted: #8c998f;
+  --muted: #a4b1a8;
+    --welcome-blue-surface: #273545;
+    --welcome-blue-icon: #abc9ed;
+    --welcome-amber-surface: #393224;
+    --welcome-amber-icon: #e9c587;
+    --welcome-green-surface: #28382b;
+    --welcome-green-icon: #b4d1a7;
   --line: #333a35;
   --accent: #81ab97;
   --on-accent: #1c201f;
@@ -116,7 +128,7 @@
     text-overflow: ellipsis;
   }
   .connection {
-    font-size: 9px;
+    font-size: 11px;
   }
   .connection > span {
     width: 4px;
@@ -159,7 +171,7 @@
     font-size: 11px;
   }
   .suggestions small {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.5;
   }
   .suggestion-icon {
@@ -171,7 +183,7 @@
   }
   .welcome-project {
     margin-top: 19px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .composer-wrap {
     padding: 10px 15px 12px;
@@ -185,7 +197,7 @@
     font-size: 13px;
   }
   .composer-note {
-    font-size: 9px;
+    font-size: 11px;
     margin-top: 8px;
   }
   .conversation-scroll {
@@ -303,7 +315,7 @@
     font-size: 29px;
   }
   .welcome .eyebrow {
-    font-size: 9px;
+    font-size: 11px;
     margin-bottom: 9px;
   }
   .welcome h1 {
@@ -341,10 +353,6 @@
   .composer textarea {
     min-height: 58px;
     max-height: 160px;
-  }
-  .options-trigger {
-    font-size: 9px !important;
-    padding: 4px !important;
   }
   .stop-button span {
     display: none;

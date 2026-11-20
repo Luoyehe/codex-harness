@@ -15,9 +15,18 @@ test('official CLI connects to an owned authenticated loopback exec-server and e
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: tmp });
   const reservation = createServer(); await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve)); const port = (reservation.address() as { port: number }).port; await new Promise<void>(resolve => reservation.close(() => resolve()));
   const endpoint = `ws://127.0.0.1:${port}`, token = randomUUID() + randomUUID(), tokenFile = path.join(workerHome, 'exec-token'); writeFileSync(tokenFile, token, { mode: 0o600 });
-  const bin = process.env.HARNESS_TEST_CODEX_BIN!; const job = await (process.platform === 'win32' ? windowsProcessJob : linuxProcessJob)([bin, 'exec-server', '--listen', endpoint, '--ws-auth', 'capability-token', '--ws-token-file', tokenFile], workerHome);
+  const bin = process.env.HARNESS_TEST_CODEX_BIN!;
+  const command = [bin, 'exec-server', '--listen', endpoint, '--ws-auth', 'capability-token', '--ws-token-file', tokenFile];
+  let child!: ReturnType<typeof spawn>, errors = '';
+  const pipe = process.platform === 'linux' ? linuxProcessJob(command, workerHome, { tty: false, stdin: false, cap: 4096 },
+    (bytes, guard) => { guard?.(); return new Promise((resolve, reject) => child.stdin!.write(Buffer.from(bytes, 'base64'), error => error ? reject(error) : resolve())); },
+    (stream, data) => { if (stream === 'stderr') errors = (errors + Buffer.from(data, 'base64').toString()).slice(-4096); }) : undefined;
+  const job = pipe ?? await windowsProcessJob(command, workerHome);
   defer(() => job.dispose());
-  const child = spawn(job.command[0]!, job.command.slice(1), { cwd: workerHome, env: { ...env, ...job.env }, windowsHide: true, stdio: 'pipe' }); child.stdout.resume(); let errors = ''; child.stderr.on('data', bytes => { errors = (errors + String(bytes)).slice(-4096); }); const closed = new Promise<number | null>((resolve, reject) => { child.once('close', resolve); child.once('error', reject); }); void closed.catch(() => {});
+  child = spawn(job.command[0]!, job.command.slice(1), { cwd: workerHome, env: { ...env, ...job.env }, windowsHide: true, stdio: 'pipe' });
+  if (pipe) child.stdout!.on('data', chunk => pipe.feed(chunk)); else child.stdout!.resume();
+  child.stderr!.on('data', bytes => { errors = (errors + String(bytes)).slice(-4096); });
+  const closed = new Promise<number | null>((resolve, reject) => { child.once('close', code => { pipe?.endNative(); resolve(code); }); child.once('error', reject); }); void closed.catch(() => {});
   defer(async () => { if (child.exitCode === null && child.signalCode === null) child.kill(); await closed; });
   defer(async () => { await job.signal(); await job.exited; expect(await closed).toBe(0); });
   let service: RuntimeService | undefined;

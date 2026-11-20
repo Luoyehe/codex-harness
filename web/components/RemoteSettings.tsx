@@ -68,8 +68,10 @@ function Executor({
   const [secretNotice, setSecretNotice] = useState('');
   useSettingsDraft(Boolean(name || url || token));
   useEffect(() => {
-    if (token || confirmed) setSecretNotice('连接状态或页面已变化，访问令牌与确认已清除。提交前请重新填写并核对目标。');
-    setToken('');
+    if (!visible) {
+      if (token || confirmed) setSecretNotice('已离开当前设置，访问令牌与确认已清除。');
+      setToken('');
+    }
     setConfirmed(false);
   }, [epoch, visible, enabled]);
   const row = environments.data?.data.find((item) => item.environmentId === selected);
@@ -624,18 +626,18 @@ export function RemoteSettings({
   onChanged: () => void;
   visible?: boolean;
 }) {
-  const owner = useRef({ api, csrf: api.csrf, epoch, connectionId, generation: 0 });
+  const owner = useRef({ api, csrf: api.csrf, epoch, generation: 0 });
   if (
     owner.current.api !== api || owner.current.csrf !== api.csrf ||
-    owner.current.epoch !== epoch || owner.current.connectionId !== connectionId
+    owner.current.epoch !== epoch
   )
     owner.current = {
-      api, csrf: api.csrf, epoch, connectionId, generation: owner.current.generation + 1,
+      api, csrf: api.csrf, epoch, generation: owner.current.generation + 1,
     };
   return (
     <div className="stack" key={owner.current.generation}>
       <Executor {...{ api, epoch, enabled: enabled && connected, visible, onChanged }} />
-      {visible && <RemoteControl {...{ api, events, epoch, enabled, connected, onChanged }} />}
+      {visible && <RemoteControl key={connectionId} {...{ api, events, epoch, enabled, connected, onChanged }} />}
     </div>
   );
 }

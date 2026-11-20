@@ -18,7 +18,7 @@ from .edge_defaults import DEFAULT_HTTP_PORT, DEFAULT_HTTPS_PORT
 from .dns_providers import PROVIDERS, caddy_dns_block
 from .common import DeployError, Layout, atomic_write, canonical, fsync_directory, mkdir, read_json, require, write_json
 from .install import ensure_account
-from .safe_fs import durable_tree, extract_tar, stable_identity
+from .safe_fs import durable_tree, stable_identity
 from .system import run
 from .units import render_units, render_edge_units, validate_origin
 from .ownership import require_owned, regular, present
@@ -127,44 +127,104 @@ def render_caddy(host: str, auth_host: str | None, gateway_port: int, auth_port:
 """
 
 
+def validate_plain_caddy(layout, binary, config, uid, gid):
+    require(type(uid) is int and type(gid) is int and uid > 0 and gid > 0, "Edge validation requires its unprivileged account", "integrity")
+    return run(["/usr/bin/setpriv", "--reuid", str(uid), "--regid", str(gid), "--clear-groups", "--no-new-privs",
+                "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin", "HARNESS_EDGE_PROXY_TOKEN=validation-only",
+                str(binary), "validate", "--config", str(config), "--adapter", "caddyfile"])
+
+
 def edge_binary(layout: Layout, kind: str, *, download_proxy: str | None = None) -> Path:
     require(kind == "caddy", "Only Caddy is provisioned for built-in account authentication")
     arch = "amd64" if architecture() == "x64" else "arm64"
     root = layout.control / "edge" / kind
     target = root / kind
     manifest_path = layout.config / (kind + "-binary.json")
-    if target.exists():
-        require(not target.is_symlink() and target.stat().st_uid == 0 and not target.stat().st_mode & 0o022,
-                "Unsafe edge binary", "integrity")
-        require(hashlib.sha256(target.read_bytes()).hexdigest() == read_json(manifest_path)["sha256"], "Edge binary changed", "integrity")
+    from .install import trusted_ancestors
+    from .archive import open_archive
+    limit = 256 * 1024**2
+
+    def file_hash(path):
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and info.st_nlink == 1 and
+                not info.st_mode & 0o022 and info.st_size <= limit, "Unsafe edge preparation file", "integrity")
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as source:
+            require(os.path.samestat(info, os.fstat(fd)), "Edge file changed", "integrity")
+            result = hashlib.file_digest(source, "sha256").hexdigest()
+            require(os.fstat(fd).st_ctime_ns == info.st_ctime_ns and os.path.samestat(info, path.lstat()),
+                    "Edge file changed during verification", "integrity")
+        return result
+
+    trusted_ancestors(root)
+    if present(manifest_path):
+        manifest = read_json(manifest_path)
+        require(present(target) and file_hash(target) == manifest.get("sha256") and target.stat().st_mode & 0o100, "Edge binary changed", "integrity")
         durable_tree(root)
         fsync_directory(root.parent)
         fsync_directory(root.parent.parent)
         return target
     version = CADDY_VERSION
     asset = f"caddy_{version}_linux_{arch}.tar.gz"
-    repository = "caddyserver/caddy"
-    url = f"https://github.com/{repository}/releases/download/v{version}/{asset}"
+    url = f"https://github.com/caddyserver/caddy/releases/download/v{version}/{asset}"
     archive = layout.work / asset
-    require(not archive.exists() and not root.exists(), "Partial edge preparation retained; inspect before retry", "recovery_required")
-    from .dns_caddy_build import validate_download_proxy
-    proxy = validate_download_proxy(download_proxy)
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
-    sha = hashlib.sha256()
-    total = 0
-    with opener.open(url, timeout=60) as response, archive.open("xb") as output:
-        require(response.url.startswith(("https://github.com/", "https://release-assets.githubusercontent.com/")), "Unexpected edge download origin")
-        while data := response.read(1024**2):
-            total += len(data)
-            require(total <= 256 * 1024**2, "Edge download exceeds budget", "budget")
-            output.write(data)
-            sha.update(data)
-    require(sha.hexdigest() == EDGE_HASHES[kind, arch], "Official edge distribution hash mismatch", "integrity")
+    trusted_ancestors(layout.work)
+    expected = EDGE_HASHES[kind, arch]
+    if present(archive):
+        old_hash = file_hash(archive)
+        if old_hash != expected:
+            retained = layout.work / (asset + ".interrupted-" + old_hash)
+            if present(retained):
+                require(file_hash(retained) == old_hash, "Edge recovery evidence changed; prior files retained", "recovery_required")
+                archive.unlink()
+            else:
+                require(sum(1 for _ in layout.work.glob(asset + ".interrupted-*")) < 4,
+                        "Four interrupted edge distributions are retained; archive their exact .interrupted-SHA256 files before retrying", "budget")
+                os.rename(archive, retained)
+            fsync_directory(layout.work)
+    if not present(archive):
+        from .dns_caddy_build import validate_download_proxy
+        proxy = validate_download_proxy(download_proxy)
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
+        sha, total = hashlib.sha256(), 0
+        with opener.open(url, timeout=60) as response, archive.open("xb") as output:
+            require(response.url.startswith(("https://github.com/", "https://release-assets.githubusercontent.com/")), "Unexpected edge download origin")
+            while data := response.read(1024**2):
+                total += len(data)
+                require(total <= limit, "Edge download exceeds budget", "budget")
+                output.write(data)
+                sha.update(data)
+            output.flush()
+            os.fsync(output.fileno())
+        fsync_directory(layout.work)
+        require(sha.hexdigest() == expected, "Official edge distribution hash mismatch", "integrity")
+    # Read the single artifact from the pinned archive. An interruption leaves
+    # only the original, identifiable download or the atomically published binary.
+    binary = None
+    with open_archive(archive, max_file=limit, max_members=128, max_bytes=2*limit) as package:
+        while entry := package.next():
+            if entry.name not in (kind, "./" + kind):
+                continue
+            require(binary is None and entry.isfile() and entry.mode & 0o100 and 0 < entry.size <= limit,
+                    "Expected a single regular executable in the edge archive", "integrity")
+            with package.extractfile(entry) as source:
+                binary = source.read(entry.size)
+            require(len(binary) == entry.size, "Incomplete edge executable", "integrity")
+    require(binary is not None, "Expected edge executable absent", "integrity")
+    sha = hashlib.sha256(binary).hexdigest()
     mkdir(root.parent)
-    extract_tar(archive, root)
-    require(target.is_file() and not target.is_symlink(), "Expected edge executable absent", "integrity")
+    if not present(root):
+        mkdir(root)
+    trusted_ancestors(root)
+    if present(target):
+        require(file_hash(target) == sha and target.stat().st_mode & 0o100,
+                "Existing edge executable differs from verified distribution; retained", "recovery_required")
+    else:
+        atomic_write(target, binary, 0o755)
+    fsync_directory(root)
+    fsync_directory(root.parent)
     fsync_directory(root.parent.parent)
-    write_json(manifest_path, {"version": version, "sha256": hashlib.sha256(target.read_bytes()).hexdigest()})
+    write_json(manifest_path, {"version": version, "sha256": sha})
     return target
 
 
@@ -604,9 +664,7 @@ def setup_https(manager, *, host: str, auth_host: str | None = None, domain: str
     if selected_dns is not None:
         validate_dns_caddy(layout, selected_metadata, caddy, pending_caddy, caddy_uid, caddy_gid)
     else:
-        run(["/usr/bin/setpriv", "--reuid", str(caddy_uid), "--regid", str(caddy_gid), "--clear-groups", "--no-new-privs",
-             "/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin", "HARNESS_EDGE_PROXY_TOKEN=validation-only",
-             str(caddy), "validate", "--config", str(pending_caddy), "--adapter", "caddyfile"])
+        validate_plain_caddy(layout, caddy, pending_caddy, caddy_uid, caddy_gid)
     require_edge_ports_available(manager, http_port=http_port, https_port=https_port)
     old_config = dict(manager.config)
     new_config = {**old_config, "origin": origin}
@@ -706,18 +764,58 @@ def reset_prepared(manager, *, expected_revision: str, confirm: bool) -> dict:
     require(all(manager.system.state(manager.layout.unit(role))["stopped"] for role in ("caddy", "authelia")),
             "HTTPS services must be confirmed stopped", "stop_unknown")
     raw = (manager.layout.config / "https.json").read_bytes()
-    matched = False
-    for journal_path in (manager.layout.state / "transactions").glob("*/state.json"):
-        journal = read_json(journal_path, 16 * 1024 * 1024)
+    from .execution_identity import FIELDS as execution_fields, state as execution_state
+    from .config_layer import LAYER_MODE
+    from .service_proxy import private_file, selection
+    from .install import trusted_ancestors
+    paths = manager.layout.state / "transactions"
+    origins, transitions = set(), {}
+    for path in paths.glob("*/state.json"):
+        if not re.fullmatch(r"[0-9a-f]{32}", path.parent.name):
+            continue
+        trusted_ancestors(path.parent)
+        journal = json.loads(private_file(path, limit=16 * 1024**2))
         before = journal.get("before", {})
-        if journal.get("kind") != "https" or journal.get("phase") != "recovered" or not isinstance(before, dict):
+        if not isinstance(before, dict):
             continue
-        old_meta, old_instance = before.get("metadata"), before.get("instance")
-        if not isinstance(old_meta, dict) or not isinstance(old_instance, dict):
+        kind, phase = journal.get("kind"), journal.get("phase")
+        if (kind, phase) != ("https", "recovered") and not (phase == "committed" and kind in ("config-layer", "execution-mode", "service-proxy")):
             continue
-        if all(before.get(name) is None for name in ("caddyConfig", "authelia", "caddy")) and base64.b64decode(old_meta["data"], validate=True) == raw and json.loads(base64.b64decode(old_instance["data"], validate=True)) == manager.config:
-            matched = True
-            break
+        snapshot = before.get("instance")
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("data"), str):
+            continue
+        original = json.loads(base64.b64decode(snapshot["data"], validate=True))
+        if not isinstance(original, dict) or not str(original.get("origin", "")).startswith("http://"):
+            continue
+        source = canonical(original)
+        if kind == "https":
+            meta = before.get("metadata")
+            if isinstance(meta, dict) and all(before.get(name) is None for name in ("caddyConfig", "authelia", "caddy")) and base64.b64decode(meta["data"], validate=True) == raw:
+                origins.add(source)
+            continue
+        candidate = journal.get("candidateConfig")
+        fields = {"config-layer": {"providerConfigLayer"}, "execution-mode": set(execution_fields), "service-proxy": {"serviceProxy"}}[kind]
+        if not isinstance(candidate, dict) or {k: v for k, v in original.items() if k not in fields} != {k: v for k, v in candidate.items() if k not in fields}:
+            continue
+        if kind == "config-layer" and (journal.get("targetMode") not in ("legacy", LAYER_MODE) or
+                candidate.get("providerConfigLayer") != (None if journal["targetMode"] == "legacy" else LAYER_MODE)):
+            continue
+        if kind == "execution-mode":
+            execution_state(original)
+            execution_state(candidate)
+        if kind == "service-proxy":
+            selection(original)
+            selection(candidate)
+        transitions.setdefault(source, set()).add(canonical(candidate))
+    goal = canonical(manager.config)
+    remaining = list(origins)
+    while remaining:
+        source = remaining.pop()
+        for target in transitions.get(source, ()):
+            if target not in origins:
+                origins.add(target)
+                remaining.append(target)
+    matched = goal in origins
     require(matched, "No exact recovered first-setup transaction attests this metadata; nothing removed", "recovery_required")
     (manager.layout.config / "https.json").unlink()
     fsync_directory(manager.layout.config)
@@ -732,11 +830,36 @@ def refresh_client_identity(manager) -> dict:
     manager.require_recovered_transactions(None)
     metadata = read_https_metadata(layout)
     require(metadata.get("phase") == "active", "Recover the existing HTTPS transaction first", "recovery_required")
-    if metadata.get("authentication") != "builtin":
-        return {"changed": False, "configured": True, "requiresAuthenticationMigration": True}
-    if metadata.get("clientIdentity") == 1:
+    builtin = metadata.get("authentication") == "builtin"
+    if not builtin or metadata.get("clientIdentity") == 1:
         manager.verify_https(probe=False)
-        return {"changed": False, "configured": True}
+        expected = render_edge_units(layout, builtin=builtin, dns_metadata=metadata if metadata.get("dnsProvider") else None,
+                                     client_identity=metadata.get("clientIdentity") == 1)
+        from .units import edge_unit_variants
+        pending = {}
+        for unit, text in expected.items():
+            path = layout.units / unit
+            regular(path, edge_unit_variants(text.encode()))
+            if path.read_bytes() != text.encode():
+                pending[path] = text.encode()
+        # File publication and PID 1's reload are separate changes. Preserve
+        # the reload obligation when an upgrade is interrupted between them.
+        marker = layout.config / "edge-network-order.pending"
+        marker_data = b"edge-network-order-v1\n"
+        needs_reload = present(marker)
+        if needs_reload:
+            from .service_proxy import private_file
+            require(private_file(marker, limit=64) == marker_data, "Unrecognized edge unit reload record", "integrity")
+        elif pending:
+            atomic_write(marker, marker_data, 0o600)
+            needs_reload = True
+        for path, data in pending.items():
+            atomic_write(path, data, 0o644)
+        if needs_reload:
+            manager.system.reload()
+            marker.unlink()
+            fsync_directory(layout.config)
+        return {"changed": needs_reload, "configured": True, **({"requiresAuthenticationMigration": True} if not builtin else {})}
     from .candidate_archive import require_idle
     require_idle(manager)
     manager.verify(https_probe=False)
@@ -749,15 +872,15 @@ def refresh_client_identity(manager) -> dict:
     else: atomic_write(env_path, environment, 0o600)
     pending = layout.config / "Caddyfile.client-identity.pending"
     atomic_write(pending, rendered.encode(), 0o644)
+    import pwd
+    account = pwd.getpwnam(layout.prefix + "-edge")
     if metadata.get("dnsProvider"):
-        import pwd
         from .dns_tls import validate_dns_caddy
         from .dns_caddy_build import dns_caddy_path
-        account = pwd.getpwnam(layout.prefix + "-edge")
         validate_dns_caddy(layout, candidate, dns_caddy_path(layout, candidate), pending, account.pw_uid, account.pw_gid)
     else:
         binary = edge_binary(layout, "caddy")
-        run(["/usr/bin/env", "-i", "HOME=" + str(layout.state / "caddy"), "PATH=/usr/bin:/bin", "HARNESS_EDGE_PROXY_TOKEN=validation-only", str(binary), "validate", "--config", str(pending), "--adapter", "caddyfile"])
+        validate_plain_caddy(layout, binary, pending, account.pw_uid, account.pw_gid)
     active, enabled = prior_service_state(manager)
     before = snapshot_configuration(layout)
     journal_path = layout.state / "transactions" / uuid.uuid4().hex / "state.json"

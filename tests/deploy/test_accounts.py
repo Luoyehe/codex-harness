@@ -103,6 +103,7 @@ class ProofListenerTests(unittest.TestCase):
         self.key = hashlib.sha256(b"synthetic-proof-key-only").digest()
         self.requests = []
         self.nonces = []
+        self.probe_headers = []
         self.mode = "valid"
         self.origin = "https://work.example.test:18443"
         owner = self
@@ -128,6 +129,7 @@ class ProofListenerTests(unittest.TestCase):
                 owner.requests.append(("GET", self.client_address[1], self.headers.get("Cookie")))
                 nonce = parse_qs(urlsplit(self.path).query)["nonce"][0]
                 owner.nonces.append(nonce)
+                owner.probe_headers.append(self.headers.get("X-Harness-Local-Probe"))
                 signed_nonce = "0" * 64 if owner.mode == "replay" else nonce
                 proof = hmac.new(owner.key, ("codex-harness-account-proof-v1\0" + owner.origin + "\0" + signed_nonce).encode(), hashlib.sha256).hexdigest()
                 self.respond({"nonce": nonce, "proof": "0" * 64 if owner.mode == "forged" else proof})
@@ -155,6 +157,7 @@ class ProofListenerTests(unittest.TestCase):
         account_request(self.manager, "POST", {"username": "admin", "password": "synthetic-password"})
         self.assertEqual([row[0] for row in self.requests], ["GET", "POST"])
         self.assertEqual(self.requests[0][1], self.requests[1][1])
+        self.assertEqual(self.probe_headers[0], hmac.new(self.key, b"harness-local-probe-v1\n/api/account/proof", hashlib.sha256).hexdigest())
         account_request(self.manager, "DELETE", cookie="harness_fixture=synthetic-session", csrf="synthetic-csrf")
         self.assertNotEqual(self.nonces[0], self.nonces[1])
         self.assertIsNone(self.requests[2][2])

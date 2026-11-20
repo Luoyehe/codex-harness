@@ -52,6 +52,10 @@ export class GatewayServer {
   readonly #disconnecting = new Map<string, Promise<void>>();
   readonly #budget = new Budget(LIMITS.concurrentRequests, LIMITS.retainedRequestBytes);
   readonly #anonymousRequests = new Budget(8, 64 * 1024);
+  readonly #anonymousReads = new Budget(8, 0);
+  readonly #localProbeOutput = new WeakSet<ServerResponse>();
+  readonly #localProbeResponses = new Budget(4, 8192);
+  readonly #localProbes = new Budget(4, 0);
   readonly #responses = new Budget(LIMITS.httpConnections, LIMITS.retainedResponseBytes);
   // Recovery must remain reachable when ordinary backend work or slow response
   // consumers exhaust their budgets. Only this authenticated, fixed route owns
@@ -141,7 +145,8 @@ export class GatewayServer {
     if (!this.auth.session(connection.cookie)) { connection.socket.close(4001, 'session expired'); return; }
     let payload = JSON.stringify(event);
     if (Buffer.byteLength(payload) > MAX_EVENT_BYTES) {
-      payload = JSON.stringify({ type: 'resync', data: { reason: 'event_capacity', message: '一条实时结果超过显示预算，请重新读取会话历史。' } });
+      if (event.type === 'state') { connection.socket.close(1013, 'Resynchronization required'); return; }
+      payload = JSON.stringify({ type: 'resync', data: { reason: 'event_capacity', eventType: event.type, message: '一条实时结果超过显示预算，请重新读取会话历史。' } });
     }
     if (connection.socket.bufferedAmount + Buffer.byteLength(payload) > LIMITS.socketBufferedBytes) {
       connection.socket.close(1013, 'Resynchronization required'); return;
@@ -213,7 +218,13 @@ export class GatewayServer {
         this.#recoveryOutput.add(res);
       }
       const authenticated = !!this.auth.session(header(req, 'cookie'));
-      const reservation = (recoveryRequest ? this.#recoveryRequests : authenticated ? this.#budget : this.#anonymousRequests).reserve(); release = reservation.release;
+      const localProbe = req.method === 'GET' && ['/health', '/api/account/proof'].includes(url.pathname) &&
+        ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '') &&
+        this.auth.localProbe(url.pathname, header(req, 'x-harness-local-probe'));
+      if (localProbe) this.#localProbeOutput.add(res);
+      const readOnly = req.method === 'GET' || req.method === 'HEAD';
+      const pool = localProbe ? this.#localProbes : recoveryRequest ? this.#recoveryRequests : authenticated ? this.#budget : readOnly ? this.#anonymousReads : this.#anonymousRequests;
+      const reservation = pool.reserve(); release = reservation.release;
       if (url.pathname === '/health' && req.method === 'GET') {
         const state = this.dispatcher.status(); object(state); object(state.activity);
         const ready = state.connected === true && state.activity.unknown === false;
@@ -323,7 +334,7 @@ export class GatewayServer {
     } finally { backendSettled = true; if (res.destroyed || res.writableFinished || req.socket.destroyed) responseDone(); else releaseWhenSettled(); }
   }
   private retainResponse(res: ServerResponse, bytes: number, reserved?: () => void): () => void {
-    const release = reserved ?? (this.#recoveryOutput.has(res) ? this.#recoveryResponses : this.#responses).acquire(bytes);
+    const release = reserved ?? (this.#localProbeOutput.has(res) ? this.#localProbeResponses : this.#recoveryOutput.has(res) ? this.#recoveryResponses : this.#responses).acquire(bytes);
     const transport = res.req.socket;
     const timer = setTimeout(() => { res.destroy(); transport.destroy(); done(); }, LIMITS.responseWriteTimeoutMs); timer.unref();
     let settled = false;

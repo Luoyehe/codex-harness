@@ -138,11 +138,11 @@ function providerReceipt(input: JsonValue): JsonObject {
   return result;
 }
 /** The initial response and every replay share this projection; native history owns message bodies. */
-export function receiptResult(method: string, input: JsonValue): JsonValue {
-  try { return projectResult(method, input); }
+export function receiptResult(method: string, input: JsonValue, params?: JsonObject): JsonValue {
+  try { return projectResult(method, input, params); }
   catch { throw new HarnessError('receipt_contract', '操作已发送，但返回结果无法确认；请核对操作记录。', 'unknown'); }
 }
-function projectResult(method: string, input: JsonValue): JsonValue {
+function projectResult(method: string, input: JsonValue, params?: JsonObject): JsonValue {
   if (method === 'thread/prediction/request') { object(input); if (input.requested !== true) throw new Error('Missing prediction acknowledgement'); return { predictionId: identifier(input.predictionId), threadId: identifier(input.threadId), sourceTurnId: identifier(input.sourceTurnId), requested: true }; }
   if (method === 'account/sendAddCreditsNudgeEmail') { object(input); if (!['sent', 'cooldown_active'].includes(String(input.status)) || !['credits', 'usage_limit'].includes(String(input.creditType))) throw new Error('Invalid nudge acknowledgement'); return { status: input.status!, creditType: input.creditType!, accountId: identifier(input.accountId) }; }
   if (method === 'account/login') { object(input); if (input.type !== 'chatgptDeviceCode') throw new Error('Invalid login type'); return { type: input.type, loginId: identifier(input.loginId) }; }
@@ -268,7 +268,13 @@ function projectResult(method: string, input: JsonValue): JsonValue {
     object(input);
     const thread = threadMetadata(input.thread), sourceThreadId = identifier(input.sourceThreadId);
     if (thread.id === sourceThreadId) throw new Error('Conversion must create a distinct conversation');
-    return { thread, sourceThreadId, sourceProvider: identifier(input.sourceProvider), targetProvider: identifier(input.targetProvider) };
+    const converted: JsonObject = { thread, sourceThreadId, sourceProvider: identifier(input.sourceProvider), targetProvider: identifier(input.targetProvider) };
+    if (input.handoffTransfer !== undefined || (Array.isArray(params?.handoffIds) && params.handoffIds.length > 0)) {
+      const state = input.handoffTransfer;
+      if (state !== 'moved' && state !== 'not_moved' && state !== 'unconfirmed') throw new Error('Invalid queue transfer result');
+      converted.handoffTransfer = state;
+    }
+    return converted;
   }
   if (method === 'thread/resume') { object(input); return { thread: threadMetadata(input.thread) }; }
   if (['thread/fork', 'thread/revert', 'thread/metadata/update'].includes(method)) { object(input); return { thread: threadMetadata(input.thread) }; }
@@ -278,8 +284,35 @@ function projectResult(method: string, input: JsonValue): JsonValue {
   }
   if (method === 'thread/queue/start') { object(input); return { turn: turnMetadata(input.turn) }; }
   if (method === 'turn/steer') { object(input); return { turnId: identifier(input.turnId) }; }
-  if (method === 'thread/queue/add' || method === 'thread/queue/update') {
+  if (method === 'thread/queue/handoff/save') {
+    object(input);
+    if (params && input.queuedSubmissionId !== params.queuedSubmissionId) throw new Error('Unexpected original queue item');
+    if (typeof input.state !== 'string' || !['saved', 'ready', 'restoring', 'restored'].includes(input.state) ||
+        typeof input.attachmentCount !== 'number' || !Number.isSafeInteger(input.attachmentCount) || input.attachmentCount < 0 || input.attachmentCount > 128)
+      throw new Error('Invalid saved queue handoff');
+    const count = input.nativeSavedImages;
+    if (count !== undefined && (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0 || count > 128))
+      throw new Error('Invalid native queue image count');
+    const candidates = input.sourceCandidateCount;
+    if (candidates !== undefined && (!count || typeof candidates !== 'number' || !Number.isSafeInteger(candidates) || candidates < 0 || candidates > 128))
+      throw new Error('Invalid candidate image count');
+    return { id: identifier(input.id), queuedSubmissionId: identifier(input.queuedSubmissionId), state: input.state,
+      attachmentCount: input.attachmentCount, ...(count !== undefined ? { nativeSavedImages: count } : {}),
+      ...(candidates !== undefined ? { sourceCandidateCount: candidates } : {}) };
+  }
+  if (method === 'thread/queue/handoff/discard') {
+    object(input);
+    if (input.discarded !== true) throw new Error('Queue handoff discard was not confirmed');
+    return { discarded: true };
+  }
+  if (method === 'thread/queue/add' || method === 'thread/queue/update' || method === 'thread/queue/handoff/restore') {
     object(input); object(input.queuedSubmission);
+    if (method === 'thread/queue/add' && params?.clientUserMessageId !== undefined && input.queuedSubmission.clientUserMessageId !== params.clientUserMessageId)
+      throw new Error('Unexpected added queue identity');
+    if (method === 'thread/queue/update' && params?.queuedSubmissionId !== undefined && input.queuedSubmission.id !== params.queuedSubmissionId)
+      throw new Error('Unexpected updated queue identity');
+    if (method === 'thread/queue/handoff/restore' && params && input.queuedSubmission.clientUserMessageId !== params.handoffId)
+      throw new Error('Unexpected restored queue identity');
     return { queuedSubmission: { id: identifier(input.queuedSubmission.id), clientUserMessageId: identifier(input.queuedSubmission.clientUserMessageId) } };
   }
   if (method === 'thread/goal/set') {

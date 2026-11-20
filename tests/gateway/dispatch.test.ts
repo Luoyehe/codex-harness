@@ -32,6 +32,39 @@ it('admits conversion as an idle mutation and replays its new identity without c
     expect(worker.calls).toBe(1); expect(requireConnection).toHaveBeenCalled();
   } finally { ledger.close(); }
 });
+it('keeps queue handoff records private and replays an accepted restore without a second queue write', async () => {
+  const { dispatcher, ledger, worker } = setup();
+  const owner = { clientId: 'owner', requireConnection: vi.fn() };
+  const handoffId = randomUUID(), threadId = 'thread', queuedSubmissionId = 'original';
+  let restoredId = handoffId;
+  worker.run = async (method, _params, context) => {
+    if (method.endsWith('/list') || method.endsWith('/candidates')) return { data: [] };
+    context.beforeWrite?.();
+    if (method.endsWith('/save')) return { id: handoffId, queuedSubmissionId, state: 'saved', attachmentCount: 1, raw: 'private' };
+    if (method.endsWith('/discard')) return { discarded: true };
+    return { queuedSubmission: { id: 'restored', clientUserMessageId: restoredId, input: ['private'] } };
+  };
+  const restore = { method: 'thread/queue/handoff/restore', params: { threadId, handoffId }, operationId: randomUUID() };
+  try {
+    await expect(dispatcher.call({ method: 'thread/queue/handoff/list', params: { threadId } }, owner)).resolves.toEqual({ data: [] });
+    await expect(dispatcher.call({ method: 'thread/queue/handoff/candidates', params: { threadId, handoffId } }, owner)).resolves.toEqual({ data: [] });
+    const saved = randomUUID();
+    await dispatcher.call({ method: 'thread/queue/handoff/save', params: { threadId, queuedSubmissionId }, operationId: saved }, owner);
+    expect(ledger.read(saved)).toMatchObject({ scope: 'thread:' + threadId, state: 'accepted', result: {
+      id: handoffId, queuedSubmissionId, state: 'saved', attachmentCount: 1 } });
+    expect(JSON.stringify(ledger.read(saved))).not.toContain('private');
+    const first = await dispatcher.call(restore, owner);
+    expect(first).toEqual({ queuedSubmission: { id: 'restored', clientUserMessageId: handoffId } });
+    const callsAfterAcceptance = worker.calls;
+    expect(await dispatcher.call(restore, owner)).toEqual(first);
+    expect(worker.calls).toBe(callsAfterAcceptance);
+    restoredId = randomUUID();
+    const mismatch = { ...restore, operationId: randomUUID() };
+    await expect(dispatcher.call(mismatch, owner)).rejects.toMatchObject({ code: 'receipt_contract', delivery: 'unknown' });
+    expect(ledger.read(mismatch.operationId)?.state).toBe('unknown');
+    expect(owner.requireConnection).toHaveBeenCalled();
+  } finally { ledger.close(); }
+});
 function setup(file = ':memory:') {
   const ledger = new Ledger(file); const worker = new Worker();
   const manager: ManagerPort = { call: async (_m, _p, _id, before) => { before?.(); return {}; } };
@@ -286,7 +319,7 @@ describe('gateway operation admission', () => {
   });
   it('native project roots resolve only registered harness IDs and never become execution project IDs', async () => {
     const { ledger, worker, dispatcher } = setup(); const registered = ledger.addProject(path.resolve('.work/registered-native-project'), 'Registered'); let forwarded: JsonObject | undefined;
-    worker.run = async (_method, params, context) => { context.beforeWrite?.(); forwarded = params; return { project: { id: 'native-id', roots: params.roots, metadata: { secret: 'not in receipt' } } }; };
+    worker.run = async (_method, params, context) => { context.beforeWrite?.(); forwarded = params; return { project: { id: 'native-id', roots: params.roots!, metadata: { secret: 'not in receipt' } } }; };
     const call = (params: JsonObject) => dispatcher.call({ method: 'nativeProject/create', params, operationId: randomUUID() }, { clientId: 'owner' });
     try {
       expect(await call({ name: 'Organization', projectIds: [registered.id], idempotencyKey: 'stable' })).toEqual({ project: { id: 'native-id' } });

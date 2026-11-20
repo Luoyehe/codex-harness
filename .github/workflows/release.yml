@@ -21,6 +21,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.22.1'
+      - name: Resolve the reviewed main workflow run
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-release.mjs --checks
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: verified-coverage
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.evidence.outputs.run }}
+          path: .work/release-coverage/${{ steps.evidence.outputs.run }}
       - name: Publish only after both checks passed for this exact main commit
         env:
           GH_TOKEN: ${{ github.token }}

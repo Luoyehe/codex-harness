@@ -1,3 +1,4 @@
+import { visionReferenceGuidance } from '../../src/core/attachment-media';
 import { object, type Item } from './types';
 import { workspacePath } from './workspace';
 
@@ -50,7 +51,8 @@ export function mediaSources(item: Item): MediaSource[] {
             : { unavailable: '原生只提供文件 ID，没有可读取的媒体内容。' }),
         });
       if (input.type === 'text' && typeof input.text === 'string') {
-        const match = /^Attached file ("[^\n]+") is available at ("[^\n]+").$/.exec(input.text);
+        const reference = input.text.endsWith(visionReferenceGuidance) ? input.text.slice(0, -visionReferenceGuidance.length) : input.text;
+        const match = /^Attached file ("[^\n]+") is available at ("[^\n]+")\.$/.exec(reference);
         if (match)
           try {
             const name = JSON.parse(match[1]!),
@@ -116,16 +118,42 @@ export function externalMediaUrl(value: string): string | undefined {
 export function mediaBytes(value: string, allowEmpty = false): Uint8Array {
   const match = /^data:([^;,]+)(?:;[A-Za-z0-9_-]+=[A-Za-z0-9._-]+)*;base64,([\s\S]*)$/.exec(value),
     base64 = match ? match[2]! : value;
+  if (base64.length > Math.ceil(MEDIA_BYTES / 3) * 6) throw new Error('媒体编码文本超过读取上限。');
+  const compact = base64.replace(/[\t\n\f\r ]/g, '');
   if (
-    base64.length > Math.ceil(MEDIA_BYTES / 3) * 4 ||
-    base64.length % 4 !== 0 ||
-    !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)
+    compact.length > Math.ceil(MEDIA_BYTES / 3) * 4 ||
+    compact.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(compact)
   )
     throw new Error('媒体内容超过 4 MiB 或编码无效。');
-  const decoded = atob(base64);
+  const decoded = atob(compact);
   if ((!decoded.length && !allowEmpty) || decoded.length > MEDIA_BYTES)
     throw new Error('媒体内容为空或超过 4 MiB。');
   return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+}
+// Read bounded EBML header elements; a text match inside a binary payload is not a DocType.
+function ebmlDocType(bytes: Uint8Array): string | undefined {
+  let offset = 4;
+  const integer = (id: boolean, limit: number): number | undefined => {
+    const first = bytes[offset++];
+    if (!first) return;
+    let mask = 128, width = 1;
+    while (!(first & mask)) { mask >>= 1; width++; }
+    if (width > (id ? 4 : 6) || offset + width - 1 > limit) return;
+    let value = id ? first : first & (mask - 1);
+    for (let index = 1; index < width; index++) value = value * 256 + bytes[offset++]!;
+    return value;
+  };
+  const size = integer(false, bytes.length);
+  if (size === undefined || size > 65536 || offset + size > bytes.length) return;
+  const end = offset + size;
+  while (offset < end) {
+    const id = integer(true, end), length = integer(false, end);
+    if (id === undefined || length === undefined || offset + length > end) return;
+    if (id === 0x4282) return length <= 16 ? String.fromCharCode(...bytes.subarray(offset, offset + length)) : undefined;
+    offset += length;
+  }
+  return;
 }
 export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): string {
   if (kind === 'file') return 'application/octet-stream';
@@ -138,7 +166,7 @@ export function mediaMime(bytes: Uint8Array, kind: 'image' | 'audio' | 'file'): 
     if (text(0, 3) === 'ID3' || (bytes[0] === 255 && ((bytes[1] ?? 0) & 224) === 224 && ((bytes[1] ?? 0) & 6) !== 0))
       return 'audio/mpeg';
     if (text(4, 8) === 'ftyp' && ['M4A ', 'M4B '].includes(text(8, 12))) return 'audio/mp4';
-    if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3)
+    if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3 && ebmlDocType(bytes) === 'webm')
       return 'audio/webm';
     throw new Error('不支持或无法确认此音频格式。支持 WAV、AAC、MP3、M4A、WebM 和 Ogg。');
   }

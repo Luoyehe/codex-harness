@@ -39,6 +39,7 @@ export function usePrompts(api: Api, events: Events, epoch: string) {
     };
   }, [api, epoch, revision]);
   const listener = useCallback((event: HarnessEvent) => {
+    if (event.type === 'resync') { generation.current++; publish([]); setRevision(v => v + 1); return; }
     if (event.type === 'prompt') {
       const p = event.data as unknown as PromptRecord;
       if (typeof p.promptId !== 'string' || closed.current.has(p.promptId)) return;
@@ -51,7 +52,10 @@ export function usePrompts(api: Api, events: Events, epoch: string) {
   }, []);
   useSubscription(events, listener);
   const answer = async (id: string, response: unknown) => {
+    if (!current.current.some(prompt => prompt.promptId === id)) throw new Error('此请求已失效，请重新核对。');
+    const gen = generation.current;
     await api.mutate('prompt/answer', { promptId: id, response });
+    if (gen !== generation.current) return;
     closed.current.add(id);
     publish(current.current.filter((p) => p.promptId !== id));
   };

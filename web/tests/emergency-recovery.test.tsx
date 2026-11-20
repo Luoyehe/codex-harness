@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
-import { createOperation, listOperations, updateOperation } from '../lib/operations';
+import { acknowledgeOperation, createOperation, listOperations, updateOperation } from '../lib/operations';
 import { EmergencyRecovery } from '../components/EmergencyRecovery';
 import { AdminSettings } from '../components/AdminSettings';
 
@@ -131,4 +131,71 @@ it('offers emergency recovery in service settings even while the normal activity
   expect(button.hasAttribute('disabled')).toBe(false);
   fireEvent.click(button); expect(onRecover).toHaveBeenCalledOnce();
   await waitFor(() => expect(api.call).toHaveBeenCalled());
+});
+
+it('reopens a partial recovery for its remaining exact members and never restarts twice', async () => {
+  const one = await createOperation('mcp/oauth', {}), two = await createOperation('turn/start', { threadId: 'second' });
+  let ready = false;
+  const s = setup(call => call.method === 'system/recover' ? success :
+    { operationId: call.params.operationId, method: call.params.operationId === one.id ? one.method : two.method,
+      state: call.params.operationId === one.id || ready ? 'unknown' : 'pending' });
+  const view = render(<EmergencyRecovery api={s.api} onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: '确认强制停止并恢复' }));
+  await screen.findByText(/还有 1 项/);
+  expect((await listOperations()).find(row => row.method === 'system/recover')?.recoveryOperations).toEqual([{ id: two.id, method: two.method }]);
+  view.unmount(); ready = true;
+  const later = await createOperation('thread/name/set', { threadId: 'later' });
+  render(<EmergencyRecovery api={s.api} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: '查询原恢复回执' }));
+  await screen.findByText(/旧执行阻塞已解除/);
+  expect(s.calls.filter(call => call.method === 'system/recover')).toHaveLength(1);
+  expect(s.calls.filter(call => call.params.operationId === one.id)).toHaveLength(1);
+  expect((await listOperations()).map(row => row.id)).toEqual([later.id]);
+});
+
+it('updates an open recovery window on outside changes and allows manual retirement of an archived unknown', async () => {
+  const s = setup(call => ({ operationId: call.params.operationId, scope: 'operation:' + call.params.operationId,
+    method: 'operation/archived', state: 'unknown', error: { code: 'operation_archived' } }));
+  render(<EmergencyRecovery api={s.api} onClose={vi.fn()} />);
+  await act(async () => { const other = await createOperation('system/recover', {}); await updateOperation(other.id, 'unknown'); });
+  fireEvent.click(await screen.findByRole('button', { name: '查询原恢复回执' }));
+  await screen.findByText(/服务已归档原回执，恢复结果未知/);
+  expect((await listOperations())[0]?.state).toBe('unknown');
+  fireEvent.click(screen.getByRole('button', { name: '已人工核对，关闭这条未知提醒' }));
+  await screen.findByRole('button', { name: '确认强制停止并恢复' });
+  expect(s.calls.map(call => call.method)).toEqual(['operation/read']);
+});
+
+it('retires a captured member after a second window acknowledges its accepted result during the recovery read', async () => {
+  const member = await createOperation('thread/name/set', { threadId: 't' });
+  const s = setup(async call => {
+    if (call.method === 'system/recover') return success;
+    await updateOperation(member.id, 'accepted'); await acknowledgeOperation(member.id);
+    return { operationId: member.id, method: member.method, state: 'accepted' };
+  });
+  render(<EmergencyRecovery api={s.api} onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: '确认强制停止并恢复' }));
+  await screen.findByText(/旧执行阻塞已解除/);
+  expect(await listOperations()).toEqual([]);
+  expect(s.calls.map(call => call.method)).toEqual(['system/recover', 'operation/read']);
+});
+
+it('a stale confirming window switches back to the winning recovery ID without sending or clearing it', async () => {
+  const member = await createOperation('turn/start', { threadId: 'held' });
+  const s = setup(call => ({ operationId: call.params.operationId, method: member.method, state: 'pending' }));
+  const admission = s.api.beginMutation.bind(s.api); let winningId = '';
+  vi.spyOn(s.api, 'beginMutation').mockImplementation((...args) => {
+    const winner = createOperation('system/recover', {}).then(async record => {
+      winningId = record.id; await updateOperation(winningId, 'accepted', undefined, undefined, success);
+    });
+    return { operationId: crypto.randomUUID(), result: winner.then(() => admission(...args).result) };
+  });
+  render(<EmergencyRecovery api={s.api} onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: '确认强制停止并恢复' }));
+  await screen.findByText('请继续核对另一窗口登记的原恢复回执。');
+  fireEvent.click(await screen.findByRole('button', { name: '查询原恢复回执' }));
+  await screen.findByText(/还有 1 项/);
+  expect(s.calls.map(call => [call.method, call.params.operationId])).toEqual([['operation/read', member.id]]);
+  const recoveries = (await listOperations()).filter(row => row.method === 'system/recover');
+  expect(recoveries.map(row => row.id)).toEqual([winningId]);
 });

@@ -369,7 +369,7 @@ export function GuardianReviewPanel({
       );
   };
   return (
-    <Dialog title="Guardian 拒绝与一次重试" wide onClose={onClose}>
+    <Dialog title="守护审查（Guardian）与重试" wide onClose={onClose}>
       <div className="stack">
         <p>
           这里只显示本次原生服务捕获的拒绝记录。授权将精确操作标记加入当前会话，不启动回合，也不保证重试成功。新回合、上下文变更、过期或服务重启会使记录失效。

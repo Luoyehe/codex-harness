@@ -1,6 +1,8 @@
 import type { ThreadTimelineEntry } from '../../protocol/ts/v2/ThreadTimelineEntry';
 import { object, type Item, type Turn } from './types';
-export type TimelineEntry = ThreadTimelineEntry;
+type OrdinaryItem = Extract<ThreadTimelineEntry, { type: 'item' }>;
+type ItemReference = Omit<OrdinaryItem, 'item'> & { itemReference: true; item: Pick<OrdinaryItem['item'], 'id' | 'type'> };
+export type TimelineEntry = (ThreadTimelineEntry & { itemReference?: undefined }) | ItemReference;
 export type RealtimeItem = Extract<TimelineEntry, { type: 'realtime' }>['item'];
 const id = (value: unknown) =>
   typeof value === 'string' && value.length > 0 && value.length <= 4096;
@@ -11,6 +13,8 @@ export function checkedTimeline(value: unknown): TimelineEntry[] {
       item = object(entry.item);
     if (!Number.isSafeInteger(entry.position) || Number(entry.position) < 0)
       throw new Error('时间线位置无效。');
+    if (Object.hasOwn(entry, 'itemReference') && (entry.itemReference !== true || entry.type !== 'item' ||
+        Object.keys(item).some(key => key !== 'id' && key !== 'type'))) throw new Error('时间线消息引用格式无效。');
     if (entry.type === 'realtime') {
       if (!id(item.id) || !id(item.realtimeSessionId)) throw new Error('语音时间线缺少身份信息。');
       if (
@@ -85,6 +89,27 @@ export type TimelineRow =
   | { type: 'item'; key: string; turnId: string; item: Item }
   | { type: 'turn'; key: string; turn: Turn }
   | { type: 'realtime'; key: string; item: RealtimeItem };
+const turnItemIndexes = new WeakMap<Turn, Map<string, Item>>();
+function timelineItem(turn: Turn | undefined, id: string): Item | undefined {
+  if (!turn) return undefined;
+  let index = turnItemIndexes.get(turn);
+  if (!index) {
+    index = new Map(turn.items.map(item => [item.id, item]));
+    turnItemIndexes.set(turn, index);
+  }
+  return index.get(id);
+}
+/** Release timeline bodies that arrived before their corresponding turn page. */
+export function compactTimelineEntries(turns: Turn[], entries: TimelineEntry[]): TimelineEntry[] {
+  if (!entries.some(entry => entry.type === 'item' && !entry.itemReference)) return entries;
+  const byId = new Map(turns.map(turn => [turn.id, turn]));
+  return entries.map(entry => {
+    if (entry.type !== 'item' || entry.itemReference) return entry;
+    const { id, type } = entry.item;
+    if (timelineItem(byId.get(entry.turnId), id)?.type !== type) return entry;
+    return { ...entry, itemReference: true, item: { id, type } };
+  });
+}
 /** Canonical entries locate messages; the turn stream remains authoritative for live item text. */
 export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): TimelineRow[] {
   const byId = new Map(turns.map((turn) => [turn.id, turn])),
@@ -108,12 +133,11 @@ export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): Timeline
   for (const entry of timeline) {
     if (entry.type === 'realtime')
       rows.push({ type: 'realtime', key: timelineIdentity(entry), item: entry.item });
-    else if (entry.type === 'item')
-      add(
-        entry.turnId,
-        byId.get(entry.turnId)?.items.find((item) => item.id === entry.item.id) ??
-          (entry.item as Item),
-      );
+    else if (entry.type === 'item') {
+      const body = timelineItem(byId.get(entry.turnId), entry.item.id);
+      if (body) add(entry.turnId, body);
+      else if (!entry.itemReference) add(entry.turnId, entry.item as Item);
+    }
     else if (entry.type === 'turnCompleted') {
       const turn = byId.get(entry.turnId);
       if (turn) finish(turn);

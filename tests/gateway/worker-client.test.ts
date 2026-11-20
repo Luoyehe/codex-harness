@@ -49,14 +49,14 @@ it.each([
   } finally { await f.close(); }
 });
 
-async function fixture(response: JsonValue = { ok: true, result: {} }) {
+async function fixture(response: JsonValue | (() => JsonValue) = { ok: true, result: {} }) {
   const requests: { path: string; channel: unknown; body: Record<string, unknown> }[] = [];
   let loseRegistration = false;
   const server = http.createServer((req, res) => { void (async () => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     requests.push({ path: req.url!, channel: req.headers['x-harness-event-channel'], body: JSON.parse(Buffer.concat(chunks).toString()) });
     if (loseRegistration && req.url === '/connect') { res.destroy(); return; }
-    res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(response));
+    res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(typeof response === 'function' ? response() : response));
   })().catch(() => res.destroy()); });
   const wss = new WebSocketServer({ server, path: '/events' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -68,6 +68,19 @@ async function fixture(response: JsonValue = { ok: true, result: {} }) {
   const socket = await connect();
   return { worker, socket, requests, events, connect, handshake, loseRegistration: () => { loseRegistration = true; }, close: async () => { worker.close(); for (const socket of wss.clients) socket.terminate(); await new Promise<void>(resolve => wss.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); } };
 }
+it('uses the longest supported duty only for explicit manual MCP calls', async () => {
+  const f = await fixture();
+  try {
+    await f.handshake(f.socket, randomUUID());
+    const timer = vi.spyOn(globalThis, 'setTimeout');
+    for (const [method, expected] of [['mcp/tool/call', 1_940_000], ['plugin/install', 350_000], ['thread/read', 350_000], ['turn/start', 350_000]] as const) {
+      timer.mockClear();
+      await f.worker.call(method, {}, { clientId: randomUUID() });
+      expect(timer.mock.calls.some(([, delay]) => delay === expected)).toBe(true);
+      if (method !== 'mcp/tool/call') expect(timer.mock.calls.some(([, delay]) => delay === 1_940_000)).toBe(false);
+    }
+  } finally { await f.close(); }
+});
 it('a definite registration refusal does not disconnect other owners on the shared worker channel', async () => {
   const f = await fixture({ ok: false, error: { code: 'capacity', message: 'Registration capacity', delivery: 'not_sent' } });
   try {
@@ -201,4 +214,26 @@ it('bounds partial identities and discards malformed or unrelated worker error d
       expect(failure).toBeInstanceOf(HarnessError); expect(failure.delivery).toBe('unknown'); expect(failure.data).toEqual(expected);
     } finally { await f.close(); }
   }
+});
+
+it('keeps the created thread and definitive unsent first turn without blocking the next project', async () => {
+  const detail = { phase: 'first_turn', threadId: 'empty-thread', causeCode: 'model_capability', threadCreated: true, inputSent: false };
+  let createAllowed = false;
+  const f = await fixture((): JsonValue => createAllowed ? { ok: true, result: { thread: { id: 'next' }, turn: { id: 'next-turn' } } } :
+    { ok: false, error: { code: 'conversation_start_incomplete', message: 'First input was not sent', delivery: 'not_sent', data: detail } });
+  const ledger = new Ledger(':memory:');
+  try {
+    await f.handshake(f.socket, randomUUID());
+    const dispatcher = new Dispatcher(ledger, f.worker, { call: async () => ({}) });
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+    const a = ledger.addProject('/a', 'A'), b = ledger.addProject('/b', 'B'), owner = { clientId: randomUUID() };
+    const call = { method: 'conversation/start', operationId: randomUUID(), params: { projectId: a.id, text: 'A' } };
+    await expect(dispatcher.call(call, owner)).rejects.toMatchObject({ delivery: 'not_sent', data: detail });
+    await expect(dispatcher.call(call, owner)).rejects.toMatchObject({ delivery: 'not_sent', data: detail });
+    expect(ledger.read(call.operationId)).toMatchObject({ state: 'not_sent', error: { data: detail } });
+    expect(ledger.getMeta('activityUncertain')).not.toBe('true');
+    createAllowed = true;
+    await expect(dispatcher.call({ ...call, operationId: randomUUID(), params: { projectId: b.id, text: 'B' } }, owner)).resolves.toMatchObject({ thread: { id: 'next' } });
+    expect(f.requests).toHaveLength(2);
+  } finally { ledger.close(); await f.close(); }
 });

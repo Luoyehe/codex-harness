@@ -31,6 +31,14 @@ def read_index(parent: int, name: str) -> bytes:
     return read_index_state(parent, name)[0]
 
 
+def config_filemode(root, path):
+    from .workspace_git import git
+    value = git(root, ["config", "--no-includes", "--file", str(path), "--type=bool", "--get", "core.filemode"],
+                allow_missing=True, output_limit=4096)
+    require(value in (b"", b"false\n", b"true\n"), "Invalid core.filemode", "git_unavailable")
+    return value != b"false\n"
+
+
 @contextmanager
 def content_view(root, git_dir: Path, common_dir: Path):
     from .workspace_git import git
@@ -57,16 +65,16 @@ def content_view(root, git_dir: Path, common_dir: Path):
             common_fd = directory(common_dir)
             try:
                 try:
-                    raw_config = read_index(common_fd, "config").decode("utf-8", "strict")
+                    raw_config = read_index(common_fd, "config")
                 except FileNotFoundError:
-                    raw_config = ""
-                import configparser
-                parser = configparser.RawConfigParser(strict=False, allow_no_value=True, inline_comment_prefixes=("#", ";"))
-                parser.read_string(raw_config)
-                if parser.has_option("core", "filemode"):
-                    mode = (parser.get("core", "filemode") or "true").strip().strip(chr(34)).lower()
-                    require(mode in ("true", "false", "yes", "no", "on", "off", "1", "0"), "Invalid core.filemode", "git_unavailable")
-                    config += b"[core]\nfileMode = " + (b"true" if mode in ("true", "yes", "on", "1") else b"false") + b"\n"
+                    raw_config = b""
+                # Let Git parse its own byte format, without loading includes or
+                # projecting other settings into the restricted content view.
+                source = view / "repository-config"
+                source.write_bytes(raw_config)
+                mode = config_filemode(root, source)
+                source.unlink()
+                config += b"[core]\nfileMode = " + (b"true" if mode else b"false") + b"\n"
                 try:
                     info_fd = os.open("info", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=common_fd)
                 except FileNotFoundError:

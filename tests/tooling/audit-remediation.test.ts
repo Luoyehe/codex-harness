@@ -70,14 +70,15 @@ test('clean local build removes obsolete output and preserves source', () => {
 });
 
 test('the local build entrypoint invokes the installed compiler path and removes partial failed output', () => {
-  const base = fixture(); put(base, 'package.json', '{"type":"module"}');
+  const base = fixture(); put(base, 'package.json', '{"type":"module","devDependencies":{"typescript":"7.0.2"}}');
+  put(base, 'deploy/build_tool.mjs', readFileSync('deploy/build_tool.mjs', 'utf8'));
   put(base, 'scripts/build-server.mjs', readFileSync('scripts/build-server.mjs', 'utf8'));
-  put(base, 'node_modules/typescript/package.json', '{"exports":{".":"./index.js"}}');
-  put(base, 'node_modules/typescript/bin/tsc', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/partial.js','partial');process.exit(1);");
+  put(base, 'node_modules/typescript/package.json', '{"name":"typescript","version":"7.0.2","bin":{"tsc":"./commands/compiler.cjs"}}');
+  put(base, 'node_modules/typescript/commands/compiler.cjs', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/partial.js','partial');process.exit(1);");
   put(base, 'dist/stale.js', 'old output');
   expect(() => execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, windowsHide: true, stdio: 'pipe' })).toThrow();
   expect(existsSync(path.join(base, 'dist'))).toBe(false);
-  put(base, 'node_modules/typescript/bin/tsc', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/built.js','built');");
+  put(base, 'node_modules/typescript/commands/compiler.cjs', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/built.js','built');");
   execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, windowsHide: true, stdio: 'pipe' });
   expect(readFileSync(path.join(base, 'dist/built.js'), 'utf8')).toBe('built');
 });

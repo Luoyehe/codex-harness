@@ -48,6 +48,10 @@ def durable_tree(path: Path) -> None:
         fsync_directory(Path(parent))
 
 
+def without_legacy_cache(manifest):
+    return {name: item for name, item in manifest.items() if "__pycache__" not in Path(name).parts}
+
+
 def tree_manifest(path: Path) -> dict:
     trusted_ancestors(path)
     require(path.is_dir(), "Control generation is missing", "recovery_required")
@@ -67,7 +71,7 @@ def assert_reviewed_checkout(layout: Layout) -> None:
     from .dns_caddy_build import source_material
     recipe = source / "caddy_dns_source"
     trusted_ancestors(recipe)
-    paths = [*source.glob("*.py"), *(recipe / name for name in source_material())]
+    paths = [*source.glob("*.py"), source / "build_tool.mjs", *(recipe / name for name in source_material())]
     for path in paths:
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022 and info.st_nlink == 1,
@@ -249,11 +253,7 @@ class ControlUpdater:
             for name in LAUNCHERS:
                 if (path / name).read_bytes() == BLOCKER:
                     actual[name] = expected[name]
-        def code(manifest):
-            # Root-owned legacy launchers may write normal Python caches before
-            # shutdown. Source and every non-cache file must still match exactly.
-            return {name: item for name, item in manifest.items() if "__pycache__" not in Path(name).parts}
-        require((code(actual) == code(expected)) if legacy_cache else actual == expected,
+        require((without_legacy_cache(actual) == without_legacy_cache(expected)) if legacy_cache else actual == expected,
                 "Retained control generation changed; inspect before recovery", "integrity")
         return actual
 
@@ -637,7 +637,7 @@ class ControlUpdater:
                 for parent in Path(name).parents:
                     if str(parent) != ".":
                         expected[parent.as_posix()] = {"type": "dir", "mode": 0o755}
-            code = {name: value for name, value in old_manifest.items() if name != "edge" and not name.startswith("edge/")}
+            code = {name: value for name, value in without_legacy_cache(old_manifest).items() if name != "edge" and not name.startswith("edge/")}
             if code == expected:
                 capabilities = json.loads(material["capabilities.json"][0])
                 policies = self.sudo_policies(capabilities)

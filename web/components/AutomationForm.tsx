@@ -144,6 +144,7 @@ function AutomationEditor({
     mounted = useRef(true),
     running = useRef(false);
   current.current = draft;
+  const [confirmRestore, setConfirmRestore] = useState(false);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -791,6 +792,14 @@ function AutomationEditor({
             : '确认保存计划：默认暂停，启用后会自动执行并可能使用模型额度、修改文件'}
         </label>
         <div className="inline file-editor-actions">
+          {original && <button className="button" disabled={busy || Boolean(draft.pending)} onClick={() => {
+            if (current.current.pending || running.current) return;
+            if (!confirmRestore) { setConfirmRestore(true); return; }
+            const saved = record ?? original;
+            publish(initial(projectId, saved)); cache.delete(key.current);
+            setConfirmRestore(false); setConfirmed(false); setPreview(undefined); setError('');
+          }}>{confirmRestore ? '确认放弃本次修改' : '恢复到已保存的值'}</button>}
+          {confirmRestore && <button className="button small" onClick={() => setConfirmRestore(false)}>保留修改</button>}
           {!original && <button className="button" disabled={disabled} onClick={() => {
             if (current.current.pending) return;
             publish(initial(projectId)); cache.delete(key.current);

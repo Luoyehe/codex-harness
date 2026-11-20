@@ -143,6 +143,8 @@ it('filters known foreign workflow receipts but refreshes when receipt ownership
   expect(view.result.current.revision).toBe(1);
   act(() => events.publish({ type: 'receipt', data: { state: 'accepted' } }));
   expect(view.result.current.revision).toBe(2);
+  act(() => events.publish({ type: 'resync', data: { reason: 'events_lost' } }));
+  expect(view.result.current.revision).toBe(3);
 });
 
 it('accepts a matching explicit retirement as proof that the recovery was not sent', async () => {
@@ -152,4 +154,10 @@ it('accepts a matching explicit retirement as proof that the recovery was not se
   fireEvent.click(await screen.findByRole('button', { name: '查询原恢复回执' }));
   await screen.findByText(/原恢复请求确认未发送/);
   expect(await listOperations()).toEqual([]); expect(s.calls).toEqual(['operation/read']);
+});
+
+it.each([['edu','教育版'],['','未提供'],['futurePlan','未知值（futurePlan）']])('localizes %s in the quota card while preserving the raw response', (planType,label) => {
+  render(<AccountLimits value={{rateLimits:{planType}}} />);
+  expect(screen.getByText('套餐：'+label)).toBeTruthy();
+  expect(document.querySelector('pre')?.textContent).toContain(JSON.stringify(planType));
 });

@@ -1,3 +1,4 @@
+import { ConfirmAction } from './ConfirmAction';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import type { Events } from '../lib/events';
@@ -419,24 +420,24 @@ function ProcessSession({
               {(selectedProcess.stdoutCapReached || selectedProcess.stderrCapReached) && (
                 <p className="workspace-warning">输出已达到保留上限，以下内容可能不完整。</p>
               )}
-              <label className="field">
-                标准输出
+              <div className="field">
+                <span>标准输出</span>
                 <pre
-                  className="code" role="region" tabIndex={0} aria-label={'进程输出'}
+                  className="code" role="region" tabIndex={0} aria-label="标准输出"
                   style={{ maxHeight: '20rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}
                 >
                   {output.stdout ?? ''}
                 </pre>
-              </label>
-              <label className="field">
-                标准错误
+              </div>
+              <div className="field">
+                <span>标准错误</span>
                 <pre
-                  className="code" role="region" tabIndex={0} aria-label={'进程输出'}
+                  className="code" role="region" tabIndex={0} aria-label="标准错误"
                   style={{ maxHeight: '12rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}
                 >
                   {output.stderr ?? ''}
                 </pre>
-              </label>
+              </div>
               {running && (
                 <>
                   <label className="field">
@@ -527,10 +528,10 @@ function ProcessSession({
                   )}
                 </>
               )}
-              <button
+              <ConfirmAction key={JSON.stringify([epoch, selected, selectedProcess.status])}
                 className={`button ${selectedProcess.status !== 'exited' ? 'danger' : ''}`}
                 disabled={control.disabled}
-                onClick={async () => {
+                onConfirm={async () => {
                   const method =
                     selectedProcess.status === 'exited' ? 'process/remove' : 'process/kill';
                   if (
@@ -556,9 +557,9 @@ function ProcessSession({
                     else output.refresh();
                   }
                 }}
-              >
-                {selectedProcess.status === 'exited' ? '移除已退出进程的输出' : '停止此进程树'}
-              </button>
+                label={selectedProcess.status === 'exited' ? '移除已退出进程的输出' : '停止此进程树'}
+                confirmation={selectedProcess.status === 'exited' ? `确认移除 ${selected} 的输出` : `确认停止 ${selected} 及其子进程`}
+              />
             </>
           )}
         </div>

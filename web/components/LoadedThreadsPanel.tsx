@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Api } from '../lib/api';
 import { object, type Thread } from '../lib/types';
 import { usePaged } from '../hooks/usePaged';
@@ -34,6 +34,34 @@ export function LoadedThreadsPanel({
   const list = usePaged<unknown>(api, 'thread/loaded/list', {}, key, connected);
   const invalid = list.items.some((id) => typeof id !== 'string' || !id || id.length > 256),
     ids = invalid ? [] : [...new Set(list.items as string[])];
+  // Resolve labels only for the visible group. Never hydrate the whole history or
+  // issue reads for every loaded session in an unbounded directory.
+  const labels = useMemo(() => new Map<string, string>(), [api, epoch, connected, action.revision]);
+  const [offset, setOffset] = useState(0);
+  const [, publishLabels] = useState(0);
+  const start = Math.min(offset, Math.max(0, Math.floor((ids.length - 1) / 50) * 50));
+  const visibleIds = ids.slice(start, start + 50);
+  const known = new Map(knownThreads.map(row => [row.id, row.name || row.preview]));
+  const missingKey = JSON.stringify(visibleIds.filter(id => !known.get(id)));
+  useEffect(() => {
+    if (!connected || list.snapshotKey !== key) return;
+    const abort = new AbortController();
+    const missing = (JSON.parse(missingKey) as string[]).filter(id => !labels.has(id));
+    let index = 0;
+    const worker = async () => {
+      while (!abort.signal.aborted && index < missing.length) {
+        const id = missing[index++]!;
+        let name = '';
+        try {
+          const result = await api.call<{ thread: Thread }>('thread/read', { threadId: id }, abort.signal);
+          if (result.thread?.id === id) name = result.thread.name || result.thread.preview || '';
+        } catch { /* Deleted, hidden or temporarily unavailable: keep the id. */ }
+        if (!abort.signal.aborted) { labels.set(id, name); publishLabels(v => v + 1); }
+      }
+    };
+    for (let n = 0; n < Math.min(3, missing.length); n++) void worker();
+    return () => abort.abort();
+  }, [api, connected, key, labels, list.snapshotKey, missingKey]);
   const current = connected && list.snapshotKey === key && ids.includes(selected) ? selected : '';
   const detail = useResource(
     `${key}:${current}`,
@@ -53,7 +81,7 @@ export function LoadedThreadsPanel({
             disabled={!connected || list.loading}
             onClick={() => {
               setConfirm(false);
-              list.refresh();
+              labels.clear(); setOffset(0); list.refresh();
             }}
           >
             刷新已加载会话
@@ -72,7 +100,7 @@ export function LoadedThreadsPanel({
         <ExtensionStatus api={api} action={action} recoveryLabel="查询原停止订阅回执" />
         {notice && <p role="status">{notice}</p>}
         <div className="inline wrap">
-          {ids.map((id) => (
+          {visibleIds.map((id) => (
             <button
               className={`button small ${current === id ? 'selected' : ''}`}
               key={id}
@@ -84,10 +112,15 @@ export function LoadedThreadsPanel({
                 setNotice('');
               }}
             >
-              {knownThreads.find(thread => thread.id === id)?.name || (thread?.id === id ? thread.name : '') || id}
+              {known.get(id) || (thread?.id === id ? thread.name : '') || labels.get(id) || id}
             </button>
           ))}
         </div>
+        {ids.length > 50 && <div className="inline">
+          <button className="button small" disabled={!start} onClick={() => setOffset(start - 50)}>上一组会话</button>
+          <span>{start + 1}–{Math.min(start + 50, ids.length)} / {ids.length}</span>
+          <button className="button small" disabled={start + 50 >= ids.length} onClick={() => setOffset(start + 50)}>下一组会话</button>
+        </div>}
         {!list.loading && !ids.length && !invalid && (
           <p className="muted">此页未返回已加载会话。</p>
         )}

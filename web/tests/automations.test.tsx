@@ -911,3 +911,46 @@ it('coalesces changes received during a run-list request into one follow-up read
   await waitFor(() => expect(view.result.current.items[0]?.id).toBe('latest'));
   expect(api.call).toHaveBeenCalledTimes(2);
 });
+
+it('refreshes a stable multi-page list in one read and realigns it after additions and removals', async () => {
+  let ids = ['new', 'middle', 'old'];
+  let middleState = 'running';
+  const row = (id: string) => ({ ...run, automationId: job.id, id, state: id === 'middle' ? middleState : 'completed' });
+  const { api, calls } = setup(call => {
+    if (call.method !== 'automation/runs') return;
+    const index = call.params.before === undefined ? 0 : 100 - Number(call.params.before);
+    const track = (call.params.track ?? []) as string[];
+    return { data: [row(ids[index]!)], next: index + 1 < ids.length ? 100 - (index + 1) : null,
+      membership: ids.join('/'), tracked: track.filter(id => ids.includes(id)).map(row) };
+  });
+  const view = renderHook(() => useAutomationRuns(api, job.id, 'epoch', true));
+  await waitFor(() => expect(view.result.current.items).toHaveLength(1));
+  await act(() => view.result.current.more());
+  await act(() => view.result.current.more());
+  expect(view.result.current.items.map(item => item.id)).toEqual(ids);
+  middleState = 'completed';
+  const count = calls.length;
+  await act(() => view.result.current.refresh());
+  expect(calls.length - count).toBe(1);
+  expect(calls.at(-1)?.params.track).toEqual(['middle']);
+  expect(view.result.current.items[1]?.state).toBe('completed');
+  ids = ['added', 'new', 'old'];
+  await act(() => view.result.current.refresh());
+  expect(view.result.current.items.map(item => item.id)).toEqual(ids);
+  expect(view.result.current.next).toBeNull();
+});
+
+it('restores the latest saved automation only after confirmation and sends no update', async () => {
+  const { api, calls } = setup();
+  const f = formProps(api), view = render(<AutomationForm {...f} record={job} />);
+  const name = screen.getByRole('textbox', { name: '计划名称' });
+  fireEvent.change(name, { target: { value: '编辑中的计划' } });
+  fireEvent.click(await enabledButton({ name: '恢复到已保存的值' }));
+  fireEvent.click(screen.getByRole('button', { name: '保留修改' }));
+  expect(name).toHaveProperty('value', '编辑中的计划');
+  view.rerender(<AutomationForm {...f} record={{ ...job, name: '服务器新名称', revision: job.revision + 1 }} />);
+  fireEvent.click(await enabledButton({ name: '恢复到已保存的值' }));
+  fireEvent.click(screen.getByRole('button', { name: '确认放弃本次修改' }));
+  expect(name).toHaveProperty('value', '服务器新名称');
+  expect(calls.some(c => c.method === 'automation/update')).toBe(false);
+});

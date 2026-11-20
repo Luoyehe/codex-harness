@@ -36,6 +36,18 @@ def entries(current: dict) -> list[dict]:
     return copy.deepcopy(rows)
 
 
+def upgrade_mcp_defaults(settings: dict) -> dict:
+    """Select new defaults only in a new immutable generation; keep old ones verifiable."""
+    def upgrade(value):
+        return {**value, "codingMcpPolicy": 2} if value["kind"] == "zhipu-coding" else value
+
+    result = upgrade(settings)
+    if "connections" in result:
+        result = {**result, "connections": [{**row, "settings": upgrade(row["settings"])}
+                                             for row in result["connections"]]}
+    return result
+
+
 def provider_id(row: dict) -> str:
     # Keep the old default's native identity stable so saved threads resume.
     if row["settings"]["kind"].startswith("bedrock-"):

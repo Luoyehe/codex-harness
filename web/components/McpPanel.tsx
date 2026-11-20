@@ -1,3 +1,4 @@
+import { downloadBlob } from '../lib/download';
 import { isArchivedReceipt } from '../lib/operations';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import type { McpServerStatus } from '../../protocol/ts/v2/McpServerStatus';
@@ -80,11 +81,12 @@ function McpPanelContent({
   threadReady,
   threadIdle,
   configurationReady,
-  projectId,
+  catalogRevision,
   visible = true,
   tab,
   setTab,
 }: {
+  catalogRevision: number;
   tab: 'tools' | 'resources' | 'streams';
   setTab: (tab: 'tools' | 'resources' | 'streams') => void;
   visible?: boolean;
@@ -136,16 +138,17 @@ function McpPanelContent({
       JSON.stringify([epoch, lease, threadId, connected]),
     ),
     operations = useOperations();
-  const key = `${epoch}:${revision}:${threadReady ? threadId : ''}`;
+  const detail = tab === 'resources' ? 'full' : 'toolsAndAuthOnly';
+  const key = `${epoch}:${catalogRevision}:${revision}:${threadReady ? threadId : ''}:${detail}`;
   const servers = usePaged<McpServerStatus>(
     api,
     'mcp/list',
-    { ...(threadReady && threadId ? { threadId } : {}), detail: 'full' },
+    { ...(threadReady && threadId ? { threadId } : {}), detail },
     key,
     connected && visible,
   );
   const streams = useResource(
-    `${lease}:${revision}`,
+    `${lease}:${catalogRevision}:${revision}`,
     (signal) => api.call<{ data: McpStream[] }>('mcp/stream/list', {}, signal),
     connected && visible,
   );
@@ -179,10 +182,14 @@ function McpPanelContent({
   useEffect(
     () =>
       events.subscribe((event) => {
-        if (event.type === 'mcp' && event.data.owned === true && event.data.type === 'closed')
-          refresh();
+        if (!visible || !connected) return;
+        if (event.type === 'notification' && event.data.method === 'mcpServer/startupStatus/updated') {
+          const status = object(event.data.params);
+          if (typeof status.name === 'string' && (status.threadId == null || status.threadId === threadId)) refresh();
+        }
+        if (event.type === 'mcp' && event.data.owned === true && event.data.type === 'closed') refresh();
       }),
-    [events, refresh],
+    [events, refresh, threadId, connected, visible],
   );
   useEffect(() => {
     mounted.current = true;
@@ -391,14 +398,7 @@ function McpPanelContent({
     try {
       const result = await readBody(attempt, request);
       if (!download || !result || !owns(request)) return;
-      const url = URL.createObjectURL(
-        new Blob([JSON.stringify(result.result, null, 2)], { type: 'application/json' }),
-      );
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `mcp-result-${attempt.resultId}.json`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(new Blob([JSON.stringify(result.result, null, 2)], { type: 'application/json' }), `mcp-result-${attempt.resultId}.json`);
     } catch (e) {
       if (retained(attempt) && !request.controller.signal.aborted) {
         attempt.error = `${message(e)} 结果丢失时不会重放调用。`;
@@ -829,29 +829,30 @@ function McpPanelContent({
         >
           空闲时重载 MCP 配置
         </button>
-        <details>
-          <summary>查看或编辑 MCP 服务配置</summary>
-          <McpConfiguration
-            key={projectId}
-            api={api}
-            projectId={projectId}
-            epoch={epoch}
-            enabled={configurationReady}
-            visible={visible}
-            onChanged={refresh}
-          />
-        </details>
       </section>
     </McpMediaProvider>
   );
 }
 
-export function McpPanel(props: Omit<ComponentProps<typeof McpPanelContent>, 'tab' | 'setTab'>) {
+export function McpPanel(props: Omit<ComponentProps<typeof McpPanelContent>, 'tab' | 'setTab' | 'catalogRevision'> & { onServiceSettings?: () => void }) {
   const [tab, setTab] = useState<'tools' | 'resources' | 'streams'>('tools');
-  const identity = JSON.stringify([props.epoch, props.runtimeEpoch ?? props.epoch, props.lease,
+  const [catalogRevision, setCatalogRevision] = useState(0);
+  const refresh = useCallback(() => setCatalogRevision(value => value + 1), []);
+  const visible = props.visible ?? true;
+  useEffect(() => props.events.subscribe(event => {
+    if (visible && props.connected && event.type === 'resync') refresh();
+  }), [props.events, props.connected, visible, refresh]);
+  const identity = JSON.stringify([props.api.csrf, props.epoch, props.runtimeEpoch ?? props.epoch, props.lease,
     props.threadId, props.projectId, props.connected]);
   const owner = useRef({ api: props.api, identity, generation: 0 });
   if (owner.current.api !== props.api || owner.current.identity !== identity)
     owner.current = { api: props.api, identity, generation: owner.current.generation + 1 };
-  return <McpPanelContent key={owner.current.generation} {...props} tab={tab} setTab={setTab} />;
+  return <>
+    <McpPanelContent key={owner.current.generation} {...props} tab={tab} setTab={setTab} catalogRevision={catalogRevision} />
+    <details hidden={!visible} inert={!visible}>
+      <summary>查看或编辑 MCP 服务配置</summary>
+      <McpConfiguration key={JSON.stringify([props.projectId, props.runtimeEpoch])} api={props.api} projectId={props.projectId}
+        epoch={`${props.epoch}:${catalogRevision}`} enabled={props.connected && props.configurationReady} visible={visible} onChanged={refresh} onServiceSettings={props.onServiceSettings} />
+    </details>
+  </>;
 }

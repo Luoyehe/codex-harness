@@ -215,9 +215,6 @@
   .composer-toolbar .spacer {
     display: none;
   }
-  .composer-toolbar .options-trigger {
-    font-size: 9px !important;
-  }
   .composer-intent select {
     min-width: 0;
     flex: 1;

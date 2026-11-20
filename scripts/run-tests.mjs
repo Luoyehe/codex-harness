@@ -1,3 +1,4 @@
+import { withTestReport } from './test-retention.mjs';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, lstatSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -92,26 +93,26 @@ export function prepareRun(mode, args, base = root) {
 export function runVitest(files, base = root, env = isolatedTestEnvironment(base)) {
   const require = createRequire(path.join(base, 'package.json'));
   const entry = path.join(path.dirname(require.resolve('vitest/package.json')), 'vitest.mjs');
-  const reports = path.join(base, '.work/test-results'); mkdirSync(reports, { recursive: true });
-  const output = path.join(mkdtempSync(path.join(reports, 'run-')), 'vitest.json');
-  // Positional Vitest filters are substrings. Explicitly exclude all unselected
-  // files, so an exact .ts request cannot accidentally also run a .tsx sibling.
-  const excludes = testInventory(base).filter(name => jsTest.test(name) && !files.includes(name)).flatMap(name => ['--exclude', name]);
-  const child = spawnSync(process.execPath, [entry, 'run', ...files, ...excludes, '--passWithNoTests=false', '--allowOnly=false', '--reporter=default', '--reporter=json', `--outputFile.json=${output}`], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
-  if (child.error || child.status !== 0) return { status: 'failed', exitCode: 1, tests: files };
-  try {
-    const report = JSON.parse(readFileSync(output, 'utf8'));
-    const executed = new Set(report.testResults.map(result => path.relative(base, result.name).replaceAll('\\', '/')));
-    if (report.success !== true || !Number.isSafeInteger(report.numTotalTests) || report.numTotalTests < 1 || report.numFailedTests !== 0 || files.some(name => !executed.has(name)) || [...executed].some(name => !files.includes(name))) throw new Error('Test report did not cover exactly the requested files');
-    const cases = report.testResults.flatMap(result => {
-      const file = path.relative(base, result.name).replaceAll('\\', '/');
-      return result.assertionResults.map(assertion => ({ id: `${file}::${assertion.fullName}`, file, status: assertion.status === 'passed' ? 'passed' : ['pending', 'todo', 'skipped'].includes(assertion.status) ? 'skipped' : 'failed' }));
-    });
-    if (new Set(cases.map(item => item.id)).size !== cases.length) throw new Error('Duplicate test identities cannot establish complete coverage');
-    if (report.numPendingTests || report.numTodoTests || report.testResults.some(result => !result.assertionResults?.length || result.assertionResults.some(assertion => ['pending', 'todo', 'skipped'].includes(assertion.status)))) return { status: 'skipped', exitCode: 3, tests: files, cases };
-    if (report.numPassedTests !== report.numTotalTests || report.testResults.some(result => result.assertionResults.some(assertion => assertion.status !== 'passed'))) throw new Error('Test assertions were not all verified as passed');
-    return { status: 'passed', exitCode: 0, tests: files, cases };
-  } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-test-evidence' }; }
+  return withTestReport(base, 'vitest', output => {
+    // Positional Vitest filters are substrings. Explicitly exclude all unselected
+    // files, so an exact .ts request cannot accidentally also run a .tsx sibling.
+    const excludes = testInventory(base).filter(name => jsTest.test(name) && !files.includes(name)).flatMap(name => ['--exclude', name]);
+    const child = spawnSync(process.execPath, [entry, 'run', ...files, ...excludes, '--passWithNoTests=false', '--allowOnly=false', '--reporter=default', '--reporter=json', `--outputFile.json=${output}`], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
+    if (child.error || child.status !== 0) return { status: 'failed', exitCode: 1, tests: files };
+    try {
+      const report = JSON.parse(readFileSync(output, 'utf8'));
+      const executed = new Set(report.testResults.map(result => path.relative(base, result.name).replaceAll('\\', '/')));
+      if (report.success !== true || !Number.isSafeInteger(report.numTotalTests) || report.numTotalTests < 1 || report.numFailedTests !== 0 || files.some(name => !executed.has(name)) || [...executed].some(name => !files.includes(name))) throw new Error('Test report did not cover exactly the requested files');
+      const cases = report.testResults.flatMap(result => {
+        const file = path.relative(base, result.name).replaceAll('\\', '/');
+        return result.assertionResults.map(assertion => ({ id: `${file}::${assertion.fullName}`, file, status: assertion.status === 'passed' ? 'passed' : ['pending', 'todo', 'skipped'].includes(assertion.status) ? 'skipped' : 'failed' }));
+      });
+      if (new Set(cases.map(item => item.id)).size !== cases.length) throw new Error('Duplicate test identities cannot establish complete coverage');
+      if (report.numPendingTests || report.numTodoTests || report.testResults.some(result => !result.assertionResults?.length || result.assertionResults.some(assertion => ['pending', 'todo', 'skipped'].includes(assertion.status)))) return { status: 'skipped', exitCode: 3, tests: files, cases };
+      if (report.numPassedTests !== report.numTotalTests || report.testResults.some(result => result.assertionResults.some(assertion => assertion.status !== 'passed'))) throw new Error('Test assertions were not all verified as passed');
+      return { status: 'passed', exitCode: 0, tests: files, cases };
+    } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-test-evidence' }; }
+  });
 }
 
 export function executePlan(plan, base = root, dependencies = {}, env = isolatedTestEnvironment(base)) {

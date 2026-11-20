@@ -13,7 +13,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
+from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, atomic_write, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
 from .safe_fs import durable_tree, extract_tar, inspect_tree, snapshot, stable_identity
 from .system import System, run
 from .dependency_patch import PATCH_SETTINGS, copy_approved_patch, read_approved_patch, validate_patch_lock, verify_installed_patch
@@ -30,9 +30,15 @@ CODEX_INTEGRITIES = {
 SOURCE_ROOTS = {"src", "web", "protocol", "patches"}
 SOURCE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.server.json", "tsconfig.base.json"}
 MAX_LOCK_BYTES = 8 * 1024**2
-APPROVED_OVERRIDES = {"@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2", "zod": "4.6.7",
-                      "@modelcontextprotocol/sdk@1.32.2>@hono/node-server": "1.19.19",
-                      "hono": "4.13.16"}
+APPROVED_OVERRIDES = {
+    "@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2",
+    "@modelcontextprotocol/sdk@1.32.2>@hono/node-server": "1.19.19",
+    "@modelcontextprotocol/sdk@1.32.2>hono": "4.13.16",
+    "@hono/node-server@1.19.19>hono": "4.13.16",
+    "@modelcontextprotocol/sdk@1.32.2>zod": "4.6.7",
+    "@z_ai/mcp-server@0.1.6>zod": "4.6.7",
+    "zod-to-json-schema@3.25.2>zod": "4.6.7"
+}
 WORKSPACE_SETTINGS = {"packages": ["."], "minimumReleaseAge": 1440, "blockExoticSubdeps": True,
                       "trustPolicy": "no-downgrade", "strictDepBuilds": True, "ignoreScripts": True,
                       "overrides": APPROVED_OVERRIDES, "patchedDependencies": PATCH_SETTINGS}
@@ -59,6 +65,14 @@ def download(url: str, output: Path, expected: str, algorithm: str = "sha256") -
             target.write(data)
     actual = sha.hexdigest() if algorithm == "sha256" else base64.b64encode(sha.digest()).decode()
     require(actual == expected, "Official distribution checksum mismatch", "integrity")
+
+
+def stage_build_tool(stage: Path) -> Path:
+    # A reviewed checkout may update an older installed control generation.
+    # Publish its matching launcher outside the build UID's writable directory.
+    target = stage / "build_tool.mjs"
+    atomic_write(target, Path(__file__).with_name("build_tool.mjs").read_bytes(), 0o444)
+    return target
 
 
 def pack_source(source: Path, output: Path) -> None:
@@ -172,7 +186,7 @@ def dependency_input(source: Path) -> tuple[dict, str, dict]:
     for line in blocks[0].splitlines():
         if not line:
             continue
-        match = re.fullmatch(r"  (?:'([^']+)'|([a-z0-9._-]+)): ([0-9]+\.[0-9]+\.[0-9]+)", line)
+        match = re.fullmatch(r"  (?:'([^']+)'|([a-z0-9@.>_-]+)): ([0-9]+\.[0-9]+\.[0-9]+)", line)
         require(match is not None, "Unsupported lock override declaration")
         key = match[1] or match[2]
         require(key not in selected, "Duplicate lock override declaration")
@@ -385,8 +399,9 @@ class Builder:
         offline = pnpm_command(tools, build / "store", build / "app", build / "metadata")
         self.system.isolated(self.layout, "install-" + identity,
                              offline + ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"], build / "app", build, network=False, toolchain=tools)
-        for label, command in (("tsc", [node, "node_modules/typescript/bin/tsc", "-p", "tsconfig.server.json"]),
-                               ("web", [node, "node_modules/vite/bin/vite.js", "build", "--config", "web/vite.config.ts"]),
+        build_tool = str(stage_build_tool(stage))
+        for label, command in (("tsc", [node, build_tool, "tsc", "-p", "tsconfig.server.json"]),
+                               ("web", [node, build_tool, "vite", "build", "--config", "web/vite.config.ts"]),
                                ("gateway-check", [node, "--check", "dist/src/gateway/main.js"]),
                                ("worker-check", [node, "--check", "dist/src/runtime/main.js"])):
             self.system.isolated(self.layout, label + "-" + identity, command, build / "app", build, network=False, toolchain=tools)

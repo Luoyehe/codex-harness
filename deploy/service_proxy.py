@@ -103,21 +103,25 @@ def normalize_direct_domains(value):
     return sorted(set(result))
 
 
+def listeners(port):
+    sniff = {"enabled": True, "destOverride": ["http", "tls"], "routeOnly": False}
+    return [{"tag": "tcp4", "listen": "127.0.0.1", "port": port, "protocol": "dokodemo-door",
+                          "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
+                         {"tag": "tcp6", "listen": "::1", "port": port, "protocol": "dokodemo-door",
+                          "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
+                         {"tag": "http", "listen": "127.0.0.1", "port": port + 1, "protocol": "http", "settings": {}}]
+
+
 def configuration(value, port, direct_domains=None):
     require(type(port) is int and 1024 <= port <= 65534, "Proxy port must leave room for its adjacent HTTP listener")
     # Replace a locally resolved destination with its HTTP Host/TLS SNI. Keep
     # unmatched domains unresolved here so poisoned local DNS cannot route them
     # through the literal-IP direct rules instead of the remote VLESS resolver.
-    sniff = {"enabled": True, "destOverride": ["http", "tls"], "routeOnly": False}
     domains = normalize_direct_domains([] if direct_domains is None else direct_domains)
     direct_rules = ([{"type": "field", "domain": ["full:" + host for host in domains], "outboundTag": "direct"}]
                     if domains else [])
     return {"log": {"loglevel": "none", "access": "none", "error": "none"},
-            "inbounds": [{"tag": "tcp4", "listen": "127.0.0.1", "port": port, "protocol": "dokodemo-door",
-                          "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
-                         {"tag": "tcp6", "listen": "::1", "port": port, "protocol": "dokodemo-door",
-                          "settings": {"network": "tcp", "followRedirect": True}, "sniffing": sniff},
-                         {"tag": "http", "listen": "127.0.0.1", "port": port + 1, "protocol": "http", "settings": {}}],
+            "inbounds": listeners(port),
             "outbounds": [outbound(value), {"tag": "direct", "protocol": "freedom", "settings": {}}],
             "routing": {"domainStrategy": "AsIs", "rules": direct_rules + [
                 {"type": "field", "domain": ["domain:localhost", "domain:bigmodel.cn"], "outboundTag": "direct"},
@@ -397,18 +401,19 @@ def require_available_ports(manager, port):
     current = selection(manager.config)
     if current is not None and current["enabled"] and current["port"] == port:
         return
-    for candidate in (port, port + 1):
-        for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
-            try:
-                with socket.socket(family, socket.SOCK_STREAM) as probe:
-                    if family == socket.AF_INET6: probe.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
-                    probe.bind((address, candidate))
-            except OSError as exc:
-                import errno
-                from .common import DeployError
-                if exc.errno in (errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL, errno.EPROTONOSUPPORT):
-                    raise DeployError("proxy_unsupported", "Service proxy requires IPv4 and IPv6 loopback; enable both before changing running services") from exc
-                raise DeployError("port_conflict", "Proxy listener is occupied or cannot be bound") from exc
+    for listener in listeners(port):
+        address, candidate = listener["listen"], listener["port"]
+        family = socket.AF_INET6 if ":" in address else socket.AF_INET
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as probe:
+                if family == socket.AF_INET6: probe.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+                probe.bind((address, candidate))
+        except OSError as exc:
+            import errno
+            from .common import DeployError
+            if exc.errno in (errno.EAFNOSUPPORT, errno.EADDRNOTAVAIL, errno.EPROTONOSUPPORT):
+                raise DeployError("proxy_unsupported", "Service proxy requires IPv4 and IPv6 loopback; enable both before changing running services") from exc
+            raise DeployError("port_conflict", "Proxy listener is occupied or cannot be bound") from exc
 
 
 def prerequisites():

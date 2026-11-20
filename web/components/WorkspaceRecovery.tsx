@@ -1,3 +1,4 @@
+import { recoveryStates, statusLabel } from '../lib/status-labels';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
@@ -25,12 +26,24 @@ type Record = {
   manifest?: string;
   discarded?: boolean;
   incomplete?: boolean;
+  previouslyPublishedState?: string;
+  resolution?: 'published' | 'retained';
+  unpublishedState?: {sha256: string; bytes: number; state: string | null};
+  retainedState?: {sha256: string; bytes: number; state: string | null};
   entries: Entry[];
 };
 function checkedRecord(value: unknown, id: string): Record {
   const record = object(value);
   if (
     record.operationId !== id ||
+    (record.previouslyPublishedState !== undefined && typeof record.previouslyPublishedState !== 'string') ||
+    (record.resolution !== undefined && !['published', 'retained'].includes(String(record.resolution))) ||
+    [record.unpublishedState, record.retainedState].some(raw => {
+      if (raw === undefined) return false;
+      const evidence = object(raw);
+      return !validRevision(evidence.sha256) || !Number.isSafeInteger(evidence.bytes) || Number(evidence.bytes) < 0 ||
+        (evidence.state !== null && typeof evidence.state !== 'string');
+    }) ||
     !Array.isArray(record.entries) ||
     record.entries.length > 2 ||
     record.entries.some((value) => {
@@ -217,7 +230,7 @@ export function WorkspaceRecovery({
           <option value="">选择原操作编号</option>
           {list.data?.records.map((record) => (
             <option key={record.operationId} value={record.operationId}>
-              {record.operationId} · {record.discarded ? '备份已清理' : record.state} ·{' '}
+              {record.operationId} · {record.discarded ? '备份已清理' : statusLabel(record.state, recoveryStates)} ·{' '}
               {record.entries.length} 份材料
             </option>
           ))}
@@ -230,8 +243,12 @@ export function WorkspaceRecovery({
           {detail.data && (
             <>
               <p className="small path">
-                原生材料状态：{detail.data.state} · {detail.data.operationId}
+                原生材料状态：{statusLabel(detail.data.state, recoveryStates)} · {detail.data.operationId}
               </p>
+              {detail.data.previouslyPublishedState && <p className="small">先前公布的记录状态 · {statusLabel(detail.data.previouslyPublishedState, recoveryStates)}</p>}
+              {detail.data.resolution && <p className="small">{detail.data.resolution === 'published' ? '已核对并公布完整暂存记录。' : '已保留不完整的暂存材料，原操作仍须核对。'}</p>}
+              {([['未公布的暂存记录', detail.data.unpublishedState], ['保留的暂存记录', detail.data.retainedState]] as const).map(([label, evidence]) =>
+                evidence && <p key={label} className="small path">{label} · {evidence.bytes} 字节 · {statusLabel(evidence.state, recoveryStates)} · SHA-256 {evidence.sha256}</p>)}
               {detail.data.incomplete && (
                 <p className="workspace-warning">此记录不完整，不能据此判断原操作成功。</p>
               )}
@@ -273,6 +290,7 @@ export function WorkspaceRecovery({
                     <p className="small muted">
                       {entry.binary
                         ? '二进制内容，可按原字节恢复。'
+                        : entry.previewUnavailable === 'file_too_large' ? '文件超过预览大小限制，可按原字节恢复。'
                         : entry.previewUnavailable
                           ? '文本转义后超过预览预算，未截取为完整预览。'
                           : entry.kind === 'directory'

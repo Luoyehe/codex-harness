@@ -6,6 +6,7 @@ import { Events } from './lib/events';
 import { consumeThreadOperations, listOperations, reconcileOperation, retireOldTerminalHandoffs } from './lib/operations';
 import {
   array,
+  composing,
   message,
   object,
   type HarnessEvent,
@@ -20,6 +21,8 @@ import {
   branchDraftSource,
   draftChanged,
   emptyDraft,
+  readDraft,
+  clearDraftSnapshot,
   executionDraftContext,
   executionDraftKey,
   writeDraft,
@@ -135,7 +138,7 @@ export function Workspace({
     [mobile, setMobile] = useState(false),
     [attachmentContext, setAttachmentContext] = useState(() => uuid());
   const [sidebarManagement, setSidebarManagement] = useState<{
-    selection: SidebarAction; key: string; navigation: number; canLeave: () => boolean;
+    selection: SidebarAction; key: string; navigation: number; canLeave: () => boolean; returnToProjects?: boolean;
   }>();
   const [threadTerminalsMounted, setThreadTerminalsMounted] = useState(false),
     [predictionMounted, setPredictionMounted] = useState(false);
@@ -145,6 +148,12 @@ export function Workspace({
   const threadMenu = useRef<HTMLDetailsElement>(null),
     workspaceBody = useRef<HTMLDivElement>(null),
     composerSlot = useRef<HTMLDivElement>(null);
+  const [ownsTerminal, setOwnsTerminal] = useState(false);
+  const [terminalSwitch, setTerminalSwitch] = useState<typeof terminalProgram>();
+  const openTerminalProgram = (next: typeof terminalProgram) => {
+    if (next !== terminalProgram && ownsTerminal) { setTerminalSwitch(next); return; }
+    setTerminalProgram(next); setTerminalMounted(true); setPanel('terminal');
+  };
   const [panelFocusRevision, setPanelFocusRevision] = useState(0),
     pendingPanelFocus = useRef(false);
   const setPanel = (next: typeof panel, focus = true) => {
@@ -160,13 +169,10 @@ export function Workspace({
     const heading = [...(workspaceBody.current?.querySelectorAll<HTMLElement>('h2,h3') ?? [])].find(
       (element) => !element.closest('[hidden]'),
     );
-    const target =
-      panel === 'chat'
-        ? composerSlot.current?.querySelector<HTMLTextAreaElement>('textarea')
-        : (heading ?? workspaceBody.current);
+    const target = panel === 'chat' ? workspaceBody.current : (heading ?? workspaceBody.current);
     if (target) {
       if (!(target instanceof HTMLTextAreaElement)) target.tabIndex = -1;
-      target.focus();
+      target.focus({ preventScroll: true });
     }
   }, [panel, panelFocusRevision, active, modal]);
   useEffect(() => {
@@ -189,6 +195,7 @@ export function Workspace({
     [reviewTarget, setReviewTarget] = useState<ReviewTarget>();
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(new Set<string>());
+  const newlyAddedProject = useRef<{ id: string; before: unknown } | undefined>(undefined);
   const [draftGuard, setDraftGuard] = useState(false),
     [discardRevision, setDiscardRevision] = useState<string>();
   const pendingNavigation = useRef<{ projectId: string; threadId: string; key: string; mode: DraftMode; apply: () => void } | undefined>(undefined)
@@ -214,6 +221,11 @@ export function Workspace({
     }
   });
   const committedUrl = useRef(location.href);
+  const committedIndex = useRef<number>(Number.isSafeInteger(history.state?.harnessIndex) ? history.state.harnessIndex : 0);
+  const restoringIndex = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    history.replaceState({ ...history.state, harnessIndex: committedIndex.current }, '', location.href);
+  }, []);
   const changeContext = (nextProject: string, nextThread: string, apply: () => void, accepted?: () => boolean) => {
     if (executionBlocked) { setError('执行身份已变化或尚未确认。请先保留当前草稿并完成身份切换。'); return false; }
     if (!draftState.canNavigateTo(executionDraftKey(nextThread || `new:${nextProject}`, draftMode)) && !accepted?.()) {
@@ -229,7 +241,7 @@ export function Workspace({
     return true;
   };
   const navigate = (id: string, settings: {
-    projectId?: string; preserveAttachments?: boolean; fromHistory?: boolean; accepted?: () => boolean;
+    afterNavigate?: () => void; keepDrawer?: boolean; historyIndex?: number; historyUrl?: string; projectId?: string; preserveAttachments?: boolean; fromHistory?: boolean; accepted?: () => boolean;
   } = {}) => changeContext(settings.projectId ?? projectId, id, () => {
     navigation.current++;
     setModal('');
@@ -238,32 +250,40 @@ export function Workspace({
     if (!settings.preserveAttachments && executionDraftKey(id || `new:${settings.projectId ?? projectId}`, draftMode) !== contextKey)
       setAttachmentContext(uuid());
     setPanel('chat');
-    setMobile(false);
+    if (!settings.keepDrawer) setMobile(false);
     setError('');
-    const url = new URL(location.href);
+    const url = new URL(settings.historyUrl ?? location.href);
     if (id) url.searchParams.set('thread', id);
     else url.searchParams.delete('thread');
     if (draftMode === 'root') url.searchParams.set('executionMode', 'root');
     else url.searchParams.delete('executionMode');
-    if (!settings.fromHistory) history.pushState({}, '', url);
+    if (!settings.fromHistory) {
+      const index = committedIndex.current + 1;
+      history.pushState({ harnessIndex: index }, '', url);
+      committedIndex.current = index;
+    } else if (settings.historyIndex !== undefined) {
+      const offset = settings.historyIndex - (history.state?.harnessIndex ?? committedIndex.current);
+      if (offset) { restoringIndex.current = settings.historyIndex; history.go(offset); }
+      committedIndex.current = settings.historyIndex;
+    }
     committedUrl.current = url.href;
+    settings.afterNavigate?.();
   }, settings.accepted);
   const latestNavigate = useRef(navigate);
   const continueNavigation = () => {
     const pending = pendingNavigation.current;
     pendingNavigation.current = undefined;
     if (!pending || pending.key !== contextKey || pending.mode !== draftMode) return;
-    if (!pending.threadId && !projects.some(project => project.id === pending.projectId)) {
+    if (!pending.threadId && pending.projectId && !projects.some(project => project.id === pending.projectId)) {
       setError('原先选择的项目已不可用，草稿已保留，请重新选择。'); return;
     }
     changeContext(pending.projectId, pending.threadId, pending.apply);
   };
   latestNavigate.current = navigate;
-  const openThread = (id: string) => {
-    if (!navigate(id)) return false;
-    setResumeRevision((v) => v + 1);
-    return true;
-  };
+  const openThread = (id: string, afterNavigate?: () => void) => navigate(id, { afterNavigate: () => {
+    setResumeRevision(v => v + 1);
+    afterNavigate?.();
+  } });
   // Keep drafts and receipts mounted during reauthentication, but release native
   // modal ownership immediately. A dialog under [hidden] still makes login inert.
   useEffect(() => {
@@ -276,6 +296,11 @@ export function Workspace({
   const receive = useCallback(
     (event: HarnessEvent) => {
       events.publish(event);
+      if (event.type === 'resync') {
+        setConfigRevision(value => value + 1);
+        setResumeRevision(value => value + 1);
+        setArchiveSelection(undefined);
+      }
       if (event.type === 'receipt' && typeof event.data.operationId === 'string') {
         void reconcileOperation(event.data.operationId, event.data).catch((error) => setError(message(error)));
       }
@@ -314,15 +339,15 @@ export function Workspace({
     setModal(current => current === 'settings-admin' ? current : '');
     const url = new URL(location.href); url.searchParams.delete('thread');
     if (next === 'root') url.searchParams.set('executionMode', 'root'); else url.searchParams.delete('executionMode');
-    history.replaceState({}, '', url); committedUrl.current = url.href;
+    history.replaceState({ ...history.state, harnessIndex: committedIndex.current }, '', url); committedUrl.current = url.href;
     try { sessionStorage.setItem('harness.execution-mode', next); } catch { /* The URL also identifies this draft namespace. */ }
   }, [modeChanged, runtimeNetwork.executionMode?.mode, draftState.hasUnsaved, draftState.revision, projectId]);
   const projectsResource = useResource(resourceEpoch, (signal) =>
-    api.call('project/list', {}, signal),
+    api.call('project/list', {}, signal), true, true,
   );
-  const projects = array<Project & { path?: string }>(
+  const projects = useMemo(() => array<Project & { path?: string }>(
     projectsResource.data?.projects ?? projectsResource.data?.data,
-  ).map((p) => ({ ...p, cwd: p.cwd ?? p.path ?? '' }));
+  ).map((p) => ({ ...p, cwd: p.cwd ?? p.path ?? '' })), [projectsResource.data]);
   const threadListKey = `${resourceEpoch}:${projectId}:${archived}:${search}:${threadOrder}`;
   const threads = usePaged<Thread>(
     api,
@@ -411,6 +436,21 @@ export function Workspace({
   // A historical thread owns its cwd. A remembered sidebar selection must never
   // authorize file or terminal actions in another project while history loads.
   const project = threadId ? projects.find(p => p.cwd === conversation.thread?.cwd) : projects.find(p => p.id === projectId);
+  const [showOfflineRecovery, setShowOfflineRecovery] = useState(false);
+  const [connectionNotice, setConnectionNotice] = useState('');
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (network.connection === 'connected' && network.runtimeConnected && network.activityReady) {
+      if (wasOffline.current) setConnectionNotice('连接已恢复。');
+      wasOffline.current = false;
+      setShowOfflineRecovery(false);
+      return;
+    }
+    if (network.connection === 'offline' || (network.connection === 'connected' && !network.runtimeConnected)) wasOffline.current = true;
+    setConnectionNotice('');
+    const timer = setTimeout(() => setShowOfflineRecovery(true), 3000);
+    return () => clearTimeout(timer);
+  }, [network.connection, network.runtimeConnected, network.activityReady]);
   const missingThreadProject = Boolean(threadId && conversation.thread?.cwd && !project);
   const operations = useOperations();
   useEffect(() => {
@@ -427,20 +467,22 @@ export function Workspace({
     )
     .map((op) => op.id)
     .join(',');
+  const modelReceiptKey = operations.operations.filter(op => op.state === 'accepted' &&
+    (!INPUT_METHODS.includes(op.method) || op.settingsOverride !== false) && (op.resolvedThreadId || op.threadId) === threadId).map(op => op.id).join(',');
   const resume = useResume(
     api,
     network.runtimeConnected ? threadId : '',
     `${resourceEpoch}:${resumeRevision}:${settingsReceipts}`,
-    conversation.refresh,
+    conversation.refresh, resourceEpoch, `${resourceEpoch}:${resumeRevision}:${modelReceiptKey}`,
   );
   const { resumedThread, threadDefaults } = resume;
   const composerDefaults = threadId ? threadDefaults : defaults.data;
   const composerDefaultsLoading = threadId ? resumedThread !== threadId :
     defaults.loading || JSON.stringify(options) !== JSON.stringify(debouncedOptions);
   useEffect(() => {
-    if (threadId && resumedThread === threadId && threadDefaults && settingsReceipts)
+    if (threadId && resumedThread === threadId && threadDefaults && !resume.loading && settingsReceipts)
       void consumeThreadOperations(threadId, settingsReceipts.split(',')).catch((failure) => setError(message(failure)));
-  }, [threadId, resumedThread, threadDefaults, settingsReceipts]);
+  }, [threadId, resumedThread, threadDefaults, resume.loading, settingsReceipts]);
   const effectiveProvider = options.modelProvider ?? (threadId ? threadDefaults?.modelProvider : defaults.data?.modelProvider);
   const modelCatalog = useModelCatalogRefresh(api, typeof effectiveProvider === 'string' ? effectiveProvider : undefined,
     active && network.configurationReady && network.connection === 'connected' && network.runtimeConnected, resourceEpoch,
@@ -493,13 +535,14 @@ export function Workspace({
     !operations.error &&
     directInputAllowed;
   useEffect(() => {
-    if (restoreBranch && threadId === restoreBranch.threadId && conversation.ready) {
+    if (restoreBranch && threadId === restoreBranch.threadId && conversation.loadedThreadId === threadId && conversation.ready) {
       const turn = conversation.turns.find((item) => item.id === restoreBranch.turnId);
       if (turn) setBranchAction({ turn, action: 'edit' });
-      else setError('原回合已不在会话历史中。分支草稿仍保留，可在设置中查看和复制。');
+      else setError(conversation.truncated ? '最近的会话窗口没有显示原回合。分支草稿仍保留，可在设置中查看和复制，或在会话中搜索原消息。' :
+        '原回合已不在会话历史中。分支草稿仍保留，可在设置中查看和复制。');
       setRestoreBranch(undefined);
     }
-  }, [restoreBranch, threadId, conversation.ready, conversation.turns]);
+  }, [restoreBranch, threadId, conversation.loadedThreadId, conversation.ready, conversation.turns]);
   const visiblePrompts = executionBlocked ? [] : prompts.prompts.filter((p) => !p.threadId || p.threadId === threadId);
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query), 250);
@@ -518,8 +561,29 @@ export function Workspace({
     }
   }, [theme]);
   useEffect(() => {
-    if (executionBlocked || !projects.length || threadId) return;
-    if (!projects.some((p) => p.id === projectId)) changeContext(projects[0]!.id, threadId, () => {});
+    if (executionBlocked || !projectsResource.data || threadId) return;
+    if (newlyAddedProject.current?.id === projectId) {
+      if (projectsResource.data === newlyAddedProject.current.before && !projects.some(p => p.id === projectId)) return;
+      newlyAddedProject.current = undefined;
+    }
+    if (projects.some(p => p.id === projectId)) return;
+    const next = projects[0]?.id ?? '';
+    if (!next && !projectId) return;
+    if (!projectId && draftState.key === contextKey && (draft || draftState.attachments.length ||
+        draftState.references.length || draftState.extraContext.length || draftState.outputSchema || Object.keys(options).length)) {
+      try {
+        if (!draftState.flush()) return;
+        const targetKey = executionDraftKey('new:' + next, draftMode), target = readDraft(targetKey);
+        if (!target.text && !target.attachments.length && !target.references.length && !target.extraContext.length &&
+            !target.outputSchema && !Object.keys(target.options).length) {
+          writeDraft({ key: targetKey, text: draft, attachments: draftState.attachments, options,
+            references: draftState.references, extraContext: draftState.extraContext, outputSchema: draftState.outputSchema,
+            revision: uuid(), updatedAt: Date.now() });
+          clearDraftSnapshot(contextKey, draftState.revision);
+        } else setError('项目已有独立草稿，欢迎页的输入已留存在设置的本地草稿中。');
+      } catch (e) { setError('草稿尚未安全交接：' + message(e)); return; }
+    } else if (projectId) setError('当前项目已从项目列表移除。原草稿仍保留，请选择可用项目。');
+    changeContext(next, threadId, () => {});
   }, [executionBlocked, projectsResource.data, threadId, projectId]);
   useEffect(() => {
     if (projectId && projects.some((p) => p.id === projectId)) {
@@ -534,15 +598,21 @@ export function Workspace({
     if (executionBlocked || !threadId || !conversation.thread?.cwd || !projects.length) return;
     const matching = projects.find((p) => p.cwd === conversation.thread?.cwd);
     if (matching) changeContext(matching.id, threadId, () => {});
-    else setError('此会话的工作目录尚未注册。请先添加对应项目。');
+
   }, [executionBlocked, conversation.thread?.cwd, projectsResource.data, threadId]);
   useEffect(() => {
     const back = () => {
       const url = new URL(location.href), mode = url.searchParams.get('executionMode') === 'root' ? 'root' : 'native';
-      if (mode !== latestDraftMode.current) { setError('此历史位置属于另一执行模式，请先切换模式。'); history.pushState({}, '', committedUrl.current); return; }
-      if (latestNavigate.current(new URL(location.href).searchParams.get('thread') ?? '', { fromHistory: true }))
-        setResumeRevision((v) => v + 1);
-      else history.pushState({}, '', committedUrl.current);
+      const index = history.state?.harnessIndex;
+      if (restoringIndex.current !== undefined && index === restoringIndex.current) { restoringIndex.current = undefined; return; }
+      if (mode !== latestDraftMode.current) setError('此历史位置属于另一执行模式，请先切换模式。');
+      else if (latestNavigate.current(url.searchParams.get('thread') ?? '', { fromHistory: true,
+        historyIndex: Number.isSafeInteger(index) ? index : undefined, historyUrl: url.href,
+        afterNavigate: () => setResumeRevision(v => v + 1) })) return;
+      if (Number.isSafeInteger(index) && index !== committedIndex.current) {
+        restoringIndex.current = committedIndex.current;
+        history.go(committedIndex.current - index);
+      } else history.replaceState({ ...history.state, harnessIndex: committedIndex.current }, '', committedUrl.current);
     };
     window.addEventListener('popstate', back);
     return () => window.removeEventListener('popstate', back);
@@ -595,11 +665,12 @@ export function Workspace({
     }
   };
   const manageSidebar = (selection: SidebarAction) => {
-    setSidebarManagement({ selection, key: uuid(), navigation: navigation.current, canLeave: draftState.canLeave });
+    setSidebarManagement({ selection, key: uuid(), navigation: navigation.current, canLeave: draftState.canLeave, returnToProjects: modal.startsWith('settings') });
     setMobile(false);
     setModal('sidebar-management');
   };
   const send = async (attachments: Attachment[], intent: SendIntent = 'send'): Promise<boolean> => {
+    if (!draftState.flush()) return false;
     const submit = (method: string, params: Record<string, unknown>) => draftMode === 'root'
       ? api.mutate(method, params, 'root') : api.mutate(method, params);
     const key = contextKey,
@@ -691,6 +762,13 @@ export function Workspace({
     }
   };
   const modalNavigation = navigation.current;
+  const afterProjectCreated = useRef<(id: string) => void>(() => {});
+  afterProjectCreated.current = id => {
+    newlyAddedProject.current = { id, before: projectsResource.data };
+    if (!navigate('', { projectId: id, afterNavigate: () => {
+      setArchived(false); setQuery(''); setSearch('');
+    } })) setError('项目已添加。当前草稿尚未安全保存，请保留或复制输入后再切换。');
+  };
   const loadThread = async (automatic = false) => {
     if (
       !threadId || foreignDraftModel ||
@@ -710,13 +788,15 @@ export function Workspace({
     setError('');
     try {
       let modelOptions: Record<string, unknown> | undefined;
-      if (options.model && options.modelProvider) {
-        const matches = providerModels(models.items, options.modelProvider, directoryComplete).filter(row => (row.model ?? row.id) === options.model);
+      if (options.model) {
+        const provider = options.modelProvider ?? sourceProvider;
+        if (!provider) throw new Error('会话供应商尚未确认，请先重新读取会话。');
+        const matches = providerModels(models.items, provider, directoryComplete).filter(row => (row.model ?? row.id) === options.model);
         const selected = matches.length === 1 ? matches[0] : undefined;
         if (!selected || models.loading) throw new Error('请从当前模型目录选择可用模型，再加载会话。');
         if (options.effort && !modelSupportsEffort(selected, options.effort))
           throw new Error('所选思考强度已不适用于当前模型，请重新选择或清除本次强度设置。');
-        modelOptions = { modelProvider: selected.modelProvider ?? options.modelProvider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
+        modelOptions = { modelProvider: selected.modelProvider ?? provider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
       await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) }, draftMode);
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
@@ -753,9 +833,13 @@ export function Workspace({
       setResumeRevision((v) => v + 1);
     }
   };
-  const workflowOpenThread = (id: string) => {
-    if (navigation.current === modalNavigation) openThread(id);
-  };
+  const currentOpenThread = useRef(openThread);
+  currentOpenThread.current = openThread;
+  const workflowOpenThread = useCallback((id: string) => {
+    if (navigation.current === modalNavigation) currentOpenThread.current(id);
+  }, [modalNavigation]);
+  const clearFocusTarget = useCallback(() => setFocusTarget(undefined), []);
+  const onMessageAction = useCallback((turn: Turn, action: 'fork' | 'edit' | 'revert') => setBranchAction({ turn, action }), []);
   const workflowHandoff = (id: string) => {
     refreshSidebar();
     if (navigation.current !== modalNavigation) return;
@@ -780,7 +864,7 @@ export function Workspace({
     return true;
   };
   const openWorkspace = (projectId: string, path = '') => {
-    if (!navigate('', { projectId })) return;
+    navigate('', { projectId, afterNavigate: () => {
     setWorkspaceMounted(true);
     setPanel('files');
     setWorkspaceRequest((previous) => ({
@@ -788,6 +872,7 @@ export function Workspace({
       path,
       revision: (previous?.revision ?? 0) + 1,
     }));
+    } });
   };
   const sidebar = (
     <Sidebar
@@ -822,15 +907,15 @@ export function Workspace({
       warning={search ? searchThreads.warning : threads.warning}
       more={search ? searchThreads.hasMore : threads.hasMore}
       onProject={(id) => {
-        navigate('', { projectId: id });
+        navigate('', { projectId: id, keepDrawer: mobile });
       }}
       onThread={(id) => void openThread(id)}
       onProjectAction={(target, action) => manageSidebar({ kind: 'project', target: { ...target }, action })}
       onThreadAction={(target, action) => manageSidebar({ kind: 'thread', target: { ...target }, action })}
       onNew={() => {
-        if (!navigate('')) return;
-        setArchived(false); setQuery(''); setSearch('');
-        refreshSidebar();
+        navigate('', { afterNavigate: () => {
+          setArchived(false); setQuery(''); setSearch(''); refreshSidebar();
+        } });
       }}
       onQuery={setQuery}
       onArchived={() => setArchived((v) => !v)}
@@ -857,13 +942,16 @@ export function Workspace({
       lease={`${network.epoch}:${network.connectionId}`}
       connected={active && network.connection === 'connected' && network.runtimeConnected}
     >
-      <div className="app-shell">
+      <div className="app-shell" onKeyDownCapture={event => {
+        if (event.key === 'Enter' && composing(event) && event.target instanceof HTMLInputElement && event.target.form)
+          event.preventDefault();
+      }}>
         <McpEventBridge
           api={api}
           events={events}
           lease={`${network.epoch}:${network.revision}:${active && network.runtimeConnected ? 'online' : 'offline'}`}
         />
-        <div className="desktop-sidebar">{sidebar}</div>
+        <div className="desktop-sidebar">{!mobile && sidebar}</div>
         <main className="main-workspace">
           <header className="topbar">
             <button
@@ -911,9 +999,7 @@ export function Workspace({
                 aria-label="打开项目终端"
                 disabled={!project}
                 onClick={() => {
-                  setTerminalProgram('shell');
-                  setTerminalMounted(true);
-                  setPanel(panel === 'terminal' ? 'chat' : 'terminal');
+                  if (panel === 'terminal') setPanel('chat'); else openTerminalProgram('shell');
                 }}
               >
                 <Icon name="terminal" />
@@ -923,9 +1009,7 @@ export function Workspace({
                 aria-label="打开官方云任务界面"
                 disabled={!project}
                 onClick={() => {
-                  setTerminalProgram('codex-cloud');
-                  setTerminalMounted(true);
-                  setPanel('terminal');
+                  openTerminalProgram('codex-cloud');
                 }}
               >
                 <Icon name="cloud" />
@@ -950,7 +1034,7 @@ export function Workspace({
                     setPanel(panel === 'thread-terminals' ? 'chat' : 'thread-terminals');
                   }}
                 >
-                  <Icon name="terminal" />
+                  <Icon name="backgroundTerminal" />
                 </button>
               )}
                 <details
@@ -977,7 +1061,7 @@ export function Workspace({
                     }}
                   >
                     <button className="mobile-header-action" disabled={!project} onClick={() => {
-                      setTerminalProgram('codex-cloud'); setTerminalMounted(true); setPanel('terminal');
+                      openTerminalProgram('codex-cloud');
                     }}>官方云任务</button>
                     <button className="mobile-header-action" onClick={() => {
                       setProcessMounted(true); setPanel('process');
@@ -1121,10 +1205,11 @@ export function Workspace({
                 </button>
               </p>
             )}
+            <span role="status" aria-live="polite" className="sr-only">{connectionNotice}</span>
             {network.connection !== 'connected' && (
               <div className="connection-banner" role="status">
                 连接恢复后会核对任务状态；不会自动重发请求。
-                <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>
+                {showOfflineRecovery && <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>}
               </div>
             )}
             {network.connection === 'connected' &&
@@ -1132,9 +1217,13 @@ export function Workspace({
                 <div className="connection-banner" role="status">
                   {network.restarting ? '终端已退出，正在自动刷新后台环境…' : '后台尚未就绪，正在核对任务状态。'}
                   <button className="button small" onClick={() => setModal('settings-admin')}>查看服务与恢复</button>
-                  <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>
+                  {showOfflineRecovery && <button className="button small" onClick={() => setRecoveryOpen(true)}>强制停止并恢复</button>}
                 </div>
               )}
+            {draftProviderRelation === 'unknown' && <button className="button small" onClick={() => {
+              const { model, modelProvider, effort, ...rest } = options;
+              draftState.setOptions(rest);
+            }}>清除草稿模型选择，沿用会话设置</button>}
             {draftState.error && (
               <p className="error-banner" role="alert">
                 {draftState.error}
@@ -1172,7 +1261,7 @@ export function Workspace({
               recoveryEpoch={resourceEpoch}
             />
             {missingThreadProject && <p className="connection-banner" role="status">此会话的工作目录尚未注册。文件、终端及项目写入已停用；请添加对应项目。草稿与会话历史保留。</p>}
-            {network.error && <p className="connection-banner" role="status">{network.error} <button className="button small" onClick={() => { conversation.refresh(); network.clearError(); }}>重新读取并核对</button></p>}
+            {network.error && <p className="connection-banner" role="status">{network.error} <button className="button small" onClick={() => { conversation.recheck(); prompts.refresh(); network.clearError(); }}>重新读取并核对</button></p>}
             {(error || resume.error || conversation.error || prompts.error) && (
               <div className="error-banner" role="alert">
                 <span>{error || resume.error || conversation.error || prompts.error}</span>
@@ -1259,7 +1348,7 @@ export function Workspace({
                       row.items.some((item) => item.id === itemId),
                     );
                     setPanel('chat', false);
-                    if (turn) setFocusTarget({ turnId: turn.id, itemId });
+                    if (turn) { setError(previous => previous === '后台进程的历史条目尚未加载，请重新读取完整会话。' ? '' : previous); setFocusTarget({ turnId: turn.id, itemId }); }
                     else setError('后台进程的历史条目尚未加载，请重新读取完整会话。');
                   }}
                 />
@@ -1311,7 +1400,7 @@ export function Workspace({
               <div className="terminal-slot" hidden={panel !== 'files'}>
                 <WorkspacePanel
                   visible={active && panel === 'files'}
-                  idle={active && network.configurationReady}
+                  idle={active && network.activityReady}
                   onProjectsChanged={() => refreshSidebar(true)}
                   onSelectProject={(id) => {
                     navigate('', { projectId: id });
@@ -1357,7 +1446,8 @@ export function Workspace({
                       <button className="button" onClick={() => setPanel('chat')}>返回对话</button>
                     </div>
                   </section>}
-                  onShell={() => setTerminalProgram('shell')}
+                  onShell={() => openTerminalProgram('shell')}
+                  onOwnershipChange={setOwnsTerminal}
                   program={terminalProgram}
                   runtimeEpoch={network.epoch}
                   enabled={
@@ -1404,11 +1494,13 @@ export function Workspace({
                     timeline={conversation.timeline}
                     loading={conversation.loading}
                     complete={conversation.complete}
-                    onMore={() => void conversation.loadMore()}
+                    truncated={conversation.truncated}
+                    onMore={conversation.loadMore}
                     focusTarget={focusTarget}
+                    onLocateConsumed={clearFocusTarget}
                     active={conversation.active}
                     actionsDisabled={!workflowEnabled || conversation.active}
-                    onAction={(turn, action) => setBranchAction({ turn, action })}
+                    onAction={onMessageAction}
                   />
                 ) : (
                   <Welcome
@@ -1498,7 +1590,7 @@ export function Workspace({
               existingThread={Boolean(threadId)}
               threadProvider={sourceProvider}
               notice={
-                modelCatalog.error || draftState.error ||
+                draftState.error || modelCatalog.error ||
                 (draftProviderRelation === 'unknown' ? '正在核对草稿模型的供应商归属，请完成模型目录读取后再发送。' : '') ||
                 (!directInputAllowed
                   ? '此子 Agent 尚未明确允许直接输入，可以查看结果。'
@@ -1535,8 +1627,14 @@ export function Workspace({
         </main>
         {active && (
           <>
+            {terminalSwitch && <Dialog title="切换终端程序" onClose={() => setTerminalSwitch(undefined)}>
+              <p>当前终端仍可能接受输入。切换后，原终端将暂停输入，需先关闭它才能打开新程序。</p>
+              <button className="button" onClick={() => setTerminalSwitch(undefined)}>取消</button>
+              <button className="button" onClick={() => { setTerminalProgram(terminalSwitch); setTerminalSwitch(undefined); setTerminalMounted(true); setPanel('terminal'); }}>确认切换</button>
+            </Dialog>}
             {mobile && (
               <Dialog title="导航" onClose={() => setMobile(false)}>
+                {executionBlocked && <p role="status">执行身份尚未确认，请在连接恢复后核对身份再切换会话。</p>}
                 {sidebar}
               </Dialog>
             )}
@@ -1583,7 +1681,7 @@ export function Workspace({
                 api={api}
                 epoch={resourceEpoch}
                 projects={projects}
-                projectId={projectId}
+                projectId={project?.id ?? ''}
                 threadId={threadId}
                 enabled={
                   active &&
@@ -1616,14 +1714,7 @@ export function Workspace({
                 onAdded={() => refreshSidebar(true)}
                 onOpen={(id) => {
                   if (navigation.current !== modalNavigation) return;
-                  if (!draftState.canLeave()) {
-                    setError('项目已添加。当前草稿尚未安全保存，请先复制或保存草稿，再从项目列表打开新项目。');
-                    return;
-                  }
-                  if (!navigate('', { projectId: id })) return;
-                  setArchived(false);
-                  setQuery('');
-                  setSearch('');
+                  afterProjectCreated.current(id);
                 }}
               />
             )}{' '}
@@ -1635,6 +1726,7 @@ export function Workspace({
                 selection={sidebarManagement.selection}
                 enabled={active && network.connection === 'connected' &&
                   (sidebarManagement.selection.kind === 'project' || (network.runtimeConnected && network.activityReady))}
+                unavailableReason={network.connection !== 'connected' ? '当前已离线。连接恢复后会重新核对，再确认操作。' : '后台正在恢复，请等待会话状态就绪。'}
                 beforeSubmit={() => {
                   const { selection, navigation: started, canLeave } = sidebarManagement;
                   const leavesCurrent = selection.kind === 'project'
@@ -1645,7 +1737,7 @@ export function Workspace({
                 onAccepted={() => {
                   const { selection, navigation: started, canLeave } = sidebarManagement;
                   refreshSidebar(true);
-                  setModal(current => current === 'sidebar-management' ? '' : current);
+                  setModal(current => current === 'sidebar-management' ? (sidebarManagement.returnToProjects ? 'settings-projects' : '') : current);
                   if (navigation.current !== started) return;
                   if (selection.kind === 'project') {
                     if (selection.action !== 'remove' || selection.target.id !== projectId) return;
@@ -1653,7 +1745,8 @@ export function Workspace({
                       setError('项目已移除，当前输入仍保留。请先保存或复制草稿，再切换项目。');
                       return;
                     }
-                    navigate('', { projectId: projects.find(item => item.id !== selection.target.id)?.id ?? '' });
+                    navigate('', { projectId: projects.find(item => item.id !== selection.target.id)?.id ?? '',
+                      afterNavigate: () => { if (sidebarManagement.returnToProjects) setModal('settings-projects'); } });
                   } else if (selection.target.id === threadId) {
                     if (selection.action === 'rename') { conversation.refresh(); return; }
                     if (!canLeave()) {
@@ -1663,7 +1756,7 @@ export function Workspace({
                     navigate('');
                   }
                 }}
-                onClose={() => setModal('')}
+                onClose={() => setModal(sidebarManagement.returnToProjects ? 'settings-projects' : '')}
               />
             )}{' '}
             {modal === 'rename' && (
@@ -1679,7 +1772,7 @@ export function Workspace({
               />
             )}{' '}
             {recoveryOpen && <EmergencyRecovery api={api} onClose={() => setRecoveryOpen(false)} />}
-            {(modal === 'settings' || modal === 'settings-admin' || modal === 'settings-provider') && (
+            {(modal === 'settings' || modal === 'settings-admin' || modal === 'settings-provider' || modal === 'settings-projects') && (
               <SettingsOnDemand
                 loadingFallback={(failed, retry) => <Dialog title="设置" onClose={() => setModal('')} wide>
                   <p role={failed ? 'alert' : 'status'}>{failed ? '设置暂时无法加载，请检查连接后重试。对话与草稿仍然保留。' : '正在加载设置…'}</p>
@@ -1687,12 +1780,9 @@ export function Workspace({
                 </Dialog>}
                 navigationError={error}
                 onRecover={() => setRecoveryOpen(true)}
-                initialTab={modal === 'settings-admin' ? 'admin' : modal === 'settings-provider' ? 'provider' : 'general'}
+                initialTab={modal === 'settings-admin' ? 'admin' : modal === 'settings-provider' ? 'provider' : modal === 'settings-projects' ? 'projects' : 'general'}
                 onOpenNativeTerminal={(id) => {
-                  if (!navigate('', { projectId: id })) return;
-                  setTerminalProgram('codex');
-                  setTerminalMounted(true);
-                  setPanel('terminal');
+                  navigate('', { projectId: id, afterNavigate: () => openTerminalProgram('codex') });
                 }}
                 runtimeEpoch={network.epoch}
                 connectionId={network.connectionId}
@@ -1726,7 +1816,7 @@ export function Workspace({
                   if (context.mode !== draftMode || executionBlocked) { setError('此草稿属于另一执行模式，请先确认并切换到对应模式。'); return; }
                   const branch = branchDraftSource(context.key);
                   if (branch) {
-                    if (openThread(branch.threadId)) setRestoreBranch(branch);
+                    openThread(branch.threadId, () => setRestoreBranch(branch));
                     return;
                   }
                   if (context.key.startsWith('new:')) {
@@ -1781,6 +1871,7 @@ export function Workspace({
                 threadId={threadId}
                 epoch={resourceEpoch}
                 enabled={workflowEnabled}
+                queueManagementEnabled={active && network.connection === 'connected' && network.runtimeConnected && network.activityReady && !pending && !operations.error && directInputAllowed}
                 active={conversation.active}
                 events={events}
                 onOpenThread={workflowOpenThread}

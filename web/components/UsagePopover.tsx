@@ -19,8 +19,10 @@ export function UsagePopover({ usage }: { usage: unknown }) {
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, []);
-  return <details className="token-usage" ref={ref} onKeyDown={(event) => {
-    if (event.key === 'Escape' && ref.current) {
+  return <details className="token-usage" ref={ref} onBlur={event => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) event.currentTarget.open = false;
+  }} onKeyDown={(event) => {
+    if (event.key === 'Escape' && ref.current?.open) {
       ref.current.open = false;
       ref.current.querySelector('summary')?.focus();
       event.stopPropagation();

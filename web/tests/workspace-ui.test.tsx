@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
+import { DraftsSettings } from '../components/DraftsSettings';
 import { FileEditor } from '../components/FileEditor';
 import { WorkspacePanel } from '../components/WorkspacePanel';
 import { WorkspaceGit } from '../components/WorkspaceGit';
@@ -513,4 +514,77 @@ it('uses real ref selection only as a review target and never sends checkout or 
       ['workspace/git/status', 'workspace/git/diff', 'workspace/git/refs'].includes(args[0]),
     ),
   ).toBe(true);
+});
+
+it('coalesces a burst of large file edits, flushes the last character on navigation and protects a memory-only draft', () => {
+  const api = new Api(), props = editorProps(api), large = 'x'.repeat(260_000);
+  const store = vi.spyOn(Storage.prototype, 'setItem'), view = render(<FileEditor {...props} />);
+  const textarea = screen.getByRole('textbox', { name: '文件内容' });
+  try {
+    for (const ending of ['a', 'b', 'c', '末']) fireEvent.change(textarea, { target: { value: large + ending } });
+    expect(store).not.toHaveBeenCalled();
+    store.mockImplementation(() => { throw Error('storage unavailable'); });
+    view.unmount();
+    const blocked = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(blocked);
+    expect(blocked.defaultPrevented).toBe(true);
+    expect(readFileDraft(project.id, 'file.txt')?.text).toBe(large + '末');
+    const reopened = render(<DraftsSettings projects={[project]} onOpen={() => {}} />);
+    expect(screen.getByRole('button', { name: '下载文件草稿备份' })).toBeTruthy();
+    expect(screen.queryByText('没有未处理的本地草稿。')).toBeNull();
+    reopened.unmount();
+    store.mockRestore();
+    const retried = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(retried);
+    expect(retried.defaultPrevented).toBe(false);
+    expect(readFileDraft(project.id, 'file.txt', sessionStorage)).toMatchObject({ text: large + '末', baseRevision: a });
+  } finally { store.mockRestore(); }
+});
+
+it('removing only the damaged storage entry unlocks the mounted editor from its current server version', async () => {
+  const { fileDraftStorageKey, discardDamagedFileDraft } = await import('../lib/file-drafts');
+  const props = editorProps(new Api()), key = fileDraftStorageKey(project.id, 'file.txt');
+  sessionStorage.setItem(key, '{broken');
+  render(<FileEditor {...props} />); expect(screen.queryByRole('textbox', { name: '文件内容' })).toBeNull();
+  act(() => discardDamagedFileDraft(key, '{broken'));
+  const input = await screen.findByRole('textbox', { name: '文件内容' });
+  expect(input).toHaveProperty('value', 'base');
+  fireEvent.change(input, { target: { value: 'recovered edit' } });
+  expect(screen.getByRole('button', { name: '保存文件' })).toHaveProperty('disabled', false);
+});
+
+it('binds a delayed not-sent result to the original file and preserves newer text in a reopened editor', async () => {
+  const api = new Api(), props = editorProps(api);
+  let respond!: (r: unknown) => void; const pending = new Promise(r => { respond = r; });
+  vi.stubGlobal('fetch', vi.fn(() => pending));
+  const old = render(<FileEditor {...props} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), { target: { value: 'submitted' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1)); old.unmount();
+  render(<FileEditor {...props} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), { target: { value: 'newer text' } });
+  await act(async () => respond({ ok: false, status: 409, json: async () => ({ ok: false, error: { code: 'busy', delivery: 'not_sent', message: '未发送' } }) }));
+  await waitFor(() => expect(screen.getByRole('button', { name: '保存文件' })).toHaveProperty('disabled', false));
+  expect(readFileDraft(project.id, 'file.txt')?.text).toBe('newer text');
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it('unlocks an unmounted editor after a definite refusal even when its session storage becomes unreadable', async () => {
+  const api = new Api(), props = editorProps(api);
+  let respond!: (v: unknown) => void; vi.stubGlobal('fetch', vi.fn(() => new Promise(r => { respond = r; })));
+  const mounted = render(<FileEditor {...props} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '文件内容' }), { target: { value: 'retained' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存文件' }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1)); mounted.unmount();
+  const get = Storage.prototype.getItem;
+  const unavailable = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function(this: Storage, key: string) {
+    if (key.startsWith('harness.file-draft.')) throw new Error('file storage unavailable');
+    return get.call(this,key);
+  });
+  try {
+    await act(async () => respond({ ok: false, status: 409, json: async () => ({ ok: false, error: { code: 'busy', delivery: 'not_sent', message: '未发送' } }) }));
+    await waitFor(() => expect(props.cache.get(fileDraftKey(project.id,'file.txt'))?.pending).toBeUndefined());
+    const next = render(<FileEditor {...props} />);
+    expect(screen.getByRole('textbox', { name: '文件内容' })).toHaveProperty('value','retained');
+    expect(screen.getByRole('button', { name: '保存文件' })).toHaveProperty('disabled',false);
+    next.unmount();
+  } finally { unavailable.mockRestore(); window.dispatchEvent(new Event('pagehide')); }
 });

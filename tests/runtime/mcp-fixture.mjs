@@ -3,10 +3,11 @@ import { appendFileSync } from 'node:fs';
 const log = process.argv[2];
 const send = value => process.stdout.write(JSON.stringify(value) + '\n');
 const echo = { name: 'echo', description: 'Local deterministic echo fixture.', inputSchema: { type: 'object', properties: { message: { type: 'string' }, fail: { type: 'boolean' } }, required: ['message'], additionalProperties: false } };
-createInterface({ input: process.stdin }).on('line', line => {
+createInterface({ input: process.stdin }).on('line', async line => {
   const request = JSON.parse(line); if (log) appendFileSync(log, JSON.stringify({ method: request.method, pid: process.pid }) + '\n');
   if (!Object.hasOwn(request, 'id')) return;
   const params = request.params ?? {}; let result;
+  if (request.method === 'tools/call' && params.arguments?.message === 'delayed-fixture') await new Promise(resolve => setTimeout(resolve, 35000));
   if (request.method === 'initialize') result = { protocolVersion: request.params.protocolVersion, capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'harness-local-mcp', version: '1' } };
   else if (request.method === 'ping') result = {};
   else if (request.method === 'tools/list') result = { tools: [echo] };

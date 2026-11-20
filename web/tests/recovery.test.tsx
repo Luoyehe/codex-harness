@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { Api } from '../lib/api';
+import { Api } from '../lib/api';
 import { Recovery, useOperations } from '../components/Recovery';
 import { createOperation, listOperations, reconcileOperation, updateOperation } from '../lib/operations';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
@@ -39,6 +39,28 @@ it('distinguishes a confirmed project failure from message delivery and reads th
   expect(api.mutate).not.toHaveBeenCalled();
   expect(JSON.stringify(await listOperations())).not.toContain('项目执行账号');
   await expect(createOperation('turn/start', { threadId: 'another' })).resolves.toBeDefined();
+});
+it('shows the same localized explanation for immediate and historical native workspace failures', async () => {
+  const failure = { code: 'already_exists', delivery: 'not_sent', message: 'Workspace operation failed; inspect recovery record' };
+  const failed = await createOperation('workspace/mkdir', { projectId: 'fixture', resourceId: 'existing' });
+  await updateOperation(failed.id, 'not_sent');
+  const api = new Api();
+  const network = vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: false, error: failure }), { status: 409 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { operationId: failed.id,
+      method: failed.method, state: 'not_sent', error: failure } })));
+  try {
+    await expect(api.call('workspace/mkdir', { projectId: 'fixture', path: 'existing' })).rejects.toMatchObject({
+      code: 'already_exists', delivery: 'not_sent', message: '目标已存在。请选择其他名称，或刷新后核对现有内容。'
+    });
+    render(<Harness api={api} />);
+    fireEvent.click(await screen.findByText('1 笔操作未执行'));
+    fireEvent.click(screen.getByRole('button', { name: '查看失败原因' }));
+    await screen.findByText('目标已存在。请选择其他名称，或刷新后核对现有内容。');
+    expect(screen.queryByText(/Workspace operation failed/)).toBeNull();
+    await expect(createOperation('workspace/mkdir', { projectId: 'fixture', resourceId: 'existing' })).resolves.toBeDefined();
+    expect(network).toHaveBeenCalledTimes(2);
+  } finally { network.mockRestore(); }
 });
 it('does not resurrect a dismissed failure after a late reason read, reconciliation or remount', async () => {
   const failed = await createOperation('project/add', {});

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { branchDraftSource, discardDraft, executionDraftContext, listDrafts, damagedDrafts, discardDamagedDraft, type Draft, type DraftMode } from '../lib/drafts';
-import { damagedFileDrafts, discardDamagedFileDraft } from '../lib/file-drafts';
+import { damagedFileDrafts, discardDamagedFileDraft, fileDraftKey, unsavedFileDrafts, type FileDraft } from '../lib/file-drafts';
 import { downloadBlob, downloadJson } from '../lib/download';
 import { message, type Project } from '../lib/types';
 export function DraftsSettings({
@@ -13,11 +13,13 @@ export function DraftsSettings({
   draftMode?: DraftMode;
 }) {
   const [drafts, setDrafts] = useState<Draft[]>([]),
+    [unsaved, setUnsaved] = useState<FileDraft[]>([]),
     [damaged, setDamaged] = useState<{ storageKey: string; raw: string; file?: boolean }[]>([]),
     [error, setError] = useState(''),
     [confirm, setConfirm] = useState('');
   useEffect(() => {
     const refresh = () => {
+      setUnsaved(unsavedFileDrafts());
       try {
         setDrafts(listDrafts());
         setDamaged([...damagedDrafts(), ...damagedFileDrafts().map(row => ({ ...row, file: true }))]);
@@ -28,7 +30,11 @@ export function DraftsSettings({
     };
     refresh();
     window.addEventListener('harness-drafts', refresh);
-    return () => window.removeEventListener('harness-drafts', refresh);
+    window.addEventListener('harness-file-drafts', refresh);
+    return () => {
+      window.removeEventListener('harness-drafts', refresh);
+      window.removeEventListener('harness-file-drafts', refresh);
+    };
   }, []);
   return (
     <section className="stack">
@@ -41,7 +47,15 @@ export function DraftsSettings({
           {error}
         </p>
       )}
-      {drafts.length === 0 && <p className="muted">没有未处理的本地草稿。</p>}
+      {unsaved.map(row => <div className="info-card" key={fileDraftKey(row.projectId, row.path)}>
+        <strong>{row.path}</strong>
+        <p>文件修改仅保存在当前页面内存中，关闭标签页前请下载备份。</p>
+        <button className="button small" onClick={() => {
+          try { downloadBlob(new Blob([row.text], { type: 'text/plain;charset=utf-8' }), row.path); }
+          catch (e) { setError(message(e)); }
+        }}>下载文件草稿备份</button>
+      </div>)}
+      {drafts.length === 0 && damaged.length === 0 && unsaved.length === 0 && !error && <p className="muted">没有未处理的本地草稿。</p>}
       {damaged.map(row => <div className="info-card" key={row.storageKey}>
         <strong>{row.file ? '文件草稿' : '聊天草稿'}损坏，原始内容仍保留</strong>
         <p>已与其他草稿隔离。请先导出原始内容；丢弃仅删除此条本地记录，不撤销任何服务器操作。</p>

@@ -124,6 +124,7 @@ export class ManagedProviders {
   private model(value: JsonObject): JsonObject {
     return { id: value.id!, model: value.id!, displayName: value.id!, defaultReasoningEffort: value.defaultEffort ?? null,
       supportedReasoningEfforts: Array.isArray(value.efforts) ? value.efforts.map(effort => ({ reasoningEffort: effort })) : [],
+      ...(typeof value.supportsTools === 'boolean' ? { supportsTools: value.supportsTools } : {}),
       inputModalities: value.inputModalities ?? ['text'] };
   }
 }

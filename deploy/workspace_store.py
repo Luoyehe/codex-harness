@@ -16,7 +16,8 @@ from pathlib import Path
 from contextlib import contextmanager
 
 from .common import DeployError, canonical, require
-from .workspace_paths import MAX_FILE, Root, read_file, regular
+from .workspace_errors import FALLBACK, MESSAGES, error_code, response_for_display
+from .workspace_paths import MAX_FILE, MAX_TRANSFER, Root, read_file, regular
 
 MAX_RECORDS = 256
 MAX_BYTES = 64 * 1024 * 1024
@@ -80,31 +81,58 @@ def read_record(directory: int) -> dict:
     return value
 
 
-def recover_pending(directory: int) -> None:
-    """Publish only a complete matching receipt under the caller's store lock."""
+def pending_state(directory: int, name: str = ".state-next") -> tuple[dict, dict | None] | None:
     try:
-        fd = os.open(".state-next", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
     except FileNotFoundError:
-        return
+        return None
     try:
         data, info = read_file(fd, 16384)
         require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Unsafe retained workspace state", "unsafe_path")
     finally:
         os.close(fd)
     try:
-        candidate = json.loads(data)
-    except (ValueError, UnicodeError) as exc:
-        raise DeployError("recovery_required", "Incomplete unpublished workspace state retained for inspection") from exc
-    require(isinstance(candidate, dict) and re.fullmatch(r"[0-9a-f]{64}", str(candidate.get("requestDigest", ""))) and
-            candidate.get("state") in ("running", "completed", "failed"), "Unrecognized unpublished workspace receipt", "recovery_required")
+        value = json.loads(data)
+    except (ValueError, UnicodeError):
+        value = None
+    return {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}, value if isinstance(value, dict) else None
+
+
+def recover_pending(directory: int) -> None:
+    """Keep the exact unpublished bytes when they cannot prove a state transition."""
+    pending = pending_state(directory)
+    if pending is None:
+        return
+    details, candidate = pending
     try:
         current = read_record(directory)
     except FileNotFoundError:
         current = None
-    require(current is None and candidate["state"] == "running" or current is not None and
-            current.get("requestDigest") == candidate["requestDigest"] and (current.get("state") == "running" or current == candidate),
-            "Unpublished workspace receipt conflicts with its published terminal state", "recovery_required")
-    os.replace(".state-next", "state.json", src_dir_fd=directory, dst_dir_fd=directory)
+    response = (candidate or {}).get("response")
+    if not isinstance(response, dict):
+        response = {}
+    error = response.get("error")
+    valid = (candidate is not None and re.fullmatch(r"[0-9a-f]{64}", str(candidate.get("requestDigest", ""))) and (
+        candidate.get("state") == "running" and not response or
+        candidate.get("state") == "completed" and response.get("ok") is True and isinstance(response.get("result"), dict) or
+        candidate.get("state") == "failed" and response.get("ok") is False and isinstance(error, dict) and
+            isinstance(error.get("code"), str) and isinstance(error.get("message"), str) and error.get("delivery") in ("unknown", "not_sent")))
+    flags = {"acknowledged", "recoveryDiscarded"}
+    terminal_update = bool(valid and current and current.get("state") == "completed" and candidate["state"] == "completed" and
+                           {k: v for k, v in current.items() if k not in flags} == {k: v for k, v in candidate.items() if k not in flags} and
+                           all(k not in candidate or candidate[k] is True for k in flags) and
+                           all(current.get(k) is not True or candidate.get(k) is True for k in flags))
+    if valid and ((current is None and candidate["state"] == "running") or (current is not None and
+            current.get("requestDigest") == candidate["requestDigest"] and (current.get("state") == "running" or current == candidate or terminal_update))):
+        os.replace(".state-next", "state.json", src_dir_fd=directory, dst_dir_fd=directory)
+    else:
+        retained = pending_state(directory, ".state-incomplete")
+        if retained is None:
+            from .workspace_paths import rename_absent
+            rename_absent(directory, ".state-next", directory, ".state-incomplete")
+        else:
+            require(retained[0] == details, "Two distinct unpublished receipts need manual inspection", "recovery_required")
+            os.unlink(".state-next", dir_fd=directory)
     os.fsync(directory)
 
 
@@ -171,7 +199,7 @@ class Store:
                 os.close(global_store)
             parent.close()
 
-    def read(self, identity: str, *, recover: bool = False) -> dict:
+    def read(self, identity: str, *, recover: bool = False, describe: bool = False) -> dict:
         import fcntl
         operation_id(identity)
         try:
@@ -193,8 +221,28 @@ class Store:
             except FileNotFoundError:
                 return {"operationId": identity, "state": "not_received"}
             try:
-                if recover: recover_pending(directory)
-                return {"operationId": identity, **read_record(directory)}
+                detail = {}
+                if describe:
+                    pending = pending_state(directory)
+                    if pending:
+                        try:
+                            before = read_record(directory).get("state", "unknown")
+                        except FileNotFoundError:
+                            before = "unknown"
+                        detail = {"previouslyPublishedState": before, "unpublishedState": {
+                            **pending[0], "state": (pending[1] or {}).get("state")}}
+                if recover:
+                    recover_pending(directory)
+                try:
+                    saved = read_record(directory)
+                except FileNotFoundError:
+                    saved = {"state": "unknown"}
+                evidence = pending_state(directory, ".state-incomplete")
+                if detail:
+                    detail["resolution"] = "retained" if evidence and evidence[0] == pending[0] else "published"
+                if "response" in saved:
+                    saved = {**saved, "response": response_for_display(saved["response"])}
+                return {"operationId": identity, **saved, **detail, **({"retainedState": evidence[0]} if evidence else {})}
             finally:
                 os.close(directory)
         finally:
@@ -226,8 +274,33 @@ class Store:
             return False
         with os.scandir(directory) as children:
             names = [entry.name for entry in children]
-        if names != ["state.json"] or self.external_payload(identity):
+        if set(names) not in ({"state.json"}, {"state.json", ".state-incomplete"}) or self.external_payload(identity):
             return False
+        if ".state-incomplete" in names:
+            evidence = pending_state(directory, ".state-incomplete")[0]
+            archive = private_directory(store, "unpublished", create=True)
+            try:
+                target = identity + "-" + evidence["sha256"]
+                with os.scandir(archive) as entries:
+                    count = 0
+                    for entry in entries:
+                        count += 1
+                        require(count <= MAX_RECORDS, "Retained unpublished evidence archive exceeds budget", "budget")
+                try:
+                    existing = pending_state(archive, target)
+                    if existing:
+                        require(existing[0] == evidence, "Retained unpublished evidence changed", "conflict")
+                        os.unlink(".state-incomplete", dir_fd=directory)
+                    elif count < MAX_RECORDS:
+                        from .workspace_paths import rename_absent
+                        rename_absent(directory, ".state-incomplete", archive, target)
+                    else:
+                        return False
+                finally:
+                    os.fsync(archive)
+                    os.fsync(directory)
+            finally:
+                os.close(archive)
         actual, pinned = os.stat(identity, dir_fd=store, follow_symlinks=False), os.fstat(directory)
         require((actual.st_dev, actual.st_ino) == (pinned.st_dev, pinned.st_ino), "Workspace receipt directory changed", "conflict")
         os.unlink("state.json", dir_fd=directory)
@@ -257,6 +330,7 @@ class Store:
             except BlockingIOError as exc: raise DeployError("busy", "Another workspace mutation is running") from exc
             try: directory = private_directory(store, identity)
             except FileNotFoundError: return {"acknowledged": True, "operationId": identity, "removed": True}
+            recover_pending(directory)
             try: saved = read_record(directory)
             except FileNotFoundError:
                 # A crash after the metadata unlink can leave an empty directory.
@@ -280,7 +354,7 @@ class Store:
         total = count = scanned = 0
         with os.scandir(store) as entries:
             for entry in entries:
-                if entry.name == "lock":
+                if entry.name in ("lock", "unpublished"):
                     continue
                 operation_id(entry.name)
                 scanned += 1
@@ -295,9 +369,9 @@ class Store:
                     names = []
                     with os.scandir(directory) as children:
                         for child in children:
-                            require(len(names) < 4, "Workspace recovery entry budget reached", "budget")
+                            require(len(names) < 5, "Workspace recovery entry budget reached", "budget")
                             names.append(child.name)
-                    require(len(names) <= 4 and set(names) <= {"state.json", ".state-next", "before", "next"},
+                    require(len(names) <= 5 and set(names) <= {"state.json", ".state-next", ".state-incomplete", "before", "next"},
                             "Unexpected workspace recovery material", "recovery_required")
                     for name in names:
                         info = os.stat(name, dir_fd=directory, follow_symlinks=False)
@@ -309,7 +383,7 @@ class Store:
                             finally:
                                 os.close(empty)
                         else:
-                            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= MAX_FILE,
+                            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= (MAX_TRANSFER if name in ("before", "next") else 16384),
                                     "Unsafe or oversized workspace recovery file", "recovery_required")
                             total += info.st_size
                             require(total + reserve_bytes <= MAX_BYTES, "Workspace recovery byte budget reached", "budget")
@@ -318,10 +392,10 @@ class Store:
         require(count < MAX_RECORDS + (1 if maintenance else 0), "Workspace recovery record budget reached; inspect retained records", "budget")
 
     @contextmanager
-    def mutation(self, identity: str, request_digest: str, *, reserve_bytes: int = 2 * MAX_FILE + 16384, maintenance: bool = False):
+    def mutation(self, identity: str, request_digest: str, *, reserve_bytes: int = 2 * MAX_FILE + 16384, maintenance: bool = False, reconcile: bool = False, resume_retire: bool = False, existing_only: bool = False):
         import fcntl
         operation_id(identity)
-        store = self.open(create=True)
+        store = self.open(create=not (reconcile or existing_only))
         lock = directory = None
         try:
             lock = os.open("lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=store)
@@ -335,19 +409,27 @@ class Store:
                 directory = private_directory(store, identity)
             except FileNotFoundError:
                 pass
+            resuming = directory is not None
             if directory is not None:
                 recover_pending(directory)
                 saved = read_record(directory)
                 require(saved.get("requestDigest") == request_digest, "Workspace operation ID reused with different input", "operation_conflict")
-                yield saved.get("response", {"ok": False, "error": {"code": "unknown", "message": "Workspace operation needs recovery inspection", "delivery": "unknown"}})
-                return
-            self.inventory(store, reserve_bytes, maintenance=maintenance)
-            os.mkdir(identity, 0o700, dir_fd=store)
-            os.fsync(store)
-            directory = private_directory(store, identity)
-            record = Record(directory, identity)
-            saved = {"requestDigest": request_digest, "state": "running"}
-            record.save(saved)
+                if reconcile:
+                    yield Record(directory, identity), saved
+                    return
+                if not resume_retire or saved.get("state") == "completed" or saved.get("response", {}).get("error", {}).get("delivery") == "not_sent":
+                    yield response_for_display(saved.get("response", {"ok": False, "error": {"code": "unknown", "delivery": "unknown"}}))
+                    return
+                record = Record(directory, identity)
+            else:
+                require(not (reconcile or existing_only), "Original operation is unavailable", "recovery_required")
+                self.inventory(store, reserve_bytes() if callable(reserve_bytes) else reserve_bytes, maintenance=maintenance)
+                os.mkdir(identity, 0o700, dir_fd=store)
+                os.fsync(store)
+                directory = private_directory(store, identity)
+                record = Record(directory, identity)
+                saved = {"requestDigest": request_digest, "state": "running"}
+                record.save(saved)
             try:
                 yield record
             except Exception as exc:
@@ -356,7 +438,7 @@ class Store:
                 published = read_record(directory)
                 if published.get("state") == "completed":
                     raise
-                no_effect = record.side_effects is False and getattr(exc, "code", "") not in ("cleanup_unknown", "stop_unknown") and not self.external_payload(identity)
+                no_effect = not resuming and record.side_effects is False and getattr(exc, "code", "") not in ("cleanup_unknown", "stop_unknown") and not self.external_payload(identity)
                 if no_effect:
                     with os.scandir(directory) as files:
                         names = {entry.name for entry in files}
@@ -367,12 +449,16 @@ class Store:
                         finally: os.close(fd)
                         os.unlink("next", dir_fd=directory)
                         os.fsync(directory)
-                code = exc.code if isinstance(exc, DeployError) else "already_exists" if isinstance(exc, FileExistsError) else "not_found" if isinstance(exc, FileNotFoundError) else "workspace_error"
-                error = {"code": code,
-                         "message": str(exc) if isinstance(exc, DeployError) else "Workspace operation failed; inspect recovery record",
+                code = error_code(exc)
+                error = {"code": code, "message": MESSAGES.get(code, FALLBACK),
                          "delivery": "not_sent" if no_effect else "unknown"}
-                record.save({**saved, **record.failure_details, "state": "failed", "response": {"ok": False, "error": error}})
-                failure = DeployError(error["code"], error["message"])
+                diagnostics = {"type": type(exc).__name__}
+                if isinstance(exc, OSError) and exc.errno is not None:
+                    diagnostics["errno"] = exc.errno
+                record.save({**saved, **record.failure_details, "diagnostic": diagnostics, "state": "failed", "response": {"ok": False, "error": error}})
+                # Callers at the native boundary receive the stable Chinese explanation;
+                # local administrative diagnostics keep their original exception chain.
+                failure = DeployError(code, str(exc) if isinstance(exc, DeployError) else error["message"])
                 failure.delivery = error["delivery"]
                 raise failure from exc
         finally:

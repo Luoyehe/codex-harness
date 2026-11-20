@@ -167,7 +167,7 @@ not automatically excluded from source hashing: authorization and audit records
 retain their explicit classification and checksum checks. Do not remove old
 evidence or rewrite history merely to reduce repository size.
 
-Native jobs fetch official platform packages for CLI 0.164.0 into ignored
+Native jobs fetch official platform packages for the pinned CLI 0.169.0 into ignored
 `reference/runtime`, verify pinned SHA-512 archive integrity, extract them and
 derive the single native executable path. The runner requires the explicit
 absolute `HARNESS_TEST_CODEX_BIN`, checks independent package metadata and

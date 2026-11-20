@@ -494,6 +494,9 @@ class ControlUpdateTests(unittest.TestCase):
     def test_identical_control_material_verifies_without_restart_or_generation(self):
         material = {path.relative_to(self.layout.control).as_posix(): (path.read_bytes(), path.stat().st_mode & 0o777)
                     for path in self.layout.control.rglob("*") if path.is_file()}
+        cache = self.layout.control / "deploy/__pycache__"
+        cache.mkdir(parents=True, exist_ok=True)
+        (cache / "legacy.cpython-311.pyc").write_bytes(b"legacy bytecode fixture")
         with patch("deploy.install.control_material", return_value=material), \
              patch.object(self.updater, "sudo_policies", return_value={"old": b"same", "candidate": b"same"}), \
              patch("deploy.manager.Manager") as manager:

@@ -75,8 +75,10 @@ export function useWorkflow(
           const proof = (await listOperations()).find((op) => op.id === e.operationId);
           if (!current()) return undefined;
           if (proof?.state === 'accepted') {
+            const alreadyObserved = observedAccepted.current === proof.id;
+            observedAccepted.current = proof.id;
             update({ error: '', notice: '原操作回执已确认受理，正在重新读取状态。' });
-            onChanged();
+            if (!alreadyObserved) onChanged();
             if (proof.resolvedThreadId)
               return {
                 thread: { id: proof.resolvedThreadId },
@@ -114,8 +116,10 @@ export function useWorkflowRevision(events: Events, threadId: string) {
   useEffect(
     () =>
       events.subscribe((event) => {
-        if (event.type === 'receipt' &&
-            (typeof event.data.threadId !== 'string' || event.data.threadId === threadId)) {
+        if (event.type === 'resync') { refresh(); return; }
+        const receiptScope = event.data.scope;
+        if (event.type === 'receipt' && (event.data.threadId === threadId ||
+            (typeof receiptScope === 'string' ? receiptScope === 'thread:' + threadId : !event.data.threadId))) {
           refresh();
           return;
         }

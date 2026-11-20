@@ -1,6 +1,7 @@
 export const workflowMethods = new Set([
   'collaborationMode/list', 'turn/steer', 'turn/settings/update',
   'thread/queue/list', 'thread/queue/add', 'thread/queue/update', 'thread/queue/delete', 'thread/queue/reorder', 'thread/queue/start',
+  'thread/queue/handoff/list', 'thread/queue/handoff/candidates', 'thread/queue/handoff/save', 'thread/queue/handoff/restore', 'thread/queue/handoff/discard',
   'thread/goal/get', 'thread/goal/set', 'thread/goal/clear', 'thread/fork', 'thread/revert',
   'review/start', 'review/startNew', 'thread/agents/list', 'thread/settings/update', 'thread/metadata/update',
   'thread/search', 'thread/searchOccurrences', 'thread/history/window', 'thread/export',

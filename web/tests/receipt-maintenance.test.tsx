@@ -184,3 +184,9 @@ it('discards a late exported archive after leaving the maintenance view', async 
   );
   expect(URL.createObjectURL).not.toHaveBeenCalled();
 });
+
+it('keeps a bad base64 chunk out of export and describes the damaged content in Chinese', async () => {
+  const api = { call: vi.fn().mockResolvedValue({ ...chunk(0), base64: '###' }) } as unknown as Api;
+  await expect(receiptArchive(api, preview, new AbortController().signal, vi.fn())).rejects.toThrow('归档分片编码损坏');
+  expect(URL.createObjectURL).not.toHaveBeenCalled();
+});

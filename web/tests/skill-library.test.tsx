@@ -317,7 +317,7 @@ it('permits a newly confirmed roots intent after not-sent recovery without reusi
   expect(screen.queryByText(/已保留本次目录选择/)).toBeNull();
   const sent = calls.filter(call => call.method === 'skills/extraRoots/set');
   expect(sent.map(call => call.params.projectIds)).toEqual([[project.id], [other.id]]);
-  expect(sent[1].operationId).not.toBe(sent[0].operationId);
+  expect(sent[1]!.operationId).not.toBe(sent[0]!.operationId);
 });
 it('creates one missing directory per explicit click then writes SKILL.md with no-replace', async () => {
   const dirs = new Set<string>(),
@@ -385,7 +385,7 @@ it('does not treat a generic metadata failure as an absent directory', async () 
   }));
   render(<SkillCreator {...props(api)} />);
   prepare();
-  await screen.findByText('Cannot inspect');
+  await screen.findByText('工作区操作失败，请查看原操作记录并核对其送达状态。');
   expect(screen.queryByRole('button', { name: /创建目录：/ })).toBeNull();
   expect(calls.some((c) => c.operationId)).toBe(false);
 });

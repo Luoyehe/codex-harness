@@ -9,7 +9,7 @@ export type TerminalOwner = { clientId: string; connectionId: string };
 export type RecoveryOperation = Readonly<{ id: string; method: string }>;
 export type RecoveryResult = { restarted: true; release: string };
 export type Operation = {
-  id: string; method: string; threadId?: string; projectId?: string; resourceId?: string;
+  id: string; method: string; threadId?: string; projectId?: string; resourceId?: string; settingsOverride?: boolean;
   draftKey?: string; draftRevision?: string; createdAt: number; state: OperationState;
   resolvedThreadId?: string; terminalOwner?: TerminalOwner; terminalResult?: TerminalResult;
   /** Captured atomically before a force recovery, without message bodies or credentials. */
@@ -25,6 +25,18 @@ export type OperationHistoryEntry = Pick<Operation,
   closed: 'completed' | 'dismissed' | 'recovery_stopped' | 'legacy_closed' | 'collected';
 };
 const historyKey = 'history-v1';
+const lastRecoveryIdKey = 'last-system-recover-id';
+export class RecoveryAdmissionChanged extends Error {
+  constructor() { super('另一窗口已登记过恢复操作。请先核对该次恢复；本次确认尚未发送。'); }
+}
+async function lastRecoveryId(metadata: IDBObjectStore): Promise<string | null> {
+  const id: unknown = await stored(metadata.get(lastRecoveryIdKey));
+  if (id === undefined) return null;
+  if (typeof id !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id))
+    throw new Error('本地恢复编号损坏，请在操作记录中核对。');
+  return id;
+}
+
 let historyWarning = '';
 function warnDamagedHistory() {
   historyWarning = '部分本地操作历史损坏，已忽略无法读取的历史；活动恢复记录不受影响。';
@@ -62,7 +74,7 @@ async function archiveOperations(metadata: IDBObjectStore, additions: OperationH
   for (const row of additions) history.set(row.id, row);
   await stored(metadata.put([...history.values()].sort(newestOperationFirst).slice(0, operationHistoryLimit), historyKey));
 }
-type Scope = Pick<Operation, 'threadId' | 'projectId' | 'resourceId' | 'draftKey' | 'draftRevision' | 'terminalOwner'>;
+type Scope = Pick<Operation, 'threadId' | 'projectId' | 'resourceId' | 'draftKey' | 'draftRevision' | 'terminalOwner' | 'settingsOverride'>;
 export function isArchivedReceipt(receipt: Record<string, unknown>): boolean {
   const error = receipt.error as Record<string, unknown> | undefined;
   return typeof receipt.operationId === 'string' && receipt.scope === `operation:${receipt.operationId}` &&
@@ -250,6 +262,13 @@ export async function listOperations(): Promise<Operation[]> {
   return transact(async (records) => (await stored(records.getAll()) as unknown[])
     .map((record) => checkedOperation(record)).sort((a, b) => a.createdAt - b.createdAt));
 }
+export async function readRecoveryAdmission(): Promise<{ prior?: Operation; lastId: string | null }> {
+  return transact(async (records, metadata) => {
+    const prior = (await stored(records.getAll()) as unknown[]).map(row => checkedOperation(row))
+      .filter(row => row.method === 'system/recover').sort((a, b) => a.createdAt - b.createdAt)[0];
+    return { ...(prior ? { prior } : {}), lastId: await lastRecoveryId(metadata) };
+  });
+}
 /** A single snapshot for display only. Archived rows never re-enter recovery consumers. */
 export async function listOperationHistory(): Promise<{ operations: Operation[]; history: OperationHistoryEntry[]; historyWarning: string }> {
   return transact(async (records, metadata) => {
@@ -286,20 +305,27 @@ export async function consumeThreadOperations(threadId: string, ids: string[]): 
 
 /** Allocating an ID is separate from committing it; only this promise permits dispatch. */
 export async function createOperation(
-  method: string, scope: Scope, generation = 0, id = operationId(generation),
+  method: string, scope: Scope, generation = 0, id = operationId(generation), observedRecoveryId?: string | null,
 ): Promise<Operation> {
   const record: Operation = structuredClone({ id, method, ...scope, createdAt: Date.now(), state: 'pending' });
   await transact(async (store, metadata) => {
     if ((await readHistory(metadata)).some(row => row.id === id))
       throw new Error('这个操作编号已关闭，不能重新发送；新尝试需要新的操作编号。');
     let records = (await stored(store.getAll()) as unknown[]).map((value) => checkedOperation(value));
+    if (method === 'system/recover') {
+      if (records.some(row => row.method === method) ||
+          (observedRecoveryId !== undefined && observedRecoveryId !== await lastRecoveryId(metadata)))
+        throw new RecoveryAdmissionChanged();
+      // The marker survives acknowledgement, so a stale confirmation cannot restart a second time.
+      await stored(metadata.put(id, lastRecoveryIdKey));
+    }
     if (records.length >= 160) {
       // Ordinary API successes are already auto-acknowledged. Reconciled successes
       // stay available to the immediate proof reader, then can age out under pressure.
       // Thread handoffs and typed owner receipts still need their explicit consumer.
-      const collectible = records.filter((row) => row.state === 'not_sent' ||
+      const collectible = records.filter((row) => row.method !== 'system/recover' && (row.state === 'not_sent' ||
         row.state === 'accepted' && (row.consumed ||
-          !threadReceiptMethods.has(row.method) && !['terminal/open', 'system/recover'].includes(row.method)))
+          !threadReceiptMethods.has(row.method) && row.method !== 'terminal/open')))
         .sort((a, b) => -newestOperationFirst(a, b)).slice(0, Math.max(0, records.length - 128));
       await archiveOperations(metadata, collectible.map(row => historyEntry(row, 'collected')));
       for (const row of collectible) await stored(store.delete(row.id));
@@ -331,7 +357,7 @@ export async function updateOperation(
     if (value === undefined) return;
     const record = checkedOperation(value, id);
     if (record.state === 'accepted' && state !== 'accepted') return;
-    if (record.state === 'not_sent' && state === 'unknown') return;
+    if (record.state === 'not_sent' && (state === 'unknown' || state === 'pending')) return;
     const terminal = state === 'accepted' && record.method === 'terminal/open' && terminalResult
       ? checkedTerminalResult(terminalResult) : undefined;
     if (terminal && record.terminalResult && terminal.terminalId !== record.terminalResult.terminalId)
@@ -363,6 +389,22 @@ export async function retireOldTerminalHandoffs(owner: TerminalOwner) {
   });
   if (count) changed();
 }
+/** Persist the remaining subset after each verified closure. Concurrent windows can only shrink it. */
+/** A member already closed by another window no longer needs the parent's reminder. */
+export async function finishArchivedRecoveryMember(recoveryId: string, member: RecoveryOperation): Promise<boolean> {
+  return transact(async (records, metadata) => {
+    if (await stored(records.get(member.id))) return false;
+    const history = await readHistory(metadata);
+    if (!history.some(row => row.id === member.id && row.method === member.method)) return false;
+    const value = await stored(records.get(recoveryId));
+    if (!value) return true;
+    const record = checkedOperation(value, recoveryId);
+    if (record.method !== 'system/recover' || record.state !== 'accepted' || !record.recoveryResult || !record.recoveryOperations) return false;
+    const remaining = record.recoveryOperations.filter(row => row.id !== member.id || row.method !== member.method);
+    if (remaining.length < record.recoveryOperations.length) await stored(records.put({ ...record, recoveryOperations: remaining }));
+    return true;
+  });
+}
 export async function acknowledgeOperation(id: string) {
   const removed = await transact(async (records, metadata) => {
     const value: unknown = await stored(records.get(id));
@@ -379,12 +421,22 @@ export async function acknowledgeOperation(id: string) {
   } finally { changed(); }
 }
 /** Local closure only. It never changes the server receipt or clears an unsent draft. */
-export async function stopUnknownRecovery(id: string, proof: Record<string, unknown>) {
+export async function stopUnknownRecovery(id: string, proof: Record<string, unknown>, recoveryId?: string) {
   await transact(async (records, metadata) => {
     const value: unknown = await stored(records.get(id));
     if (proof.operationId !== id || proof.state !== 'unknown' || value === undefined ||
         checkedOperation(value, id).state !== 'unknown')
       throw new Error('需要当前操作的明确未知回执，不能根据暂未登记或处理中停止恢复。');
+    if (recoveryId) {
+      const owner = await stored(records.get(recoveryId));
+      if (owner) {
+        const record = checkedOperation(owner, recoveryId);
+        if (record.method !== 'system/recover' || record.state !== 'accepted' || !record.recoveryResult ||
+            !record.recoveryOperations?.some(row => row.id === id && row.method === checkedOperation(value, id).method))
+          throw new Error('恢复快照已变化，请重新查询。');
+        await stored(records.put({ ...record, recoveryOperations: record.recoveryOperations.filter(row => row.id !== id) }));
+      }
+    }
     await archiveOperations(metadata, [historyEntry(checkedOperation(value, id), 'recovery_stopped')]);
     await stored(records.delete(id));
   });
@@ -398,7 +450,11 @@ export async function reconcileOperation(id: string, result: Record<string, unkn
     thread?.id ?? (typeof details?.threadId === 'string' ? details.threadId : undefined),
     details && Object.hasOwn(details, 'terminalId') ? checkedTerminalResult(details) : undefined,
     result.method === 'system/recover' ? details : undefined);
-  else if (state === 'not_sent') await updateOperation(id, 'not_sent');
+  else if (state === 'not_sent') {
+    const data = (result.error as { data?: Record<string, unknown> } | undefined)?.data;
+    await updateOperation(id, 'not_sent', data?.threadCreated === true && data.inputSent === false && typeof data.threadId === 'string' ? data.threadId : undefined);
+  }
+  else if (state === 'pending' || state === 'dispatching') await updateOperation(id, 'pending');
   else {
     const error = result.error as Record<string, unknown> | undefined;
     const data = error?.data as Record<string, unknown> | undefined;

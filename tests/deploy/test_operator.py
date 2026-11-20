@@ -15,6 +15,37 @@ from deploy.operator import Cancelled, Console, installed_instances, manage
 
 
 class OperatorTests(unittest.TestCase):
+    def test_optional_archive_digest_and_exact_failed_or_dns_archive_choice(self):
+        sha = "a"*64
+        self.console(["3", "26.10.31 " + sha, "", "y"], lambda _: {}).service_proxy()
+        self.assertEqual(self.calls[-1].sha256, sha)
+        failed, dns = "c"*32, "d"*32
+        choices = {"candidates":[{"id":failed,"eligible":True,"failed":True}],"dnsBuilds":[{"id":dns,"eligible":True,"dns":True}]}
+        self.console(["1", "y"], lambda args: choices if args.command == "candidate-list" else {}).archive_candidates()
+        self.assertEqual((self.calls[-1].command, self.calls[-1].failed), ("candidate-archive", True))
+        self.console(["2", "y"], lambda args: choices if args.command == "candidate-list" else {}).archive_candidates()
+        self.assertEqual((self.calls[-1].command, self.calls[-1].build), ("dns-build-archive", dns))
+
+    def test_pending_initialization_precedes_any_install_preparation(self):
+        console = self.console([], lambda _: {})
+        with patch("deploy.transactions.require_initialization_complete", side_effect=DeployError("initialization_pending","resume")), \
+                patch.object(console, "prepare_dependencies") as packages, self.assertRaises(DeployError):
+            console.install()
+        packages.assert_not_called()
+
+    def test_completed_install_record_without_instance_file_stops_before_operations(self):
+        from deploy.install_recovery import record_path
+        layout = Layout("fixture", self.directory)
+        layout.config.mkdir(parents=True)
+        record_path(layout).touch()
+        menu = self.console([])
+        with patch("deploy.transactions.require_initialization_complete"), patch("deploy.operator.Layout", return_value=layout), \
+                patch.object(menu, "prepare_dependencies") as prepare, self.assertRaises(DeployError) as error:
+            menu.install()
+        self.assertEqual(error.exception.code, "recovery_required")
+        prepare.assert_not_called()
+        self.assertEqual(self.calls, [])
+
     def test_direct_domain_cli_distinguishes_preserve_replace_clear_and_rejects_ambiguous_input(self):
         configure = ["proxy-configure", "--config-file", "/private/node.json", "--version", "26.10.31"]
         preserved = parser().parse_args(configure)
@@ -484,6 +515,18 @@ class OperatorTests(unittest.TestCase):
         self.console(["2"], lambda _: {"ok": True, "result": {"text": "fixture worker log"}}).logs()
         self.assertIn("fixture worker log", self.output)
         self.assertEqual(self.calls[-1].service, "worker")
+
+    def test_invalid_initial_name_can_be_corrected_or_cancelled(self):
+        for answers, expected in ((["valid-1", "0"], "valid-1"), (["q"], None)):
+            observed = []
+            def entered(console):
+                observed.append(console.instance)
+            with patch("deploy.operator.sys.stdin.isatty", return_value=True), patch("deploy.operator.require_host"), \
+                    patch("deploy.operator.installed_instances", return_value=[]), patch("builtins.input", side_effect=answers), \
+                    patch.object(Console, "loop", entered), redirect_stdout(io.StringIO()) as out:
+                manage("Bad Name!")
+            self.assertIn("实例名称无效", out.getvalue())
+            self.assertEqual(observed, [expected] if expected else [])
 
     def test_manage_requires_interactive_terminal_and_does_not_mutate(self):
         with patch("deploy.operator.sys.stdin", io.StringIO()), patch("deploy.operator.require_host") as host, self.assertRaises(DeployError) as raised:

@@ -478,7 +478,7 @@ it('closes the action menu and gives each tool the main region while retaining p
   expect((answer as HTMLInputElement).value).toBe('Unsubmitted human answer');
   fireEvent.click(screen.getByRole('button', { name: '处理待答请求' }));
   await waitFor(() =>
-    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '给 Codex 的消息' })),
+    expect(document.activeElement).toBe(document.querySelector('.workspace-body[data-panel=chat]')),
   );
   expect((screen.getByLabelText('Context：答案') as HTMLInputElement).value).toBe(
     'Unsubmitted human answer',
@@ -509,7 +509,7 @@ it('provides one common return without pending approvals and preserves owned too
   expect(screen.getAllByRole('button', { name: /返回聊天|返回会话/ })).toHaveLength(1);
   fireEvent.click(back());
   await waitFor(() =>
-    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '给 Codex 的消息' })),
+    expect(document.activeElement).toBe(document.querySelector('.workspace-body[data-panel=chat]')),
   );
   expect(command.isConnected).toBe(true);
   expect(command.closest('[hidden]')).toBeTruthy();
@@ -1104,4 +1104,13 @@ it('does not auto-resume the source while conversion is pending or unknown, and 
   await waitFor(() => expect(f.count('thread/resume')).toBe(1));
   expect(f.count('thread/convert')).toBe(1); expect(f.count('turn/start')).toBe(0);
   expect(readDraft('t').text).toBe('preserved draft');
+});
+
+it('rereads project ownership, model configuration and pending prompts when the event stream requests resynchronization', async () => {
+  const f=await fixture();
+  const methods=['project/list','model/list','prompt/list','thread/read','thread/history'];
+  const before=methods.map(method=>f.count(method));
+  act(()=>f.sockets.at(-1)!.onmessage({data:JSON.stringify({type:'resync',data:{reason:'event_capacity'}})}));
+  await waitFor(()=>methods.forEach((method,i)=>expect(f.count(method),method).toBeGreaterThan(before[i]!)));
+  expect(f.count('turn/start')).toBe(0);
 });

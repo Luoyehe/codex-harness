@@ -27,8 +27,8 @@ export class RemoteControl {
       return this.host.configure(async write => {
         const status = await this.status(); if (!['connecting', 'connected'].includes(String(status.status))) throw new DeliveryError('remote_disabled', 'Enable remote control explicitly before pairing');
         const pairingId = randomUUID(); const secret = remoteResponse('RemoteControlPairingStartResponse', await write(method, params), 64 * 1024);
-        this.host.redactor.addSecret(string(secret.pairingCode, 'pairingCode', 4096)); if (secret.manualPairingCode != null) this.host.redactor.addSecret(string(secret.manualPairingCode, 'manualPairingCode', 256));
         const expires = integer(secret.expiresAt, 'expiresAt', 1, Number.MAX_SAFE_INTEGER); const expiry = expires < 1000000000000 ? expires * 1000 : expires;
+        this.host.redactor.addSecret(string(secret.pairingCode, 'pairingCode', 4096), expiry); if (secret.manualPairingCode != null) this.host.redactor.addSecret(string(secret.manualPairingCode, 'manualPairingCode', 256), expiry);
         const timer = setTimeout(() => { this.pairings.delete(pairingId); }, Math.min(600000, Math.max(1, expiry - Date.now()))); timer.unref();
         const entry = { pairingId, secret, clientId: context.clientId, eventChannelId: context.eventChannelId, revoked: false, timer }; this.pairings.set(pairingId, entry);
         // A lease can disappear while the native account service creates the code.

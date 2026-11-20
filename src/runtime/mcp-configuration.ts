@@ -22,32 +22,81 @@ function httpUrl(value: JsonValue | undefined): string {
 function present(value: JsonObject, key: string): boolean { const item = value[key]; return item !== undefined && item !== null && item !== '' && (typeof item !== 'object' || Object.keys(item).length > 0); }
 /** Merge against the unredacted user layer. Masked effective configuration is never written back. */
 export class McpConfiguration {
-  constructor(private native: Call) {}
-  private async source(cwd: string): Promise<{ version: string | null; servers: JsonObject; effective: JsonObject }> {
+  constructor(private native: Call, private controls?: (cwd: string) => Promise<JsonObject>) {}
+  private async source(cwd: string) {
     const value = await this.native('config/read', { cwd, includeLayers: true }); validateOfficial('ConfigReadResponse', value); const response = object(value);
     jsonBytes(response, 1024 * 1024);
-    const layers = (response.layers as JsonValue[] | null) ?? []; const users = layers.map(value => object(value)).filter(layer => { const name = object(layer.name); return name.type === 'user' && name.profile === null; });
+    const layers = ((response.layers as JsonValue[] | null) ?? []).map(value => object(value));
+    const users = layers.filter(layer => { const name = object(layer.name); return name.type === 'user' && name.profile === null; });
     if (users.length > 1) throw new DeliveryError('invalid_native_response', 'Ambiguous user configuration');
     const config = users.length ? object(users[0]!.config) : {};
-    return { version: users.length ? string(users[0]!.version, 'user version') : null, servers: object(config.mcp_servers ?? {}), effective: object(object(response.config).mcp_servers ?? {}) };
+    const baseVersion = users.length ? string(users[0]!.version, 'user version') : null;
+    const servers = object(config.mcp_servers ?? {}), effective = object(object(response.config).mcp_servers ?? {});
+    const session = layers.findIndex(layer => object(layer.name).type === 'sessionFlags');
+    const locked = new Set<string>();
+    // Requirements, MDM or another higher-priority authority can make an
+    // enabled flag immutable. Reject before publishing a preference.
+    for (const layer of session < 0 ? [] : layers.slice(0, session)) {
+      if (layer.disabledReason) continue;
+      for (const [name, row] of Object.entries(object(object(layer.config).mcp_servers ?? {}))) {
+        if (typeof object(row).enabled === 'boolean') locked.add(name);
+      }
+    }
+    const system = layers.find(layer => object(layer.name).type === 'system' && !layer.disabledReason);
+    const systemServers = object(system ? object(system.config).mcp_servers ?? {} : {});
+    const state = this.controls && Object.keys(systemServers).length ? await this.controls(cwd) : {};
+    const flags = object(state.flags ?? {}), flagsVersion = state.version ?? null;
+    const version = flagsVersion ? String(baseVersion ?? '') + '|' + String(flagsVersion) : baseVersion;
+    // Native lists layers in decreasing precedence. Session flags supplied by
+    // this adapter contain only booleans, so the next lower explicit value
+    // determines what restoring inheritance will do.
+    const withoutSession = (name: string): boolean => {
+      for (const layer of layers) {
+        if (layer.disabledReason || object(layer.name).type === 'sessionFlags') continue;
+        const entries = object(object(layer.config).mcp_servers ?? {});
+        const enabled = Object.hasOwn(entries, name) ? object(entries[name]).enabled : undefined;
+        if (typeof enabled === 'boolean') return enabled;
+      }
+      return true;
+    };
+    return { version, baseVersion, flagsVersion, flags, file: state.filePath, servers, effective, systemServers, locked, withoutSession };
   }
   async read(cwd: string): Promise<JsonValue> {
-    const { version, servers, effective } = await this.source(cwd);
-    return { userVersion: version, servers: Object.entries(servers).map(([name, entry]) => {
+    const { version, servers, effective, flags, systemServers, locked, withoutSession } = await this.source(cwd);
+    const inheritedDetails = Object.entries(effective).filter(([name]) => !Object.hasOwn(servers, name)).map(([name, row]) => {
+      const effectiveEnabled = object(row).enabled !== false, overridden = Object.hasOwn(flags, name);
+      const overrideAllowed = Object.hasOwn(systemServers, name) && !locked.has(name);
+      const enabled = overrideAllowed ? overridden ? flags[name] === true : withoutSession(name) : effectiveEnabled;
+      return { name, transport: transport(object(row)), enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden, overrideAllowed };
+    });
+    const inheritedNames = new Set(inheritedDetails.map(item => item.name));
+    return { userVersion: version, servers: Object.entries(servers).filter(([name]) => !inheritedNames.has(name)).map(([name, entry]) => {
       const value = object(entry), result: JsonObject = { name, transport: transport(value), enabled: value.enabled !== false, effectiveEnabled: Object.hasOwn(effective, name) ? object(effective[name]).enabled !== false : null,
         hasEnv: present(value, 'env'), hasHttpHeaders: present(value, 'http_headers'), hasBearerTokenEnvVar: present(value, 'bearer_token_env_var') || present(value, 'bearer_token'), hasEnvHttpHeaders: present(value, 'env_http_headers') };
       for (const key of ['command', 'args', 'url']) if (value[key] !== undefined) result[key] = value[key]!;
       return result;
-    }), inheritedServers: Object.keys(effective).filter(name => !Object.hasOwn(servers, name)) };
+    }), inheritedServers: [...inheritedNames], inheritedDetails };
   }
   async write(params: JsonObject, cwd: string, write: Call): Promise<JsonValue> {
-    onlyKeys(params, ['cwd', 'expectedVersion', 'name', 'change']); const expectedVersion = string(params.expectedVersion, 'expectedVersion'), name = serverName(params.name), change = object(params.change);
+    onlyKeys(params, ['cwd', 'expectedVersion', 'name', 'change']); const expectedVersion = params.expectedVersion === null ? null : string(params.expectedVersion, 'expectedVersion'), name = serverName(params.name), change = object(params.change);
     onlyKeys(change, ['type', 'transport', 'command', 'args', 'url', 'enabled', 'env', 'httpHeaders', 'bearerTokenEnvVar', 'envHttpHeaders', 'clearSecrets']);
-    const { version, servers } = await this.source(cwd);
+    const { version, baseVersion, servers, effective, systemServers, flagsVersion, locked, withoutSession } = await this.source(cwd);
     if (version !== expectedVersion) throw new DeliveryError('config_conflict', 'User configuration changed; reload before saving');
     const original = Object.hasOwn(servers, name) ? object(servers[name]) : undefined;
     const next: JsonObject = { ...servers };
-    if (change.type === 'remove') {
+    if (change.type === 'inherit') {
+      onlyKeys(change, ['type', 'enabled']);
+      if (locked.has(name) || !Object.hasOwn(systemServers, name) || !Object.hasOwn(effective, name) || original || typeof flagsVersion !== 'string')
+        throw new DeliveryError('mcp_missing', '该继承服务已变化，请重新读取有效配置。');
+      if (change.enabled !== null && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'Choose an enabled override or restore inheritance');
+      const desired = change.enabled ?? withoutSession(name);
+      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled!, expectedVersion: baseVersion, expectedFlags: flagsVersion }));
+      const state = await this.source(cwd);
+      if (saved.written !== true || saved.version !== state.flagsVersion || saved.effective !== desired ||
+          (change.enabled === null ? Object.hasOwn(state.flags, name) : state.flags[name] !== change.enabled))
+        throw new DeliveryError('config_readback_unknown', '继承服务设置已写入，但原生读回未确认。', 'unknown');
+      return { version: saved.version, status: 'ok', filePath: saved.filePath!, effective: desired, restartRequired: object(effective[name]).enabled !== desired };
+    } else if (change.type === 'remove') {
       onlyKeys(change, ['type']); if (!original) throw new DeliveryError('mcp_missing', 'This server is not defined in the user layer'); delete next[name];
     } else if (change.type === 'upsert') {
       if (!['stdio', 'http'].includes(String(change.transport))) throw new DeliveryError('invalid_params', 'Choose stdio or HTTP transport');
@@ -80,7 +129,7 @@ export class McpConfiguration {
     } else throw new DeliveryError('invalid_params', 'Choose upsert or remove');
     if (Object.keys(next).length > 128) throw new DeliveryError('capacity', 'At most 128 user MCP servers can be edited through the workspace');
     jsonBytes(next, 1024 * 1024);
-    const result = await write('config/batchWrite', { expectedVersion, edits: [{ keyPath: 'mcp_servers', value: next, mergeStrategy: 'replace' }], reloadUserConfig: true });
+    const result = await write('config/batchWrite', { expectedVersion: baseVersion, edits: [{ keyPath: 'mcp_servers', value: next, mergeStrategy: 'replace' }], reloadUserConfig: true });
     try { validateOfficial('ConfigWriteResponse', result); } catch { throw new DeliveryError('invalid_native_response', 'MCP configuration write result is unknown', 'unknown'); }
     return result;
   }

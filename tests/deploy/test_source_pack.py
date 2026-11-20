@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from deploy.build import pack_source
+from deploy.build import pack_source, stage_build_tool
 from deploy.common import DeployError
 
 
@@ -54,6 +54,19 @@ class SourcePackTests(unittest.TestCase):
                 with self.subTest(output=output.name), self.assertRaisesRegex(DeployError, "outside the packaged inputs"):
                     pack_source(source, output)
                 self.assertFalse(output.exists())
+
+    def test_offline_compiler_supports_legacy_source_archives_and_control_installations(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stage = Path(folder)
+            source = stage / "source"
+            source.mkdir()
+            (source / "package.json").write_text("{}")
+            tool = stage_build_tool(stage)
+            self.assertEqual(tool.parent, stage)
+            if os.name == "posix":
+                self.assertEqual(tool.stat().st_mode & 0o777, 0o444)
+            self.assertEqual(tool.read_bytes(), (Path(__file__).resolve().parents[2] / "deploy/build_tool.mjs").read_bytes())
+            self.assertEqual([item.name for item in source.iterdir()], ["package.json"])
 
     def test_existing_output_is_never_replaced(self):
         with tempfile.TemporaryDirectory() as folder:

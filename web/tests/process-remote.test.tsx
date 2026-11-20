@@ -366,6 +366,8 @@ it('keeps a new process selection and draft when removing a previous exited proc
     target: { value: 'handle' },
   });
   fireEvent.click(await screen.findByRole('button', { name: '移除已退出进程的输出' }));
+  expect(calls.some(call => call.method === 'process/remove')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: '确认移除 handle 的输出' }));
   await waitFor(() => expect(calls.filter((call) => call.method === 'process/remove')).toHaveLength(1));
   const input = await selectProcessInput('other');
   fireEvent.change(input, { target: { value: 'keep new input' } });
@@ -791,4 +793,21 @@ it('dispatches one pairing status read for repeated clicks before the pending st
     pending = await fixture.check(await fixture.create(), true);
   await act(async () => pending.resolve({ claimed: false }));
   expect(fixture.reads).toHaveLength(1);
+});
+
+it('keeps an unsent remote credential during a reconnect but clears it for the next login', async () => {
+  const { api, calls } = routed(remoteRoute);
+  const props = { ...base(), api };
+  const view = render(<RemoteSettings {...props} />);
+  const label = 'Bearer token（按需填写，仅保留在本次运行内存）';
+  fireEvent.click(screen.getByText('登记新的远端环境', { selector: 'summary' }));
+  fireEvent.change(screen.getByLabelText(label), { target: { value: 'ephemeral-remote-token' } });
+  view.rerender(<RemoteSettings {...props} enabled={false} connected={false} />);
+  view.rerender(<RemoteSettings {...props} connectionId="reconnected-socket" />);
+  expect(screen.getByLabelText(label)).toHaveProperty('value','ephemeral-remote-token');
+  api.csrf = 'different-login';
+  view.rerender(<RemoteSettings {...props} connectionId="new-login" />);
+  fireEvent.click(screen.getByText('登记新的远端环境', { selector: 'summary' }));
+  expect(screen.getByLabelText(label)).toHaveProperty('value','');
+  expect(calls.some(c => c.method === 'environment/add')).toBe(false);
 });

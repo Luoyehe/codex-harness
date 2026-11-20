@@ -1,3 +1,4 @@
+import { withTestReport } from './test-retention.mjs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -15,6 +16,7 @@ export const nativeTestFiles = [
   'tests/runtime/organization-native.test.ts', 'tests/runtime/automation-native.test.ts', 'tests/runtime/process-native.test.ts',
   'tests/runtime/input-native.test.ts', 'tests/runtime/remote-native.test.ts', 'tests/runtime/guardian-native.test.ts',
   'tests/runtime/gateway-oauth-native.test.ts', 'tests/runtime/cli-diagnostics-native.test.ts', 'tests/runtime/provider-switch-native.test.ts', 'tests/runtime/thread-list-native.test.ts',
+  'tests/runtime/visual-routing-native.test.ts', 'tests/runtime/queue-handoff-native.test.ts',
 ];
 const nativeNames = new Set(nativeTestFiles);
 const dnsCaddyPythonTests = ['tests/deploy/test_dns_caddy_build.py', 'tests/deploy/root/test_dns_caddy_build.py'];
@@ -25,7 +27,16 @@ const codeqlGoTest = 'tests/tooling/codeql-go.test.ts';
 const patchFile = 'patches/picomatch@4.0.7.patch';
 const patchProofInputs = new Set([patchFile, 'deploy/dependency_patch.py', 'deploy/dependency_patch_contract.py', 'scripts/picomatch-patch-proof.mjs', 'scripts/dependency-audit.mjs', '.github/workflows/security.yml']);
 const patchTests = ['tests/tooling/picomatch-patch.test.ts', 'tests/tooling/dependency-audit.test.ts', 'tests/deploy/test_dependency_lock.py', 'tests/deploy/test_dependency_patch.py', 'tests/deploy/test_deployment.py', 'tests/deploy/test_source_pack.py'];
+const recoveryCoverageSources = new Set(['deploy/https.py', 'deploy/units.py', 'deploy/dns_archive.py', 'deploy/dns_caddy_build.py',
+  'deploy/sudo_publish.py', 'deploy/service_proxy.py', 'deploy/diagnostic_secrets.py', 'harness.sh']);
+const deploymentRecoveryTest = 'tests/deploy/root/test_v240_deploy_recovery.py';
+const systemMcpTest = 'tests/deploy/root/test_mcp_native_configuration.py';
+const overrideTests = ['tests/deploy/test_mcp_enabled_override.py', systemMcpTest, 'tests/runtime/mcp-configuration.test.ts', 'tests/runtime/mcp-native.test.ts'];
+const nativeHistoryConsumers = ['tests/deploy/test_thread_history.py', 'tests/runtime/attachments.test.ts',
+  'tests/runtime/queue-handoff-store.test.ts', 'tests/runtime/queue-handoff-native.test.ts', 'tests/runtime/provider-switch-native.test.ts',
+  'tests/runtime/workflows-native.test.ts', 'tests/runtime/visual-routing-native.test.ts'];
 const deploymentPairs = [
+  ['tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_execution_mode.py', 'tests/deploy/root/test_proxy_transaction.py'],
   [...dnsCaddyPythonTests, goTestFile],
   // Tree durability composes the ordinary toolchain archive fixture.
   toolchainPythonTests,
@@ -44,10 +55,18 @@ const deploymentPairs = [
   ['tests/deploy/test_management_boundaries.py', 'tests/deploy/root/test_management_boundaries.py'],
   ['tests/deploy/test_request_spool.py', 'tests/deploy/root/test_request_spool.py'],
   ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'],
-  ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py'],
+  ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py', 'tests/deploy/test_repository_identity.py'],
 ];
 const auditMetadata = new Set([patchFile, 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
 const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
+
+const sharedConsumers = new Map([
+  ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'web/tests/prompt-fields.test.tsx', 'tests/runtime/service.test.ts', 'tests/runtime/mcp-schema.test.ts']],
+  ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/attachments.test.ts', 'tests/runtime/visual-routing-native.test.ts',
+    'tests/runtime/workflows-native.test.ts', 'tests/runtime/queue-handoff-native.test.ts']],
+  ['src/shared/mcp-timeouts.ts', ['tests/runtime/mcp.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/native.test.ts',
+    'tests/gateway/worker-client.test.ts', 'web/tests/operations.test.ts']],
+]);
 
 export function testInventory(base = root) {
   const names = [];
@@ -63,6 +82,21 @@ export function testInventory(base = root) {
   visit('tests'); visit('web'); visit('deploy/caddy_dns_source'); return names.sort();
 }
 
+let deploymentDependents;
+function importedTestDependents(source) {
+  if (!deploymentDependents) {
+    const env = isolatedTestEnvironment(root);
+    const binary = env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+    const child = spawnSync(binary, [path.join(root, 'scripts/deploy-test-imports.py'), root], { cwd: root, env, encoding: 'utf8', timeout: 15000, maxBuffer: 2 * 1024 * 1024 });
+    if (child.error || child.status !== 0) throw new Error('Could not determine deployment test imports');
+    deploymentDependents = JSON.parse(child.stdout);
+  }
+  const seen = new Set([source]);
+  for (const dependency of seen) {
+    for (const dependent of deploymentDependents[dependency] ?? []) seen.add(dependent);
+  }
+  return [...seen];
+}
 export function selectTests(changed, available) {
   const plan = { status: 'selected', changed: [], groups: { unit: [], deploy: [], 'deploy-root': [], native: [], go: [] }, mappings: [], requiresFullAudit: /** @type {{path:string, reason:string}[]} */ ([]), noBehaviorChange: [], checks: ['typecheck', 'build', 'source-security'] };
   const inventory = new Set(available.map(validateRelative));
@@ -82,12 +116,29 @@ export function selectTests(changed, available) {
     }
     else if (testPattern.test(name) || pythonPattern.test(name) || goTestPattern.test(name)) {
       if (inventory.has(name)) {
-        const related = deploymentPairs.find(pair => pair.includes(name)) ?? [name];
+        let dependents = [];
+        if (pythonPattern.test(name)) {
+          try { dependents = importedTestDependents(name); }
+          catch { plan.requiresFullAudit.push({ path: name, reason: 'deployment-test-imports-unavailable' }); }
+        }
+        const related = [...new Set([name, ...dependents, ...deploymentPairs.filter(group => group.includes(name)).flat()])];
         for (const required of related) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
         add(name, related, 'changed-test');
       }
       // Deleting a test must not silently remove its coverage obligation.
       else plan.requiresFullAudit.push({ path: name, reason: 'deleted-test-requires-coverage-review' });
+    } else if (name === 'tests/fixtures/mcp-system-native.mjs') {
+      add(name, [systemMcpTest], 'isolated-linux-system-mcp');
+    } else if (name === 'tests/fixtures/native-env.ts') {
+      const consumers = [...nativeTestFiles, systemMcpTest];
+      for (const required of consumers) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-required-native-regression' });
+      add(name, consumers, 'shared-native-test-environment');
+    } else if (name.startsWith('tests/fixtures/visual-media/')) {
+      add(name, ['tests/runtime/visual-routing-native.test.ts'], 'real-vision-format-fixture');
+    } else if (sharedConsumers.has(name)) {
+      const consumers = sharedConsumers.get(name);
+      for (const test of consumers) if (!inventory.has(test)) plan.requiresFullAudit.push({ path: test, reason: 'missing-shared-consumer' });
+      add(name, consumers, 'shared-browser-and-runtime-contract');
     } else if (name.startsWith('src/core/')) add(name, [...domain('tests/core/'), ...domain('tests/gateway/'), ...domain('tests/runtime/')], 'shared-server-core');
     else if (name.startsWith('src/gateway/')) add(name, [...domain('tests/gateway/'), 'tests/runtime/gateway-native.test.ts', ...(name.endsWith('/manager-client.ts') ? domain('tests/deploy/') : [])], 'gateway-boundary');
     else if (name.startsWith('src/runtime/') || name.startsWith('protocol/')) add(name, [...domain('tests/runtime/'), ...domain('tests/gateway/')], 'runtime-protocol-boundary');
@@ -110,7 +161,7 @@ export function selectTests(changed, available) {
     else if (name.startsWith('tests/runtime/') && !documentation.has(name)) add(name, [...domain('tests/runtime/'), ...domain('tests/gateway/')], 'runtime-fixture');
     else if (['scripts/release-audit.mjs', 'scripts/git-object-reader.mjs'].includes(name)) add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'release-scanner-and-dependent-gates');
     else if (name === 'scripts/reviewed-history.mjs') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/reviewed-history.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/ci-checks.test.ts'], 'immutable-historical-pattern-review');
-    else if (['scripts/select-tests.mjs', 'scripts/test-paths.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');
+    else if (['scripts/select-tests.mjs', 'scripts/deploy-test-imports.py', 'scripts/test-paths.mjs'].includes(name)) add(name, ['tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/go-tests.test.ts'], 'affected-test-selection-and-runner');
     else if (['scripts/go-tests.mjs', 'scripts/prepare-ci-go.py'].includes(name)) add(name, [goTestFile, 'tests/deploy/test_prepare_ci_go.py', 'tests/tooling/go-tests.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/test-environment.test.ts'], 'go-preparation-offline-execution-and-coverage');
     else if (name === 'scripts/release-preflight.mjs') add(name, ['tests/tooling/release-preflight.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/select-tests.test.ts'], 'release-preflight-without-test-execution');
     else if (['scripts/publish-release.mjs', '.github/workflows/release.yml'].includes(name)) add(name, ['tests/tooling/publish-release.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/select-tests.test.ts'], 'exact-commit-release-publication');
@@ -121,6 +172,19 @@ export function selectTests(changed, available) {
     else if (name === '.gitignore' || name === '.gitattributes') add(name, ['tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts', 'tests/tooling/run-tests.test.ts'], 'source-inventory-policy');
     else if (documentation.has(name) || evidencePath(name)) plan.noBehaviorChange.push({ path: name, reason: 'documentation-or-audit-evidence-only' });
     else if (!patchProofInputs.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
+  }
+  for (const name of plan.changed) {
+    const checks = recoveryCoverageSources.has(name) ? [deploymentRecoveryTest] :
+      name === 'deploy/workspace_store.py' ? ['tests/deploy/test_workspace_ack.py'] :
+      ['deploy/mcp_enabled_override.py', 'src/runtime/mcp-configuration.ts', 'src/runtime/service.ts'].includes(name) ? overrideTests :
+      ['deploy/thread_history.py', 'src/runtime/thread-history-compatibility.ts', 'src/runtime/queue-reply-identity.ts',
+       'src/runtime/queue-image-bindings.ts'].includes(name) ? nativeHistoryConsumers :
+      name === 'src/runtime/native-media-event.ts' ? [...nativeHistoryConsumers, 'web/tests/conversation-recovery.test.tsx'] :
+      name === 'scripts/prepare-ci-native.mjs' ? [systemMcpTest] :
+      name === 'deploy/build_tool.mjs' ? ['tests/tooling/audit-remediation.test.ts', 'tests/runtime/entrypoint.test.ts', 'tests/deploy/test_control_update.py'] : [];
+    if (!checks.length) continue;
+    for (const required of checks) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
+    add(name, checks, 'deployment-repair-regression');
   }
   for (const name of plan.changed.filter(name => codeqlGoInputs.includes(name))) {
     if (!inventory.has(codeqlGoTest)) plan.requiresFullAudit.push({ path: codeqlGoTest, reason: 'missing-codeql-entry-regression' });
@@ -198,15 +262,15 @@ export function runPythonTests(files, base = root, env = isolatedTestEnvironment
   const prerequisite = pythonPrerequisite(env);
   if (prerequisite.status !== 'ready') return { ...prerequisite, exitCode: prerequisite.status === 'skipped' ? 3 : 1, tests: files };
   if (!files.length) return { status: 'failed', exitCode: 1, reason: 'empty-python-selection', tests: [] };
-  const reports = path.join(base, '.work/test-results'); mkdirSync(reports, { recursive: true });
-  const output = path.join(mkdtempSync(path.join(reports, 'python-')), 'cases.json');
-  const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
-  const code = child.status ?? 1;
-  try {
-    const report = JSON.parse(readFileSync(output, 'utf8'));
-    if (report.exitCode !== code || JSON.stringify(report.files) !== JSON.stringify(files) || !Array.isArray(report.cases) || !report.cases.length || new Set(report.cases.map(item => item.id)).size !== report.cases.length || files.some(file => !report.cases.some(item => item.file === file))) throw Error('Invalid per-case Python evidence');
-    return { status: code === 0 ? 'passed' : code === 3 ? 'skipped' : 'failed', exitCode: code === 0 ? 0 : code === 3 ? 3 : 1, tests: files, cases: report.cases };
-  } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-python-evidence' }; }
+  return withTestReport(base, 'python', output => {
+    const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
+    const code = child.status ?? 1;
+    try {
+      const report = JSON.parse(readFileSync(output, 'utf8'));
+      if (report.exitCode !== code || JSON.stringify(report.files) !== JSON.stringify(files) || !Array.isArray(report.cases) || !report.cases.length || new Set(report.cases.map(item => item.id)).size !== report.cases.length || files.some(file => !report.cases.some(item => item.file === file))) throw Error('Invalid per-case Python evidence');
+      return { status: code === 0 ? 'passed' : code === 3 ? 'skipped' : 'failed', exitCode: code === 0 ? 0 : code === 3 ? 3 : 1, tests: files, cases: report.cases };
+    } catch { return { status: 'failed', exitCode: 1, tests: files, reason: 'missing-or-invalid-python-evidence' }; }
+  });
 }
 
 export function runSelection(plan, group = 'all', base = root) {

@@ -120,6 +120,8 @@ def prepare(workspace, action, params, paths, current, original):
             require(attributes[-1] == "" and (len(attributes) - 1) % 3 == 0, "Invalid Git attribute response", "git_unavailable")
             require(all(attributes[offset] in ("unspecified", "unset") for offset in range(2, len(attributes) - 1, 3)),
                     "所选文件配置了 Git 内容转换（如 LFS、换行或编码）；请在终端使用 Git 暂存，网页不会执行外部过滤器。", "git_conversion_required")
+        from .workspace_git_view import config_filemode
+        respect_mode = action == "git/stage" and config_filemode(root, Path(environment["GIT_DIR"]) / "config")
         instructions, total = bytearray(), 0
         for index, name in enumerate(selected):
             instructions.extend(b"0 " + b"0" * hash_length + b"\t" + name.encode() + b"\0")
@@ -131,7 +133,9 @@ def prepare(workspace, action, params, paths, current, original):
                 require(total <= MAX_SELECTED, "Selected staging files exceed byte budget", "budget")
                 oid = git(root, ["hash-object", "-w", "--stdin"], environment=environment, descriptors=descriptors, input_bytes=data, input_limit=MAX_FILE).decode().strip()
                 require(OID.fullmatch(oid), "Invalid staged object", "git_unavailable")
-                mode = "100755" if info.st_mode & 0o111 else "100644"
+                tracked_mode = old_entries.get((name, "0"), (None,))[0]
+                executable = bool(info.st_mode & 0o100) if respect_mode else tracked_mode == "100755"
+                mode = "100755" if executable else "100644"
             else:
                 if current["head"] is None: continue
                 output = git(root, ["--literal-pathspecs", "ls-tree", "-z", current["head"], "--", name], environment=environment, descriptors=descriptors)

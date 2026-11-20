@@ -205,7 +205,8 @@ class ProviderRegistryTests(unittest.TestCase):
             for definition in contract["servers"]:
                 rendered = servers[definition["name"] + suffix]
                 if definition["transport"] == "streamable-http":
-                    self.assertEqual(set(rendered), {"url", "bearer_token_env_var"})
+                    self.assertEqual(set(rendered), {"url", "bearer_token_env_var", "enabled"})
+                    self.assertIs(rendered["enabled"], False)
                     self.assertEqual(rendered["url"], definition["url"])
                     self.assertEqual(keys[rendered["bearer_token_env_var"]], row["settings"]["apiKey"])
                 else:
@@ -215,6 +216,20 @@ class ProviderRegistryTests(unittest.TestCase):
         remaining = configuration(disabled, self.layout)["mcp_servers"]
         self.assertEqual(set(remaining), {server["name"] for server in contract["servers"]})
         self.assertNotIn("fixture-plan-two", environment(disabled).values())
+
+    def test_legacy_coding_mcp_policy_is_verifiable_and_migrates_only_in_new_generation(self):
+        import copy
+        from deploy.provider_registry import upgrade_mcp_defaults
+        plan = self.add(self.current, kind="zhipu-coding", apiKey="fixture")
+        for row in plan["connections"]:
+            row["settings"].pop("codingMcpPolicy", None)
+        original = copy.deepcopy(plan)
+        old = configuration(plan, self.layout)["mcp_servers"]
+        self.assertNotIn("enabled", old["zread"])
+        newer = upgrade_mcp_defaults(plan)
+        self.assertIs(configuration(newer, self.layout)["mcp_servers"]["zread"]["enabled"], False)
+        self.assertEqual(plan, original)
+        self.assertEqual(upgrade_mcp_defaults(newer), newer)
 
     def test_bedrock_retains_native_catalog_and_scoped_bearer_helper(self):
         current = change({"expectedRevision": self.current["revision"], "providerId": "new",

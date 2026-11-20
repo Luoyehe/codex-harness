@@ -236,8 +236,12 @@ def _go_command(go: Path, workspace: Path, arch: str, *args: str, network: bool,
             "TMPDIR=" + str(workspace / "tmp"), *proxies, str(go), *args]
 
 
+def fetch_suffixes(identity):
+    return [identity, *(hashlib.sha256((identity + "/dns-fetch/" + str(n)).encode()).hexdigest()[:32] for n in (1, 2))]
+
+
 def _fetch_dependencies(manager, identity: str, go: Path, source: Path, workspace: Path,
-                        arch: str, download_proxy: str | None) -> None:
+                        arch: str, download_proxy: str | None, *, unit_record: Path | None = None) -> None:
     # Keep authenticated cache progress across transient network failures. An
     # isolated candidate_failed is raised only after cgroup stop confirmation;
     # stop_unknown and every other failure must propagate without a retry.
@@ -249,7 +253,10 @@ def _fetch_dependencies(manager, identity: str, go: Path, source: Path, workspac
             if failure is not None:
                 raise failure
             raise DeployError("budget", "DNS dependency download deadline exceeded")
-        suffix = identity if attempt == 0 else uuid.uuid4().hex
+        suffixes = fetch_suffixes(identity)
+        suffix = suffixes[attempt]
+        if unit_record is not None:
+            write_json(unit_record, {"format": 1, "suffixes": suffixes, "started": suffixes[:attempt + 1]})
         try:
             manager.system.isolated(manager.layout, "dns-fetch-" + suffix,
                 _go_command(go, workspace, arch, "mod", "download", network=True, download_proxy=download_proxy),
@@ -298,6 +305,7 @@ def provision_dns_caddy(manager, *, download_proxy: str | None = None,
     identity = uuid.uuid4().hex
     stage = layout.work / ("dns-build-" + identity)
     mkdir(stage, 0o755)
+    write_json(stage / "fetch-units.json", {"format": 1, "suffixes": fetch_suffixes(identity), "started": []})
     source = stage / "source"
     mkdir(source, 0o755)
     from .common import atomic_write
@@ -316,7 +324,7 @@ def provision_dns_caddy(manager, *, download_proxy: str | None = None,
     for name in ("tmp", "output"):
         mkdir(workspace / name, 0o755, uid, gid)
     announce("fetch")
-    _fetch_dependencies(manager, identity, go, source, workspace, arch, download_proxy)
+    _fetch_dependencies(manager, identity, go, source, workspace, arch, download_proxy, unit_record=stage / "fetch-units.json")
     announce("verify")
     manager.system.isolated(layout, "dns-verify-" + identity,
         _go_command(go, workspace, arch, "mod", "verify", network=False), source, workspace, network=False, timeout=120)

@@ -23,7 +23,11 @@ try {
 export async function validateMcpArguments(schema: JsonValue, input: JsonValue): Promise<void> {
   const schemaJson = jsonBytes(schema, 128 * 1024), inputJson = jsonBytes(input, 1024 * 1024);
   const annotations = [...schemaBudget(schema, { nodes: 8192, depth: 32, code: 'unsupported_tool_schema' })];
-  const dialect = schema && typeof schema === 'object' && !Array.isArray(schema) ? schema.$schema : undefined;
+  let dialect = schema && typeof schema === 'object' && !Array.isArray(schema) ? schema.$schema : undefined;
+  if (typeof dialect === 'string' && /^https:\/\/json-schema\.org\/draft\/(2019-09|2020-12)\/schema#$/.test(dialect)) {
+    dialect = dialect.slice(0, -1);
+    schema = { ...(schema as Record<string, JsonValue>), $schema: dialect };
+  }
   let module = 'ajv/dist/2020.js';
   if (typeof dialect === 'string' && /^https?:\/\/json-schema\.org\/draft-07\/schema#?$/.test(dialect)) { module = 'ajv'; schema = { ...(schema as { [key: string]: JsonValue }), $schema: 'http://json-schema.org/draft-07/schema#' }; }
   else if (dialect === 'https://json-schema.org/draft/2019-09/schema') module = 'ajv/dist/2019.js';

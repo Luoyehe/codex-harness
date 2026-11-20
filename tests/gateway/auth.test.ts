@@ -3,7 +3,7 @@ import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, statSync, renameSync, utimesSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Authentication } from '../../src/gateway/auth.js';
+import { Authentication, clientNetwork } from '../../src/gateway/auth.js';
 import { hashPassword, password, totp, verifyPassword } from '../../src/gateway/auth-crypto.js';
 
 const credentials = { username: 'admin', password: 'isolated-test-password' };
@@ -233,4 +233,40 @@ describe('single administrator authentication', () => {
       expect(auth.session(cookie)).toBeNull();
     } finally { auth.close(); }
   });
+});
+
+it('normalizes IPv6 peer buckets and validates a path-bound signature for both local health reads', () => {
+  expect(clientNetwork('2001:db8::1234')).toBe(clientNetwork('2001:0db8:0:0:ffff::aa'));
+  expect(clientNetwork('2001:db8:0:1::2')).not.toBe(clientNetwork('2001:db8::2'));
+  expect(clientNetwork('::ffff:192.0.2.5')).toBe('192.0.2.5');
+  expect(clientNetwork('::1')).toBe('::1');
+  const token = randomBytes(32).toString('hex'), auth = new Authentication(token, 'https://harness.example');
+  try {
+    const signature = (route: string) => createHmac('sha256', createHash('sha256').update(token).digest()).update('harness-local-probe-v1\n' + route).digest('hex');
+    for (const route of ['/health', '/api/account/proof']) {
+      expect(auth.localProbe(route, signature(route))).toBe(true);
+      expect(auth.localProbe(route, undefined)).toBe(false);
+      expect(auth.localProbe(route, signature('/other'))).toBe(false);
+    }
+  } finally { auth.close(); }
+});
+
+it('reclaims an old one-attempt bucket while keeping repeated attempts and the persisted table bounded', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const directory = mkdtempSync(path.join(tmpdir(), 'auth-bucket-')), database = path.join(directory, 'db.sqlite'), token = randomBytes(32).toString('hex');
+  const auth = new Authentication({ database, bootstrapToken: token }, 'https://harness.example', () => 1000);
+  const seed = new DatabaseSync(database);
+  try {
+    await auth.setup({ token, ...credentials }, 'first');
+    seed.exec("DELETE FROM auth_attempts; BEGIN");
+    const insert = seed.prepare('INSERT INTO auth_attempts(peer,count,reset) VALUES(?,?,?)');
+    for (let i = 0; i < 1024; i++) insert.run('anonymous:fixture-' + i, i === 1 ? 1 : 2, 2000 + i);
+    seed.exec('COMMIT');
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:1::a')).rejects.toMatchObject({ code: 'unauthorized' });
+    expect(seed.prepare('SELECT count(*) AS total FROM auth_attempts').get()?.total).toBe(1024);
+    expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-1'").get()).toBeUndefined();
+    expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-0'").get()?.count).toBe(2);
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:1::ffff')).rejects.toMatchObject({ code: 'unauthorized' });
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:2::1')).rejects.toMatchObject({ code: 'rate_limited' });
+  } finally { seed.close(); auth.close(); rmSync(directory, { recursive: true, force: true }); }
 });

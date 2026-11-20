@@ -116,6 +116,8 @@ it('allows an explicit logout after a failed account read and checks the resulti
   await screen.findByText(/无法确认当前账户/);
   expect(s.calls.some(c => ['account/login', 'account/logout'].includes(c.method))).toBe(false);
   fireEvent.click(await enabledButton({ name: '退出模型账户' }));
+  expect(s.calls.filter(c => c.method === 'account/logout')).toHaveLength(0);
+  fireEvent.click(await enabledButton({ name: '确认退出模型账户' }));
   await screen.findByText('尚未登录');
   expect(s.calls.filter(c => c.method === 'account/logout')).toHaveLength(1);
   expect(s.calls.filter(c => c.method === 'account/read')).toHaveLength(2);
@@ -137,6 +139,8 @@ it('reads limits only after authenticated state and removes them on logout witho
   await screen.findByText(/fixtureRemaining/);
   expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
   fireEvent.click(await enabledButton({ name: '退出模型账户' }));
+  expect(s.calls.filter(c => c.method === 'account/logout')).toHaveLength(0);
+  fireEvent.click(await enabledButton({ name: '确认退出模型账户' }));
   await screen.findByText('尚未登录');
   expect(screen.queryByText(/fixtureRemaining/)).toBeNull();
   expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
@@ -347,4 +351,20 @@ it('retains the missing-identity recovery gate when the settings modal is reopen
   ).toBe(true);
   expect(await enabledButton({ name: '查询原账户操作回执' })).toBeTruthy();
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
+});
+
+it('keeps the same account quota visible during a delayed reread and replaces it with the new result', async () => {
+  let finish!: (v: unknown) => void, reads = 0;
+  const s = setup(c => {
+    if (c.method === 'account/read') return { account: { type: 'chatgpt', email: 'local@example.invalid' } };
+    if (c.method === 'account/rateLimits') return ++reads === 1 ? { rateLimits: { limitName: '先前配额' } } : new Promise(done => { finish = done; });
+  });
+  render(<AccountSettings {...props(s)} />);
+  await screen.findByText('先前配额', { selector: 'strong' });
+  act(() => s.events.publish({ type: 'notification', data: { method: 'account/rateLimits/updated', params: {} } }));
+  await waitFor(() => expect(reads).toBe(2));
+  expect(screen.getByText('先前配额', { selector: 'strong' })).toBeTruthy();
+  await act(async () => finish({ rateLimits: { limitName: '更新配额' } }));
+  await screen.findByText('更新配额', { selector: 'strong' });
+  expect(screen.queryByText('先前配额', { selector: 'strong' })).toBeNull();
 });

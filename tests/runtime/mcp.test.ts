@@ -11,11 +11,14 @@ const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () 
 const descriptor = (): JsonObject => ({ name: 'echo', inputSchema: { type: 'object', properties: { message: { type: 'string', maxLength: 64 } }, required: ['message'], additionalProperties: false } });
 const catalog = (): JsonObject => ({ name: 'local', runtimeStatus: 'connected', pluginId: null, httpOrigin: null, serverInfo: null, serverCapabilities: {}, toolListMeta: null, tools: { echo: descriptor() }, toolsError: null, resources: [{ name: 'known', uri: 'fixture://known' }], resourceTemplates: [{ name: 'items', uriTemplate: 'fixture://items/{id}' }], authStatus: 'unsupported' });
 class Native extends EventEmitter {
-  connected = true; budget = {}; calls: { method: string; params: JsonValue }[] = []; server = catalog(); active = false; stopError = false; hook?: (method: string) => void; gate?: Promise<void>; gateMethod?: string; responseGate?: Promise<void>; responseGateMethod?: string; toolResult: JsonValue = { content: [{ type: 'text', text: 'private result' }], isError: true };
+  cwd = ''; effectiveServers: JsonObject = {};
+  connected = true; budget = {}; calls: { method: string; params: JsonValue; timeoutMs: number | undefined }[] = []; server = catalog(); active = false; stopError = false; hook?: (method: string) => void; gate?: Promise<void>; gateMethod?: string; responseGate?: Promise<void>; responseGateMethod?: string; toolResult: JsonValue = { content: [{ type: 'text', text: 'private result' }], isError: true };
   async call(method: string, params: JsonValue, options: NativeOptions = {}): Promise<JsonValue> {
-    if (method === this.gateMethod) await this.gate; this.hook?.(method); options.beforeWrite?.(); this.calls.push({ method, params });
+    if (method === this.gateMethod) await this.gate; this.hook?.(method); options.beforeWrite?.(); this.calls.push({ method, params, timeoutMs: options.timeoutMs });
     if (method === this.responseGateMethod) await this.responseGate;
-    if (method === 'thread/start' || method === 'thread/read') return { thread: { id: 'thread', historyMode: 'paginated', status: this.active ? { type: 'active' } : { type: 'idle' }, turns: [] } };
+    if (method === 'thread/start') this.cwd = String(object(params).cwd);
+    if (method === 'config/read') return { config: { mcp_servers: this.effectiveServers } };
+    if (method === 'thread/start' || method === 'thread/read') return { thread: { id: 'thread', cwd: this.cwd, historyMode: 'paginated', status: this.active ? { type: 'active' } : { type: 'idle' }, turns: [] } };
     if (method === 'mcpServerStatus/list') return { data: [this.server], nextCursor: null };
     if (method === 'mcpServer/tool/call') return this.toolResult;
     if (method === 'mcpServer/resource/read') return { contents: [{ uri: object(params).uri!, text: 'resource body' }], originCallId: object(params).originCallId ?? null };
@@ -32,6 +35,30 @@ async function setup() {
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
 const toolParams = { threadId: 'thread', server: 'local', tool: 'echo', arguments: { message: 'hello' } };
 const streamParams = { threadId: 'thread', server: 'local', name: 'watch', arguments: {} };
+test.each([
+  ['short', 0.25, 20_250], ['default', null, 320_000], ['ten minutes', 600, 620_000], ['ceiling', 1800, 1_820_000],
+] as const)('manual deadline matches the selected server and loaded project: %s', async (_label, seconds, timeoutMs) => {
+  const { native, service } = await setup();
+  native.effectiveServers = { another: { tool_timeout_sec: 9000 }, local: seconds === null ? {} : { tool_timeout_sec: seconds } };
+  await service.call('mcp/tool/call', toolParams, context);
+  expect(native.calls.filter(call => call.method === 'config/read')).toMatchObject([{ params: { cwd: native.cwd, includeLayers: false } }]);
+  expect(native.calls.filter(call => call.method === 'mcpServer/tool/call')).toMatchObject([{ timeoutMs }]);
+  expect(native.calls.filter(call => call.method !== 'mcpServer/tool/call').every(call => call.timeoutMs === undefined)).toBe(true);
+});
+test.each([[1801, 'mcp_timeout_limit'], ['600', 'invalid_native_response'], [-1, 'invalid_native_response']] as const)(
+  'refuses an unsupported configured duration before dispatch: %s', async (value, code) => {
+    const { native, service } = await setup(); native.effectiveServers = { local: { tool_timeout_sec: value } };
+    await expect(service.call('mcp/tool/call', toolParams, context)).rejects.toMatchObject({ code, delivery: 'not_sent' });
+    expect(native.calls.some(call => call.method === 'mcpServer/tool/call')).toBe(false);
+    await expect(service.call('thread/read', { threadId: 'thread' }, context)).resolves.toMatchObject({ thread: { id: 'thread' } });
+});
+test('client input cannot extend a manual tool deadline or change its project', async () => {
+  const { service, native } = await setup();
+  for (const change of [{ timeoutMs: 9999999 }, { cwd: '/elsewhere' }, { tool_timeout_sec: 600 }]) {
+    await expect(service.call('mcp/tool/call', { ...toolParams, ...change } as JsonObject, context)).rejects.toMatchObject({ delivery: 'not_sent' });
+  }
+  expect(native.calls.some(call => call.method === 'mcpServer/tool/call')).toBe(false);
+});
 test('oversized subscription notification stops only that subscription and leaves the runtime usable', async () => {
   const { service, native, events } = await setup(); const stream = object(await service.call('mcp/stream/start', streamParams, context));
   native.emit('notification', { method: 'mcpServer/event/stream/notification', params: { subscriptionId: stream.subscriptionId!, notification: { method: 'large', params: { data: 'x'.repeat(1024 * 1024) } } } });

@@ -1,5 +1,5 @@
 import type { Api } from './api';
-import { reconcileOperation, stopUnknownRecovery, type Operation } from './operations';
+import { finishArchivedRecoveryMember, isArchivedReceipt, reconcileOperation, stopUnknownRecovery, type Operation } from './operations';
 
 export type EmergencyOperation = Readonly<Pick<Operation, 'id' | 'method'>>;
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -40,12 +40,14 @@ export async function closeEmergencyOperations(
   const rows = captured.map(({ id, method }) => ({ id, method }));
   const closed = new Set<string>(), errors: { id: string; reason: string }[] = [];
   const controller = new AbortController(), csrf = api.csrf;
+  let interruption = '本次核对已取消。';
   const abort = () => controller.abort();
+  const loseAuthorization = () => { interruption = '登录授权已失效。'; abort(); };
   const authorized = () => !controller.signal.aborted && api.csrf === csrf && !api.externalAuthenticationRequired;
   if (signal?.aborted) abort();
   signal?.addEventListener('abort', abort, { once: true });
-  const unsubscribe = api.onAuthenticationLost(abort);
-  const timer = setTimeout(abort, DEADLINE_MS);
+  const unsubscribe = api.onAuthenticationLost(loseAuthorization);
+  const timer = setTimeout(() => { interruption = '核对超时，可继续查询。'; abort(); }, DEADLINE_MS);
   let next = 0;
   const reader = async () => {
     while (authorized() && next < rows.length) {
@@ -53,19 +55,37 @@ export async function closeEmergencyOperations(
       try {
         const receipt = await api.call('operation/read', { operationId: row.id }, controller.signal);
         if (!authorized()) break;
-        if (receipt.operationId !== row.id || receipt.method !== row.method || receipt.state !== 'unknown') continue;
+        if (receipt.operationId === row.id && isArchivedReceipt(receipt)) {
+          if (await finishArchivedRecoveryMember(recoveryId, row)) closed.add(row.id);
+          else errors.push({ id: row.id, reason: '服务已归档原回执。请在操作记录中按已导出的回执人工核对，再继续本次恢复。' });
+          continue;
+        }
+        if (receipt.operationId !== row.id || (receipt.method !== row.method && receipt.state !== 'not_received')) {
+          errors.push({ id: row.id, reason: '回执编号或方法与原记录不符。' }); continue;
+        }
+        if (receipt.state !== 'unknown') {
+          if (await finishArchivedRecoveryMember(recoveryId, row)) { closed.add(row.id); continue; }
+          const reasons: Record<string, string> = { not_received: '服务暂未登记。', pending: '服务仍在处理。', dispatching: '正在分发。', accepted: '已受理，请从原操作核对结果。', not_sent: '未发送，请从原操作核对草稿。' };
+          errors.push({ id: row.id, reason: reasons[String(receipt.state)] ?? '回执状态无法确认。' }); continue;
+        }
         await reconcileOperation(row.id, receipt);
         if (!authorized()) break;
         // This transactional check refuses a concurrent accepted/not_sent fact.
-        await stopUnknownRecovery(row.id, receipt);
+        await stopUnknownRecovery(row.id, receipt, recoveryId);
         closed.add(row.id);
       } catch {
-        errors.push({ id: row.id, reason: '原回执读取或本地关闭未完成，已保留记录供核对。' });
+        if (!authorized()) continue;
+        if (await finishArchivedRecoveryMember(recoveryId, row).catch(() => false)) closed.add(row.id);
+        else errors.push({ id: row.id, reason: '读取或本地关闭失败，请重新核对。' });
       }
     }
   };
   try { await Promise.all(Array.from({ length: Math.min(READERS, rows.length) }, reader)); }
   finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); unsubscribe(); }
+  if (!authorized()) {
+    if (api.csrf !== csrf || api.externalAuthenticationRequired) interruption = '登录授权已失效。';
+    for (const row of rows) if (!closed.has(row.id) && !errors.some(error => error.id === row.id)) errors.push({ id: row.id, reason: interruption });
+  }
   return { closedIds: rows.filter(row => closed.has(row.id)).map(row => row.id),
     retainedIds: rows.filter(row => !closed.has(row.id)).map(row => row.id), errors, interrupted: !authorized() };
 }

@@ -47,8 +47,10 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, []);
-  return <details className="model-picker" ref={ref} onKeyDown={(event) => {
-    if (event.key === 'Escape' && ref.current) { ref.current.open = false; ref.current.querySelector('summary')?.focus(); event.stopPropagation(); }
+  return <details className="model-picker" ref={ref} onBlur={event => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) event.currentTarget.open = false;
+  }} onKeyDown={(event) => {
+    if (event.key === 'Escape' && ref.current?.open) { ref.current.open = false; ref.current.querySelector('summary')?.focus(); event.stopPropagation(); }
   }}>
     <summary aria-label="选择模型与思考强度"><span>{title}</span>{effort && efforts.length > 0 && <small>{effortName(effort)}</small>}<span aria-hidden="true">⌄</span></summary>
     <section className="model-picker-panel stack" aria-label="模型与思考强度">

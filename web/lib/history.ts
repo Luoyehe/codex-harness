@@ -8,6 +8,7 @@ export const HISTORY_LIMIT = {
   pages: 80,
   cursor: 4096,
 };
+export class HistoryCapacityError extends Error {}
 const finalStatus = (status: string) => ['completed', 'failed', 'interrupted'].includes(status);
 export const historySyncPending = (turns: Turn[]) =>
   turns.some((turn) => turn.items.some((item) => item.historySync));
@@ -32,6 +33,8 @@ export function checkedPage(
   timeline: TimelineEntry[];
   nextCursor: string | null;
   complete: boolean;
+  truncated: boolean;
+  executionReady: boolean;
   legacy: boolean;
   historyVersion: number;
   activeRealtimeSessionAtPageStart: string | null;
@@ -53,6 +56,9 @@ export function checkedPage(
   )
     throw new Error('完整历史必须同时包含回合、语音时间线和一致的版本信息。');
   const timeline = checkedTimeline(page.timeline);
+  const truncated = page.truncated === true;
+  if (truncated && (page.complete || typeof page.executionReady !== 'boolean' || page.nextCursor !== null))
+    throw new Error('最近历史窗口缺少有效的执行状态。');
   const next = page.nextCursor;
   if (
     next !== null &&
@@ -60,7 +66,7 @@ export function checkedPage(
     (typeof next !== 'string' || next.length > HISTORY_LIMIT.cursor || seen.has(next))
   )
     throw new Error('历史游标无效或循环，已停止加载。');
-  if (page.complete === false && (next === null || next === undefined))
+  if (!truncated && page.complete === false && (next === null || next === undefined))
     throw new Error('历史尚未完整，但服务未提供下一页游标。');
   if (page.complete && next !== null) throw new Error('完整历史仍带有下一页游标。');
   for (const turn of page.turns) {
@@ -77,27 +83,60 @@ export function checkedPage(
     timeline,
     nextCursor: typeof next === 'string' ? next : null,
     complete: page.complete,
+    truncated,
+    executionReady: page.executionReady === undefined ? page.complete : page.executionReady === true,
     legacy: page.legacy === true,
     historyVersion: Number(page.historyVersion),
     activeRealtimeSessionAtPageStart: page.activeRealtimeSessionAtPageStart as string | null,
   };
 }
+// History rows are immutable. Cache serialized lengths by identity, so stream updates
+// account for changed items without reserializing the whole archived transcript.
+const lengths = new WeakMap<object, number>();
+const itemCounts = new WeakMap<Turn[], number>();
+const timelineCounts = new WeakMap<TimelineEntry[], number>();
+function itemCount(turns: Turn[]): number {
+  const previous = itemCounts.get(turns);
+  if (previous !== undefined) return previous;
+  const count = turns.reduce((sum, turn) => sum + turn.items.length, 0);
+  itemCounts.set(turns, count);
+  return count;
+}
+function jsonLength(value: object): number {
+  let length = lengths.get(value);
+  if (length === undefined) { length = JSON.stringify(value).length; lengths.set(value, length); }
+  return length;
+}
+function arrayLength<T extends object>(values: T[], measure: (value: T) => number = jsonLength): number {
+  const cached = lengths.get(values);
+  if (cached !== undefined) return cached;
+  let total = 2 + Math.max(0, values.length - 1);
+  for (const value of values) total += measure(value);
+  lengths.set(values, total);
+  return total;
+}
+function turnLength(turn: Turn): number {
+  const cached = lengths.get(turn);
+  if (cached !== undefined) return cached;
+  const length = JSON.stringify({ ...turn, items: [] }).length - 2 + arrayLength(turn.items);
+  lengths.set(turn, length);
+  return length;
+}
 export function boundedCombined(turns: Turn[], timeline: TimelineEntry[]): void {
-  if (
-    turns.length > HISTORY_LIMIT.turns ||
-    turns.reduce((sum, turn) => sum + turn.items.length, 0) + timeline.length >
-      HISTORY_LIMIT.items ||
-    JSON.stringify({ turns, timeline }).length > HISTORY_LIMIT.chars
-  )
-    throw new Error('文字与语音历史达到安全容量，完成同步前不能发送。');
+  const length = arrayLength(turns, turnLength) + arrayLength(timeline) + '{"turns":,"timeline":}'.length;
+  let timelineCount = timelineCounts.get(timeline);
+  if (timelineCount === undefined) {
+    timelineCount = timeline.reduce((sum, entry) => sum + (entry.itemReference ? 0 : 1), 0);
+    timelineCounts.set(timeline, timelineCount);
+  }
+  if (turns.length > HISTORY_LIMIT.turns ||
+      timeline.length > HISTORY_LIMIT.items * 2 || itemCount(turns) + timelineCount > HISTORY_LIMIT.items ||
+      length > HISTORY_LIMIT.chars)
+    throw new HistoryCapacityError('文字与语音历史达到显示窗口上限。');
 }
 export function bounded(turns: Turn[]): Turn[] {
-  if (
-    turns.length > HISTORY_LIMIT.turns ||
-    turns.reduce((sum, t) => sum + t.items.length, 0) > HISTORY_LIMIT.items ||
-    JSON.stringify(turns).length > HISTORY_LIMIT.chars
-  )
-    throw new Error('当前历史窗口达到安全容量。请重新打开会话，缩小读取范围。');
+  if (turns.length > HISTORY_LIMIT.turns || itemCount(turns) > HISTORY_LIMIT.items ||
+      arrayLength(turns, turnLength) > HISTORY_LIMIT.chars) throw new HistoryCapacityError('当前历史窗口达到安全容量。');
   return turns;
 }
 export function mergeHistory(current: Turn[], incoming: Turn[], touched: Set<string>): Turn[] {
@@ -156,7 +195,7 @@ export function applyNotification(
 ): { turns: Turn[]; touched?: string; diff?: string } {
   // The conversation owner checks the complete text+voice budget immediately.
   // Standalone consumers retain the default bounded result contract.
-  const check = combinedBudget ? (value: Turn[]) => value : bounded;
+
   if (method === 'turn/diff/updated')
     return { turns, diff: typeof p.diff === 'string' ? p.diff : '' };
   const provided = object(p.turn),
@@ -164,13 +203,27 @@ export function applyNotification(
   const turnId =
     typeof p.turnId === 'string' ? p.turnId : typeof provided.id === 'string' ? provided.id : '';
   if (!turnId || (!method.startsWith('turn/') && !method.startsWith('item/'))) return { turns };
-  const next = [...turns], turnIndex = next.findIndex(t => t.id === turnId);
-  let turn = turnIndex >= 0 ? { ...next[turnIndex]!, items: [...next[turnIndex]!.items] } : undefined;
-  if (turn) next[turnIndex] = turn;
-  if (!turn) {
-    turn = { id: turnId, status: 'inProgress', items: [] };
-    next.push(turn);
-  }
+  const next = [...turns];
+  const turnIndex = turns.at(-1)?.id === turnId ? turns.length - 1 : turns.findIndex(t => t.id === turnId);
+  const original = turns[turnIndex];
+  const turn: Turn = original ? { ...original, items: [...original.items] } : { id: turnId, status: 'inProgress', items: [] };
+  if (original) next[turnIndex] = turn;
+  else next.push(turn);
+  // Every notification owns one turn. Carry forward known totals for untouched
+  // turns instead of walking the transcript again at each streaming update.
+  const check = (changedItem?: { before: Item | undefined; after: Item }) => {
+    if (original && changedItem) {
+      const previousBytes = arrayLength(original.items);
+      const change = jsonLength(changedItem.after) - (changedItem.before ? jsonLength(changedItem.before) : 0);
+      const comma = !changedItem.before && original.items.length > 0 ? 1 : 0;
+      lengths.set(turn.items, previousBytes + change + comma);
+    }
+    const priorLength = arrayLength(turns, turnLength);
+    const comma = !original && turns.length > 0 ? 1 : 0;
+    lengths.set(next, priorLength - (original ? turnLength(original) : 0) + turnLength(turn) + comma);
+    itemCounts.set(next, itemCount(turns) - (original?.items.length ?? 0) + turn.items.length);
+    return combinedBudget ? next : bounded(next);
+  };
   if (method === 'turn/started' && !finalStatus(turn.status)) turn.status = 'inProgress';
   if (method === 'turn/completed') {
     turn.status = String(provided.status ?? 'completed');
@@ -192,15 +245,15 @@ export function applyNotification(
     const index = turn.items.findIndex((i) => i.id === plan.id);
     if (index < 0) turn.items.push(plan);
     else turn.items[index] = plan;
-    return { turns: check(next), touched: `${turnId}:${plan.id}` };
+    return { turns: check({ before: original?.items[index], after: plan }), touched: `${turnId}:${plan.id}` };
   }
   const itemId =
     typeof item.id === 'string' ? item.id : typeof p.itemId === 'string' ? p.itemId : '';
-  if (!itemId) return { turns: check(next) };
+  if (!itemId) return { turns: check() };
   const index = turn.items.findIndex((i) => i.id === itemId);
   const previous = turn.items[index];
   if (method !== 'item/completed' && (previous?.streamComplete || finalStatus(turn.status)))
-    return { turns: check(next) };
+    return { turns: check() };
   let updated: Item;
   if (method === 'item/completed')
     updated = {
@@ -210,7 +263,7 @@ export function applyNotification(
       streamComplete: true,
     };
   else if (method === 'item/started') {
-    if (previous && !previous.historySync) return { turns: check(next) };
+    if (previous && !previous.historySync) return { turns: check() };
     updated = { ...item, id: itemId, type: String(item.type ?? previous?.type ?? 'unknown') };
     if (previous?.historySync)
       updated.historySync = {
@@ -233,7 +286,7 @@ export function applyNotification(
   }
   if (index < 0) turn.items.push(updated);
   else turn.items[index] = updated;
-  return { turns: check(next), touched: `${turnId}:${itemId}` };
+  return { turns: check({ before: previous, after: updated }), touched: `${turnId}:${itemId}` };
 }
 export function textContent(item: Item): string {
   if (typeof item.text === 'string') return item.text;

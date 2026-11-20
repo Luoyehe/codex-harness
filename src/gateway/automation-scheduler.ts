@@ -10,13 +10,13 @@ const finalStates = new Set(['completed', 'failed', 'interrupted']);
 /** In-process scheduler owned by the gateway identity. It obtains ordinary fenced worker leases. */
 export class AutomationScheduler {
   private timer: NodeJS.Timeout | undefined;
-  private task: Promise<void> | undefined;
   private closed = false;
   private leases = new Set<string>();
   private nextRead = new Map<string, number>();
   private nextStop = new Map<string, number>();
   private controls = new Map<string, Promise<void>>();
   private readCursor = 0;
+  private launches = new Map<string, Promise<void>>();
   private readonly onEvent = (event: HarnessEvent): void => { this.event(event); };
   private readonly onChanged = (): void => { void this.tick(); };
   constructor(private ledger: Ledger, private dispatcher: Dispatcher, private worker: SchedulerWorker, private now: () => number = Date.now) {}
@@ -54,24 +54,36 @@ export class AutomationScheduler {
     if (this.closed) return Promise.resolve();
     this.pruneCooldowns();
     const controls = this.control();
-    if (this.task) return Promise.all([this.task, controls]).then(() => {});
-    this.task = this.step().then(() => { this.dispatcher.automationHealth({ running: !this.closed, lastTickAt: this.now(), lastError: null }); }, error => {
+    const work = this.step().then(() => {
+      this.dispatcher.automationHealth({ running: !this.closed, lastTickAt: this.now(), lastError: null });
+    }, error => {
       this.dispatcher.automationHealth({ running: !this.closed, lastTickAt: this.now(), lastError: error instanceof HarnessError ? error.code : 'scheduler_failed' });
-    }).finally(() => { this.task = undefined; }); return Promise.all([this.task, controls]).then(() => {});
+    });
+    return Promise.all([work, controls, ...this.launches.values()]).then(() => {});
   }
   private async step(): Promise<void> {
-    if (this.dispatcher.maintenanceActive()) return;
+    if (this.closed || this.dispatcher.maintenanceActive()) return;
     this.ledger.transaction(() => this.ledger.automations.collectDue());
     if (!this.worker.connected) return;
     const outstanding = this.ledger.automations.outstanding();
     const running = outstanding.filter(value => ['dispatching', 'running', 'needs_attention', 'stopping'].includes(value.state));
     let slots = Math.max(0, 4 - running.length);
+    const admitted: Promise<void>[] = [];
     for (const value of outstanding.filter(value => value.state === 'queued')) {
       if (this.closed || !this.worker.connected || this.dispatcher.maintenanceActive() || slots <= 0) break;
       if (this.now() - value.scheduledAt > 300_000) { this.ledger.transaction(() => this.ledger.automations.finish(value.id, 'not_sent', 'missed_window')); this.publish(value.id); continue; }
+      const project = value.spec.projectId;
+      if (this.launches.has(project)) continue;
       const claimed = this.ledger.transaction(() => this.ledger.automations.claim(value.id));
-      if (claimed) { slots--; await this.launch(claimed); }
+      if (claimed) {
+        slots--;
+        const task = this.launch(claimed).finally(() => { this.launches.delete(project); });
+        this.launches.set(project, task);
+        admitted.push(task.then(() => this.step()));
+
+      }
     }
+    await Promise.all(admitted);
   }
   private async control(): Promise<void> {
     if (this.closed || !this.worker.connected || this.dispatcher.maintenanceActive()) return;
@@ -146,6 +158,15 @@ export class AutomationScheduler {
       const history = await this.dispatcher.call({ method: 'thread/history', params: { threadId: run.threadId, limit: 25 } }, this.context(run.clientId)); object(history);
       if (!Array.isArray(history.turns)) return;
       const found = history.turns.find(turn => !!turn && typeof turn === 'object' && !Array.isArray(turn) && turn.id === run.turnId) as JsonObject | undefined;
+      if (found?.status === 'inProgress' && run.state === 'unknown' && run.threadId && run.turnId &&
+          this.ledger.transaction(() => this.ledger.automations.restoreActive(run.id, run.threadId!, run.turnId!))) {
+        this.publish(run.id);
+        const active = this.ledger.automations.getRun(run.id);
+        if (active.stopRequested || (active.startedAt !== null && this.now() - active.startedAt >= active.spec.maxRunMinutes * 60_000)) {
+          this.ledger.transaction(() => this.ledger.automations.requestStop(active.id));
+          await this.stop(active);
+        }
+      }
       if (found && finalStates.has(String(found.status))) { this.ledger.transaction(() => this.ledger.automations.finish(run.id, found.status as RunState)); this.publish(run.id); }
     } catch { /* Only a matching terminal turn is positive completion evidence. No resume or re-dispatch. */ }
     finally {
@@ -174,7 +195,7 @@ export class AutomationScheduler {
   async close(): Promise<void> {
     this.closed = true; if (this.timer) clearInterval(this.timer); this.timer = undefined;
     this.dispatcher.off('event', this.onEvent); this.dispatcher.off('automation-changed', this.onChanged);
-    await this.task;
+    await Promise.allSettled(this.launches.values());
     await Promise.allSettled(this.controls.values());
     this.nextRead.clear(); this.nextStop.clear();
     await Promise.allSettled([...this.leases].map(id => this.release(id)));

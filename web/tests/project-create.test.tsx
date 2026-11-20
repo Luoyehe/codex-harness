@@ -21,6 +21,7 @@ test('a new user creates a usable project with just its name, without knowing a 
   }));
   const onAdded = vi.fn(), onClose = vi.fn(), onOpen = vi.fn();
   render(<ProjectDialog executionMode={native} executionModeConfirmed api={new Api()} onAdded={onAdded} onClose={onClose} onOpen={onOpen} />);
+  expect(document.activeElement).not.toBe(screen.getByLabelText('项目名称'));
   fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'my-project' } });
   await screen.findByText('/native/projects/my-project');
   const save = screen.getByRole('button', { name: '创建项目' }); await waitFor(() => expect(save).toHaveProperty('disabled', false)); fireEvent.click(save);

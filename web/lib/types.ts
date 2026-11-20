@@ -45,6 +45,7 @@ export type Model = {
   supportedReasoningEfforts?: { reasoningEffort: string; description?: string }[];
   defaultReasoningEffort?: string;
   inputModalities?: string[];
+  supportsTools?: boolean;
 };
 export type Options = {
   model?: string;

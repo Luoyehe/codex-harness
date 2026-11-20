@@ -44,6 +44,30 @@ class AcknowledgementFilesystemTests(unittest.TestCase):
         saved = self.call("operation/read", {"operationId": identity})
         return self.call("operation/ack", {"operationId": identity, "requestDigest": saved["requestDigest"]})
 
+    def test_immediate_retained_and_legacy_workspace_failure_share_chinese_code_and_delivery(self):
+        from deploy.workspace import failure
+        (self.path / "already-there").mkdir()
+        op = str(uuid.uuid4())
+        with self.assertRaises(DeployError) as caught:
+            self.call("mkdir", {"path": "already-there"}, op)
+        instant = failure(caught.exception, dispatched=True)["error"]
+        self.assertEqual(instant["code"], "already_exists")
+        self.assertEqual(instant["delivery"], "not_sent")
+        self.assertIn("目标已存在", instant["message"])
+        retained = self.call("operation/read", {"operationId": op})
+        self.assertEqual(retained["response"]["error"], instant)
+        self.assertEqual(retained["diagnostic"]["type"], "FileExistsError")
+        file = self.records / op / "state.json"
+        older = json.loads(file.read_text())
+        older["response"]["error"]["message"] = "Workspace operation failed; inspect recovery record"
+        raw = json.dumps(older).encode()
+        file.write_bytes(raw)
+        self.assertEqual(self.call("operation/read", {"operationId": op})["response"]["error"], instant)
+        self.assertEqual(self.workspace.dispatch(validate({"version": 1, "action": "mkdir", "root": str(self.path),
+            "params": {"path": "already-there"}, "operationId": op}))["error"], instant)
+        self.assertEqual(file.read_bytes(), raw)
+        self.assertTrue((self.path / "already-there").is_dir())
+
     def test_many_accepted_payload_free_operations_do_not_exhaust_lifetime_budget(self):
         with patch("deploy.workspace_store.MAX_RECORDS", 2):
             for index in range(8):
@@ -54,6 +78,33 @@ class AcknowledgementFilesystemTests(unittest.TestCase):
                 self.assertEqual(self.call("operation/ack", {"operationId": identity, "requestDigest": saved["requestDigest"]}),
                                  {"acknowledged": True, "operationId": identity, "removed": True})
                 self.assertEqual(self.call("operation/read", {"operationId": identity})["state"], "not_received")
+
+    def test_ack_after_interrupted_publication_archives_raw_evidence_and_releases_capacity(self):
+        from hashlib import sha256
+        with patch("deploy.workspace_store.MAX_RECORDS", 1):
+            identity = str(uuid.uuid4())
+            self.call("mkdir", {"path": "a"}, identity)
+            pending = self.records / identity / ".state-next"
+            pending.write_bytes(b"{")
+            pending.chmod(0o600)
+            self.assertEqual(self.call("recovery/read", {"operationId": identity})["resolution"], "retained")
+            self.assertTrue(self.ack(identity)["removed"])
+            self.assertEqual((self.records / "unpublished" / (identity + "-" + sha256(b"{").hexdigest())).read_bytes(), b"{")
+            self.assertFalse((self.records / identity).exists())
+            self.call("mkdir", {"path": "b"})
+
+    def test_completed_receipt_can_publish_interrupted_ack_without_changing_result(self):
+        identity = str(uuid.uuid4())
+        self.call("mkdir", {"path": "a"}, identity)
+        holder = self.records / identity
+        old = json.loads((holder / "state.json").read_text())
+        candidate = {**old, "acknowledged": True}
+        pending = holder / ".state-next"
+        pending.write_text(json.dumps(candidate))
+        pending.chmod(0o600)
+        self.assertEqual(self.call("recovery/read", {"operationId": identity})["resolution"], "published")
+        self.assertEqual(json.loads((holder / "state.json").read_text()), candidate)
+        self.assertTrue(self.ack(identity)["removed"])
 
     def test_mismatched_and_unknown_receipts_cannot_be_acknowledged(self):
         identity = str(uuid.uuid4())

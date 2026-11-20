@@ -112,7 +112,8 @@ def apply_candidate(manager, config):
     write_json(paths(layout)["instance"], config)
     write_json(paths(layout)["native"], native_settings(layout, config), mode=0o644)
     atomic_write(paths(layout)["worker"], generated[layout.unit("worker")].encode(), 0o644)
-    atomic_write(paths(layout)["sudo"], sudo_rule(layout, config=config).encode(), 0o440)
+    from .sudo_publish import publish
+    publish(paths(layout)["sudo"], sudo_rule(layout, config=config).encode(), 0o440)
     fsync_directory(layout.units)
     manager.config = config
     manager.system.reload()
@@ -154,7 +155,10 @@ def recover(manager, journal_path, journal, *, candidate=False):
             if name == "sudo":
                 from .units import migrated_history_sudo
                 data = migrated_history_sudo(manager.layout, before, data)
-            atomic_write(path, data, journal["before"][name]["mode"])
+                from .sudo_publish import publish
+                publish(path, data, journal["before"][name]["mode"])
+            else:
+                atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = before
         manager.system.reload()

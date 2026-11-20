@@ -175,3 +175,15 @@ it('keeps a replacement owner on its own schedule after the old failed poll fini
   expect(call).toHaveBeenCalledTimes(6);
   expect(view.result.current.error).toBe('');
 });
+
+it('retains the same project baseline across a hidden interval and rechecks a deleted file on return', async () => {
+  let missing = false;
+  const changed = vi.fn(), api = { call: vi.fn(async (_method: string, params: { path: string }) => {
+    if (missing && params.path) throw new RpcError('Gone', 'not_found');
+    return { path: params.path, kind: params.path ? 'file' : 'directory', revision: 'same' };
+  }) } as unknown as Api;
+  const seen = renderHook(({ enabled }) => useWorkspaceWatch(api, { ...scope, enabled }, changed), { initialProps: { enabled: true } });
+  await act(async () => {}); seen.rerender({ enabled: false }); missing = true;
+  seen.rerender({ enabled: true }); await act(async () => {});
+  expect(changed).toHaveBeenCalledExactlyOnceWith(['src.ts']);
+});

@@ -214,7 +214,8 @@ def apply_candidate(manager, journal: dict) -> None:
         paths(layout)["check"].unlink(missing_ok=True)
     else:
         atomic_write(paths(layout)["check"], check.encode(), 0o644)
-    atomic_write(paths(layout)["sudo"], sudo_rule(layout, config=config, workspace=journal["targetMode"] == LAYER_MODE).encode(), 0o440)
+    from .sudo_publish import publish
+    publish(paths(layout)["sudo"], sudo_rule(layout, config=config, workspace=journal["targetMode"] == LAYER_MODE).encode(), 0o440)
     fsync_directory(layout.units)
     manager.config = config
     manager.system.reload()
@@ -242,7 +243,10 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
                 if name == "sudo":
                     from .units import migrated_history_sudo
                     data = migrated_history_sudo(manager.layout, old_config, data)
-                atomic_write(path, data, journal["before"][name]["mode"])
+                    from .sudo_publish import publish
+                    publish(path, data, journal["before"][name]["mode"])
+                else:
+                    atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = old_config
         manager.system.reload()
@@ -282,7 +286,8 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
                 # A recognized old policy can still lack catalog-server after
                 # control code changed. Publish its replacement through this
                 # transaction so failures can restore the exact prior policy.
-                if "connections" in current and paths(layout)["sudo"].read_bytes() == sudo_rule(layout, config=manager.config).encode():
+                from .provider_registry import upgrade_mcp_defaults
+                if "connections" in current and upgrade_mcp_defaults(current) == current and paths(layout)["sudo"].read_bytes() == sudo_rule(layout, config=manager.config).encode():
                     return {"providerConfigLayer": LAYER_MODE, "changed": False}
     candidate_config = {key: value for key, value in manager.config.items() if key != "providerConfigLayer"}
     if layered:
@@ -295,6 +300,8 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
                 from .provider_catalogs import initialize
                 rows[0]["settings"] = initialize(rows[0]["settings"])
             next_settings = combine(current, rows, "default")
+        from .provider_registry import upgrade_mcp_defaults
+        next_settings = upgrade_mcp_defaults(next_settings)
         prepare_host_targets(next_settings, layout, manager.config["workerGid"])
         generation = manager.providers.prepare(next_settings, layered=True)
     else:

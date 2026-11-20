@@ -48,7 +48,7 @@ it('captures while the panel is closed, merges run identities, and renders outpu
       <HookEventsPanel />
     </HookEventsProvider>,
   );
-  expect(screen.getByText(/Stop · 运行中/)).toBeTruthy();
+  expect(screen.getByText(/停止 · 运行中/)).toBeTruthy();
   act(() =>
     events.publish(
       event('run', 'failed', {
@@ -57,13 +57,13 @@ it('captures while the panel is closed, merges run identities, and renders outpu
       }),
     ),
   );
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
-  expect(screen.getByText(/Stop · 失败/)).toBeTruthy();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
+  expect(screen.getByText(/停止 · 失败/)).toBeTruthy();
   expect(screen.getByText('<script>danger()</script> https://example.invalid/run')).toBeTruthy();
   expect(document.querySelector('script')).toBeNull();
   expect(document.querySelector('a')).toBeNull();
   act(() => events.publish(event()));
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
 });
 it('clears records immediately on disconnect and never carries them to another lease', () => {
   const events = new Events();
@@ -78,18 +78,18 @@ it('clears records immediately on disconnect and never carries them to another l
       <HookEventsPanel />
     </HookEventsProvider>,
   );
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
   act(() => events.publish(event('offline')));
   view.rerender(
     <HookEventsProvider events={events} lease="next-owner" connected>
       <HookEventsPanel />
     </HookEventsProvider>,
   );
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
   act(() => events.publish(event('new')));
-  expect(screen.getByText(/Stop · 运行中/)).toBeTruthy();
+  expect(screen.getByText(/停止 · 运行中/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '清除本页运行记录' }));
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
 });
 it('bounds record count and retained bytes and explicitly marks truncated or malformed notifications', () => {
   let state: HookSnapshot = { records: [], discarded: 0, malformed: 0 };
@@ -128,11 +128,24 @@ it('keeps equal run ids in different threads separate and filters the visible ra
     events.publish(event());
     events.publish(second);
   });
-  expect(screen.getByText(/Stop · 运行中/)).toBeTruthy();
-  expect(screen.getByText(/Stop · 已阻止/)).toBeTruthy();
+  expect(screen.getByText(/停止 · 运行中/)).toBeTruthy();
+  expect(screen.getByText(/停止 · 已阻止/)).toBeTruthy();
   fireEvent.change(screen.getByRole('combobox', { name: '运行记录的会话范围' }), {
     target: { value: 'second' },
   });
-  expect(screen.queryByText(/Stop · 运行中/)).toBeNull();
-  expect(screen.getByText(/Stop · 已阻止/)).toBeTruthy();
+  expect(screen.queryByText(/停止 · 运行中/)).toBeNull();
+  expect(screen.getByText(/停止 · 已阻止/)).toBeTruthy();
+});
+
+it('localizes hook record dimensions, retaining unknown enums and empty values distinctly', () => {
+  const events = new Events();
+  render(<HookEventsProvider events={events} lease="owner" connected><HookEventsPanel /></HookEventsProvider>);
+  act(() => events.publish(event('labels','completed',{ eventName:'preModelRequest', source:'cloudManagedConfig', handlerType:'command',
+    scope:'turn', executionMode:'async', entries:[{kind:'warning',text:'fixture'}] })));
+  expect(screen.getByText('模型请求前 · 已完成 · 云端托管配置')).toBeTruthy();
+  expect(screen.getByText(/命令 · 异步 · 回合/)).toBeTruthy();
+  expect(screen.getByText('警告')).toBeTruthy();
+  act(() => events.publish(event('labels2','completed',{ eventName:'FutureHook', source:'', handlerType:'NewHandler', executionMode:'', scope:'thread' })));
+  expect(screen.getByText('未知值（FutureHook） · 已完成 · 未提供')).toBeTruthy();
+  expect(screen.getByText(/未知值（NewHandler） · 未提供 · 会话/)).toBeTruthy();
 });

@@ -88,26 +88,70 @@ def safe_metadata(metadata, common, *, allow_in_progress=False):
         try: os.stat(name, dir_fd=metadata, follow_symlinks=False)
         except FileNotFoundError: continue
         require(False, "Finish the current Git operation before committing", "git_in_progress")
-    count = 0
-    def walk(parent, name, depth=0):
-        nonlocal count
-        count += 1
-        require(count <= 4096 and depth <= 32, "Git 写入元数据超过 4096 项或 32 层上限；请在终端审查 refs/reflog 并按 Git 官方方式整理后重试，未执行写入", "budget")
-        info = os.stat(name, dir_fd=parent, follow_symlinks=False)
-        require(info.st_uid == os.geteuid() and not info.st_mode & 0o022, "Git write metadata is shared or not native-owned", "unsafe_path")
-        if stat.S_ISDIR(info.st_mode):
-            fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+    def inspect_path(base, components, *, read_ref=False):
+        current = os.dup(base)
+        try:
+            for part in components[:-1]:
+                try:
+                    child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+                except FileNotFoundError:
+                    return None
+                os.close(current)
+                current = child
+                owned(current)
+            try:
+                fd = os.open(components[-1], os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=current)
+            except FileNotFoundError:
+                return None
             try:
                 owned(fd)
-                with os.scandir(fd) as children:
-                    for child in children: walk(fd, child.name, depth + 1)
-            finally: os.close(fd)
-        else:
-            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Unsafe Git write metadata file", "unsafe_path")
-    for parent, names in ((common, ("refs", "logs", "packed-refs", "config", "reftable")), (metadata, ("logs",)) if metadata != common else (metadata, ())):
-        for name in names:
-            try: walk(parent, name)
-            except FileNotFoundError: pass
+                info = os.fstat(fd)
+                require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
+                        "Unsafe Git write metadata file", "unsafe_path")
+                if read_ref:
+                    data, _ = read_file(fd, 8192)
+                    return data.decode("utf-8", "strict").strip()
+            finally:
+                os.close(fd)
+        except OSError as error:
+            import errno
+            if error.errno in (errno.ELOOP, errno.ENOTDIR):
+                raise DeployError("unsafe_path", "Git write metadata changed type") from error
+            raise
+        finally:
+            os.close(current)
+
+    # update-ref only fences HEAD and its symbolic targets. Inspect the same
+    # refs and reflogs, including missing tails for unborn branches. Other
+    # branches and the entire reflog history are unrelated to this mutation.
+    from .git_refs import valid_ref
+    head = inspect_path(metadata, ["HEAD"], read_ref=True)
+    require(head is not None, "Git HEAD is missing", "git_unavailable")
+    inspect_path(metadata, ["logs", "HEAD"])
+    inspect_path(common, ["packed-refs"])
+    inspect_path(common, ["config"])
+    seen = set()
+    while head and head.startswith("ref: "):
+        target = valid_ref(head[5:], heads_only=True)
+        require(target not in seen and len(seen) < 16, "Unsupported indirect Git reference chain", "git_unavailable")
+        seen.add(target)
+        parts = target.split("/")
+        inspect_path(common, ["logs", *parts])
+        head = inspect_path(common, parts, read_ref=True)
+    # A reftable repository has a single authoritative list of table files.
+    try:
+        tables = os.open("reftable", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=common)
+    except FileNotFoundError:
+        tables = None
+    if tables is not None:
+        try:
+            owned(tables)
+            table_names, _ = file_data(tables, "tables.list", 4 * 1024 * 1024)
+            for name in table_names.decode("ascii").splitlines():
+                require(re.fullmatch(r"[a-zA-Z0-9._-]+\.ref", name), "Invalid Git reftable name", "unsafe_path")
+                inspect_path(tables, [name])
+        finally:
+            os.close(tables)
     objects = os.open("objects", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=common)
     try:
         owned(objects)

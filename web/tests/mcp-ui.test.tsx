@@ -6,6 +6,7 @@ import { Api } from '../lib/api';
 import { Events } from '../lib/events';
 import { McpPanel, McpEventBridge } from '../components/McpPanel';
 import { McpConfiguration } from '../components/McpConfiguration';
+import { Settings } from '../components/Settings';
 import { McpContent } from '../components/McpContent';
 import { acceptMcpIdentity, appendMcpLog, mcpSession, type McpAttempt } from '../lib/mcp-session';
 import { listOperations } from '../lib/operations';
@@ -438,6 +439,8 @@ it('retains accepted result identity, sibling text and raw download when media p
     expect(mcpSession(api, 'lease').attempts[0]?.body?.content).toEqual(content);
     expect(screen.getByText('Original body retained')).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(1000));
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:raw-result');
+    await act(() => vi.advanceTimersByTimeAsync(59_000));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:raw-result');
   } finally {
     vi.useRealTimers();
@@ -1000,17 +1003,17 @@ it.each(['server', 'thread', 'epoch', 'lease', 'connection'] as const)(
         target: { value: 'local' },
       });
     }
-    expect(signals[0].aborted).toBe(true);
+    expect(signals[0]!.aborted).toBe(true);
     fireEvent.click(read());
     await waitFor(() => expect(pending).toHaveLength(2));
-    expect(signals[1].aborted).toBe(false);
-    await act(async () => pending[0].reject(new Error('OBSOLETE_READ_ERROR')));
+    expect(signals[1]!.aborted).toBe(false);
+    await act(async () => pending[0]!.reject(new Error('OBSOLETE_READ_ERROR')));
     expect(read().disabled).toBe(true);
     expect(screen.queryByText('OBSOLETE_READ_ERROR')).toBeNull();
     fireEvent.click(read());
     expect(calls.filter((call) => call.method === 'mcp/resource/read')).toHaveLength(2);
     await act(async () =>
-      pending[1].resolve({ contents: [{ uri: 'file:///discovered', text: 'CURRENT_VISIT' }] }),
+      pending[1]!.resolve({ contents: [{ uri: 'file:///discovered', text: 'CURRENT_VISIT' }] }),
     );
     await screen.findByText('CURRENT_VISIT');
     expect(read().disabled).toBe(false);
@@ -1079,6 +1082,120 @@ it('aborts an unmounted download and prevents its late success from downloading 
   expect((screen.getByRole('button', { name: '读取此资源' }) as HTMLButtonElement).disabled).toBe(
     true,
   );
-  expect(mcpSession(api, 'lease').attempts[0].state).toBe('accepted');
+  expect(mcpSession(api, 'lease').attempts[0]?.state).toBe('accepted');
   await act(async () => finishResource({ contents: [] }));
+});
+
+it('rereads the current MCP catalog, subscriptions and effective configuration after a missed event', async () => {
+  let online = false;
+  const { api, calls, events } = setup(call => call.method === 'mcp/list'
+    ? { data: [{ ...server, runtimeStatus: online ? 'connected' : 'failed' }], nextCursor: null } : fallback(call));
+  const props = panelProps(api, events);
+  render(<McpPanel {...props} />);
+  await screen.findByRole('option', { name: /local · 连接失败/ });
+  const count = (method: string) => calls.filter(call => call.method === method).length;
+  const baseline = ['mcp/list', 'mcp/stream/list', 'mcp/config/read'].map(count);
+  online = true;
+  act(() => events.publish({ type: 'notification', data: { method: 'mcpServer/startupStatus/updated', params: { name: 'local', threadId: 'different' } } }));
+  expect(count('mcp/list')).toBe(baseline[0]);
+  act(() => events.publish({ type: 'resync', data: { reason: 'events_lost' } }));
+  await screen.findByRole('option', { name: /local · 已连接/ });
+  await waitFor(() => expect(['mcp/list', 'mcp/stream/list', 'mcp/config/read'].map(count)).toEqual(baseline.map(n => n + 1)));
+  expect(calls.filter(c => c.method === 'mcp/list').every(c => c.params.detail === 'toolsAndAuthOnly')).toBe(true);
+  online = false;
+  act(() => events.publish({ type: 'notification', data: { method: 'mcpServer/startupStatus/updated', params: { name: 'local', threadId: props.threadId } } }));
+  await screen.findByRole('option', { name: /local · 连接失败/ });
+  fireEvent.change(screen.getByRole('combobox', { name:'选择 MCP 服务' }), { target: { value:'local' } });
+  fireEvent.click(screen.getByRole('button', { name: '资源' }));
+  await waitFor(() => expect(calls.filter(c => c.method === 'mcp/list').at(-1)?.params.detail).toBe('full'));
+});
+
+it('preserves in-memory MCP secret on transport reconnect and clears it on project change', async () => {
+  const { api, events, calls } = setup();
+  const props = { ...panelProps(api, events), runtimeEpoch: 'native' };
+  const view = render(<McpPanel {...props} />);
+  fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置', { selector: 'summary' }));
+  fireEvent.click(await screen.findByRole('button', { name: '新增 MCP 服务' }));
+  const env = screen.getByRole('group', { name: '环境变量' });
+  fireEvent.click(env.querySelector('input[type=checkbox]')!);
+  fireEvent.click(screen.getByRole('button', { name: '添加环境变量' }));
+  const field = () => screen.getByLabelText('环境变量值 1');
+  fireEvent.change(field(), { target: { value: 'ephemeral-mcp-key' } });
+  view.rerender(<McpPanel {...props} connected={false} lease="offline" epoch="offline" />);
+  view.rerender(<McpPanel {...props} lease="new-socket" epoch="after-reconnect" />);
+  await waitFor(() => expect(field()).toHaveProperty('value', 'ephemeral-mcp-key'));
+  expect(calls.some(c => c.operationId)).toBe(false);
+  view.rerender(<McpPanel {...props} projectId="new-project" />);
+  await screen.findByRole('button', { name: '新增 MCP 服务' });
+  expect(screen.queryByDisplayValue('ephemeral-mcp-key')).toBeNull();
+  expect(JSON.stringify(localStorage)).not.toContain('ephemeral-mcp-key');
+});
+
+it.each(['stdio','http'])('reloads the effective %s inherited MCP setting after disable and restore', async transport => {
+  let enabled = true, effectiveEnabled = true, overridden = false, version = 1;
+  const openService = vi.fn();
+  const { api, calls, events } = setup(c => {
+    if (c.method === 'mcp/config/read') return { ...config, userVersion: 'v' + version,
+      inheritedServers: ['managed', 'unchanged'], inheritedDetails: [{ name: 'managed', transport, overrideAllowed:true, enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden },
+        { name: 'unchanged', transport, overrideAllowed:true, enabled: true, effectiveEnabled:true, restartRequired:false, overridden: false }] };
+    if (c.method === 'mcp/config/write') {
+      expect(c.params.expectedVersion).toBe('v' + version);
+      const change = c.params.change as { enabled: boolean | null };
+      enabled = change.enabled ?? true; overridden = change.enabled !== null; version++;
+      return { written: true };
+    }
+    return fallback(c);
+  });
+  const props = panelProps(api,events);
+  const view=render(<McpPanel {...props} runtimeEpoch="original-native" onServiceSettings={openService} />);
+  fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置', { selector: 'summary' }));
+  fireEvent.click(await screen.findByRole('button', { name: '停用 managed' }));
+  expect(await screen.findByText('已保存：停用 · 当前生效：启用')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'前往服务管理'}));
+  expect(openService).toHaveBeenCalledOnce();
+  effectiveEnabled = false;
+  view.rerender(<McpPanel {...props} epoch="after-restart" runtimeEpoch="second-native" onServiceSettings={openService} />);
+  expect(await screen.findByText('已保存：停用 · 当前生效：停用')).toBeTruthy();
+  expect(screen.queryByRole('button',{name:'前往服务管理'})).toBeNull();
+  fireEvent.click(await enabledButton({name:'恢复继承设置'}));
+  expect(await screen.findByText('已保存：启用 · 当前生效：停用')).toBeTruthy();
+  effectiveEnabled = true;
+  view.rerender(<McpPanel {...props} epoch="restored" runtimeEpoch="third-native" onServiceSettings={openService} />);
+  await waitFor(()=>expect(screen.getAllByText('已保存：启用 · 当前生效：启用')).toHaveLength(2));
+  await screen.findByRole('button', { name: '停用 managed' });
+  expect(calls.filter(c => c.method === 'mcp/config/write').map(c => c.params)).toEqual([false, null].map((value, i) =>
+    ({ projectId:'project', expectedVersion:'v'+(i+1), name:'managed', change:{type:'inherit',enabled:value} })));
+  expect(screen.getByRole('button', { name: '停用 unchanged' })).toBeTruthy();
+});
+
+it('navigates from a saved inherited MCP change to the actual service restart confirmation screen', async () => {
+  HTMLDialogElement.prototype.showModal = function(){ this.open=true; };
+  HTMLDialogElement.prototype.close = function(){ this.open=false; };
+  const {api,events,calls}=setup(call=>call.method==='mcp/config/read'
+    ? {...config,inheritedServers:['managed'],inheritedDetails:[{ name:'managed',transport:'stdio',overrideAllowed:true,enabled:false,effectiveEnabled:true,overridden:true,restartRequired:true }]} : fallback(call));
+  render(<Settings api={api} events={events} epoch="one" runtimeEpoch="native" connectionId="c"
+    projects={[{id:'project',cwd:'/project',name:'Project'}]} projectId="project" theme="system"
+    connected configurationReady managementReady onChanged={vi.fn()} onClose={vi.fn()} onTheme={vi.fn()}
+    onOpenDraft={vi.fn()} onProjectAction={vi.fn()} onLogout={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button',{name:'MCP'}));
+  fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置',{selector:'summary'}));
+  fireEvent.click(await screen.findByRole('button',{name:'前往服务管理'}));
+  expect(await screen.findByRole('heading',{name:'重启服务'})).toBeTruthy();
+  expect(screen.getByRole('button',{name:'终止任务并重启服务'})).toHaveProperty('disabled',true);
+  expect(calls.some(call=>call.method==='system/restart')).toBe(false);
+});
+
+it('keeps project-controlled inherited services read-only and explains the bundled HTTP compatibility setting', async () => {
+  const {api,calls,events}=setup(c=>c.method==='mcp/config/read'?{...config,inheritedDetails:[
+    {name:'project-only',transport:'http',overrideAllowed:false,enabled:true,effectiveEnabled:true,overridden:false},
+    {name:'zread',transport:'http',overrideAllowed:true,enabled:false,effectiveEnabled:false,overridden:false},
+  ]}:fallback(c));
+  render(<McpPanel {...panelProps(api,events)} />);
+  fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置',{selector:'summary'}));
+  const locked=await screen.findByRole('button',{name:'停用 project-only'});
+  expect(locked).toHaveProperty('disabled',true);
+  fireEvent.click(locked);
+  expect(calls.some(c=>c.method==='mcp/config/write')).toBe(false);
+  expect(screen.getByText(/智谱 Coding Plan 集成默认关闭/)).toBeTruthy();
+  expect(screen.getByRole('button',{name:'启用 zread'})).toHaveProperty('disabled',false);
 });

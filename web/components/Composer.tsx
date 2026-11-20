@@ -1,3 +1,4 @@
+import { attachmentMediaType } from '../../src/core/attachment-media';
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { useEnterBehavior } from '../lib/input-preference';
@@ -18,6 +19,7 @@ import { mediaAdmission } from '../lib/input-modalities';
 import { modelSettingsIssue, type CollaborationModeMask } from '../lib/workflows';
 export type Attachment = { attachmentId: string; name: string; size: number; mimeType: string };
 export type SendIntent = 'send' | 'steer' | 'queue';
+// Browsers may omit File.type for pasted or downloaded images.
 export function Composer({
   api,
   value,
@@ -171,6 +173,7 @@ export function Composer({
     intent: selectedIntent,
     models,
     modelsLoading: Boolean(modelsLoading),
+    directoryComplete: directoryComplete ?? !moreModels,
     defaults,
     defaultsLoading,
     options,
@@ -223,7 +226,7 @@ export function Composer({
           binary += String.fromCharCode(...buffer.subarray(i, i + 8192));
         const result = await api.mutate<Attachment>('attachment/upload', {
           name: file.name,
-          mimeType: file.type || 'application/octet-stream',
+          mimeType: attachmentMediaType(buffer, file.type),
           base64: btoa(binary),
         });
         if (gen === generation.current) setAttachments((existing) => [...existing, result]);
@@ -290,9 +293,10 @@ export function Composer({
         {media.modalities.length > 0 && (
           <div className="small muted media-admission">
             <p>
-              {media.modalities.includes('audio')
-                ? '音频将作为原生音频输入，格式与模型能力由服务核对；不会降级成文字文件路径。'
-                : '图片按当前实际输入模型的目录能力发送。'}{' '}
+              {media.modalities.includes('audio') && '音频将作为原生音频输入。'}
+              {media.modalities.includes('image') && (media.toolImageReference
+                ? '当前模型将收到受管图片引用，自行决定是否使用视觉工具。本站允许 JPEG 和 PNG；实际读取还取决于工具支持、授权与连接。在设置的 MCP 页可核对状态。'
+                : media.issue ? '图片输入需要核对当前模型能力。' : '当前模型直接接收原图。')}{' '}
               每个附件最多 4 MiB；目录支持不保证当前账户或供应商请求成功。
             </p>
             {media.issue && (
@@ -300,14 +304,14 @@ export function Composer({
                 {onRefreshModels && (
                   <button
                     className="button small"
-                    disabled={modelsLoading}
+                    disabled={modelsLoading || modelsRefreshDisabled}
                     onClick={onRefreshModels}
                   >
                     重新核对模型能力
                   </button>
                 )}
                 {moreModels && (
-                  <button className="button small" disabled={modelsLoading} onClick={onMoreModels}>
+                  <button className="button small" disabled={modelsLoading || modelsRefreshDisabled} onClick={onMoreModels}>
                     继续加载模型目录
                   </button>
                 )}
@@ -324,7 +328,7 @@ export function Composer({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onPaste={event => {
-            const files = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
+            const files = Array.from(event.clipboardData.files);
             if (files.length) { event.preventDefault(); void upload(files); }
           }}
           placeholder="输入消息，或添加文件…"

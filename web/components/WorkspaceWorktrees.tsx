@@ -22,6 +22,7 @@ type LiveTree = {
   path: string;
   head: string;
   revision: string | null;
+  retirementPending?: boolean;
   mutationUnavailable?: { code: string; message: string };
 };
 const phaseLabels = { active: '活动', archived: '已归档', recovery: '需要恢复', retired: '已退役' };
@@ -107,7 +108,7 @@ export function WorkspaceWorktrees({
   useEffect(() => {
     setConfirmation(undefined);
     setIntent('');
-  }, [selected, current?.revision, current?.phase, epoch]);
+  }, [selected, current?.revision, current?.phase, current?.retirementPending, epoch]);
   const confirmed =
     confirmation?.owner === owner &&
     confirmation.action === intent &&
@@ -120,7 +121,7 @@ export function WorkspaceWorktrees({
     confirmation.ref === (ref === 'custom' ? customRef : ref);
   const allowed = (intent: string) =>
     current && validRevision(current.revision) &&
-    (intent === 'retire' ? ['active', 'archived'].includes(current.phase) : intent === 'restore'
+    (current.retirementPending ? intent === 'retire' : intent === 'retire' ? ['active', 'archived'].includes(current.phase) : intent === 'restore'
       ? ['archived', 'recovery'].includes(current.phase)
       : current.phase === 'active');
   const perform = async () => {
@@ -157,7 +158,7 @@ export function WorkspaceWorktrees({
       </p>
       {!idle && (
         <p className="connection-banner">
-          工作树变更需要全局空闲，请先结束活动任务、终端、进程和订阅。
+          后台尚未确认活动状态。连接恢复后会重新核对仓库与工作树。
         </p>
       )}
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原工作树操作回执" />
@@ -198,6 +199,7 @@ export function WorkspaceWorktrees({
               <p className="small path">{current.path}</p>
               <p className="small path">HEAD：{current.head}</p>
               <p className="small path">内容版本：{current.revision ?? '无法完整检查'}</p>
+              {current.retirementPending && <p className="workspace-warning" role="status">上次退役尚待核对，当前目录位置见工作树详情。若上次请求仍待确认，请先查询原退役操作回执；核对内容版本后可完成退役。</p>}
               {current.mutationUnavailable && <p className="workspace-warning">{current.mutationUnavailable.message}</p>}
               {cached && (
                 <p className="small muted">
@@ -206,7 +208,7 @@ export function WorkspaceWorktrees({
                 </p>
               )}
               <div className="inline wrap">
-                {current.phase === 'active' && (
+                {!current.retirementPending && current.phase === 'active' && (
                   <>
                     {cached?.projectId && (
                       <button
@@ -240,7 +242,7 @@ export function WorkspaceWorktrees({
                     </button>
                   </>
                 )}
-                {['archived', 'recovery'].includes(current.phase) && (
+                {!current.retirementPending && ['archived', 'recovery'].includes(current.phase) && (
                   <button
                     className="button small"
                     disabled={action.disabled || !validRevision(current.revision)}
@@ -253,7 +255,7 @@ export function WorkspaceWorktrees({
                     {current.phase === 'recovery' ? '修复并恢复工作树…' : '恢复工作树…'}
                   </button>
                 )}
-                {['active', 'archived'].includes(current.phase) && <button className="button small danger" disabled={action.disabled || !validRevision(current.revision)} onClick={() => { setCreating(false); setIntent('retire'); setConfirmation(undefined); }}>退役工作树（保留文件）…</button>}
+                {(current.retirementPending || ['active', 'archived'].includes(current.phase)) && <button className="button small danger" disabled={action.disabled || !validRevision(current.revision)} onClick={() => { setCreating(false); setIntent('retire'); setConfirmation(undefined); }}>{current.retirementPending ? '完成退役（保留文件）…' : '退役工作树（保留文件）…'}</button>}
               </div>
               {intent && (
                 <div className="workspace-warning stack">

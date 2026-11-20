@@ -20,6 +20,13 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
   if (thread.ephemeral === true || !thread.path) throw new DeliveryError('history_conversion_unsupported', '此会话没有可独立复制的持久历史。');
   const needsRepair = await historyCompatibility(config, thread, mode);
   if (mode === 'plaintext' && !needsRepair) throw new DeliveryError('provider_unchanged', '同一供应商请直接在模型菜单中选择模型；无需转换会话。');
+  if (!snapshot.collaborationMode) {
+    const current = object(await native.call('thread/resume', { threadId: sourceThreadId, excludeTurns: true }));
+    validateOfficial('ThreadResumeResponse', current);
+    if (object(current.thread).id !== sourceThreadId || current.modelProvider !== sourceProvider || current.cwd !== snapshot.cwd || !current.collaborationMode)
+      throw new DeliveryError('session_not_loaded', '无法确认原会话的协作设置，请重新加载会话。');
+    snapshot = { ...snapshot, collaborationMode: current.collaborationMode };
+  }
   const input: JsonObject = { threadId: sourceThreadId, path: thread.path, mode };
   // Reject unsupported source formats before even unloading the original.
   const initialInspection = await historyHelper(config, { ...input, action: 'copy-inspect' });
@@ -39,11 +46,11 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
   // definite refusal, not a partially executed conversion.
   startParams(object(initialInspection.sourceMetadata));
   const release = host.reserve(), deadline = Date.now() + 240000;
-  let wrote = false, targetId: string | undefined;
+  let wrote = false, creating = false, createdAck = false, sourceClosed = false, targetId: string | undefined;
   const check = (): void => { beforeWrite(); if (Date.now() >= deadline) throw new DeliveryError('history_conversion_timeout', '转换超过时间上限，请查询原操作状态。'); };
   const write = async (method: string, params: JsonObject, schema: string): Promise<JsonObject> => {
-    const value = await native.call(method, params, { timeoutMs: Math.max(1, deadline - Date.now()), beforeWrite: () => { check(); wrote = true; } });
-    wrote = true; const result = object(value);
+    const value = await native.call(method, params, { timeoutMs: Math.max(1, deadline - Date.now()), beforeWrite: () => { check(); wrote = true; if (method === 'thread/start') creating = true; } });
+    wrote = true; if (method === 'thread/start') { creating = true; createdAck = true; } const result = object(value);
     validateOfficial(schema, result); return result;
   };
   const close = async (id: string): Promise<void> => {
@@ -52,7 +59,7 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     finally { closed.cancel(); }
   };
   try {
-    await close(sourceThreadId);
+    await close(sourceThreadId); sourceClosed = true;
     // Native close can flush metadata. This witness is never rebound later.
     const inspected = await historyHelper(config, { ...input, action: 'copy-inspect' }), expected = object(inspected.expected), metadata = object(inspected.sourceMetadata);
     const title = Array.from(typeof thread.name === 'string' && thread.name || typeof thread.preview === 'string' && thread.preview || '会话').slice(0, 48).join('');
@@ -92,18 +99,9 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     if (currentMode.mode === wantedMode.mode && object(currentMode.settings).model === object(wantedMode.settings).model && canonical(object(currentMode.settings).developer_instructions ?? null) === canonical(object(wantedMode.settings).developer_instructions ?? null)) delete update.collaborationMode;
     if (snapshot.activePermissionProfile != null) update.permissions = object(snapshot.activePermissionProfile).id!; else update.sandboxPolicy = snapshot.sandbox!;
     validateOfficial('ThreadSettingsUpdateParams', update);
-    let resolveSettings!: (settings: JsonObject) => void; let timer: NodeJS.Timeout | undefined;
-    const settings = new Promise<JsonObject>((resolve, reject) => { resolveSettings = resolve; timer = setTimeout(() => reject(new Error('Converted settings notification timed out')), Math.min(15000, Math.max(1, deadline - Date.now()))); }); void settings.catch(() => {});
-    const listener = (event: JsonObject): void => {
-      if (event.method !== 'thread/settings/updated' || object(event.params).threadId !== targetId) return;
-      const value = object(object(event.params).threadSettings);
-      if (Object.keys(desired).filter(key => key !== 'threadId').every(key => canonical(value[key] ?? null) === canonical(desired[key] ?? null))) resolveSettings(value);
-    };
-    native.on('notification', listener);
-    try {
-      await write('thread/settings/update', update, 'ThreadSettingsUpdateResponse'); const observed = await settings; validateOfficial('ThreadSettings', observed);
-      if (observed.modelProvider !== targetProvider || canonical(observed.sandboxPolicy!) !== canonical(snapshot.sandbox!) || canonical(observed.activePermissionProfile!) !== canonical(snapshot.activePermissionProfile ?? null)) throw new Error('Converted permissions mismatch');
-    } finally { if (timer) clearTimeout(timer); native.off('notification', listener); }
+    // Unchanged settings need not produce notifications. The durable
+    // readback below verifies permissions, collaboration and all other fields.
+    await write('thread/settings/update', update, 'ThreadSettingsUpdateResponse');
     await close(targetId);
     const saved = await historyHelper(config, { ...targetInput, action: 'copy-inspect' });
     for (const key of ['serviceTier', 'summary']) if (canonical(object(saved.sourceMetadata)[key] ?? null) !== canonical(desired[key] ?? null)) throw new Error('Converted saved settings mismatch');
@@ -120,7 +118,12 @@ export async function convertThread(config: NativeConfig, native: NativeRpc, thr
     const result = { ...verified, thread: { ...object(verified.thread), name } }; host.publish(result, name);
     return { thread: result.thread, sourceThreadId, sourceProvider, targetProvider };
   } catch (error) {
-    if (!wrote && error instanceof DeliveryError && error.delivery === 'not_sent') throw error;
+    if (!wrote) throw error;
+    if (!creating || !createdAck && error instanceof DeliveryError && error.delivery === 'not_sent') {
+      if (!sourceClosed && (!(error instanceof DeliveryError) || error.delivery === 'unknown')) host.uncertain(sourceThreadId);
+      throw new DeliveryError('conversion_target_not_created', '未创建转换目标。请重新打开原会话查看或重试。', 'not_sent',
+        { sourceThreadId, phase: sourceClosed ? 'source_unsubscribed' : 'source_unsubscribe', targetCreated: false, inputSent: false });
+    }
     // Local bookkeeping must never erase a positive native acknowledgement.
     try { host.uncertain(targetId); } catch { /* The original outcome remains unknown. */ }
     const failure = new DeliveryError(error instanceof DeliveryError ? error.code : 'history_conversion_unconfirmed', '转换新会话尚未完整确认；原会话未转换，也没有发送消息。请查询原操作状态。', 'unknown',

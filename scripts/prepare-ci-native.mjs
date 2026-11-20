@@ -71,6 +71,7 @@ export function prepareCiNative(base = root, env = process.env) {
   visit(path.join(extracted, 'package/vendor'));
   if (binaries.length !== 1 || !env.GITHUB_ENV) throw Error('Expected exactly one independent binary and a CI environment file');
   appendFileSync(env.GITHUB_ENV, `HARNESS_TEST_CODEX_BIN=${binaries[0]}\n`);
+  return binaries[0];
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) prepareCiNative();

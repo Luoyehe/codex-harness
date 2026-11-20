@@ -27,3 +27,11 @@ id_ecdsa
 *.p12
 *.pfx
 *.key
+*.tsbuildinfo
+credentials*.json
+id_rsa.*
+id_ed25519.*
+id_ecdsa.*
+!id_rsa.pub
+!id_ed25519.pub
+!id_ecdsa.pub

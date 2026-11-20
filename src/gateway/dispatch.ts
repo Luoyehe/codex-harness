@@ -86,19 +86,31 @@ export class Dispatcher extends EventEmitter {
       if (saved?.method.startsWith('system/') && saved.state === 'unknown') {
         try {
           const proof = await this.manager.call('operation/read', { operationId }, undefined, context.requireAuthorization); object(proof);
-          if (proof.operationId === operationId && proof.method === saved.method.slice(7) && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result'))
+          context.requireAuthorization?.();
+          saved = this.ledger.read(operationId);
+          if (saved?.state === 'unknown' && proof.operationId === operationId && proof.method === saved.method.slice(7) && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result')) {
             saved = this.ledger.confirm(operationId, receiptResult(saved.method, proof.result!));
+            this.emitReceipt(saved);
+          }
         } catch { /* Preserve uncertainty until positive root-manager evidence exists. */ }
       }
       if (saved?.method.startsWith('workspace/') && saved.state === 'unknown') {
         try {
           context.requireConnection?.(); const proof = await this.worker.call('workspace/witness/read', { operationId }, context); object(proof);
-          if (proof.operationId === operationId && proof.method === saved.method && saved.scope === 'project:' + proof.projectId && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result')) {
+          context.requireAuthorization?.();
+          saved = this.ledger.read(operationId);
+          if (saved?.state === 'unknown' && proof.operationId === operationId && proof.method === saved.method && saved.scope === 'project:' + proof.projectId && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result')) {
             saved = this.ledger.confirmWorkspace(operationId, saved.method, saved.scope, String(proof.gatewayRequestDigest), receiptResult(saved.method, proof.result!)); this.emitReceipt(saved);
           }
         } catch { /* Native-owned helper journals and absence are never acceptance proofs. */ }
       }
-      if (saved?.state === 'accepted') await this.workspaceAcknowledgements.accepted(saved, context);
+      context.requireAuthorization?.();
+      saved = this.ledger.read(operationId);
+      if (saved?.state === 'accepted' && saved.method.startsWith('workspace/')) {
+        await this.workspaceAcknowledgements.accepted(saved, context);
+        context.requireAuthorization?.();
+        saved = this.ledger.read(operationId);
+      }
       return saved ? { ...saved } as unknown as JsonValue : { operationId, state: 'not_received' };
     }
     if (method === 'project/list') return { data: this.ledger.projects() } as unknown as JsonValue;
@@ -123,10 +135,13 @@ export class Dispatcher extends EventEmitter {
     const recoveryGeneration = this.#recoveryGeneration;
     const forceRecovery = method === 'system/recover';
     const startsWork = workMethods.has(method) || feature?.activity === 'start';
-    const isWork = startsWork || feature?.activity === 'continue' || feature?.activity === 'idle';
+    const runtime = this.#runtime && typeof this.#runtime === 'object' && !Array.isArray(this.#runtime) ? this.#runtime : {};
+    const repository = feature?.activity === 'repository';
+    const scopedRepository = repository && runtime.repositoryScopes === 1;
+    const isWork = startsWork || feature?.activity === 'continue' || feature?.activity === 'idle' || scopedRepository;
     const rootManagement = method.startsWith('system/');
     const localProject = method === 'project/remove' || method === 'project/rename';
-    const management = rootManagement || feature?.activity === 'configuration';
+    const management = rootManagement || feature?.activity === 'configuration' || (repository && !scopedRepository);
     let maintenance: Maintenance | undefined;
     let locked = false; let dispatched = false; let backendAcknowledged = false;
     try {
@@ -136,7 +151,7 @@ export class Dispatcher extends EventEmitter {
           this.#maintenance && !(forceRecovery && this.#maintenance.kind === 'worker'))
         throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
       if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
-      if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', scope.startsWith('project:') ? '此项目有正在执行或等待确认的操作，请完成后重试。' : '此会话已有正在执行或等待确认的任务。');
+      if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', repository ? '此仓库或工作树仍有待确认的项目操作，请完成后重试。' : scope.startsWith('project:') ? '此项目有正在执行或等待确认的操作，请完成后重试。' : '此会话已有正在执行或等待确认的任务。');
       if (management) {
         if (method !== 'system/restart' && !forceRecovery && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台状态未知，请先检查并恢复服务。');
         // Explicit restart is the stop-confirmed recovery path, including when
@@ -144,7 +159,7 @@ export class Dispatcher extends EventEmitter {
         // Ordinary restart waits for submitted work. Explicit force recovery
         // fences queued writes and lets the manager confirm both cgroups empty.
         if (!forceRecovery && (this.#pendingWork.size || (method !== 'system/restart' && (this.#activity.pendingStarts || this.#activity.activeThreads.length || this.#activity.terminals || this.#activity.subscriptions || this.#activity.processes))))
-          throw new HarnessError('activity_busy', method.startsWith('workspace/git/') ? '仓库写入需要所有后台任务、子任务、终端和订阅空闲，以避免它们同时修改仓库文件。请先结束相关执行。' : '请先结束任务和网页终端，再变更服务配置。');
+          throw new HarnessError('activity_busy', /^workspace\/(git|worktree)\//.test(method) ? '仓库或工作树写入需要所有后台任务、子任务、终端和订阅空闲，以避免它们同时修改仓库文件。请先结束相关执行。' : '请先结束任务和网页终端，再变更服务配置。');
         // Root transactions and receipt rotation cannot be preempted. Worker
         // configuration can hang like any native operation, so recovery owns
         // a new token and the old worker's finally must not release that token.
@@ -177,6 +192,18 @@ export class Dispatcher extends EventEmitter {
         const originId = identifier(params.projectId);
         if (method !== 'workspace/worktree/create') this.ledger.worktrees.require(originId, params.worktreeId);
         else if (this.ledger.projects().length >= 128) throw new HarnessError('capacity', '请先释放项目登记空间再创建工作树。');
+      }
+      if (method === 'project/remove') {
+        if (Object.keys(params).some(key => key !== 'id')) throw new HarnessError('invalid', '移除项目只接受项目编号。');
+        const id = identifier(params.id);
+        const receipt = this.ledger.transaction(() => {
+          beforeWrite(); this.ledger.removeProject(id);
+          const saved = this.ledger.settle(operationId, { ok: true, value: {} });
+          if (saved.state !== 'accepted') throw new HarnessError('journal_capacity', '无法保存移除回执，项目和计划均已保留。');
+          return saved;
+        });
+        this.emitReceipt(receipt); this.emit('automation-changed'); this.emit('event', { type: 'automation', data: { changed: true } });
+        return this.replay(receipt);
       }
       if (method === 'project/rename') {
         if (Object.keys(params).some(key => !['id', 'name'].includes(key))) throw new HarnessError('invalid', '项目更名只接受项目编号和名称。');
@@ -213,15 +240,13 @@ export class Dispatcher extends EventEmitter {
         if (!name) throw new HarnessError('invalid', '项目名称不能为空。');
         // Resolution is read-only; the local registration still needs its original live owner.
         beforeWrite(); result = this.ledger.addProject(validText(resolved.path, 4096), name) as unknown as JsonValue;
-      } else if (method === 'project/remove') {
-        const id = identifier(params.id); beforeWrite(); this.ledger.removeProject(id); result = {};
       } else if (rootManagement) result = await acceptBackend(this.manager.call(method.slice(7), params, operationId, beforeWrite));
       else result = await acceptBackend(this.worker.call(method, this.projectParams(method, params), { ...context, operationId, beforeWrite,
         ...(method.startsWith('workspace/') ? { gatewayRequestDigest: digest({ method, params }), projectId: identifier(params.projectId, '项目') } : {}) }));
       // A positive backend acknowledgement is acceptance evidence even if its adapter omitted the boundary callback.
       // Authorization changes after dispatch cannot retroactively turn that success into an unsent operation.
       if (!dispatched) recordDispatch();
-      const projected = receiptResult(method, result);
+      const projected = receiptResult(method, result, params);
       const receipt = this.ledger.transaction(() => {
         if (method.startsWith('workspace/worktree/')) this.ledger.worktrees.apply(method, identifier(params.projectId), operationId, projected);
         return this.ledger.settle(operationId, { ok: true, value: projected });
@@ -232,7 +257,7 @@ export class Dispatcher extends EventEmitter {
       const current = this.ledger.read(operationId);
       // A local rename and its receipt share one transaction. The original
       // pending row proves that transaction rolled back without changing it.
-      const body = method === 'project/rename' && current?.state === 'pending'
+      const body = localProject && current?.state === 'pending'
         ? { ...errorBody(error), delivery: 'not_sent' as const }
         : errorBody(error, dispatched ? 'unknown' : 'not_sent');
       if (backendAcknowledged) body.delivery = 'unknown';

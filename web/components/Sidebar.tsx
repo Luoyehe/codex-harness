@@ -7,12 +7,17 @@ function RowActions({ label, open, setOpen, actions }: {
   label: string; open: boolean; setOpen: (open: boolean) => void; actions: RowAction[];
 }) {
   const container = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null),
-    panel = useRef<HTMLDivElement>(null), id = useId();
+    panel = useRef<HTMLDivElement>(null), keyboardOpen = useRef(false), id = useId();
   useEffect(() => {
     if (!open) return;
-    panel.current?.querySelector('button')?.focus();
+    if (keyboardOpen.current) panel.current?.querySelector('button')?.focus();
+    panel.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     const outside = (event: Event) => {
-      if (event.target instanceof Node && !container.current?.contains(event.target)) setOpen(false);
+      if (!(event.target instanceof Node) || container.current?.contains(event.target)) return;
+      // A touch inside a native dialog can temporarily return focus to its owner before click.
+      if (event.type === 'focusin' && event.target === container.current?.closest('dialog')) return;
+      if (event.type === 'pointerdown' && (event as PointerEvent).pointerType === 'touch') return;
+      setOpen(false);
     };
     // Mobile navigation lives in Dialog, whose document capture listener also owns
     // Escape. Close this inner disclosure first, without dismissing that dialog.
@@ -22,10 +27,12 @@ function RowActions({ label, open, setOpen, actions }: {
       event.preventDefault(); event.stopPropagation(); setOpen(false); trigger.current?.focus();
     };
     document.addEventListener('pointerdown', outside);
+    document.addEventListener('click', outside);
     document.addEventListener('focusin', outside);
     window.addEventListener('keydown', escape, true);
     return () => {
       document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('click', outside);
       document.removeEventListener('focusin', outside);
       window.removeEventListener('keydown', escape, true);
     };
@@ -37,7 +44,7 @@ function RowActions({ label, open, setOpen, actions }: {
       return;
     }
     if (event.target === trigger.current && event.key === 'ArrowDown') {
-      event.preventDefault(); setOpen(true); return;
+      event.preventDefault(); keyboardOpen.current = true; setOpen(true); return;
     }
     if (!open || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
     const buttons = [...panel.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []];
@@ -49,7 +56,7 @@ function RowActions({ label, open, setOpen, actions }: {
   }}>
     <button type="button" ref={trigger} className="icon-button sidebar-more"
       aria-label={label} aria-expanded={open} aria-controls={open ? id : undefined}
-      onClick={() => setOpen(!open)}><span aria-hidden="true">⋯</span></button>
+      onClick={event => { keyboardOpen.current = event.detail === 0; setOpen(!open); }}><span aria-hidden="true">⋯</span></button>
     {open && <div className="sidebar-row-menu" ref={panel} id={id} role="group" aria-label={label}>
       {actions.map(action => <button type="button" key={action.label}
         className={action.destructive ? 'sidebar-row-action danger' : 'sidebar-row-action'}

@@ -186,3 +186,21 @@ test('only the visible settings gear opens settings, not the workspace identity 
   fireEvent.click(settings);
   expect(handlers.onSettings).toHaveBeenCalledOnce();
 });
+test('touch can scroll a long drawer, survive transient focus on its dialog, cancel or select its last delete action once', () => {
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  const handlers = props(), rows = Array.from({length: 60}, (_, i) => ({id: 'row' + i, name: '会话 ' + i, cwd:'/a'}));
+  const drawer = (loading: boolean) => <Dialog title="导航" onClose={vi.fn()}><Sidebar {...handlers} threads={rows} loading={loading} /></Dialog>;
+  const view = render(drawer(false));
+  const trigger = screen.getByRole('button', { name: '管理会话：会话 59' });
+  fireEvent.click(trigger, { detail: 1 });
+  const dialog = screen.getByRole('dialog');
+  fireEvent.focusIn(dialog);
+  const touch = new Event('pointerdown', { bubbles: true });
+  Object.defineProperty(touch, 'pointerType', { value: 'touch' });
+  fireEvent(dialog, touch);
+  view.rerender(drawer(true));
+  expect(screen.getByRole('button', { name: '删除会话' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '删除会话' }), { detail: 1 });
+  expect(handlers.onThreadAction).toHaveBeenCalledExactlyOnceWith(rows[59], 'delete');
+});

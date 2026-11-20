@@ -158,7 +158,7 @@ it('retains newer durable branch bytes through unknown receipt recovery without 
   expect(ui.input.value).toBe('draft A');
   const newer = { ...emptyDraft(ui.key), text: 'recovered draft B' };
   writeDraft(newer);
-  await act(async () => (await updateOperation(calls[0].operationId, 'accepted', 'forked')));
+  await act(async () => (await updateOperation(calls[0]!.operationId, 'accepted', 'forked')));
   fireEvent.click(await screen.findByRole('button', { name: '保存草稿并打开已有分支' }));
   expect(calls).toHaveLength(1);
   expect(ui.onFork).toHaveBeenCalledWith('forked', 'draft A');
@@ -197,8 +197,8 @@ it.each(['fork', 'revert'] as const)(
       />,
     );
     const controls = screen.getAllByRole(kind === 'fork' ? 'radio' : 'checkbox');
-    if (kind === 'revert') fireEvent.click(controls[0]);
-    await submitTwice(controls[0]);
+    if (kind === 'revert') fireEvent.click(controls[0]!);
+    await submitTwice(controls[0]!);
     controls.forEach((control) => expect(control.matches(':disabled')).toBe(true));
     attemptClose();
     expect(close).not.toHaveBeenCalled();
@@ -248,7 +248,7 @@ it.each(['rename', 'project', 'review'] as const)(
     const request = deferred(),
       { api, calls } = server(() => request.promise),
       ui = await transient(kind, api);
-    await submitTwice(ui.inputs[0]);
+    await submitTwice(ui.inputs[0]!);
     ui.inputs.forEach((input) => expect(input.matches(':disabled')).toBe(true));
     if (kind === 'review') {
       expect(screen.getByRole('combobox').matches(':disabled')).toBe(true);
@@ -260,7 +260,7 @@ it.each(['rename', 'project', 'review'] as const)(
     expect(calls).toHaveLength(1);
     expect(ui.close).toHaveBeenCalledOnce();
     expect(ui.changed).toHaveBeenCalledOnce();
-    expect(calls[0].params).toEqual(
+    expect(calls[0]?.params).toEqual(
       kind === 'rename'
         ? { threadId: 'thread', name: 'name A' }
         : kind === 'project'
@@ -279,7 +279,7 @@ it.each(['rename', 'project', 'review'] as const)(
     const request = deferred(),
       { api, calls } = server(() => request.promise),
       ui = await transient(kind, api);
-    await submitTwice(ui.inputs[0]);
+    await submitTwice(ui.inputs[0]!);
     await act(async () => request.reject(new RpcError('not sent', 'rejected', 'not_sent')));
     await waitFor(() => ui.inputs.forEach((input, index) => {
       expect(input.value).toBe(ui.values[index]);
@@ -296,17 +296,17 @@ it.each(['rename', 'project', 'review'] as const)(
     const request = deferred(),
       { api, calls } = server(() => request.promise),
       ui = await transient(kind, api);
-    await submitTwice(ui.inputs[0]);
+    await submitTwice(ui.inputs[0]!);
     await act(async () => request.reject(new Error('response lost')));
     ui.inputs.forEach((input, index) => {
       expect(input.value).toBe(ui.values[index]);
       expect(input.matches(':disabled')).toBe(true);
     });
-    await submitTwice(ui.inputs[0]);
+    await submitTwice(ui.inputs[0]!);
     expect(calls).toHaveLength(1);
-    expect((await listOperations())[0].state).toBe('unknown');
+    expect((await listOperations())[0]?.state).toBe('unknown');
     expect(ui.close).not.toHaveBeenCalled();
-    await act(async () => (await updateOperation(calls[0].operationId, 'not_sent')));
+    await act(async () => (await updateOperation(calls[0]!.operationId, 'not_sent')));
     await waitFor(() => ui.inputs.forEach((input) => expect(input.matches(':disabled')).toBe(false)));
   },
 );
@@ -346,7 +346,7 @@ it('allows choosing a separate review when only inline review is unavailable', a
   fireEvent.click(separate);
   fireEvent.click(screen.getByRole('button', { name: '开始审查' }));
   await waitFor(() => expect(calls).toHaveLength(1));
-  expect(calls[0].method).toBe('review/startNew');
+  expect(calls[0]?.method).toBe('review/startNew');
 });
 
 function workspace(kind: 'mkdir' | 'copy' | 'remove', result: (call: Call) => unknown) {

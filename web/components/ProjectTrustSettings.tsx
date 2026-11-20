@@ -7,6 +7,9 @@ import { useSettingsDraft } from '../hooks/useSettingsDraft';
 type Trust = {
   userVersion: string | null;
   configuredTrust: 'trusted' | 'untrusted' | null;
+  effectiveTrust?: 'trusted' | 'untrusted' | null;
+  trustSourcePath?: string | null;
+  trustEvidence?: 'native_project_layer' | 'exact_preference' | 'unobserved';
   cwd: string;
   projectLayers: { name: unknown; disabledReason: string | null }[];
 };
@@ -57,6 +60,9 @@ export function ProjectTrustSettings({
                 ? '不信任'
                 : '未单独设置'}
           </p>
+          <p>当前生效的信任：{state.data.effectiveTrust === 'trusted' ? '信任' : state.data.effectiveTrust === 'untrusted' ? '不信任' : '当前原生配置未提供可确认的依据'}</p>
+          {state.data.trustSourcePath && <p className="small path">来源：{state.data.trustSourcePath}
+            {state.data.trustEvidence === 'native_project_layer' ? '（原生项目配置层）' : '（此路径的显式配置）'}</p>}
           <p className="small muted">
             这里只修改所选路径的用户设置；父目录、仓库根目录和管理策略仍可能参与最终配置。登记项目与信任项目是两个独立动作。
           </p>

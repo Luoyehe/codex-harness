@@ -60,7 +60,11 @@ function OwnedAccountSettings({
   const accountReady = connected && !account.loading && !account.error && Boolean(account.data);
   const accountSettled = connected && !account.loading && Boolean(account.data || account.error);
   const authenticated = accountReady && object(account.data?.account).type === 'chatgpt';
-  const limits = useResource(epoch, (signal) => api.call('account/rateLimits', {}, signal), authenticated);
+  const modelAccount = object(account.data?.account);
+  const limits = useResource(JSON.stringify([owner, modelAccount.type, modelAccount.email, modelAccount.id]),
+    (signal) => api.call('account/rateLimits', {}, signal), authenticated, true);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  useEffect(() => { setConfirmLogout(false); }, [owner, modelAccount.type, modelAccount.email, modelAccount.id]);
   const [handoff, setHandoff] = useState<Handoff>(),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -482,19 +486,17 @@ function OwnedAccountSettings({
         <button
           className="button"
           disabled={disabled || !accountSettled || Boolean(identity.loginId) || (!account.error && !account.data?.account)}
-          onClick={() => void perform('account/logout')}
+          onClick={() => { if (!confirmLogout) { setConfirmLogout(true); return; } setConfirmLogout(false); void perform('account/logout'); }}
         >
-          退出模型账户
+          {confirmLogout ? '确认退出模型账户' : '退出模型账户'}
         </button>
+        {confirmLogout && <button className="button small" onClick={() => setConfirmLogout(false)}>取消退出</button>}
       </div>
       <h3>用量与限额</h3>
       {!authenticated ? <p className="small muted">确认已登录 ChatGPT 后显示用量与限额。</p> : <>
         {limits.loading && <p role="status">读取用量中…</p>}
-        {limits.error ? (
-          <p className="error">{limits.error}</p>
-        ) : (
-          limits.data && <AccountLimits value={limits.data} />
-        )}
+        {limits.error && <p className="error">{limits.error}</p>}
+        {limits.data && <AccountLimits value={limits.data} />}
       </>}
     </section>
   );

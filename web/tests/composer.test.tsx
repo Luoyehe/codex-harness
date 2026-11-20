@@ -258,3 +258,27 @@ describe('composer keyboard ownership', () => {
     ).toBe('keep this draft');
   });
 });
+it('sends mixed pasted files once each and identifies an untyped PNG by bytes, not by filename', async () => {
+  const mutate = vi.fn(async (_method, params) => ({ attachmentId:params.name, size:1, ...params }));
+  const view = render(<Composer api={{mutate} as unknown as Api} value="" onChange={vi.fn()} onSend={vi.fn()} onStop={vi.fn()}
+    busy={false} disabled={false} active={false} options={{}} onOptions={vi.fn()} models={[]}
+    defaults={undefined} defaultsLoading={false} notice="" contextKey="a" />);
+  const fixtures = [
+    { name:'misnamed.txt', bytes:[137,80,78,71,13,10,26,10], declared:'', expected:'image/png' },
+    { name:'only-renamed.png', bytes:[97,98], declared:'image/png', expected:'application/octet-stream' },
+    { name:'script.ts', bytes:[97], declared:'text/plain', expected:'text/plain' },
+    { name:'clipboard', bytes:[0,0,0,16,...Array.from('ftypqt  ', c=>c.charCodeAt(0)),0,0,0,0], declared:'video/mp4', expected:'video/quicktime' },
+    { name:'clipboard', bytes:[0,0,0,16,...Array.from('ftypM4V ', c=>c.charCodeAt(0)),0,0,0,0], declared:'', expected:'video/mp4' },
+    { name:'audio', bytes:[0,0,0,16,...Array.from('ftypM4A ', c=>c.charCodeAt(0)),0,0,0,0], declared:'video/mp4', expected:'audio/mp4' },
+    { name:'still', bytes:[0,0,0,16,...Array.from('ftypavif', c=>c.charCodeAt(0)),0,0,0,0], declared:'video/mp4', expected:'image/avif' },
+  ];
+  const files = fixtures.map(({name,bytes,declared}) => {
+    const file = new File([new Uint8Array(bytes)],name,{type:declared});
+    Object.defineProperty(file,'arrayBuffer',{value:async()=>new Uint8Array(bytes).buffer}); return file;
+  });
+  const box = view.getByRole('textbox',{name:'给 Codex 的消息'});
+  expect(fireEvent.paste(box,{clipboardData:{files:[]}})).toBe(true);
+  expect(fireEvent.paste(box,{clipboardData:{files}})).toBe(false);
+  await waitFor(()=>expect(mutate).toHaveBeenCalledTimes(fixtures.length));
+  expect(mutate.mock.calls.map(([method,p])=>[method,p.name,p.mimeType])).toEqual(fixtures.map(f=>['attachment/upload',f.name,f.expected]));
+});

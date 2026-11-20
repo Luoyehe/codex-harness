@@ -239,7 +239,8 @@ class CandidateArchiveTests(unittest.TestCase):
         (self.layout.work / ("candidate-" + candidate)).mkdir()
         result = archive.list_candidates(self.manager)
         self.assertEqual(result["count"], 2)
-        self.assertEqual([row["eligible"] for row in result["candidates"]], [True, False])
+        self.assertEqual([row["eligible"] for row in result["candidates"]], [True, True])
+        self.assertEqual([row["failed"] for row in result["candidates"]], [False, True])
         self.assertEqual(self.events, [])
 
 
@@ -270,7 +271,7 @@ class CandidateArchiveBoundaryTests(unittest.TestCase):
             path = Path(folder) / "candidate with space"
             path.mkdir()
             mounted = str(path / "fetch").replace(" ", "\\040")
-            with patch.object(Path, "read_text", return_value=f"1 2 3:4 / {mounted} rw - ext4 fixture rw\n"), self.assertRaisesRegex(DeployError, "mounted"):
+            with patch.object(Path, "read_text", return_value=f"1 2 3:4 / {mounted} rw - ext4 fixture rw\n"), self.assertRaisesRegex(DeployError, "mount"):
                 archive.unmounted(path)
             (path / "fetch.ext4").write_bytes(b"retained")
             with patch.object(Path, "read_text", return_value=""), self.assertRaisesRegex(DeployError, "image"):

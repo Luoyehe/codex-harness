@@ -34,10 +34,10 @@ function fixture() {
   const bytes = JSON.stringify(authorization); put(base, authorizationPath, bytes); const head = commit(base, 'candidate');
   // Tiny offline executables test orchestration and evidence binding, not real TS/Vite correctness.
   const log = `const fs = require('node:fs'); fs.mkdirSync('.work', {recursive:true}); fs.appendFileSync('.work/build-invocations.txt', JSON.stringify(process.argv.slice(2))+'\\n');\n`;
-  put(base, 'node_modules/typescript/package.json', JSON.stringify({ version: pkg.devDependencies.typescript }));
-  put(base, 'node_modules/typescript/bin/tsc', log + `if(!process.argv.includes('--noEmit')) { for(const name of ['gateway','runtime']) { fs.mkdirSync('dist/src/'+name,{recursive:true}); fs.writeFileSync('dist/src/'+name+'/main.js','export {};'); } }`);
-  put(base, 'node_modules/vite/package.json', JSON.stringify({ version: pkg.devDependencies.vite }));
-  put(base, 'node_modules/vite/bin/vite.js', log + `fs.mkdirSync('web/dist',{recursive:true}); fs.writeFileSync('web/dist/index.html','<html>Fixture</html>');`);
+  put(base, 'node_modules/typescript/package.json', JSON.stringify({ name: 'typescript', version: pkg.devDependencies.typescript, bin: { tsc: './commands/compiler.cjs' } }));
+  put(base, 'node_modules/typescript/commands/compiler.cjs', log + `if(!process.argv.includes('--noEmit')) { for(const name of ['gateway','runtime']) { fs.mkdirSync('dist/src/'+name,{recursive:true}); fs.writeFileSync('dist/src/'+name+'/main.js','export {};'); } }`);
+  put(base, 'node_modules/vite/package.json', JSON.stringify({ name: 'vite', version: pkg.devDependencies.vite, bin: './cli/new-vite.cjs' }));
+  put(base, 'node_modules/vite/cli/new-vite.cjs', log + `fs.mkdirSync('web/dist',{recursive:true}); fs.writeFileSync('web/dist/index.html','<html>Fixture</html>');`);
   return { base, files, source: current, options: { head, pushBase, prBase, authorizationSha256: hash(bytes) } };
 }
 afterEach(() => { for (const base of fixtures.splice(0)) { if (!base.startsWith(realpathSync(fixtureRoot) + path.sep)) throw Error('Unsafe fixture cleanup'); rmSync(base, { recursive: true, force: true }); } });
@@ -104,11 +104,11 @@ test('failed rebuild clears prior success and source changes during building nev
   // checkBuild itself clears old evidence and verifies committed source after
   // executing the builders; these failures do not need another authorization plan.
   const verifyBuild = (rebuild = false) => checkBuild(base, source, result.pins, options.head, rebuild);
-  put(base, 'node_modules/vite/bin/vite.js', 'process.exit(1);');
+  put(base, 'node_modules/vite/cli/new-vite.cjs', 'process.exit(1);');
   expect(() => verifyBuild(true)).toThrow();
   expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
   expect(() => verifyBuild()).toThrow(/build evidence is missing/);
-  put(base, 'node_modules/vite/bin/vite.js', `require('node:fs').writeFileSync('tests/core/example.test.ts','changed during build');`);
+  put(base, 'node_modules/vite/cli/new-vite.cjs', `require('node:fs').writeFileSync('tests/core/example.test.ts','changed during build');`);
   expect(() => verifyBuild(true)).toThrow(/bytes or executable bits/);
   expect(existsSync(path.join(base, '.work/release-preflight-build.json'))).toBe(false);
 });

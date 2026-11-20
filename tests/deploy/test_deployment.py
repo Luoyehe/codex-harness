@@ -782,8 +782,8 @@ class BoundaryTests(unittest.TestCase):
                 (target / name).write_bytes((source / name).read_bytes())
             shutil.copytree(source / "patches", target / "patches")
             lock = (source / "pnpm-lock.yaml").read_text()
-            for changed in (lock.replace("  zod: 4.6.7", "  zod: 3.25.76"),
-                            lock.replace("  zod: 4.6.7", "  zod: 4.6.7\n  zod: 4.6.7"),
+            for changed in (lock.replace("zod-to-json-schema@3.25.2>zod: 4.6.7","zod-to-json-schema@3.25.2>zod: 3.25.76"),
+                            lock.replace("  zod-to-json-schema@3.25.2>zod: 4.6.7", "  zod-to-json-schema@3.25.2>zod: 4.6.7\n  zod-to-json-schema@3.25.2>zod: 4.6.7"),
                             lock.replace("overrides:\n", "overrides:\n  ws: 8.22.0\n")):
                 (target / "pnpm-lock.yaml").write_text(changed)
                 with self.assertRaises(DeployError): dependency_input(target)
@@ -815,16 +815,23 @@ class ReadinessTests(unittest.TestCase):
             system.state = lambda unit: parse_unit_state(state(active="active", sub="running", pid="123"))
             manager = Manager(layout, system, worker_gid=1)
             connected = False
+            probes = []
             def connection(host, *args, **kwargs):
                 client = MagicMock()
+                if host == "127.0.0.1":
+                    probes.append(client)
                 response = client.getresponse.return_value
                 response.status = 200
                 response.read.side_effect = lambda limit: json.dumps({"ok": True, "result": {"connected": connected}} if host == "localhost" else {"ok": True}).encode()
                 return client
-            with patch("deploy.manager.http.client.HTTPConnection", side_effect=connection), patch("deploy.manager.socket.socket"), patch("deploy.manager.socket.AF_UNIX", 1, create=True), patch("deploy.manager.time.sleep"):
+            with patch("deploy.accounts.instance_proof_key", return_value=b"fixture"), patch("deploy.manager.http.client.HTTPConnection", side_effect=connection), patch("deploy.manager.socket.socket"), patch("deploy.manager.socket.AF_UNIX", 1, create=True), patch("deploy.manager.time.sleep"):
                 with self.assertRaises(DeployError): manager.healthy()
                 connected = True
                 manager.healthy()
+            import hmac
+            self.assertEqual(probes[-1].request.call_args.kwargs["headers"]["X-Harness-Local-Probe"],
+                             hmac.digest(b"fixture", b"harness-local-probe-v1\n/health", "sha256").hex())
+
 
 
 class NativeLauncherTests(unittest.TestCase):

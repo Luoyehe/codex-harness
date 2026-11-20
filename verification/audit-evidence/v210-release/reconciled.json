@@ -1,9 +1,0 @@
-{
-  "status": "passed",
-  "sourceDigest": "69ed531f90c07a0dca44e876b0adafa009952a26a2133494e41bf636eb13b589",
-  "head": "historical-commit-082",
-  "files": 182,
-  "cases": 1677,
-  "coverageGaps": [],
-  "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
-}

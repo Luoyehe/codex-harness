@@ -9,8 +9,10 @@ interface ExportLease { id: string; owner: string; digest: string; nextGeneratio
 /** Independent bounded exports belong to their exact live browser connections. */
 export class ReceiptMaintenance {
   private leases = new Map<string, ExportLease>();
+  private preparing = new Map<string, symbol>();
   constructor(private ledger: Ledger, private now: () => number = Date.now) {}
   forget(owner?: string): void {
+    if (owner === undefined) this.preparing.clear(); else this.preparing.delete(owner);
     for (const [key, lease] of this.leases) {
       if (owner !== undefined && key !== owner) continue;
       this.leases.delete(key);
@@ -21,21 +23,35 @@ export class ReceiptMaintenance {
   private expire(): void {
     for (const lease of this.leases.values()) if (lease.expires <= this.now()) this.forget(lease.owner);
   }
-  call(method: string, params: JsonObject, context: CallContext): JsonValue {
+  call(method: string, params: JsonObject, context: CallContext): JsonValue | Promise<JsonValue> {
     context.requireConnection?.();
     if (method === 'operation/maintenance/preview') {
       this.keys(params, []);
       this.expire();
-      if (!this.leases.has(context.clientId) && this.leases.size >= OPERATION_EXPORT_SNAPSHOT_LIMIT)
+      if (this.preparing.has(context.clientId)) throw new HarnessError('capacity', '本页面正在生成回执归档，请等待本次预览。');
+      if (!this.leases.has(context.clientId) && this.leases.size + this.preparing.size >= OPERATION_EXPORT_SNAPSHOT_LIMIT)
         throw new HarnessError('capacity', '已有两个页面正在导出，请关闭其中一个页面或等待导出过期后重试。');
       // Replacing this owner's preview must release its old snapshot first:
       // otherwise the core's bounded cache could evict the other live owner.
       this.forget(context.clientId);
-      const preview = this.ledger.maintenancePreview();
-      object(preview);
-      const id = randomUUID();
-      this.leases.set(context.clientId, { id, owner: context.clientId, digest: String(preview.digest), nextGeneration: Number(preview.nextGeneration), bytes: Number(preview.bytes), offset: 0, expires: this.now() + OPERATION_EXPORT_TTL_MS });
-      return { ...preview, exportId: id };
+      const owner = context.clientId, token = Symbol();
+      this.preparing.set(owner, token);
+      const check = () => {
+        context.requireConnection?.();
+        if (this.preparing.get(owner) !== token) throw new HarnessError('archive_expired', '连接已经关闭，请重新预览。');
+      };
+      const finish = (preview: JsonObject) => {
+        check();
+        const id = randomUUID();
+        this.leases.set(owner, { id, owner, digest: String(preview.digest), nextGeneration: Number(preview.nextGeneration), bytes: Number(preview.bytes), offset: 0, expires: this.now() + OPERATION_EXPORT_TTL_MS });
+        return { ...preview, exportId: id };
+      };
+      const done = () => { if (this.preparing.get(owner) === token) this.preparing.delete(owner); };
+      try {
+        const preview = this.ledger.connectionPreview(check);
+        if (preview instanceof Promise) return preview.then(finish).finally(done);
+        const result = finish(preview); done(); return result;
+      } catch (error) { done(); throw error; }
     }
     if (method === 'operation/maintenance/chunk') {
       this.keys(params, ['exportId', 'digest', 'offset', 'limit']);

@@ -79,8 +79,12 @@ class DnsCaddyBuildTests(unittest.TestCase):
     def test_fetch_retry_preserves_cache_and_uses_one_runtime_budget(self):
         manager = SimpleNamespace(layout=self.layout, system=Mock())
         manager.system.isolated.side_effect = [DeployError("candidate_failed", "network fixture"), None]
-        with patch("deploy.dns_caddy_build.time.monotonic", side_effect=[100, 100, 400]):
-            _fetch_dependencies(manager, "a" * 32, Path("/go"), Path("/source"), Path("/work"), "amd64", None)
+        with tempfile.TemporaryDirectory() as folder, patch("deploy.dns_caddy_build.time.monotonic", side_effect=[100, 100, 400]):
+            record = Path(folder) / "fetch-units.json"
+            _fetch_dependencies(manager, "a" * 32, Path("/go"), Path("/source"), Path("/work"), "amd64", None, unit_record=record)
+            from deploy.common import read_json
+            published = read_json(record)
+            self.assertEqual(published["started"], published["suffixes"][:2])
         first, second = manager.system.isolated.call_args_list
         self.assertNotEqual(first.args[1], second.args[1])
         self.assertEqual(first.args[2:], second.args[2:])

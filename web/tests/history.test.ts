@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyNotification, checkedPage, mergeHistory } from '../lib/history';
+import { applyNotification, boundedCombined, checkedPage, HISTORY_LIMIT, mergeHistory } from '../lib/history';
 import type { Turn } from '../lib/types';
 describe('bounded history and streaming reconciliation', () => {
   it('keeps completed item and turn snapshots final even when the touched set no longer contains them', () => {
@@ -236,4 +236,21 @@ describe('bounded history and streaming reconciliation', () => {
       text: 'final',
     });
   });
+});
+
+it('increments only the affected turn budget and agrees with full serialization at the exact boundary', () => {
+  for (const offset of [-1, 0, 1]) {
+    let reads = 0, padding = '';
+    const stable = { id: 'old', type: 'agentMessage', get text() { reads++; return padding; } };
+    const base: Turn[] = [{ id: 'settled', status: 'completed', items: [stable] }, { id: 'live', status: 'inProgress', items: [] }];
+    const delta = { turnId: 'live', itemId: 'answer', delta: '尾' };
+    const example = applyNotification(structuredClone(base), 'item/agentMessage/delta', delta, true);
+    padding = 'a'.repeat(HISTORY_LIMIT.chars + offset - JSON.stringify({ turns: example.turns, timeline: [] }).length);
+    boundedCombined(base, []); reads = 0;
+    const actual = applyNotification(base, 'item/agentMessage/delta', delta, true);
+    if (offset > 0) expect(() => boundedCombined(actual.turns, [])).toThrow();
+    else expect(() => boundedCombined(actual.turns, [])).not.toThrow();
+    expect(reads).toBe(0);
+    expect(JSON.stringify({ turns: actual.turns, timeline: [] }).length).toBe(HISTORY_LIMIT.chars + offset);
+  }
 });

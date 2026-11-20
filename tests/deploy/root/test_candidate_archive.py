@@ -291,6 +291,36 @@ class CandidateArchiveRootTests(unittest.TestCase):
         self.assertNotEqual(lock.stat().st_ino, before.st_ino)
         self.assertEqual(self.system.events, [])
 
+    def test_failed_archive_verifies_and_unmounts_ordinary_image_after_preparation(self):
+        if not Path("/run/systemd/system").exists() or not (int(next(line for line in Path("/proc/self/status").read_text().splitlines() if line.startswith("CapEff:")).split()[1], 16) & (1 << 21)):
+            self.skipTest("Real ext4 loop mount requires an isolated Linux root machine")
+        mount = self.source / "fetch"
+        mount.mkdir()
+        image = mount.with_suffix(".ext4")
+        with image.open("xb") as out:
+            out.truncate(16 * 1024**2)
+        image.chmod(0o600)
+        subprocess.run(["mkfs.ext4", "-q", "-F", str(image)], check=True)
+        subprocess.run(["mount","-o","loop,nosuid,nodev",str(image),str(mount)], check=True)
+        from deploy.system import run as actual_run
+        try:
+            (mount / "fixture").write_bytes(b"retained intermediate")
+            def run(command, **options):
+                return actual_run(command, **options) if command[0] == "/usr/bin/umount" else types.SimpleNamespace(stdout="", returncode=0)
+            with patch.object(archive,"run", side_effect=run):
+                listed = archive.list_candidates(self.manager)["candidates"][0]
+                self.assertTrue(listed["eligible"] and listed["failed"])
+                self.assertTrue(mount.is_mount())
+                with self.assertRaises(DeployError):
+                    self.perform()
+                item = archive.archive_candidate(self.layout, self.candidate, confirm_stop=True, allow_failed=True)
+            evidence = Path(item["archive"]) / "fetch.ext4"
+            self.assertTrue(evidence.is_file())
+            self.assertEqual(subprocess.run(["debugfs", "-R", "cat /fixture",str(evidence)], capture_output=True, check=True).stdout, b"retained intermediate")
+        finally:
+            if mount.is_mount():
+                subprocess.run(["umount", str(mount)],check=True)
+
     def test_retained_image_is_never_archived(self):
         (self.source / "build.ext4").write_bytes(b"uncertain image")
         with self.assertRaisesRegex(DeployError, "image"):

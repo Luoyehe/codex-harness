@@ -77,7 +77,7 @@ test('diagnostic copy keeps real ownership checks and adds exact Win32 and Power
   const job = windowsJob({ bin: process.execPath, args: ['-e', '0'], cwd: process.cwd(), env: {} });
   const before = [...job.command.args];
   const diagnostic = instrumentController(job.command.args);
-  const script = Buffer.from(diagnostic.args[4], 'base64').toString('utf16le');
+  const script = Buffer.from(diagnostic.args[4]!, 'base64').toString('utf16le');
   expect(job.command.args).toEqual(before);
   expect(script).toContain('Check(AssignProcessToJobObject(job,child.process))');
   expect(script).toContain('limits.basic.flags=0x2000');

@@ -399,6 +399,8 @@ def native_main(instance: str) -> None:
         if sys.argv[1] == "app-server" or catalog:
             from .auth_storage_policy import require_file_store
             require_file_store(layout, Path(settings["home"]), settings["uid"])
+            from .mcp_enabled_override import launch_arguments
+            arguments += launch_arguments(Path(settings["home"]))
             arguments += ["-c", "thread_unload_delay_secs=0"]
             arguments += ["-c", 'cli_auth_credentials_store="file"']
         registry_path = env_path.parent / "runtime.json"

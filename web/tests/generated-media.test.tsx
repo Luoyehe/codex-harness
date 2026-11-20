@@ -68,7 +68,8 @@ it.each([
 });
 
 it('rejects a complete response with a different hash or declared image format', async () => {
-  const changed = new Uint8Array(png); changed[changed.length - 1] ^= 1;
+  const changed = new Uint8Array(png);
+  changed[changed.length - 1] = changed[changed.length - 1]! ^ 1;
   const f = fixture(changed), original = reference(png);
   f.call.mockImplementation(async (_method, p) => ({ ...f.chunk(p), mediaId: original.mediaId }));
   await expect(readGeneratedMedia(f.api, identity, original, new AbortController().signal)).rejects.toThrow('内容校验失败');

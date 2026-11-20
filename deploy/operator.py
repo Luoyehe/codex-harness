@@ -1,6 +1,8 @@
 """Interactive front door to the existing, journaled deployment commands."""
 from __future__ import annotations
 
+import re
+
 import getpass
 import json
 import os
@@ -130,6 +132,11 @@ class Console:
 
     def install(self) -> None:
         layout = Layout(self.instance)
+        from .transactions import require_initialization_complete
+        require_initialization_complete(layout)
+        from .install_recovery import record_path
+        require(not record_path(layout).exists() or (layout.config / "instance.json").is_file(),
+                "已保留初始化记录，但实例配置缺失。请先检查初始化与恢复记录。", "recovery_required")
         require(not layout.config.exists(), "该实例已有配置；请选择升级或恢复，不要重复安装。", "already_installed")
         self.prepare_dependencies()
         port = self.port("内部服务端口（仅监听本机）", 3300)
@@ -311,24 +318,32 @@ class Console:
 
     def archive_candidates(self) -> None:
         result = self.command("candidate-list")
-        eligible = [row for row in result.get("candidates", []) if row.get("eligible")]
-        for row in result.get("candidates", []):
-            detail = ("继续归档，发布 " if row.get("resume") else "可归档，发布 ") + row.get("release", "")[:12]
+        rows = [*result.get("candidates", []), *result.get("dnsBuilds", [])]
+        eligible = [row for row in rows if row.get("eligible")]
+        for row in rows:
+            detail = ("DNS 构建" if row.get("dns") else "失败候选" if row.get("failed") else "发布 " + (row.get("release") or "")[:12]) + ("，继续归档" if row.get("resume") else "，可归档")
+            if row.get("requiresProducerStop"):
+                detail += "；须先停止此构建的运行进程"
             self.output(row["id"] + "：" + (detail if row.get("eligible") else "保留，" + row.get("reason", "证据不足")))
         if not eligible:
             self.output("没有通过完整验证的候选；未完成或状态不明确的构建不会移动。")
             return
-        selected = self.choice("选择要归档的已完成构建", {str(index + 1): row["id"] for index, row in enumerate(eligible)})
-        candidate = eligible[int(selected) - 1]["id"]
+        selected = self.choice("选择要保留归档的构建", {str(index + 1): row["id"] for index, row in enumerate(eligible)})
+        row = eligible[int(selected) - 1]
+        candidate = row["id"]
+        if row.get("dns"):
+            if self.confirm("停止所选 DNS 构建生产进程并归档 " + candidate):
+                self.command("dns-build-archive", "--build", candidate, "--confirm-stop")
+            return
         self.output("归档只移动构建缓存，保留发布版本、配置、账号、项目、凭据和全部事务记录。归档会释放候选名额，不减少磁盘占用。")
         self.output("期间会短暂停止当前实例并恢复原服务。请先完成任务并关闭终端；状态不明时先恢复服务。")
         if self.confirm("归档候选 " + candidate + " 并短暂停机"):
-            self.command("candidate-archive", "--candidate", candidate, "--confirm-stop")
+            self.command("candidate-archive", "--candidate", candidate, "--confirm-stop", *(["--failed"] if row.get("failed") else []))
             self.output("归档完成，原服务已恢复。现在可继续升级。")
 
     def recover(self) -> None:
         choice = self.choice("按发生中断的阶段恢复", {"1": "修复未完成的应用、供应商或 HTTPS 更新", "2": "恢复中断的控制工具更新",
-                            "3": "继续首次安装初始化", "4": "恢复卸载后保留的服务", "5": "回滚到上一个应用版本", "6": "归档已完成构建（释放升级名额）", "7": "恢复中断的配置层迁移"})
+                            "3": "继续首次安装初始化", "4": "恢复卸载后保留的服务", "5": "回滚到上一个应用版本", "6": "归档成功、失败或 DNS 构建（释放名额）", "7": "恢复中断的配置层迁移"})
         if choice == "6":
             self.archive_candidates()
             return
@@ -442,7 +457,13 @@ class Console:
                 port = self.port("本机透明 TCP 端口（相邻端口用于 HTTP）", current.get("port", 18793))
                 require(port < 65535, "请为相邻 HTTP 监听保留端口。")
                 arguments += ["--config-file", path, "--port", str(port)]
-            version = self.prompt("官方 Xray 精确版本，或 latest 查询最新正式版", "latest")
+            version_spec = self.prompt("官方 Xray 版本或 latest；如需校验独立 SHA-256，可在版本后加空格再填摘要", "latest").split()
+            require(1 <= len(version_spec) <= 2, "请填写版本及可选的 64 位 SHA-256。")
+            version = version_spec[0]
+            if len(version_spec) == 2:
+                checksum = version_spec[1].lower()
+                require(re.fullmatch(r"[0-9a-f]{64}", checksum), "独立 SHA-256 应为 64 位十六进制。")
+                arguments += ["--sha256", checksum]
             default_proxy = "http://127.0.0.1:" + str(current["port"] + 1) if current.get("enabled") else ""
             download_proxy = self.prompt("仅用于官方核心下载的本机 HTTP 代理，留空直连", default_proxy)
         if choice == "5":
@@ -505,10 +526,13 @@ class Console:
 def manage(instance: str = "main") -> None:
     require(sys.stdin.isatty(), "交互菜单需要终端；自动化请继续使用 deploy.cli 子命令。", "interactive_required")
     require_host()
-    console = Console(instance)
+    valid_initial = bool(INSTANCE.fullmatch(instance))
+    console = Console(instance if valid_initial else "main")
+    if not valid_initial:
+        console.output("实例名称无效 [invalid_input]：请重新选择符合要求的实例。")
     console.output("输入 q 可取消当前页面。密码和 DNS 密钥均隐藏输入。")
     try:
-        console.select_instance(prefer_current=instance != "main")
+        console.select_instance(prefer_current=valid_initial and instance != "main")
     except (Cancelled, EOFError, KeyboardInterrupt):
         return
     console.loop()

@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 from .common import DeployError, canonical, require
 
 MAX_FILE = 512 * 1024
+MAX_TRANSFER = 8 * 1024 * 1024
 MAX_ENTRIES = 1000
 RESERVED = ".harness-workspace"
 
@@ -27,15 +28,46 @@ def relative(value: object, *, empty: bool = False) -> list[str]:
     return parts
 
 
-def revision(info: os.stat_result, content: bytes | None = None) -> str:
+def revision(info: os.stat_result, content: bytes | None = None, *, sha256: str | None = None) -> str:
     return hashlib.sha256(canonical({"device": info.st_dev, "inode": info.st_ino, "size": info.st_size, "mode": stat.S_IMODE(info.st_mode),
-                                    "mtime": info.st_mtime_ns, "content": hashlib.sha256(content).hexdigest() if content is not None else None})).hexdigest()
+                                    "mtime": info.st_mtime_ns, "content": hashlib.sha256(content).hexdigest() if content is not None else sha256})).hexdigest()
 
 
 def regular(fd: int) -> os.stat_result:
     info = os.fstat(fd)
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Only ordinary single-link files are supported", "unsafe_path")
     return info
+
+
+def transfer_file(fd: int, target=None):
+    """Hash and optionally stream a pinned file; detect growth or replacement."""
+    before = regular(fd)
+    require(before.st_size <= MAX_TRANSFER, "Workspace file exceeds transfer budget", "budget")
+    size, digest = 0, hashlib.sha256()
+    while block := os.read(fd, 65536):
+        size += len(block)
+        require(size <= before.st_size, "File changed during transfer", "conflict")
+        digest.update(block)
+        if target is not None:
+            target.write(block)
+    after = regular(fd)
+    require(size == after.st_size == before.st_size and
+            (after.st_mtime_ns, after.st_ctime_ns) == (before.st_mtime_ns, before.st_ctime_ns),
+            "Workspace file changed during transfer", "conflict")
+    return after, digest.hexdigest()
+
+
+def copy_slot(source: int, destination: int, mode: int, expected: str):
+    fd = os.open("next", os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_WRONLY, mode, dir_fd=destination)
+    with os.fdopen(fd, "wb") as output:
+        info, sha = transfer_file(source, output)
+        require(revision(info, sha256=sha) == expected, "Copy source changed", "conflict")
+        output.flush()
+        os.fchmod(fd, mode)
+        os.fsync(fd)
+        result = os.fstat(fd)
+    os.fsync(destination)
+    return result, sha
 
 
 def read_file(fd: int, limit: int = MAX_FILE) -> tuple[bytes, os.stat_result]:

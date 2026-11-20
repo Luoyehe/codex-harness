@@ -31,6 +31,13 @@ class SearchFilesystemTests(unittest.TestCase):
         self.root = Root(str(self.project), [])
         self.addCleanup(self.root.close)
 
+    def test_exact_limit_stays_complete_with_further_nonmatching_entries(self):
+        (self.project / "one").write_text("needle\nunrelated")
+        only = search(self.root, {"query":"needle","mode":"text","limit":1})
+        self.assertTrue(only["complete"])
+        (self.project / "two").write_text("needle")
+        self.assertIn("result_limit", search(self.root, {"query":"needle","mode":"text","limit":1})["reasons"])
+
     def test_path_and_literal_text_search_report_matching_lines(self):
         (self.project / "src").mkdir()
         (self.project / "src/Hello.ts").write_text("nothing\nNeedle [a.*]\nNEEDLE again\n", encoding="utf-8")

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildTool } from '../deploy/build_tool.mjs';
 import { buildCiPlan } from './ci-checks.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
 import { evidencePath, root, snapshot, sourceExecutableBits } from './snapshot.mjs';
@@ -116,9 +117,9 @@ export function checkBuild(base, source, pins, head, rebuild = false) {
       }
     }
     for (const args of [
-      ['node_modules/typescript/bin/tsc', '--noEmit', '-p', 'web/tsconfig.json'],
-      ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.server.json'],
-      ['node_modules/vite/bin/vite.js', 'build', '--config', 'web/vite.config.ts'],
+      [buildTool(base, 'tsc'), '--noEmit', '-p', 'web/tsconfig.json'],
+      [buildTool(base, 'tsc'), '-p', 'tsconfig.server.json'],
+      [buildTool(base, 'vite'), 'build', '--config', 'web/vite.config.ts'],
     ]) execFileSync(process.execPath, args, { cwd: base, stdio: 'inherit', windowsHide: true });
     const after = committedSource(base, head);
     if (after.digest !== source.digest) throw Error('Source changed during build');

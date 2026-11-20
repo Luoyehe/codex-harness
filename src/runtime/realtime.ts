@@ -7,7 +7,7 @@ import { validateTimelineContract } from './timeline-contract.js';
 interface Signal { promise: Promise<void>; resolve(): void }
 function signal(): Signal { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; }
 interface Session {
-  sessionHandle: string; threadId: string; clientId: string; eventChannelId: string | undefined;
+  protocolFault?: boolean; sessionHandle: string; threadId: string; clientId: string; eventChannelId: string | undefined;
   state: 'starting' | 'active' | 'stopping' | 'closed'; revoked: boolean; dispatched: boolean; nextSequence: number; lastAcceptedSequence: number;
   nativeSessionId: string; started: boolean; stopDispatched: boolean; epochEnded: boolean; closure: Signal; epochEnd: Signal; closedNotification?: JsonObject;
   version?: string; sdp?: string; reason?: string; bytes: number; frames: number; rateAt: number; rateBytes: number;
@@ -18,7 +18,7 @@ interface Host {
   mutate(operation: WorkflowMutation, context: CallContext): Promise<JsonValue>;
   requireLoaded(threadId: string): void; available(): void;
   invalidate(threadId: string): void;
-  emit(data: JsonObject, channel?: string): void; changed(): void; failEpoch(): Promise<void>;
+  emit(data: JsonObject, channel?: string): void; changed(): void; redact?(message: string): string; uncertain?(threadId: string): void; failEpoch(): Promise<void>;
 }
 const events: Record<string, string> = {
   started: 'ThreadRealtimeStartedNotification', itemAdded: 'ThreadRealtimeItemAddedNotification', 'item/started': 'ThreadRealtimeItemStartedNotification',
@@ -105,6 +105,7 @@ export class Realtime {
     if (!method.startsWith('thread/realtime/')) return false;
     const suffix = method.slice('thread/realtime/'.length), schema = events[suffix]; if (!schema) return true;
     const entry = [...this.sessions.values()].find(item => item.threadId === params.threadId && item.state !== 'closed'); if (!entry || !entry.dispatched || entry.epochEnded || entry.closedNotification) return true;
+    try {
     checked(schema, params, 512 * 1024);
     // Historical 0.164.0 fixtures echo the requested ID before SDP/fanout. The
     // 0.169.0 generated contract retains it; live paid realtime was not re-tested.
@@ -125,7 +126,13 @@ export class Realtime {
     } else if (!entry.started && suffix !== 'error') return true;
     if (suffix === 'sdp') entry.sdp = string(params.sdp, 'SDP answer', 64 * 1024);
     if (suffix === 'outputAudio/delta') audio(params.audio);
+    if (suffix === 'error' && typeof params.message === 'string' && this.host.redact) params = { ...params, message: this.host.redact(params.message) };
     if (!entry.revoked) this.host.emit({ ...this.summary(entry), clientId: entry.clientId, method, params }, entry.eventChannelId);
+    } catch {
+      entry.protocolFault = true;
+      if (!entry.revoked) this.host.emit({ ...this.summary(entry), clientId: entry.clientId, method: 'thread/realtime/error', params: { threadId: entry.threadId, message: '本次语音数据未能验证，正在结束此语音会话。' } }, entry.eventChannelId);
+      void this.stop(entry).catch(() => {});
+    }
     this.host.changed(); return true;
   }
   private finishClosed(entry: Session): void {
@@ -161,7 +168,9 @@ export class Realtime {
     const ended = entry.epochEnd.promise.then(() => { throw new DeliveryError('voice_epoch_ended', 'Voice runtime ended before cleanup was confirmed', 'unknown'); });
     entry.stopping = Promise.race([cleanup, timeout, ended]).then(() => this.finishClosed(entry), async () => {
       entry.epochEnded = true; entry.epochEnd.resolve();
-      await this.host.failEpoch(); entry.state = 'closed'; entry.reason = 'runtime_closed'; delete entry.sdp;
+      if (entry.protocolFault && this.host.uncertain) { this.host.uncertain(entry.threadId); entry.reason = 'voice_cleanup_unconfirmed'; }
+      else { await this.host.failEpoch(); entry.reason = 'runtime_closed'; }
+      entry.state = 'closed'; delete entry.sdp; this.host.changed();
     }).finally(() => clearTimeout(timer));
     return entry.stopping;
   }

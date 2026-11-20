@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { executePlan } from '../../scripts/run-tests.mjs';
 import { isolatedPaths, isolatedTestEnvironment } from '../../scripts/test-environment.mjs';
-import { finishTestWorkspace } from '../../scripts/test-retention.mjs';
+import { finishTestWorkspace, withTestReport } from '../../scripts/test-retention.mjs';
 
 const fixtures: string[] = [];
 function fixture() {
@@ -149,3 +149,26 @@ class Probe(unittest.TestCase):
   expect(refused.status).toBe(1); expect(refused.stderr).toContain('Three recorded audit rounds are required');
   expect(existsSync(path.join(base, 'fsmonitor-marker'))).toBe(false);
 }, 45000);
+
+test('report retention keeps active and unrelated directories and bounds successful and failed diagnostics separately', () => {
+  const base = fixture(), parent = path.join(base, '.work', 'test-results');
+  put(base, '.work/test-results/run-unrelated/notes', 'keep');
+  for (const status of ['passed', 'failed']) {
+    withTestReport(base, 'vitest', (outer: string) => {
+      writeFileSync(outer, 'outer');
+      for (let index = 0; index < 9; index++) withTestReport(base, index % 2 ? 'python' : 'vitest', (inner: string) => {
+        writeFileSync(inner, 'inner');
+        expect(existsSync(path.join(path.dirname(outer), 'running.json'))).toBe(true);
+        return { status };
+      });
+      return { status };
+    });
+  }
+  const closed = readdirSync(parent).flatMap(name => {
+    const marker = path.join(parent, name, 'complete.json');
+    return existsSync(marker) ? [JSON.parse(readFileSync(marker, 'utf8'))] : [];
+  });
+  expect(closed.filter(item => item.outcome === 'passed')).toHaveLength(6);
+  expect(closed.filter(item => item.outcome === 'failed')).toHaveLength(6);
+  expect(readFileSync(path.join(parent, 'run-unrelated/notes'), 'utf8')).toBe('keep');
+});

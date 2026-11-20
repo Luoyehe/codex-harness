@@ -55,7 +55,7 @@ export function DiagnosticsPanel({
     action.operation?.method === 'feedback/save' &&
     action.operation.state === 'accepted' &&
     action.operation.projectId === project?.id
-      ? `.harness-feedback-${action.operation.id}.zip`
+      ? `.harness-feedback/${action.operation.id}.zip`
       : '';
   const localPath = savedPath || recovered;
   const change = (setter: () => void) => {
@@ -146,7 +146,7 @@ export function DiagnosticsPanel({
           </label>
           <p className="small muted">
             {destination === 'save'
-              ? '使用新的唯一文件名保存，不覆盖已有文件。反馈包可能包含敏感正文、路径和日志；保存在项目目录后，项目中的 Agent、Git 添加操作或共享工具可能读取它，请在使用后按需移除。'
+              ? '保存到项目中的 .harness-feedback 目录，Git 默认忽略其中的归档。反馈包含的正文、路径和日志仍可被具有项目读取权限的程序访问。'
               : '将向外部反馈服务发送当前会话、反馈说明和所选日志，遵守当前账号与管理策略。'}
           </p>
           <label className="check-row">

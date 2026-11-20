@@ -88,3 +88,19 @@ it('does not display results that arrive after query or project changes', async 
   );
   expect(screen.queryByText('needle [literal]')).toBeNull();
 });
+it('combines optional generated-directory exclusions with custom names, then restores the original scope', async () => {
+  const call = vi.fn().mockResolvedValue({...result, mode:'path', complete:true, reasons:[]});
+  render(<WorkspaceSearch api={{call} as unknown as Api} project={project} epoch="one" connected onOpenFile={vi.fn()} />);
+  fireEvent.click(screen.getByText('搜索项目文件与内容'));
+  const query = screen.getByRole('searchbox');
+  fireEvent.change(query, {target:{value:'needle'}});
+  expect(fireEvent.keyDown(query,{key:'Enter', isComposing:true})).toBe(false);
+  fireEvent.change(screen.getByLabelText(/排除目录名/), {target:{value:'cache, dist'}});
+  const preset = screen.getByRole('checkbox', {name:/跳过依赖/});
+  fireEvent.click(preset); fireEvent.click(screen.getByRole('button',{name:'搜索此范围'}));
+  await screen.findByText(/扫描 15 项/);
+  expect(call.mock.calls[0]![1].excludeNames).toEqual(['cache','dist','node_modules','build']);
+  fireEvent.click(preset); fireEvent.click(screen.getByRole('button',{name:'搜索此范围'}));
+  await waitFor(() => expect(call).toHaveBeenCalledTimes(2));
+  expect(call.mock.calls[1]![1].excludeNames).toEqual(['cache','dist']);
+});

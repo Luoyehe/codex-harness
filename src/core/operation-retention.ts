@@ -1,9 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { DatabaseSync } from 'node:sqlite';
+import { setImmediate as yieldTurn } from 'node:timers/promises';
+import { DatabaseSync } from 'node:sqlite';
 import { LIMITS, type ErrorBody, type JsonObject, type JsonValue, type Receipt } from './contracts.js';
 import { HarnessError } from './errors.js';
 import { mcpOauthError, mcpOauthReceipt } from './mcp-oauth-receipt.js';
 
+type Snapshot = { parts: Buffer[]; ends: number[]; bytes: number; expires: number };
+function exportReceipt(row: Record<string, unknown>): Record<string, unknown> {
+  return { ...row,
+    result: typeof row.result === 'string' ? mcpOauthReceipt(String(row.method), JSON.parse(row.result) as JsonValue) : null,
+    error: typeof row.error === 'string' ? mcpOauthError(String(row.method), JSON.parse(row.error) as ErrorBody) : null };
+}
 const MAX_GENERATION = 0xffffffffffff;
 const MAX_EXPORT_BYTES = 80 * 1024 * 1024;
 const KEY = 'operationGeneration';
@@ -24,7 +31,7 @@ export function operationId(generation: number): string {
 export class OperationRetention {
   // Two bounded generations allow separate tabs to finish their own exports.
   // Rotation still validates the latest live ledger, not a cached snapshot.
-  private snapshots = new Map<string, { data: Buffer; expires: number }>();
+  private snapshots = new Map<string, Snapshot>();
   constructor(private readonly db: DatabaseSync, private readonly now: () => number = Date.now) {}
 
   generation(): number {
@@ -71,13 +78,7 @@ export class OperationRetention {
   }
 
   private archive(): { data: Buffer; digest: string; receipts: number; retirements: number; blocked: string[] } {
-    const receipts: Record<string, unknown>[] = this.db.prepare('SELECT * FROM receipts ORDER BY id').all().map(row => ({
-      ...row,
-      // Export structured JSON rather than JSON-inside-a-string: worst-case
-      // escaping must not double the 64 MiB live journal beyond export capacity.
-      result: typeof row.result === 'string' ? mcpOauthReceipt(String(row.method), JSON.parse(row.result) as JsonValue) : null,
-      error: typeof row.error === 'string' ? mcpOauthError(String(row.method), JSON.parse(row.error) as ErrorBody) : null,
-    }));
+    const receipts = this.db.prepare('SELECT * FROM receipts ORDER BY id').all().map(exportReceipt);
     const retiredOperations = this.db.prepare('SELECT * FROM retired_operations ORDER BY id').all();
     const data = Buffer.from(JSON.stringify({ format: 1, generation: this.generation(), receipts, retiredOperations }), 'utf8');
     if (data.length > MAX_EXPORT_BYTES) throw new HarnessError('journal_capacity', '完整操作归档超过导出上限，日志保持原样。');
@@ -89,12 +90,65 @@ export class OperationRetention {
     return { data, digest: createHash('sha256').update(data).digest('hex'), receipts: receipts.length, retirements: retiredOperations.length, blocked };
   }
 
+  /** Use a separate WAL read transaction in production so writes can proceed during export. */
+  async previewLarge(check: () => void): Promise<JsonObject> {
+    const file = this.db.location();
+    const reader = file ? new DatabaseSync(file, { readOnly: true, allowExtension: false }) : this.db;
+    const stamp = () => reader.prepare('SELECT total_changes() AS n').get()!.n;
+    const initial = stamp();
+    const validate = () => {
+      check();
+      if (!file && stamp() !== initial) throw new HarnessError('journal_changed', '预览期间日志已变更，请重试。');
+    };
+    if (file) reader.exec('BEGIN');
+    try {
+      const view = new OperationRetention(reader, this.now);
+      const generation = view.generation(), nextGeneration = view.nextGeneration();
+      const hash = createHash('sha256'), parts: Buffer[] = [], ends: number[] = [];
+      let pending: Buffer[] = [], bytes = 0, chunkBytes = 0;
+      const append = (value: string) => {
+        const data = Buffer.from(value);
+        bytes += data.length; chunkBytes += data.length;
+        if (bytes > MAX_EXPORT_BYTES) throw new HarnessError('journal_capacity', '完整操作归档超过导出上限，日志保持原样。');
+        pending.push(data); hash.update(data);
+      };
+      const flush = () => {
+        if (pending.length) { parts.push(Buffer.concat(pending, chunkBytes)); ends.push(bytes); pending = []; chunkBytes = 0; }
+      };
+      let receipts = 0, retirements = 0, unresolved = false;
+      append(`{"format":1,"generation":${generation},"receipts":[`);
+      for (const table of ['receipts', 'retired_operations'] as const) {
+        if (table === 'retired_operations') append('],"retiredOperations":[');
+        let count = 0;
+        for (const row of reader.prepare(`SELECT * FROM ${table} ORDER BY id`).iterate()) {
+          if (count++) append(',');
+          if (table === 'receipts') {
+            unresolved ||= ['pending', 'dispatching', 'unknown'].includes(String(row.state));
+            append(JSON.stringify(exportReceipt(row))); receipts++;
+          } else { append(JSON.stringify(row)); retirements++; }
+          if (chunkBytes >= 256 * 1024 || count % 64 === 0) { flush(); await yieldTurn(); validate(); }
+        }
+      }
+      append(']}'); flush(); validate();
+      const blocked: string[] = [];
+      if (reader.prepare("SELECT value FROM metadata WHERE key='activityUncertain'").get()?.value === 'true') blocked.push('activity_uncertain');
+      if (unresolved) blocked.push('unresolved_operations');
+      if (reader.prepare("SELECT 1 FROM automation_runs WHERE state IN ('queued','dispatching','running','needs_attention','stopping','unknown') LIMIT 1").get()) blocked.push('unresolved_automation_runs');
+      const last = reader.prepare("SELECT value FROM metadata WHERE key='lastOperationRotation'").get()?.value;
+      const digest = hash.digest('hex');
+      this.retain(digest, { parts, ends, bytes, expires: this.now() + OPERATION_EXPORT_TTL_MS });
+      return { generation, nextGeneration, digest, bytes, receipts, retirements, blocked,
+        ...(typeof last === 'string' ? { lastRotation: JSON.parse(last) as JsonValue } : {}) };
+    } finally { if (file) { try { reader.exec('ROLLBACK'); } finally { reader.close(); } } }
+  }
+  private retain(digest: string, snapshot: Snapshot) {
+    for (const [key, previous] of this.snapshots) if (previous.expires <= this.now()) this.snapshots.delete(key);
+    this.snapshots.delete(digest); this.snapshots.set(digest, snapshot);
+    while (this.snapshots.size > OPERATION_EXPORT_SNAPSHOT_LIMIT) this.snapshots.delete(this.snapshots.keys().next().value!);
+  }
   preview(): JsonObject {
     const archive = this.archive();
-    for (const [digest, snapshot] of this.snapshots) if (snapshot.expires <= this.now()) this.snapshots.delete(digest);
-    this.snapshots.delete(archive.digest);
-    this.snapshots.set(archive.digest, { data: archive.data, expires: this.now() + OPERATION_EXPORT_TTL_MS });
-    while (this.snapshots.size > OPERATION_EXPORT_SNAPSHOT_LIMIT) this.snapshots.delete(this.snapshots.keys().next().value!);
+    this.retain(archive.digest, { parts: [archive.data], ends: [archive.data.length], bytes: archive.data.length, expires: this.now() + OPERATION_EXPORT_TTL_MS });
     const lastRotation = this.db.prepare('SELECT value FROM metadata WHERE key=?').get('lastOperationRotation')?.value;
     return { generation: this.generation(), nextGeneration: this.nextGeneration(), digest: archive.digest,
       bytes: archive.data.length, receipts: archive.receipts, retirements: archive.retirements, blocked: archive.blocked,
@@ -108,9 +162,15 @@ export class OperationRetention {
         !Number.isSafeInteger(limit) || limit < 1 || limit > 512 * 1024) throw new HarnessError('invalid', '归档分块参数无效。');
     const archive = this.snapshots.get(digest);
     if (!archive || archive.expires <= this.now()) { this.snapshots.delete(digest); throw new HarnessError('journal_changed', '归档已过期或超出最近两个预览的保留上限，请重新预览并导出。'); }
-    if (offset >= archive.data.length) throw new HarnessError('journal_changed', '归档位置无效，请重新预览并导出。');
-    const end = Math.min(offset + limit, archive.data.length);
-    return { digest, offset, totalBytes: archive.data.length, base64: archive.data.subarray(offset, end).toString('base64'), nextOffset: end === archive.data.length ? null : end };
+    if (offset >= archive.bytes) throw new HarnessError('journal_changed', '归档位置无效，请重新预览并导出。');
+    const end = Math.min(offset + limit, archive.bytes), slices: Buffer[] = [];
+    for (let index = 0; index < archive.parts.length; index++) {
+      const edge = archive.ends[index]!, start = index ? archive.ends[index - 1]! : 0;
+      if (edge <= offset) continue;
+      slices.push(archive.parts[index]!.subarray(Math.max(0, offset - start), end - start));
+      if (edge >= end) break;
+    }
+    return { digest, offset, totalBytes: archive.bytes, base64: Buffer.concat(slices, end - offset).toString('base64'), nextOffset: end === archive.bytes ? null : end };
   }
 
   /** Caller holds the maintenance lease and wraps this method in a SQLite transaction. */

@@ -12,6 +12,7 @@ export function sourceExecutableBits(info, indexMode, platform = process.platfor
 }
 export function evidencePath(name) {
   return ['verification/audits.json', 'verification/WORKLOG.md', 'verification/RELEASE-CHECKS.md'].includes(name)
+    || ['verification/history/through-v2.4.0.zip', 'verification/history/through-v2.4.0.json'].includes(name)
     || /^verification\/audit-evidence\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.json$/.test(name)
     || /^verification\/reports\/[A-Za-z0-9_.-]+\.md$/.test(name);
 }

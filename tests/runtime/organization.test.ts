@@ -17,7 +17,7 @@ class Native extends EventEmitter {
     if (method === 'thread/read') return { thread: this.threads.get(String(p.threadId))! };
     if (method === 'thread/turns/list') return { data: [], nextCursor: null, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
-    if (method === 'thread/metadata/update') return { thread: { ...this.threads.get(String(p.threadId))!, projectId: p.projectId } };
+    if (method === 'thread/metadata/update') return { thread: { ...this.threads.get(String(p.threadId))!, projectId: p.projectId! } };
     if (method.startsWith('project/')) return { project: { id: p.projectId ?? 'native', name: p.name ?? 'Native project', roots: p.roots ?? [{ path: this.root }], metadata: {}, position: 0, createdAt: 1, updatedAt: 1, recencyAt: null } };
     if (method === 'threadSection/create') return { section: { id: 'section', name: p.name!, appearance: null } };
     if (method === 'thread/attachmentOwner/list') return { data: [{ threadId: 'a', archived: false }, { threadId: 'b', archived: false }], nextCursor: 'more' };
@@ -66,4 +66,19 @@ test('automation preflight validates both fixed native schemas without calling n
   const { cwd, native, service } = await setup(); const before = service.status(), calls = native.calls.length;
   expect(await service.call('automation/validate', { cwd, options: { collaborationMode: { mode: 'plan', settings: { model: 'fixture', reasoning_effort: 'high', developer_instructions: null } } } }, context)).toEqual({});
   await expect(service.call('automation/validate', { cwd, options: { permissions: 'profile', sandboxPolicy: { type: 'dangerFullAccess' } } }, context)).rejects.toMatchObject({ code: 'invalid_params' }); expect(native.calls).toHaveLength(calls); expect(service.status()).toEqual(before);
+});
+
+test('an unloaded owner from the same page is omitted while peers and unrelated native errors survive', async () => {
+  const { cwd, native, service } = await setup(), original = native.call.bind(native);
+  const owners = ['a', 'b'].map(threadId => ({ threadId, archived: false }));
+  let reported = 'a';
+  native.call = async (method, input, options) => {
+    if (method === 'thread/attachmentOwner/list') return { data: owners, nextCursor: null };
+    if (method === 'thread/read' && object(input).threadId === 'a') throw new DeliveryError('native_error', 'thread not loaded: ' + reported, 'not_sent', { code: -32600 });
+    return original(method, input, options);
+  };
+  const params = { cwd, attachmentType: 'file', identityKey: 'fixture' };
+  await expect(service.call('thread/attachmentOwner/list', params, context)).resolves.toMatchObject({ data: [owners[1]], nextCursor: null, listChanged: true });
+  reported = 'different';
+  await expect(service.call('thread/attachmentOwner/list', params, context)).rejects.toMatchObject({ code: 'native_error' });
 });

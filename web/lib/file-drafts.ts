@@ -25,7 +25,7 @@ function storedBytes(storage: Storage, key: string, raw: string) {
   return bytes;
 }
 export const fileDraftKey = (projectId: string, path: string) => JSON.stringify([projectId, path]);
-const key = (projectId: string, path: string) =>
+export const fileDraftStorageKey = (projectId: string, path: string) =>
   prefix + encodeURIComponent(fileDraftKey(projectId, path));
 const valid = (value: unknown): value is FileDraft => {
   if (!value || typeof value !== 'object') return false;
@@ -52,8 +52,59 @@ const valid = (value: unknown): value is FileDraft => {
         draft.pending.submittedText.length <= 524288))
   );
 };
-export function readFileDraft(projectId: string, path: string, storage = sessionStorage) {
-  const raw = storage.getItem(key(projectId, path));
+type QueuedDraft = { draft: FileDraft; timer?: ReturnType<typeof setTimeout>; notify?: (error?: unknown) => void };
+const queued = new Map<string, QueuedDraft>();
+export function unsavedFileDrafts(): FileDraft[] {
+  return [...queued.values()].filter(entry => entry.timer === undefined).map(entry => entry.draft);
+}
+let listening = false;
+function flushAll() {
+  for (const entry of [...queued.values()]) flushFileDraft(entry.draft.projectId, entry.draft.path);
+}
+function leaving(event: BeforeUnloadEvent) {
+  flushAll();
+  if (queued.size) { event.preventDefault(); event.returnValue = ''; }
+}
+function hidden() { if (document.visibilityState === 'hidden') flushAll(); }
+function listen() {
+  if (listening === Boolean(queued.size)) return;
+  listening = !listening;
+  if (listening) {
+    window.addEventListener('beforeunload', leaving);
+    window.addEventListener('pagehide', flushAll);
+    document.addEventListener('visibilitychange', hidden);
+  } else {
+    window.removeEventListener('beforeunload', leaving);
+    window.removeEventListener('pagehide', flushAll);
+    document.removeEventListener('visibilitychange', hidden);
+  }
+}
+function forgetQueued(projectId: string, path: string) {
+  const id = fileDraftKey(projectId, path);
+  clearTimeout(queued.get(id)?.timer);
+  const removed = queued.delete(id); listen();
+  if (removed) window.dispatchEvent(new Event('harness-file-drafts'));
+}
+export function queueFileDraft(draft: FileDraft, notify?: QueuedDraft['notify']) {
+  const id = fileDraftKey(draft.projectId, draft.path);
+  const previous = queued.get(id);
+  // One bounded interval even during continuous typing.
+  queued.set(id, { draft, notify, timer: previous?.timer ?? setTimeout(() => flushFileDraft(draft.projectId, draft.path), 200) });
+  listen();
+}
+export function flushFileDraft(projectId: string, path: string) {
+  const pending = queued.get(fileDraftKey(projectId, path));
+  if (!pending) return;
+  clearTimeout(pending.timer); delete pending.timer;
+  try {
+    persistFileDraft(pending.draft);
+    pending.notify?.();
+  } catch (error) { pending.notify?.(error); window.dispatchEvent(new Event('harness-file-drafts')); }
+}
+export function readFileDraft(projectId: string, path: string, storage?: Storage) {
+  const memory = queued.get(fileDraftKey(projectId, path));
+  if (memory && storage === undefined) return memory.draft;
+  const raw = (storage ?? sessionStorage).getItem(fileDraftStorageKey(projectId, path));
   if (raw === null) return undefined;
   let draft: unknown;
   try { draft = JSON.parse(raw); }
@@ -68,7 +119,7 @@ export function persistFileDraft(draft: FileDraft, storage = sessionStorage) {
     discardFileDraft(draft.projectId, draft.path, storage);
     return;
   }
-  const target = key(draft.projectId, draft.path),
+  const target = fileDraftStorageKey(draft.projectId, draft.path),
     value = JSON.stringify(draft);
   let bytes = byteLength(value),
     count = 1;
@@ -83,9 +134,11 @@ export function persistFileDraft(draft: FileDraft, storage = sessionStorage) {
     throw new Error('文件草稿达到 10 份或 8 MiB 上限，请先保存或放弃已有草稿。');
   storage.setItem(target, value);
   if (storage.getItem(target) !== value) throw new Error('浏览器未能保存文件草稿。');
+  forgetQueued(draft.projectId, draft.path);
 }
 export function discardFileDraft(projectId: string, path: string, storage = sessionStorage) {
-  storage.removeItem(key(projectId, path));
+  storage.removeItem(fileDraftStorageKey(projectId, path));
+  forgetQueued(projectId, path);
 }
 export function listFileDrafts(storage = sessionStorage) {
   const drafts: FileDraft[] = [];
@@ -95,7 +148,7 @@ export function listFileDrafts(storage = sessionStorage) {
     try {
       const raw = storage.getItem(entry) ?? 'null';
       const value: unknown = JSON.parse(raw);
-      if (!valid(value) || entry !== key(value.projectId, value.path)) continue;
+      if (!valid(value) || entry !== fileDraftStorageKey(value.projectId, value.path)) continue;
       if (!value.pending && value.baseRevision !== null && value.text === value.baseText) {
         if (storage.getItem(entry) === raw) { storage.removeItem(entry); i--; }
         continue;
@@ -104,7 +157,9 @@ export function listFileDrafts(storage = sessionStorage) {
     } catch { /* Damage is isolated and remains exportable in draft settings. */ }
     if (drafts.length > 10) throw new Error('文件草稿数量超过上限。');
   }
-  return drafts.sort((a, b) => b.updatedAt - a.updatedAt);
+  const merged = new Map(drafts.map(draft => [fileDraftKey(draft.projectId, draft.path), draft]));
+  for (const [id, pending] of queued) merged.set(id, pending.draft);
+  return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 export function damagedFileDrafts(storage = sessionStorage) {
   const damaged: { storageKey: string; raw: string }[] = [];
@@ -112,7 +167,7 @@ export function damagedFileDrafts(storage = sessionStorage) {
     const raw = storage.getItem(storageKey) ?? '';
     try {
       const value: unknown = JSON.parse(raw);
-      if (!valid(value) || storageKey !== key(value.projectId, value.path)) throw new Error();
+      if (!valid(value) || storageKey !== fileDraftStorageKey(value.projectId, value.path)) throw new Error();
     } catch { damaged.push({ storageKey, raw }); }
   }
   return damaged;
@@ -121,6 +176,7 @@ export function discardDamagedFileDraft(storageKey: string, expectedRaw: string,
   if (!storageKey.startsWith(prefix) || storage.getItem(storageKey) !== expectedRaw)
     throw new Error('文件草稿已变化，请重新检查后再处理。');
   storage.removeItem(storageKey);
+  window.dispatchEvent(new CustomEvent('harness-file-draft-removed', { detail: storageKey }));
   window.dispatchEvent(new Event('harness-drafts'));
 }
 export function newFileDraft(

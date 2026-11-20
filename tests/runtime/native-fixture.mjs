@@ -9,6 +9,13 @@ lines.on('line', line => {
   if (m.method === process.env.HARNESS_FIXTURE_HOLD) { writeFileSync(process.env.HARNESS_FIXTURE_PID_FILE, `${process.pid}\n`); return; }
   if (m.method === 'initialize') { initialization = m.params; send({ id: m.id, result: {} }); return; }
   if (m.method === 'fixture/initialize/read') { send({ id: m.id, result: initialization }); return; }
+  if (['thread/queue/list','thread/queue/update','thread/queue/add'].includes(m.method) && m.params.threadId === 'large') {
+    send({ id: m.id, result: { data: [{ input: [{ type: 'text', text: 'x'.repeat(13 * 1024 * 1024), text_elements: [] }] }], nextCursor: null } }); return;
+  }
+  if (['mcpServer/tool/call', 'plugin/install'].includes(m.method) && m.params.delayReply) {
+    setTimeout(() => send({ id: m.id, result: {} }), 60);
+    return;
+  }
   if (m.method === 'hold') return;
   if (m.method === 'exit') { process.exit(7); return; }
   if (m.method === 'error') { send({ id: m.id, error: { code: -32000, message: 'fixture rejection', data: { kind: 'fixture' } } }); return; }

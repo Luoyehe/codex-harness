@@ -11,12 +11,13 @@ export type SidebarAction =
 
 // The parent keys this dialog by a frozen row/action, independently of navigation.
 export function SidebarManagementDialog({
-  api, epoch, selection, enabled, beforeSubmit, onAccepted, onClose,
+  api, epoch, selection, enabled, unavailableReason, beforeSubmit, onAccepted, onClose,
 }: {
   api: Api;
   epoch: string;
   selection: SidebarAction;
   enabled: boolean;
+  unavailableReason?: string;
   beforeSubmit: () => boolean;
   onAccepted: () => void;
   onClose: () => void;
@@ -70,7 +71,7 @@ export function SidebarManagementDialog({
         {kind === 'project' && <p className="small path">{target.cwd}</p>}
         <fieldset className="submission-fields stack" disabled={frozen}>
           {renaming && <label className="field">{noun}名称
-            <input autoFocus required maxLength={kind === 'project' ? 128 : 200} value={name}
+            <input data-initial-focus required maxLength={kind === 'project' ? 128 : 200} value={name}
               onChange={event => setName(event.target.value)} />
           </label>}
           {intent === 'remove' && <p>只从项目列表中移除，目录、文件和会话历史都会保留。以后可重新添加此目录。</p>}
@@ -84,6 +85,7 @@ export function SidebarManagementDialog({
             <label className="check-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />确认永久删除此会话历史</label>
           </>}
         </fieldset>
+        {!enabled && <p role="status">{unavailableReason || "当前操作暂不可用，请等待连接恢复后重试。"}</p>}
         {guardError && <p className="error" role="alert">{guardError}</p>}
         <ExtensionStatus api={api} action={action} recoveryLabel="查询原管理操作回执" />
         <div className="inline">

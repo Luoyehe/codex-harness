@@ -7,7 +7,7 @@ import { GeneratedMedia, GENERATED_MEDIA_BYTES, GENERATED_MEDIA_CHUNK } from '..
 import { readMediaHistory } from '../../src/runtime/media-history.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import type { NativeRpc } from '../../src/runtime/native.js';
-import { object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
+import { DeliveryError, object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { options } from '../../src/runtime/validation.js';
 import { nativeThread } from './fixture-values.js';
 
@@ -83,7 +83,7 @@ test('multi-image turn and canonical timeline are read one native item per frame
   const native = vi.fn(async (method: string, params: JsonValue): Promise<JsonValue> => {
     const p = object(params);
     if (method === 'thread/turns/list') { expect(p.itemsView).toBe('notLoaded'); return { data: [{ id: 'turn', items: [], itemsView: 'notLoaded', status: 'completed' }], nextCursor: 'next-turn', backwardsCursor: 'back-turn' }; }
-    expect(p.limit).toBe(1); const n = p.cursor == null ? 0 : Number(p.cursor), nextCursor = n + 1 < rows.length ? String(n + 1) : null;
+    if (Number(p.limit) > 1) throw new DeliveryError('history_frame_capacity', 'large media fixture'); const n = p.cursor == null ? 0 : Number(p.cursor), nextCursor = n + 1 < rows.length ? String(n + 1) : null;
     if (method === 'thread/items/list') return { data: [{ turnId: 'turn', item: rows[n]! }], nextCursor, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [{ type: 'item', position: rows.length - 1 - n, turnId: 'turn', item: rows[rows.length - 1 - n]! }], nextCursor, activeRealtimeSessionAtPageStart: n === rows.length - 1 ? 'voice-at-start' : null };
     throw new Error('Unexpected native method');
@@ -93,6 +93,24 @@ test('multi-image turn and canonical timeline are read one native item per frame
   const timeline = object(await readMediaHistory(native, state.media, 'thread/timeline/list', { threadId: 'thread', limit: 25 }));
   expect(timeline).toMatchObject({ nextCursor: null, activeRealtimeSessionAtPageStart: 'voice-at-start', data: [expect.objectContaining({ position: 0 }), expect.objectContaining({ position: 1 }), expect.objectContaining({ position: 2 })] });
   expect(JSON.stringify({ turns, timeline }).length).toBeLessThan(4000);
+});
+test('large text pages preserve the first unconsumed cursor and its opening voice state', async () => {
+  const state = setup();
+  const rows = Array.from({ length: 26 }, (_, position) => ({
+    position, type: 'item', turnId: 'story', item: { id: 'm' + position, type: 'agentMessage', text: 'x'.repeat(370000) },
+  }));
+  const native = async (_method: string, params: JsonValue): Promise<JsonValue> => {
+    const p = object(params), end = p.cursor === undefined ? rows.length : Number(p.cursor);
+    const start = Math.max(0, end - Number(p.limit));
+    return { data: rows.slice(start, end), nextCursor: start ? String(start) : null, activeRealtimeSessionAtPageStart: 'voice-' + start };
+  };
+  const read = async (cursor?: JsonValue) => object(await readMediaHistory(native, state.media, 'thread/timeline/list',
+    { threadId: 'story', limit: 30, ...(cursor === undefined ? {} : { cursor }) }));
+  const first = await read();
+  expect(first).toMatchObject({ nextCursor: '14', activeRealtimeSessionAtPageStart: 'voice-14' });
+  const second = await read(first.nextCursor);
+  expect(second).toMatchObject({ nextCursor: null, activeRealtimeSessionAtPageStart: 'voice-0' });
+  expect([...(second.data as JsonValue[]), ...(first.data as JsonValue[])].map(row => object(row).position)).toEqual(rows.map(row => row.position));
 });
 test('unbounded/repeated item cursors and mismatched identities cannot declare complete history', async () => {
   const state = setup(), turn = { data: [{ id: 'turn', items: [], itemsView: 'notLoaded' }], nextCursor: null };
@@ -134,4 +152,16 @@ test('nullable non-turn effort and summary inherit defaults without constructing
   expect(options({ effort: null, summary: null }, false)).toEqual({});
   expect(options({ effort: null, summary: null }, true)).toEqual({ effort: null, summary: null });
   expect(options({ effort: 'high', summary: 'none' }, false)).toEqual({ config: { model_reasoning_effort: 'high', model_reasoning_summary: 'none' } });
+});
+
+test('a normal 24-item turn needs one metadata RPC and one item batch', async () => {
+  const state = setup(), methods: string[] = [], rows = Array.from({ length: 24 }, (_, index) => ({ turnId: 't', item: { id: 'msg-' + index, type: 'agentMessage', text: 'fixture ' + index } }));
+  const page = object(await readMediaHistory(async (method, params) => {
+    methods.push(method);
+    if (method === 'thread/turns/list') return { data: [{ id: 't', itemsView: 'notLoaded', items: [] }], nextCursor: null };
+    expect(method).toBe('thread/items/list'); expect(object(params).limit).toBe(24);
+    return { data: rows, nextCursor: null };
+  }, state.media, 'thread/turns/list', { threadId: 'thread', itemsView: 'full', limit: 1 }));
+  expect(methods).toEqual(['thread/turns/list', 'thread/items/list']);
+  expect(object((page.data as JsonValue[])[0]).items).toHaveLength(24);
 });

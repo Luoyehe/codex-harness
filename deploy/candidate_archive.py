@@ -43,13 +43,42 @@ def ordinary_directory(path: Path) -> tuple[int, int]:
     return info.st_dev, info.st_ino
 
 
-def unmounted(path: Path, *, retained_images: bool = False) -> None:
-    # Decode mountinfo's escaped bytes before comparing complete path components.
+def checked_mounts(path: Path, allowed: tuple[str, ...]) -> list[Path]:
+    mounts = []
     for line in Path("/proc/self/mountinfo").read_text().splitlines():
         fields = line.split()
-        require(len(fields) >= 6, "Cannot inspect mount table", "stop_unknown")
-        mounted = Path(re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), fields[4]))
-        require(mounted != path and not mounted.is_relative_to(path), "Candidate still has mounted filesystems", "candidate_not_complete")
+        require(len(fields) >= 10 and "-" in fields, "Cannot inspect mount table", "stop_unknown")
+        def unescape(value):
+            return re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), value)
+        mount = Path(unescape(fields[4]))
+        if mount != path and not mount.is_relative_to(path):
+            continue
+        require(mount.parent == path and mount.name in allowed and mount not in mounts,
+                "Candidate has an unexpected mount; retained for inspection", "candidate_not_complete")
+        separator = fields.index("-")
+        require(fields[3] == "/" and fields[separator + 1] == "ext4" and
+                {"nosuid", "nodev"} <= set(fields[5].split(",")) and re.fullmatch(r"/dev/loop[0-9]+", fields[separator + 2]),
+                "Candidate mount is not its managed loop filesystem", "candidate_not_complete")
+        image = mount.with_suffix(".ext4")
+        info = image.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 1,
+                "Unsafe candidate loop image", "integrity")
+        backing = Path("/sys/dev/block") / fields[2] / "loop/backing_file"
+        require(Path(backing.read_text().rstrip("\n")) == image and mount.stat().st_dev == os.makedev(*map(int, fields[2].split(":"))),
+                "Candidate loop device backing changed", "candidate_not_complete")
+        mounts.append(mount)
+    return mounts
+
+
+def unmounted(path: Path, *, retained_images: bool = False, allow_cleanup: bool = False, inspect_only: bool = False, dns=False) -> None:
+    mounts = checked_mounts(path, (("work",) if dns else ("fetch", "build")) if retained_images else ())
+    if mounts and not inspect_only:
+        require(allow_cleanup, "Candidate retains its mounted build image", "candidate_not_complete")
+        for mount in mounts:
+            require(mount in checked_mounts(path, (mount.name,) + tuple(m.name for m in mounts if m != mount)),
+                    "Candidate mount changed", "stop_unknown")
+            run(["/usr/bin/umount", "--", str(mount)])
+        require(not checked_mounts(path, ()), "Candidate unmount did not complete", "stop_unknown")
     require(retained_images or not any(present(path / name) for name in ("fetch.ext4", "build.ext4")),
             "Candidate retains an image; inspect its interrupted cleanup", "candidate_not_complete")
 
@@ -69,7 +98,7 @@ def stopped_units(manager, candidate: str) -> None:
                 require(events.get("populated") == "0", "Candidate cgroup is populated", "stop_unknown")
 
 
-def inspect_candidate(manager, candidate: str, *, path: Path | None = None, allow_failed: bool = False) -> dict:
+def inspect_candidate(manager, candidate: str, *, path: Path | None = None, allow_failed: bool = False, cleanup: bool = False) -> dict:
     candidate = identity(candidate)
     path = path or manager.layout.work / ("candidate-" + candidate)
     inode = ordinary_directory(path)
@@ -83,8 +112,11 @@ def inspect_candidate(manager, candidate: str, *, path: Path | None = None, allo
         manager.verify_release(release)
     else:
         release = None
-    unmounted(path, retained_images=allow_failed and not complete)
     stopped_units(manager, candidate)
+    if allow_failed and (not complete or any(present(path / name) for name in ("fetch.ext4", "build.ext4"))):
+        unmounted(path, retained_images=True, allow_cleanup=cleanup, inspect_only=not cleanup)
+    else:
+        unmounted(path)
     return {"id": candidate, "release": release, "preparedDigest": digest(prepared), "inode": list(inode)}
 
 
@@ -94,8 +126,8 @@ def list_candidates(manager) -> dict:
     for path in sorted(manager.layout.work.glob("candidate-*")):
         candidate = path.name.removeprefix("candidate-")
         try:
-            item = inspect_candidate(manager, candidate)
-            rows.append({"id": candidate, "release": item["release"], "eligible": True})
+            item = inspect_candidate(manager, candidate, allow_failed=True)
+            rows.append({"id": candidate, "release": item["release"], "eligible": True, "failed": item["release"] is None or any(present(path / n) for n in ("fetch.ext4", "build.ext4"))})
         except (DeployError, OSError, ValueError) as exc:
             rows.append({"id": candidate, "eligible": False,
                          "reason": str(exc) if isinstance(exc, DeployError) else "Candidate evidence could not be verified"})
@@ -114,12 +146,15 @@ def list_candidates(manager) -> dict:
                 existing["resume"] = True
                 continue
             try:
-                check = inspect_candidate(manager, candidate, path=root / ("candidate-" + candidate), allow_failed=saved["release"] is None)
+                archived_path = root / ("candidate-" + candidate)
+                failed = saved["release"] is None or any(present(archived_path / n) for n in ("fetch.ext4", "build.ext4"))
+                check = inspect_candidate(manager, candidate, path=archived_path, allow_failed=failed)
                 require(all(saved[key] == check[key] for key in ("id", "release", "preparedDigest", "inode")), "Archive binding changed", "integrity")
-                rows.append({"id": candidate, "release": check["release"], "eligible": True, "resume": True})
+                rows.append({"id": candidate, "release": check["release"], "eligible": True, "resume": True, "failed": failed})
             except (DeployError, OSError, ValueError):
                 rows.append({"id": candidate, "eligible": False, "resume": True, "reason": "Retained archive requires inspection"})
-    return {"candidates": rows, "count": count, "limit": 8, "archiveDirectory": str(root)}
+    from .dns_archive import list_dns
+    return {"dnsBuilds": list_dns(manager), "candidates": rows, "count": count, "limit": 8, "archiveDirectory": str(root)}
 
 
 def require_idle(manager) -> None:
@@ -222,7 +257,7 @@ def archive_locked(manager, candidate: str, *, allow_failed: bool = False) -> di
         manager.system.stop(units)
         manager.system.stop(units)
         manager.system.no_instance_processes(layout, manager.config)
-        check = inspect_candidate(manager, candidate, allow_failed=allow_failed)
+        check = inspect_candidate(manager, candidate, allow_failed=allow_failed, cleanup=allow_failed)
         require(all(saved[key] == check[key] for key in ("id", "release", "preparedDigest", "inode")), "Candidate changed during maintenance", "integrity")
         require(not present(target) and root.stat().st_dev == source.stat().st_dev, "Archive destination changed", "collision")
         saved["phase"] = "moving"

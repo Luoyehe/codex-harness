@@ -1,11 +1,14 @@
-import { isArchivedReceipt } from '../lib/operations';
+import { downloadBlob } from '../lib/download';
 import { useEffect, useRef, useState } from 'react';
 import { Api, RpcError } from '../lib/api';
-import { reconcileOperation } from '../lib/operations';
+import { isArchivedReceipt, listOperationHistory, reconcileOperation } from '../lib/operations';
 import {
   discardFileDraft,
   editFileDraft,
   fileDraftKey,
+  fileDraftStorageKey,
+  flushFileDraft,
+  queueFileDraft,
   fileDraftProblem,
   newFileDraft,
   persistFileDraft,
@@ -54,6 +57,7 @@ export function FileEditor({
   const [draft, setDraft] = useState<FileDraft | undefined>(
     initial.draft ?? (creating ? newFileDraft(projectId, path, null, '') : undefined),
   );
+  const [damaged, setDamaged] = useState(Boolean(initial.error));
   const current = useRef(draft);
   current.current = draft;
   const [observed, setObserved] = useState(remote),
@@ -68,14 +72,28 @@ export function FileEditor({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      flushFileDraft(projectId, path);
     };
-  }, []);
+  }, [projectId, path]);
+  useEffect(() => {
+    if (!damaged) return;
+    const cleared = (event: Event) => {
+      if ((event as CustomEvent).detail !== fileDraftStorageKey(projectId, path)) return;
+      try {
+        const recovered = readFileDraft(projectId, path);
+        if (recovered) { current.current = recovered; setDraft(recovered); }
+        setDamaged(false); setError('');
+      } catch (e) { setError(message(e)); }
+    };
+    window.addEventListener('harness-file-draft-removed', cleared);
+    return () => window.removeEventListener('harness-file-draft-removed', cleared);
+  }, [projectId, path, damaged]);
   useEffect(() => {
     if (!remote) return;
     setObserved(remote);
     setCompared(false);
     setSelection(undefined);
-    if (typeof remote.text !== 'string' || !remote.revision || initial.error) return;
+    if (typeof remote.text !== 'string' || !remote.revision || damaged) return;
     const previous = current.current;
     if (
       !previous ||
@@ -85,22 +103,28 @@ export function FileEditor({
       current.current = next;
       setDraft(next);
     }
-  }, [remote, projectId, path, initial.error]);
-  const publish = (next: FileDraft) => {
+  }, [remote, projectId, path, damaged]);
+  const publish = (next: FileDraft, immediate = false) => {
     if (!next.pending && next.baseRevision !== null && next.text === next.baseText) cache.delete(key);
     else cache.set(key, next);
     current.current = next;
-    setDraft(next);
-    try {
-      persistFileDraft(next);
-      window.dispatchEvent(new Event('harness-file-drafts'));
-      setStorageError('');
-    } catch (e) {
-      setStorageError(
-        `文件草稿未能持久保存：${message(e)} 当前输入仍在此页面，请保留页面并复制备份。`,
-      );
-    }
+    if (mounted.current) setDraft(next);
+    queueFileDraft(next, e => {
+      if (mounted.current) setStorageError(e ? `文件草稿未能持久保存：${message(e)} 请保留页面或下载备份。` : '');
+    });
+    if (immediate) flushFileDraft(projectId, path);
   };
+  useEffect(() => {
+    const unlock = (event: Event) => {
+      const fact = (event as CustomEvent<{ key: string; operationId: string }>).detail;
+      const latest = current.current;
+      if (fact?.key === key && latest?.pending?.operationId === fact.operationId) {
+        publish({ ...latest, pending: undefined }, true);
+      }
+    };
+    window.addEventListener('harness-file-not-sent', unlock);
+    return () => window.removeEventListener('harness-file-not-sent', unlock);
+  }, [key, cache]);
   const clear = (snapshot: FileSnapshot) => {
     discardFileDraft(projectId, path);
     cache.delete(key);
@@ -145,7 +169,7 @@ export function FileEditor({
       !enabled ||
       original.pending ||
       (original.baseRevision !== null && original.text === original.baseText) ||
-      initial.error ||
+      damaged ||
       fileDraftProblem(original) ||
       (observed && original.baseRevision !== observed.revision)
     )
@@ -188,14 +212,17 @@ export function FileEditor({
       await request.result;
       if (mounted.current) await verifyApplied(operationId);
     } catch (e) {
-      if (!mounted.current) return;
-      if (
-        e instanceof RpcError &&
-        e.delivery === 'not_sent' &&
-        current.current?.pending?.operationId === operationId
-      )
-        publish({ ...current.current, pending: undefined });
-      setError(message(e));
+      if (e instanceof RpcError && e.delivery === 'not_sent') {
+        let latest: FileDraft | undefined;
+        try { latest = readFileDraft(projectId, path); }
+        catch { /* Storage can be revoked after the request leaves this editor. */ }
+        latest ??= cache.get(key) ?? current.current;
+        if (latest?.pending?.operationId === operationId) {
+          publish({ ...latest, pending: undefined }, true);
+          window.dispatchEvent(new CustomEvent('harness-file-not-sent', { detail: { key, operationId } }));
+        }
+      }
+      if (mounted.current) setError(message(e));
     } finally {
       running.current = false;
       if (mounted.current) setBusy(false);
@@ -218,10 +245,17 @@ export function FileEditor({
           !isArchivedReceipt(receipt))
       )
         throw new Error('保存回执身份不匹配。');
-      await reconcileOperation(operationId, receipt);
+      const local = (receipt.state === 'not_received' || isArchivedReceipt(receipt))
+        ? await listOperationHistory() : undefined;
+      const localNotSent = local?.operations.some(row => row.id === operationId && row.method === 'workspace/write' &&
+        row.projectId === projectId && row.resourceId === path && row.state === 'not_sent') ||
+        local?.history.some(row => row.id === operationId && row.method === 'workspace/write' &&
+          row.projectId === projectId && row.state === 'not_sent');
+      // The draft binds this exact operation ID to its file. Display history omits paths.
+      if (!localNotSent) await reconcileOperation(operationId, receipt);
       if (!mounted.current) return;
       if (receipt.state === 'accepted') await verifyApplied(operationId);
-      else if (receipt.state === 'not_sent') {
+      else if (receipt.state === 'not_sent' || localNotSent) {
         if (current.current?.pending?.operationId === operationId)
           publish({ ...current.current, pending: undefined });
         setNotice('已确认原保存没有发送。草稿仍保留，可重新核对文件后保存。');
@@ -263,6 +297,7 @@ export function FileEditor({
       {(error || storageError || readError) && (
         <p className="error" role="alert">
           {error || storageError || readError}
+          {storageError && draft && <button type="button" onClick={() => downloadBlob(new Blob([draft.text], { type: 'text/plain;charset=utf-8' }), path)}>下载当前文本备份</button>}
         </p>
       )}
       {loading && (
@@ -346,7 +381,7 @@ export function FileEditor({
             spellCheck={false}
             rows={18}
             maxLength={524288}
-            disabled={Boolean(initial.error) || full}
+            disabled={damaged || full}
             value={draft.text}
             onChange={(e) => {
               setDiscard(false);
@@ -406,7 +441,7 @@ export function FileEditor({
             busy ||
             conflict ||
             Boolean(draft?.pending) ||
-            Boolean(initial.error) ||
+            damaged ||
             Boolean(textError) ||
             full
           }

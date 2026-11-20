@@ -34,7 +34,7 @@ export class DeviceLogin {
       } }));
       if (result.type !== 'chatgptDeviceCode') throw new DeliveryError('invalid_native_response', 'Device login returned a different authentication method', 'unknown');
       const loginId = string(result.loginId, 'loginId', 256), userCode = string(result.userCode, 'userCode', 1024), verificationUrl = string(result.verificationUrl, 'verificationUrl', 4096);
-      this.host.redactor.addSecret(userCode); this.host.redactor.addSecret(verificationUrl);
+      this.host.redactor.addSecret(userCode, login.expiresAt); this.host.redactor.addSecret(verificationUrl, login.expiresAt);
       let url: URL; try { url = new URL(verificationUrl); } catch { throw new DeliveryError('invalid_native_response', 'Device verification URL is invalid', 'unknown'); }
       if (url.protocol !== 'https:' || url.username || url.password) throw new DeliveryError('invalid_native_response', 'Device verification requires HTTPS without embedded credentials', 'unknown');
       login.loginId = loginId;

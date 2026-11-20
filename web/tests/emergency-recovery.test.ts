@@ -2,7 +2,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
 import { captureEmergencyOperations, closeEmergencyOperations } from '../lib/emergency-recovery';
-import { createOperation, listOperations, updateOperation, type Operation } from '../lib/operations';
+import { acknowledgeOperation, createOperation, listOperations, readRecoveryAdmission, stopUnknownRecovery, updateOperation, type Operation } from '../lib/operations';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 
 const proof = (id: string = crypto.randomUUID()) => ({ operationId: id, method: 'system/recover', state: 'accepted',
@@ -15,6 +15,7 @@ it('closes only captured proven unknown reminders, keeping drafts, server facts,
   const old = await createOperation('turn/start', { threadId: 'thread', draftKey: 'thread', draftRevision: draft.revision });
   await updateOperation(old.id, 'unknown');
   const recovery = await createOperation('system/recover', {});
+  await updateOperation(recovery.id, 'accepted', undefined, undefined, proof(recovery.id).result);
   const captured = captureEmergencyOperations(await listOperations());
   const later = await createOperation('mcp/oauth', {});
   const server = { operationId: old.id, method: old.method, state: 'unknown', error: { code: 'unknown' } };
@@ -105,4 +106,57 @@ it('copies and bounds the explicit snapshot, and leaves every record on prior ca
   expect(fetch).not.toHaveBeenCalled();
   expect(await closeEmergencyOperations(api, captured, accepted.operationId, accepted)).toMatchObject({ closedIds: [], retainedIds: [row.id], interrupted: true });
   expect((await listOperations())[0]?.state).toBe('pending');
+});
+
+it('retires a correctly archived captured member only with its own durable local closure', async () => {
+  const api = new Api(), closed = await createOperation('mcp/oauth', {}), active = await createOperation('turn/start', { threadId: 'open' });
+  const invalid = await createOperation('thread/name/set', { threadId: 'former' });
+  const parent = await createOperation('system/recover', {});
+  const success = proof(parent.id); await updateOperation(parent.id, 'accepted', undefined, undefined, success.result);
+  for (const row of [closed, invalid]) {
+    await updateOperation(row.id, 'unknown');
+    await stopUnknownRecovery(row.id, { operationId: row.id, method: row.method, state: 'unknown' });
+  }
+  const calls: string[] = [];
+  vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+    const query = JSON.parse(init.body); expect(query.method).toBe('operation/read');
+    const id = query.params.operationId; calls.push(id);
+    return response({ operationId: id, scope: 'operation:' + (id === invalid.id ? closed.id : id),
+      method: 'operation/archived', state: 'unknown', error: { code: 'operation_archived' } });
+  }));
+  const result = await closeEmergencyOperations(api, parent.recoveryOperations!, parent.id, success);
+  expect(result.closedIds).toEqual([closed.id]);
+  expect(new Set(result.retainedIds)).toEqual(new Set([active.id, invalid.id]));
+  expect(result.errors).toEqual(expect.arrayContaining([
+    { id: active.id, reason: expect.stringContaining('已归档') }, { id: invalid.id, reason: expect.stringContaining('不符') }]));
+  expect(new Set(calls)).toEqual(new Set([closed.id, active.id, invalid.id]));
+  const rows = await listOperations();
+  expect(rows.find(row => row.id === active.id)?.state).toBe('pending');
+  expect(new Set(rows.find(row => row.id === parent.id)?.recoveryOperations?.map(row => row.id))).toEqual(new Set([active.id, invalid.id]));
+});
+
+it('serializes two confirmations through acceptance, local closure, and a fresh explicit restart', async () => {
+  const first = new Api(), second = new Api(); first.csrf = second.csrf = 'fixture';
+  const member = await createOperation('turn/start', { threadId: 'held' });
+  const [left, right] = await Promise.all([readRecoveryAdmission(), readRecoveryAdmission()]);
+  expect(left).toEqual(right); expect(right.prior).toBeUndefined();
+  const fetch = vi.fn(async () => response(proof().result)); vi.stubGlobal('fetch', fetch);
+  const args = { confirmStop: true };
+  const accepted = first.beginMutation('system/recover', args, undefined, 'native', left.lastId);
+  await accepted.result;
+  expect((await readRecoveryAdmission()).prior?.recoveryOperations).toEqual([{ id: member.id, method: member.method }]);
+  const assertStale = async () => {
+    const attempt = second.beginMutation('system/recover', args, undefined, 'native', right.lastId);
+    await expect(attempt.result).rejects.toMatchObject({ code: 'recovery_admission_changed', delivery: 'not_sent' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect((await listOperations()).some(row => row.id === attempt.operationId)).toBe(false);
+  };
+  await assertStale();
+  await updateOperation(member.id, 'unknown');
+  await stopUnknownRecovery(member.id, { operationId: member.id, method: member.method, state: 'unknown' }, accepted.operationId);
+  await acknowledgeOperation(accepted.operationId);
+  await assertStale();
+  const refreshed = await readRecoveryAdmission(); expect(refreshed).toEqual({ lastId: accepted.operationId });
+  await second.beginMutation('system/recover', args, undefined, 'native', refreshed.lastId).result;
+  expect(fetch).toHaveBeenCalledTimes(2);
 });

@@ -28,3 +28,10 @@ test('managed multi-provider variables are masked as bare values, assignments an
   expect(empty.text(`HARNESS_PROVIDER_KEY_DEFAULT=unknown-one; "${key}": "unknown-two"`)).not.toMatch(/unknown-one|unknown-two/);
   expect(empty.text('HARNESS_PROVIDER_KEY_DISPLAY=visible-label')).toContain('visible-label');
 });
+
+test('expired temporary credentials release space while configured and newly registered credentials stay masked', () => {
+  const redactor = new DiagnosticRedactor({ API_KEY: 'permanent-fixture-key', TOKEN: '1' });
+  for (let i = 0; i < 320; i++) redactor.addSecret('temporary-fixture-' + i, Date.now() - 1);
+  redactor.addSecret('latest-fixture-key');
+  expect(redactor.text('permanent-fixture-key latest-fixture-key 100 1')).toBe('[redacted] [redacted] 100 [redacted]');
+});

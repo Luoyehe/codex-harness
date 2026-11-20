@@ -102,3 +102,19 @@ it('updates to a closed unknown history row without exposing queries or recovery
   await act(async () => { await updateOperation(record.id, 'accepted'); });
   await waitFor(() => expect(screen.getByText(/结果未知 · 已停止本地恢复/)).toBeTruthy());
 });
+
+it('renders real journal entries for Git, worktree and MCP methods plus the original name of an unknown method', async () => {
+  const labels = [
+    ['workspace/git/stage', '暂存工作区文件'],
+    ['workspace/worktree/retire', '退役工作树'],
+    ['mcp/tool/call', '调用 MCP 工具'],
+    ['fixture/future', 'fixture/future'],
+  ] as const;
+  for (const [method] of labels) {
+    const row = await createOperation(method, { projectId: 'fixture' });
+    await updateOperation(row.id, 'not_sent'); await acknowledgeOperation(row.id);
+  }
+  const api = { call: vi.fn(), mutate: vi.fn() } as unknown as Api;
+  render(<OperationHistory api={api} runtimeReady recoveryEpoch="one" openThread={vi.fn()} />);
+  for (const [method, label] of labels) expect(await screen.findByText(label)).toHaveProperty('title', method);
+});

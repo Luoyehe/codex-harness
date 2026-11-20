@@ -40,7 +40,7 @@ function RenameForm({ api, threadId, name: initial, onClose, onSaved }: Props) {
           <label className="field">
             会话名称
             <input
-              autoFocus
+              data-initial-focus
               value={name}
               maxLength={200}
               onChange={(e) => setName(e.target.value)}

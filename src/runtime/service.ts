@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { NativeRpc, type NativeConfig, type NativeOptions } from './native.js';
 import { Attachments, type PreparedAttachments } from './attachments.js';
 import { GeneratedMedia } from './generated-media.js';
@@ -13,6 +14,8 @@ import { createProject, resolveProject } from './projects.js';
 import { Workflows, type WorkflowMutation } from './workflows.js';
 import { workflowMethods } from './workflow-methods.js';
 import { SessionSnapshots } from './session-snapshots.js';
+import { runWorkspace } from './workspace.js';
+import { RepositoryLeases } from './repository-leases.js';
 import { RuntimeWorkspace } from './workspace-service.js';
 import { devResource } from './dev-resources.js';
 import { previewProjectPlugin, readSkillResource, resolveProjectDirectory } from './skill-resources.js';
@@ -45,9 +48,16 @@ import { LiveThreadList } from './live-thread-list.js';
 import { convertThread } from './thread-conversion.js';
 import { historyHelper } from './thread-history-compatibility.js';
 
+function hasDevelopmentSystemConfig(config: NativeConfig): boolean {
+  const system = process.platform === 'win32'
+    ? path.join(config.env.ProgramData ?? config.env.PROGRAMDATA ?? process.env.ProgramData ?? 'C:\\ProgramData', 'OpenAI', 'Codex', 'config.toml')
+    : '/etc/codex/config.toml';
+  return config.dev === true && existsSync(system);
+}
+
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
 interface Prompt { promptId: string; epoch: string; method: string; params: JsonObject; threadId: string | null; turnId: string | null; requestId: string | number; bytes: number; answering: boolean }
-interface Terminal { terminalId: string; clientId: string; eventChannelId: string | undefined; generation: number; ended: boolean }
+interface Terminal { cwd: string; terminalId: string; clientId: string; eventChannelId: string | undefined; generation: number; ended: boolean }
 export class RuntimeService extends EventEmitter {
   readonly epoch = randomUUID();
   private activity = new ThreadActivity(
@@ -101,7 +111,9 @@ export class RuntimeService extends EventEmitter {
   private mcpOauth: McpOauth;
   private predictions: Predictions;
   private configurationPending = false;
+  private cliSwitchArgs: string[] = [];
   private workspace: RuntimeWorkspace;
+  private readonly repositories: RepositoryLeases;
   private sessions = new SessionSnapshots();
   private liveThreads = new LiveThreadList();
   private continuationChecks = new Map<string, Promise<void>>();
@@ -111,18 +123,30 @@ export class RuntimeService extends EventEmitter {
     this.executionMode = executionMode && Object.freeze({ ...executionMode });
     this.providers = new ManagedProviders(config.providerRegistry);
     this.generatedMedia = new GeneratedMedia({ native: (method, params) => this.native.call(method, params), revision: id => this.track(id).historyRevision ?? 0, closed: () => this.closed || !this.native.connected });
+    this.repositories = new RepositoryLeases(async cwd => {
+      const value = object(await runWorkspace(config, { path: cwd }, 'repository/identity', {}, { clientId: 'repository-admission' }, true));
+      if (typeof value.identity !== 'string' || !/^[a-f0-9]{64}$/.test(value.identity))
+        throw new DeliveryError('invalid_native_response', '仓库资源身份未由本机助手确认。');
+      return value.identity;
+    }, () => this.repositoryActivity());
     this.workspace = new RuntimeWorkspace({
       config, cwd: value => this.cwd(value), admit: () => this.admit(),
-      configure: (operation, context) => this.configurationMutation((_write, boundary) => operation(boundary), context),
+      repository: (cwd, work) => this.repositories.run(cwd, true, work),
       pending: change => { this.pendingStarts += change; this.emitState(); },
       uncertain: () => { this.unknown = true; },
     });
     this.historyStore = new UnifiedHistory({ native: (method, params) => this.readNative(method, params), state: id => this.track(id), observe: (value, revision) => this.observeThread(value, revision), checkTurns: turns => this.checkHistory(turns), closed: () => this.closed }); this.attachments = new Attachments(config.workerHome, config.attachmentGid); this.redactor = new DiagnosticRedactor(config.env);
-    this.workflows = new Workflows({ historyTraversal: context => { const reader = this.historyStore.isolated(context); return { read: params => this.activity.read(string(params.threadId, 'threadId'), () => reader.read(params)), close: () => reader.close() }; }, native: (method, params, options) => this.readNative(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), call: (method, params, context) => this.call(method, params, context), prepare: (ids, threadId) => this.attachments.prepare(ids, threadId), describeInput: (input, threadId) => this.attachments.describeInput(input, threadId), contextInput: (cwd, references, extra, context, threadId) => this.inputContext.prepare(cwd, references, extra, context, threadId), checkHistory: turns => this.checkHistory(turns), cwd: value => this.cwd(value) });
+    this.workflows = new Workflows({ queueCapacity: threadId => this.native instanceof NativeRpc && (this.config.launcher || this.config.dev) && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(threadId) ? historyHelper(this.config, { action: 'queue-capacity', threadId, attachmentRoot: this.attachments.root }) : Promise.resolve(undefined),
+      queueItem: (threadId, queuedSubmissionId) => historyHelper(this.config, { action: 'queue-item', threadId, queuedSubmissionId, attachmentRoot: this.attachments.root }), queueImage: (threadId, queuedSubmissionId, ordinal, marker) => historyHelper(this.config, { action: 'queue-image', threadId, queuedSubmissionId, ordinal,
+        expectedSha256: marker.sha256!, expectedBytes: marker.bytes!, attachmentRoot: this.attachments.root }), queueHandoffs: this.attachments, historyTraversal: context => { const reader = this.historyStore.isolated(context); return { read: params => this.activity.read(string(params.threadId, 'threadId'), () => reader.read(params)), close: () => reader.close() }; }, native: (method, params, options) => this.readNative(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), call: (method, params, context) => this.call(method, params, context), prepare: (ids, threadId) => this.attachments.prepare(ids, threadId), describeInput: (input, threadId, queuedId) => this.attachments.describeInput(input, threadId, queuedId), contextInput: (cwd, references, extra, context, threadId) => this.inputContext.prepare(cwd, references, extra, context, threadId), checkHistory: turns => this.checkHistory(turns), cwd: value => this.cwd(value) });
     this.extensions = new Extensions({ native: (method, params, options) => this.native.call(method, params, options), configure: (operation, context) => this.configurationMutation(operation, context), cwd: value => this.cwd(value), redactor: this.redactor, notify: (method, params) => this.emitEvent('notification', { method, params }),
       resource: async (cwd, action, params) => {
         const root = { path: this.cwd(cwd) }, context = { clientId: 'internal-resource' };
+        if (action === 'mcp/enabled-read') return this.config.launcher
+          ? object(await runWorkspace(config, root, action, {}, context, true))
+          : historyHelper(config, { action: 'mcp-enabled-read' });
         if (!this.config.launcher && this.config.dev) return devResource(root.path, action, params, [path.join(this.config.env.HOME ?? this.config.workerHome, '.agents', 'skills'), path.join(this.config.home, 'skills'), path.join(this.config.home, 'plugins', 'cache')]);
+        if (action === 'feedback/path' || action === 'project/trust-roots') return object(await runWorkspace(config, root, action, {}, context, true));
         if (action === 'resource/skill/read') return readSkillResource(this.config, root, params, context);
         if (action === 'resource/directory/resolve') return resolveProjectDirectory(this.config, root, string(params.path, 'relative directory', 4096, true), context);
         if (action === 'resource/plugin/preview') return previewProjectPlugin(this.config, root, string(params.path, 'plugin directory', 4096, true), context);
@@ -136,22 +160,27 @@ export class RuntimeService extends EventEmitter {
     this.processes = new Processes({ native: (method, params, options) => this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context), cwd: value => this.cwd(value), available: () => this.admit(), emit: (data, channel) => this.emitEvent('process', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.realtime = new Realtime({ native: (method, params, options) => this.readNative(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context), available: () => this.admit(), invalidate: threadId => this.invalidateHistory(threadId),
       requireLoaded: threadId => { this.admit(); if (this.track(threadId).subscribed !== true) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting voice'); },
-      emit: (data, channel) => this.emitEvent('realtime', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
+      redact: message => this.redactor.text(message), uncertain: id => { this.track(id).unknown = true; this.emitState(); }, emit: (data, channel) => this.emitEvent('realtime', data, channel), changed: () => this.emitState(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     const remoteHost = { native: (method: string, params: JsonValue, options?: NativeOptions) => this.native.call(method, params, options), configure: (operation: (write: (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>) => Promise<JsonValue>, context: CallContext) => this.configurationMutation(operation, context), redactor: this.redactor };
     this.environments = new Environments(remoteHost); this.remoteControl = new RemoteControl(remoteHost);
     this.threadTerminals = new ThreadTerminals({ native: (method, params, options) => this.native.call(method, params, options), mutate: (operation, context) => this.workflowMutation(operation, context) });
     this.guardian = new Guardian({ mutate: (operation, context) => this.workflowMutation(operation, context) });
-    this.cliTerminals = new CliTerminals({ bin: config.bin, native: (method, params, options) => method === 'account/read' ? this.readAccount() : this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context, true), available: () => this.admit(undefined, false, false, true), cwd: value => this.cwd(value), emit: (data, channel) => this.emitEvent('terminal', data, channel), changed: () => this.emitState(),
+    this.cliTerminals = new CliTerminals({ switchArgs: () => this.cliSwitchArgs, bin: config.bin, native: (method, params, options) => method === 'account/read' ? this.readAccount() : this.native.call(method, params, options), start: (operation, context) => this.metadataMutation(operation, context, true), available: () => this.admit(undefined, false, false, true), cwd: value => this.cwd(value), emit: (data, channel) => this.emitEvent('terminal', data, channel), changed: () => this.emitState(),
       settled: () => {
         // The CLI can edit native configuration and sessions independently. Its
         // confirmed exit requires a fresh epoch, not a permanent unknown state.
         if (this.closed || this.restarting) return;
         this.restarting = true; this.invalidateDefaults(); this.sessions.clear(); this.historyStore.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); this.emitState(); this.emit('restart-required');
       }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
-    this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: (operation, context) => this.configurationMutation(operation, context, false), available: () => this.admit(undefined, false, true), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
+    this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: async (operation, context) => {
+      if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Diagnostic execution requires an operation receipt');
+      this.admit(); this.pendingStarts++; this.emitState();
+      try { return await operation((method, body, opts = {}) => this.native.call(method, body, { ...opts, beforeWrite: () => { this.admit(); context.beforeWrite!(); opts.beforeWrite?.(); } })); }
+      finally { this.pendingStarts--; this.emitState(); }
+    }, available: () => this.admit(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
     this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, serverStatus: params => this.mcp.list(params), notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
-    this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: () => { this.unknown = true; this.emitState(); } });
+    this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: id => { this.track(id).unknown = true; this.emitState(); } });
     native.on('notification', (message: JsonObject) => {
       try { this.notification(message); }
       catch (error) {
@@ -182,28 +211,47 @@ export class RuntimeService extends EventEmitter {
     });
     this.gcTimer = setInterval(() => { try { this.attachments.gc(); } catch { this.emit('diagnostic', 'Attachment collection failed'); } }, 60 * 60 * 1000); this.gcTimer.unref();
   }
+  private static async nativeProcess(config: RuntimeConfig): Promise<NativeRpc> {
+    if (!config.launcher && hasDevelopmentSystemConfig(config)) {
+      const { args } = await historyHelper(config, { action: 'mcp-enabled-launch' });
+      if (!Array.isArray(args) || !args.every((arg): arg is string => typeof arg === 'string')) throw new DeliveryError('invalid_native_response', '原生 MCP 配置层无效。');
+      return new NativeRpc({ ...config, args: [...(config.args ?? ['app-server', '--listen', 'stdio://']), ...args] });
+    }
+    return new NativeRpc(config);
+  }
   static async create(config: RuntimeConfig): Promise<RuntimeService> {
     if (config.launcher?.user === 'root' && !config.executionPolicy) throw new DeliveryError('native_identity_mismatch', 'Root execution requires a managed execution policy');
     const executionMode = config.executionPolicy ? await readNativeExecutionMode(config, config.executionPolicy) : undefined;
-    const native = new NativeRpc(config); let service: RuntimeService | undefined;
-    try { service = new RuntimeService(config, native, executionMode); await native.initialize(); await service.reconcileAttachments(); service.emitState(); return service; } catch (error) { if (service) await service.close(); else await native.close(); throw error; }
+    const native = await RuntimeService.nativeProcess(config); let service: RuntimeService | undefined;
+    try { service = new RuntimeService(config, native, executionMode); await native.initialize();
+      if (config.launcher || hasDevelopmentSystemConfig(config)) {
+        const { layers } = object(await native.call('config/read', { includeLayers: true }));
+        const flags = Array.isArray(layers) ? layers.map(value => object(value)).find(layer => object(layer.name).type === 'sessionFlags') : undefined;
+        const entries = flags ? Object.entries(object(object(flags.config).mcp_servers ?? {})) : [];
+        const switches = entries.flatMap(([name, item]) => {
+          const server = object(item);
+          return Object.keys(server).length === 1 && typeof server.enabled === 'boolean' ? [JSON.stringify(name) + '={enabled=' + String(server.enabled) + '}'] : [];
+        });
+        if (switches.length) service.cliSwitchArgs = ['-c', 'mcp_servers={' + switches.join(',') + '}'];
+      }
+      await service.reconcileAttachments(); service.emitState(); return service; } catch (error) { if (service) await service.close(); else await native.close(); throw error; }
   }
   private async reconcileAttachments(): Promise<void> {
     if (!this.attachments.needsReconciliation) return;
     this.attachments.protectUnverifiedReferences();
-    try { this.attachments.reconcile(await historyHelper(this.config, { action: 'attachment-index', attachmentRoot: this.attachments.root })); }
+    try { this.attachments.reconcile(await historyHelper(this.config, { action: 'attachment-index', attachmentRoot: this.attachments.root, activeImageDigests: this.attachments.activeImageDigests })); }
     catch { this.emit('diagnostic', '附件历史核对未完成，已保留原引用与复制保护；不会根据文件年龄删除历史附件。'); }
   }
   private async finishAttachmentCopy(id: string | undefined, thread: JsonObject): Promise<void> {
     if (!id) return;
-    const threadId = string(thread.id, 'copy target thread', 256), inspected = await historyHelper(this.config, { action: 'attachment-inspect', mode: 'plaintext', threadId, path: string(thread.path, 'copy target history path'), attachmentRoot: this.attachments.root });
+    const threadId = string(thread.id, 'copy target thread', 256), inspected = await historyHelper(this.config, { action: 'attachment-inspect', mode: 'plaintext', threadId, path: string(thread.path, 'copy target history path'), attachmentRoot: this.attachments.root, activeImageDigests: this.attachments.activeImageDigests });
     if (!Array.isArray(inspected.paths) || inspected.paths.length > 128) throw new DeliveryError('attachment_storage', 'Invalid copied attachment reference proof', 'unknown');
-    this.attachments.finishCopy(id, threadId, inspected.paths.map(value => string(value, 'copied attachment path', 4096)));
+    this.attachments.finishCopy(id, threadId, inspected.paths.map(value => string(value, 'copied attachment path', 4096)), inspected.images);
   }
   status(): JsonValue {
     const activeThreads = new Set([...this.activity].filter(([, value]) => hasTurnActivity(value) || value.pending || value.unknown || value.goalActive || value.queued || value.checkingContinuation || value.continuationUnverified).map(([id]) => id));
     for (const id of this.realtime.activeThreads()) activeThreads.add(id);
-    return { epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, ...(this.executionMode ? { executionMode: { ...this.executionMode } } : {}), activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, predictionBudget: this.predictions.budget(), prompts: this.prompts.size };
+    return { repositoryScopes: 1, epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, ...(this.executionMode ? { executionMode: { ...this.executionMode } } : {}), activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, predictionBudget: this.predictions.budget(), prompts: this.prompts.size };
   }
   private emitEvent(type: RuntimeEvent['type'], data: JsonValue, eventChannelId?: string): void { jsonBytes({ type, data }, LIMITS.eventBytes); this.emit('event', { type, data, ...(eventChannelId ? { eventChannelId } : {}) } satisfies RuntimeEvent); }
   private ownerKey(clientId: string, eventChannelId?: string): string { return canonical([eventChannelId ?? null, clientId]); }
@@ -213,7 +261,7 @@ export class RuntimeService extends EventEmitter {
   }
   private admit(threadId?: string, ownPending = false, ownConfiguration = false, ownCli = false): void {
     if (!this.native.connected || this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime unavailable');
-    if (this.restarting) throw new DeliveryError('runtime_restarting', '终端已退出，正在自动刷新后台环境，请稍候。');
+    if (this.restarting) throw new DeliveryError('runtime_restarting', '正在自动刷新后台环境，请稍候。');
     if (this.unknown) throw new DeliveryError('activity_unknown', 'Runtime activity is unknown; recovery is required');
     if (!ownCli && this.cliTerminals?.active) throw new DeliveryError('native_cli_busy', '请先关闭 Codex CLI 终端；后台会自动刷新后恢复其他操作。');
     if (this.configurationPending && !ownConfiguration) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing');
@@ -225,6 +273,7 @@ export class RuntimeService extends EventEmitter {
     if (typeof thread.canAcceptDirectInput === 'boolean' || thread.canAcceptDirectInput === null) state.directInput = thread.canAcceptDirectInput;
     if ((Array.isArray(thread.turns) && thread.turns.length > 0) || (thread.status && typeof thread.status === 'object' && !Array.isArray(thread.status) && thread.status.type === 'active')) state.fresh = false;
     if (revision !== undefined && revision !== state.revision) return;
+    if (typeof thread.cwd === 'string') state.cwd = thread.cwd;
     this.sessions.thread(thread);
     if (thread.status && typeof thread.status === 'object' && !Array.isArray(thread.status)) state.status = String(thread.status.type);
     if (Array.isArray(thread.turns)) { const active = thread.turns.map(turn => object(turn)).find(turn => turn.status === 'inProgress' && turn.id !== state.lastTerminalTurn?.id); if (active) { const turnId = string(active.id, 'turn id'); if (state.turnId !== turnId) state.turnRevision = (state.turnRevision ?? 0) + 1; state.status = 'active'; state.turnId = turnId; } }
@@ -232,6 +281,7 @@ export class RuntimeService extends EventEmitter {
   }
   private notification(message: JsonObject): void {
     const method = string(message.method, 'notification method'); const params = object(message.params ?? {});
+    if (method === 'harness/historyPreviewOmitted') { this.invalidateHistory(string(params.threadId, 'threadId'), true); return; }
     this.liveThreads.notification(method, params);
     if (typeof params.threadId === 'string' && method.startsWith('thread/realtime/') && !['thread/realtime/outputAudio/delta', 'thread/realtime/sdp'].includes(method)) this.invalidateHistory(params.threadId);
     if (this.extensions.notification(method, params)) return;
@@ -281,7 +331,7 @@ export class RuntimeService extends EventEmitter {
       if (terminal) this.emitEvent('terminal', { ...params, terminalId: terminal.terminalId, clientId: terminal.clientId, type: 'output' }, terminal.eventChannelId);
       return;
     }
-    const diagnostic = ['error', 'warning', 'guardianWarning', 'configWarning', 'deprecationNotice', 'account/login/completed', 'mcpServer/startupStatus'].includes(method) || method.startsWith('modelProvider/authRecovery');
+    const diagnostic = ['error', 'warning', 'guardianWarning', 'configWarning', 'deprecationNotice', 'account/login/completed', 'mcpServer/startupStatus/updated'].includes(method) || method.startsWith('modelProvider/authRecovery');
     let projected = diagnostic ? this.redactor.value(params) : this.generatedMedia.project(params);
     if (method === 'turn/completed' && params.turn && typeof params.turn === 'object' && !Array.isArray(params.turn) && params.turn.error != null)
       projected = { ...object(projected), turn: { ...object(object(projected).turn), error: this.redactor.value(params.turn.error) } };
@@ -302,8 +352,27 @@ export class RuntimeService extends EventEmitter {
   }
   private publicPrompt(prompt: Prompt): JsonObject { return { promptId: prompt.promptId, epoch: prompt.epoch, method: prompt.method, params: prompt.params, threadId: prompt.threadId, turnId: prompt.turnId }; }
   private closePrompt(prompt: Prompt, reason: string): void { if (!this.prompts.delete(prompt.promptId)) return; this.promptBytes -= prompt.bytes; this.emitEvent('prompt-closed', { promptId: prompt.promptId, reason }); }
+  private repositoryActivity(): (string | undefined)[] {
+    this.admit();
+    const roots: (string | undefined)[] = [...this.processes.activeRoots(), ...[...this.terminals.values()].map(entry => entry.cwd)];
+    if (this.pendingStarts > this.workspace.pendingWrites || this.defaultsPending || this.cliTerminals.active) roots.push(undefined);
+    const threads = new Set([...this.mcp.subscriptionThreads(), ...this.realtime.activeThreads(), ...this.predictions.activeThreads()]);
+    for (const [id, state] of this.activity) {
+      if (state.unknown) { roots.push(undefined); continue; }
+      if (hasTurnActivity(state) || state.pending || state.goalActive || state.queued ||
+          state.checkingContinuation || state.continuationUnverified) threads.add(id);
+    }
+    for (const id of threads) roots.push(this.track(id).cwd);
+    return roots;
+  }
   async call(method: string, input: JsonValue, context: CallContext): Promise<JsonValue> {
-    const result = await this.dispatch(method, input, context), params = object(input);
+    const params = object(input), feature = featureMethod(method);
+    const cwd = typeof params.cwd === 'string' ? params.cwd :
+      typeof params.threadId === 'string' ? this.track(params.threadId).cwd : undefined;
+    const scoped = context.beforeWrite && feature?.activity !== 'repository' &&
+      (feature?.access === 'write' || ['conversation/start', 'thread/start', 'turn/start', 'thread/compact', 'terminal/open'].includes(method));
+    const result = scoped ? await this.repositories.run(cwd, false, () => this.dispatch(method, input, context)) :
+      await this.dispatch(method, input, context);
     return this.generatedMedia.project(result, typeof params.threadId === 'string' ? params.threadId : undefined);
   }
   private async readNative(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> {
@@ -391,8 +460,9 @@ export class RuntimeService extends EventEmitter {
         let accepted = false;
         let checkedRevision: number | undefined;
         let previousThread: JsonObject | undefined;
+        const mediaInput: JsonValue[] = [];
         try { const result = await this.workflowMutation({ method, params: p, schema: 'ThreadResumeParams', responseSchema: 'ThreadResumeResponse', threadId, mode: 'any', history: true,
-          ...(params.automatic === true || selection ? {
+          mediaInput,
             preflight: async (thread: JsonObject) => {
               previousThread = thread;
               if (selection && !['idle', 'notLoaded'].includes(String(object(thread.status).type)))
@@ -404,12 +474,14 @@ export class RuntimeService extends EventEmitter {
                   : '此会话有已保存的队列或持续目标，请确认后继续执行。');
                 checkedRevision = check.revision;
               }
+              // Even a cold, explicitly confirmed resume can immediately consume the
+              // persisted queue. Validate it before sending any resume frame.
+              mediaInput.push(...await this.workflows.queuedInputs(threadId));
             },
             beforeWrite: () => {
               if (params.automatic === true && checkedRevision !== (this.track(threadId).continuationRevision ?? 0)) throw new DeliveryError('continuation_changed', '会话待执行任务已变化，请重新读取。');
               if (selection && hasTurnActivity(this.track(threadId))) throw new DeliveryError('thread_busy', '会话已开始运行，请先结束任务。');
             },
-          } : {}),
           ...(selection ? { project: (value: JsonValue) => {
             const resumed = object(value), thread = object(resumed.thread);
             if (resumed.modelProvider !== selection.modelProvider || thread.modelProvider !== selection.modelProvider || resumed.model !== selection.model ||
@@ -467,7 +539,7 @@ export class RuntimeService extends EventEmitter {
     }
   }
   private async directMutation(method: string, params: JsonValue, context: CallContext, options: NativeOptions = {}): Promise<JsonValue> {
-    const guard = (): void => { if (this.restarting) throw new DeliveryError('runtime_restarting', '终端已退出，正在自动刷新后台环境，请稍候。'); if (this.cliTerminals.active) throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access'); if (this.configurationPending) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing'); };
+    const guard = (): void => { if (this.restarting) throw new DeliveryError('runtime_restarting', '正在自动刷新后台环境，请稍候。'); if (this.cliTerminals.active) throw new DeliveryError('native_cli_busy', 'The native CLI has exclusive execution access'); if (this.configurationPending) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing'); };
     guard(); this.pendingStarts++; this.emitState();
     try { return await this.native.call(method, params, { ...options, beforeWrite: () => { guard(); context.beforeWrite?.(); options.beforeWrite?.(); if (params && typeof params === 'object' && !Array.isArray(params) && typeof params.threadId === 'string') this.predictions.invalidate(params.threadId); } }); }
     catch (error) { if (!(error instanceof DeliveryError) || error.delivery === 'unknown') this.unknown = true; throw error; }
@@ -528,7 +600,7 @@ export class RuntimeService extends EventEmitter {
     // default API-key provider, even when the shared ChatGPT login exists.
     const generation = this.accountReadGeneration;
     const pending = (async () => {
-      const probe = new NativeRpc({ ...this.config, catalogProvider: provider, isolatedGroup: true });
+      const probe = await RuntimeService.nativeProcess({ ...this.config, catalogProvider: provider, isolatedGroup: true });
       this.catalogProcesses.add(probe); probe.on('fatal', () => {});
       let result: JsonValue;
       try {
@@ -564,6 +636,15 @@ export class RuntimeService extends EventEmitter {
     if (!text.length && prepared.input.length === 0 && !selected.input.length && !Object.keys(selected.additionalContext).length) throw new DeliveryError('invalid_params', 'Conversation requires text, attachments or context references');
     validateOfficial('ThreadStartParams', { cwd, ...this.threadOptions(params.options, false) });
     validateOfficial('TurnStartParams', { threadId: 'preflight', input: [{ type: 'text', text, text_elements: [] }, ...prepared.input, ...selected.input], additionalContext: selected.additionalContext, ...this.threadOptions(params.options, true) });
+    if (mediaModalities(prepared.input).length) {
+      const options = this.threadOptions(params.options, true);
+      const defaults = typeof options.model === 'string' && typeof object(params.options ?? {}).modelProvider === 'string' ? {} : object(await this.defaults({ cwd, ...(params.options === undefined ? {} : { options: params.options }) }));
+      const provider = object(params.options ?? {}).modelProvider ?? defaults.modelProvider;
+      await validateInputModalities((_method, query) => this.providers.list(
+        { ...object(query), ...(provider == null ? {} : { modelProvider: provider }) },
+        (method, body) => this.native.call(method, body), (id, chatgpt, hidden) => this.providerCatalog(id, chatgpt, hidden)),
+        selectedInputModel(options, defaults.model), prepared.input, item => this.attachments.toolReference(item));
+    }
     // The gateway owns the single durable dispatch boundary. This hook checks
     // the current worker owner and must run before each native mutation.
     const creation = object(await this.call('thread/start', { cwd, ...(params.options !== undefined ? { options: params.options } : {}) }, context));
@@ -575,7 +656,7 @@ export class RuntimeService extends EventEmitter {
       // Creation is a known side effect, but a definitive first-turn rejection is not unknown live work.
       if (!(error instanceof DeliveryError) || error.delivery === 'unknown') this.track(threadId).unknown = true;
       this.emitState();
-      throw new DeliveryError('conversation_start_incomplete', 'Thread was created, but the first turn was not accepted or confirmed. Inspect the partial thread before retrying.', 'unknown', { phase: 'first_turn', threadId, causeCode: error instanceof DeliveryError ? error.code : 'internal_error', causeDelivery: error instanceof DeliveryError ? error.delivery : 'unknown' });
+      throw new DeliveryError('conversation_start_incomplete', 'Thread was created, but the first turn was not accepted or confirmed. Inspect the partial thread before retrying.', error instanceof DeliveryError ? error.delivery : 'unknown', { phase: 'first_turn', threadId, threadCreated: true, ...(error instanceof DeliveryError && error.delivery === 'not_sent' ? { inputSent: false } : {}), causeCode: error instanceof DeliveryError ? error.code : 'internal_error', causeDelivery: error instanceof DeliveryError ? error.delivery : 'unknown' });
     }
   }
   private async page(method: string, schema: string, params: JsonObject, fixed: JsonObject, keys: string[]): Promise<JsonValue> {
@@ -591,24 +672,25 @@ export class RuntimeService extends EventEmitter {
     return this.activity.read(threadId, () => this.historyStore.read(params, context));
   }
   private checkHistory(turns: JsonValue[]): void { jsonBytes(turns, LIMITS.historyBytes); let items = 0; for (const turn of turns) { const value = object(turn); if (!Array.isArray(value.items) || value.itemsView !== 'full') throw new DeliveryError('invalid_native_response', 'History turn lacks full items'); items += value.items.length; } if (turns.length > 1000 || items > LIMITS.historyItems) throw new DeliveryError('capacity', 'History page exceeds item budget; narrow the requested page'); }
-  private admitHistory(threadId: string, context: CallContext): void {
+  private admitHistory(threadId: string, context: CallContext, allowWindow = false): void {
     if (this.track(threadId).fresh) return;
+    if (allowWindow && this.historyStore.windowReady(threadId, context) && !this.realtime.has(threadId) &&
+        ![...this.prompts.values()].some(p => p.threadId === threadId || p.threadId === null)) return;
     if (!this.historyStore.complete(threadId, context)) throw new DeliveryError('history_incomplete', 'Read the complete thread history on this connection before starting work');
   }
-  private invalidateHistory(threadId: string): void {
+  private invalidateHistory(threadId: string, previewOmitted = false): void {
     this.generatedMedia.invalidate(threadId);
     const removed = this.historyStore.invalidate(threadId), state = this.track(threadId); state.fresh = false; state.historyRevision = (state.historyRevision ?? 0) + 1;
-    if (removed) this.emitEvent('notification', { method: 'thread/history/invalidated', params: { threadId, historyVersion: state.historyRevision } });
+    if (removed || previewOmitted) this.emitEvent('notification', { method: 'thread/history/invalidated', params: { threadId, historyVersion: state.historyRevision, ...(previewOmitted ? { previewOmitted: true } : {}) } });
   }
   /** Reading a cold thread must not itself resume its persisted work. */
   private async continuationForLoad(threadId: string): Promise<{ required: boolean; revision: number }> {
     const state = this.track(threadId), revision = state.continuationRevision ?? 0;
     const goal = object(await this.native.call('thread/goal/get', { threadId })); validateOfficial('ThreadGoalGetResponse', goal);
     if (goal.goal !== null && object(goal.goal).threadId !== threadId) throw new DeliveryError('invalid_native_response', 'Continuation goal identity mismatch');
-    const queue = object(await this.native.call('thread/queue/list', { threadId, limit: 1 })); validateOfficial('ThreadQueueListResponse', queue);
-    if ((queue.data as JsonValue[]).length > 1) throw new DeliveryError('invalid_native_response', 'Continuation queue page exceeded requested limit');
+    const queued = await this.workflows.hasQueued(threadId);
     if (revision !== (state.continuationRevision ?? 0)) throw new DeliveryError('continuation_changed', '会话待执行任务已变化，请重新读取。');
-    return { required: goal.goal !== null && object(goal.goal).status === 'active' || (queue.data as JsonValue[]).length > 0 || queue.nextCursor != null, revision };
+    return { required: goal.goal !== null && object(goal.goal).status === 'active' || queued, revision };
   }
   private refreshContinuation(threadId: string): Promise<void> {
     const existing = this.continuationChecks.get(threadId); if (existing) return existing;
@@ -619,8 +701,7 @@ export class RuntimeService extends EventEmitter {
         const revision = state.continuationRevision ?? 0;
         const goal = object(await this.native.call('thread/goal/get', { threadId })); validateOfficial('ThreadGoalGetResponse', goal);
         if (goal.goal !== null && object(goal.goal).threadId !== threadId) throw new Error('Continuation goal identity mismatch');
-        const queue = object(await this.native.call('thread/queue/list', { threadId, limit: 1 })); validateOfficial('ThreadQueueListResponse', queue);
-        if ((queue.data as JsonValue[]).length > 1) throw new Error('Continuation queue page exceeded requested limit');
+        const queued = await this.workflows.hasQueued(threadId);
         const threadRevision = state.revision;
         const current = await this.native.call('thread/read', { threadId }); if (object(object(current).thread).id !== threadId) throw new Error('Continuation thread identity mismatch');
         if (revision !== (state.continuationRevision ?? 0)) { await new Promise(resolve => setTimeout(resolve, 25)); continue; }
@@ -628,7 +709,7 @@ export class RuntimeService extends EventEmitter {
         // A read may complete while a goal write is still awaiting its reply.
         // That write or a newer notification owns goal state until it settles.
         if (!state.goalPending) { state.goalActive = goal.goal !== null && object(goal.goal).status === 'active'; state.goalRevision = (state.goalRevision ?? 0) + 1; }
-        state.queued = (queue.data as JsonValue[]).length > 0 || queue.nextCursor != null; state.continuationUnverified = false; return;
+        state.queued = queued; state.continuationUnverified = false; return;
       }
       throw new Error('Continuation changed throughout bounded state checks');
     }).catch(error => { state.continuationUnverified = true; throw new DeliveryError('continuation_unverified', '会话状态暂未核对完成；刷新会话或再次操作时会重新核对，确认前不会开始新任务。'); })
@@ -656,7 +737,7 @@ export class RuntimeService extends EventEmitter {
   }
   private assertIdle(own = false): void {
     this.admit(undefined, false, own);
-    if (this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending ||
+    if (this.repositories.writing || this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending ||
         this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length ||
         [...this.activity.values()].some(state => hasTurnActivity(state) || state.pending || state.unknown ||
           state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified)) {
@@ -670,10 +751,36 @@ export class RuntimeService extends EventEmitter {
     try {
       const beforeWrite = (): void => { idle(true); context.beforeWrite!(); dispatched = true; };
       const result = await operation(async (method, params, options = {}) => {
-        const value = await this.native.call(method, params, { ...options, beforeWrite: () => { beforeWrite(); options.beforeWrite?.(); } });
+        const boundary = () => { beforeWrite(); options.beforeWrite?.(); };
+        let value: JsonValue;
+        if (method === 'harness/mcp/enabled-override') {
+          const { cwd, ...change } = object(params);
+          value = this.config.launcher
+            ? await runWorkspace(this.config, { path: this.cwd(cwd) }, 'mcp/enabled-override', change, { ...context, beforeWrite: boundary }, true)
+            : await historyHelper(this.config, { action: 'mcp-enabled-override', ...change }, true, boundary);
+          acknowledged = true;
+          const probe = await RuntimeService.nativeProcess({ ...this.config, isolatedGroup: true });
+          this.catalogProcesses.add(probe);
+          try {
+            await probe.initialize();
+            const next = object(await probe.call('config/read', { cwd: this.cwd(cwd) }));
+            const server = object(object(object(next.config).mcp_servers)[string(change.name, 'server name')]);
+            value = { ...object(value), effective: server.enabled !== false };
+          } finally {
+            await probe.close();
+            this.catalogProcesses.delete(probe);
+          }
+        } else value = await this.native.call(method, params, { ...options, beforeWrite: boundary });
         acknowledged = true; return value;
       }, beforeWrite);
-      if (invalidate) { this.invalidateDefaults(); this.sessions.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); } return result;
+      if (invalidate) { this.invalidateDefaults(); this.sessions.clear(); this.guardian.invalidateAll(); this.predictions.invalidate(); }
+      if (result && typeof result === 'object' && !Array.isArray(result) && result.restartRequired === true && this.listenerCount('restart-required') && !this.prompts.size) {
+        // The HTTP bridge flushes this receipt before restarting the epoch.
+        // A late native event must never terminate newly active work.
+        try { idle(true); this.restarting = true; this.emit('restart-required'); }
+        catch (error) { if (!(error instanceof DeliveryError) || !['activity_busy', 'activity_unknown', 'native_cli_busy'].includes(error.code)) throw error; }
+      }
+      return result;
     } catch (error) {
       // Local postprocessing cannot turn a positive native reply into proof
       // that no configuration operation ran, including in multi-write flows.
@@ -687,20 +794,23 @@ export class RuntimeService extends EventEmitter {
     const { threadId } = operation; this.admit(); const state = this.track(threadId);
     if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
     if (state.pending) throw new DeliveryError('thread_busy', 'Thread already has a pending mutation');
-    if (operation.history) this.admitHistory(threadId, context);
+    if (operation.history) this.admitHistory(threadId, context, ['thread/fork', 'thread/revert', 'thread/rollback', 'thread/resume'].includes(operation.method));
     const releaseListing = operation.newThread ? this.liveThreads.reserve() : undefined;
     state.pending = true; if (operation.newThread) this.pendingStarts++; this.emitState();
-    let accepted = false; let attachmentCopy: string | undefined; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; const wasFresh = state.fresh;
+    const queueWrite = operation.method === 'thread/queue/add' || operation.method === 'thread/queue/update' ? operation.method : undefined;
+    let queueImageWrite: string | undefined;
+    let accepted = false; let attachmentCopy: string | undefined; let writeRevision: number | undefined; let restoreSession: (() => void) | undefined; let mediaRevision: number | undefined; let queueRevision: number | undefined; const wasFresh = state.fresh;
     const goalMutation = operation.method === 'thread/goal/set' || operation.method === 'thread/goal/clear';
     let goalRevision: number | undefined; let modelRevision: number | undefined; let modelTurnId: string | null | undefined;
     const guard = (): void => {
       this.admit(); if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
       if (operation.method !== 'thread/realtime/start' && this.realtime.has(threadId)) throw new DeliveryError('voice_busy', 'Stop voice before changing this thread');
-      if (operation.history) this.admitHistory(threadId, context);
+      if (operation.history) this.admitHistory(threadId, context, ['thread/fork', 'thread/revert', 'thread/rollback', 'thread/resume'].includes(operation.method));
       if (operation.mode === 'idle' && (hasTurnActivity(state) || state.goalActive || state.checkingContinuation || state.continuationUnverified || (state.queued && operation.method !== 'thread/queue/start'))) throw new DeliveryError('thread_busy', 'Thread has active or continuing work');
       if (operation.mode === 'active' && (!hasTurnActivity(state) || (state.turnId !== null && state.turnId !== operation.expectedTurnId))) throw new DeliveryError('turn_changed', 'The selected turn is no longer active');
       if (operation.directInput && state.directInput === false) throw new DeliveryError('direct_input_unavailable', 'Native thread does not accept direct input');
       if (operation.directInput && state.subscribed === false) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting work');
+      if (queueRevision !== undefined && queueRevision !== (state.continuationRevision ?? 0)) throw new DeliveryError('continuation_changed', '待执行队列已变化，请重新读取。');
       if (mediaRevision !== undefined && mediaRevision !== (state.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation');
     };
     try {
@@ -722,25 +832,67 @@ export class RuntimeService extends EventEmitter {
       }
       if (operation.newThread) this.environments.assertIndependentLoad();
       if (operation.directInput || operation.newThread || operation.method === 'thread/resume') this.environments.assertThread(object(object(current).thread));
-      await operation.preflight?.(object(object(current).thread)); validateOfficial(operation.schema, operation.params);
+      if (operation.mediaInput || operation.method === 'thread/queue/update' || operation.method === 'thread/queue/delete') queueRevision = state.continuationRevision ?? 0;
+      const dispatchOptions = await operation.preflight?.(object(object(current).thread)); validateOfficial(operation.schema, operation.params);
       if (operation.method === 'thread/resume' && !this.providers.sameProvider(object(object(current).thread).modelProvider, operation.params.modelProvider))
         throw new DeliveryError('provider_conversion_required', '请使用右上角切换供应商创建新会话；加载不会更改原会话供应商。');
-      const input = operation.mediaInput ?? operation.params.input;
+      const input = operation.mediaInput ? this.attachments.queueMediaEvidence(operation.mediaInput, threadId) : operation.params.input;
       if (mediaModalities(input).length) {
         mediaRevision = state.settingsRevision ?? 0;
         const fallback = operation.method === 'turn/steer' ? state.activeModel : object(object(current).thread).model ?? this.sessions.read(threadId).model;
         const provider = object(object(current).thread).modelProvider;
+        if (operation.method === 'thread/resume') {
+          const model = selectedInputModel(operation.params, fallback);
+          if (typeof model !== 'string' || !model) throw new DeliveryError('model_capability_unknown', '此会话的队列含媒体，冷启动无法确认将使用的模型。请明确选择模型后加载，或在待办中保存副本并确认删除原项。');
+          // Bind the model which was validated even if a global default changes
+          // between the catalog lookup and native auto-consumption on resume.
+          operation.params.model = model;
+        }
         await validateInputModalities((method, params) => method === 'model/list'
           ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
-          : this.native.call(method, params), selectedInputModel(operation.params, fallback), input);
+          : this.native.call(method, params), selectedInputModel(operation.params, fallback), input, operation.mediaInput ? undefined : item => this.attachments.toolReference(item));
       }
-      const result = await this.native.call(operation.method, operation.params, { beforeWrite: () => {
-        guard(); context.beforeWrite?.(); operation.beforeWrite?.(); operation.prepared?.pin(); if (operation.method !== 'thread/prediction/request') this.predictions.invalidate(threadId); if (operation.invalidateHistory) this.invalidateHistory(threadId); if (operation.method === 'thread/settings/update') restoreSession = this.sessions.invalidate(threadId);
+      let recoveredQueue: JsonObject | undefined;
+      let result: JsonValue;
+      try { result = await this.native.call(operation.method, operation.params, { ...dispatchOptions, beforeWrite: () => {
+        guard(); context.beforeWrite?.(); operation.beforeWrite?.(); operation.prepared?.pin();
+        if (queueWrite) queueImageWrite = this.attachments.beginQueueImageWrite(threadId, queueWrite, operation.params, context.operationId);
+        if (operation.method !== 'thread/prediction/request') this.predictions.invalidate(threadId); if (operation.invalidateHistory) this.invalidateHistory(threadId); if (operation.method === 'thread/settings/update') restoreSession = this.sessions.invalidate(threadId);
         if (operation.newThread) attachmentCopy = this.attachments.reserveCopy(threadId);
         writeRevision = state.revision;
         if (goalMutation) { goalRevision = state.goalRevision ?? 0; state.goalPending = true; state.continuationRevision = (state.continuationRevision ?? 0) + 1; }
         if (operation.method === 'turn/settings/update') { modelRevision = state.modelRevision ?? 0; modelTurnId = state.turnId; }
       } });
+      } catch (error) {
+        if (!queueWrite || !(error instanceof DeliveryError) || error.code !== 'queue_frame_unconfirmed' || !error.data) throw error;
+        try {
+          const proof = object(error.data), id = string(proof.queuedSubmissionId, 'queuedSubmissionId', 256);
+          const client = string(proof.clientUserMessageId, 'clientUserMessageId', 256);
+          if (queueWrite === 'thread/queue/add' && operation.params.clientUserMessageId !== client ||
+              queueWrite === 'thread/queue/update' && operation.params.queuedSubmissionId !== id) throw error;
+          const durable = await historyHelper(this.config, { action:'queue-item', threadId, queuedSubmissionId:id, attachmentRoot:this.attachments.root });
+          const queued = object(durable.queuedSubmission);
+          if (queued.id !== id || queued.clientUserMessageId !== client || !Array.isArray(queued.input) ||
+              !Array.isArray(operation.params.input) || queued.input.length !== proof.inputCount ||
+              queued.input.length !== operation.params.input.length || !Array.isArray(proof.urlBySlot)) throw error;
+          const observed = new Map(proof.urlBySlot.map(value => { const row = object(value); return [row.ordinal, row.sha256]; }));
+          for (const [ordinal, value] of queued.input.entries()) {
+            const submitted = object(operation.params.input[ordinal]), persisted = object(value);
+            const urlDigest = typeof persisted.url === 'string' ? createHash('sha256').update(persisted.url).digest('hex') : persisted.urlSha256;
+            if (observed.get(ordinal) !== urlDigest) throw error;
+            if (submitted.type === 'localImage' && ['image','harnessInlineImageDigest'].includes(String(persisted.type)) && typeof urlDigest === 'string') continue;
+            if (submitted.type === 'localAudio' && persisted.type === 'audio' && typeof urlDigest === 'string') continue;
+            if (canonical(submitted) !== canonical(persisted)) throw error;
+          }
+          recoveredQueue = queued;
+          // Only IDs came from the drained response. Persistent row + identical
+          // identities prove this exact write. Present the caller's admitted input
+          // without transporting re-encoded image pixels or private metadata.
+          result = { queuedSubmission: { id, clientUserMessageId: client, input: operation.params.input!, responsesapiClientMetadata: null } };
+        } catch {
+          throw new DeliveryError(error.code, error.message, 'unknown', { queuedSubmissionId: object(error.data).queuedSubmissionId!, clientUserMessageId: object(error.data).clientUserMessageId! });
+        }
+      }
       accepted = true; operation.prepared?.settle(true); validateOfficial(operation.responseSchema, result);
       const value = object(result);
       if (value.goal !== undefined && object(value.goal).threadId !== threadId) throw new Error('Native goal identity mismatch');
@@ -757,18 +909,32 @@ export class RuntimeService extends EventEmitter {
       if (['thread/delete', 'thread/unsubscribe', 'thread/revert', 'thread/settings/update', 'turn/settings/update'].includes(operation.method)) this.guardian.invalidate(threadId);
       if (operation.method === 'turn/steer' && value.turnId !== operation.expectedTurnId) throw new Error('Native steering target mismatch');
       if (operation.method === 'review/start' && value.reviewThreadId !== threadId) throw new Error('Native review target mismatch');
-      if (value.queuedSubmission !== undefined) { const queued = object(value.queuedSubmission); if ((operation.method === 'thread/queue/update' && queued.id !== operation.params.queuedSubmissionId) || (operation.method === 'thread/queue/add' && queued.clientUserMessageId !== operation.params.clientUserMessageId)) throw new Error('Native queue identity mismatch'); }
+      if (value.queuedSubmission !== undefined) {
+        const queued = object(value.queuedSubmission);
+        if ((operation.method === 'thread/queue/update' && queued.id !== operation.params.queuedSubmissionId) ||
+            (operation.method === 'thread/queue/add' && queued.clientUserMessageId !== operation.params.clientUserMessageId)) throw new Error('Native queue identity mismatch');
+        if (queueWrite) this.attachments.confirmQueueImageWrite(threadId, queueImageWrite, recoveredQueue ?? queued);
+      }
       if (operation.newThread) {
         const fork = object(value.thread); const forkId = string(fork.id, 'forked thread id'); if (forkId === threadId || fork.cwd !== object(object(current).thread).cwd) throw new Error('Native fork identity or project mismatch'); this.liveThreads.capture(fork, string(fork.cwd, 'forked thread cwd')); this.observeThread(result); this.sessions.capture(result); this.track(forkId).fresh = false; this.track(forkId).subscribed = true;
         await this.finishAttachmentCopy(attachmentCopy, fork);
       } else if (value.thread !== undefined) { if (object(value.thread).id !== threadId) throw new Error('Native mutation returned a different thread'); this.observeThread(result, writeRevision); }
       if (state.revision === writeRevision && operation.workResult === 'turn') { const turn = object(value.turn); if (turn.status === 'inProgress') { state.status = 'active'; state.turnId = string(turn.id, 'turn id'); state.turnRevision = (state.turnRevision ?? 0) + 1; } state.fresh = false; }
       if (state.revision === writeRevision && operation.workResult === 'shell') { state.status = 'active'; state.fresh = false; }
-      return operation.project ? operation.project(result) : result;
+      const projected = operation.project ? operation.project(result) : result;
+      if (operation.method === 'thread/queue/delete' && value.deleted === true) {
+        try { this.attachments.retireQueueImageBindings(threadId, string(operation.params.queuedSubmissionId, 'queuedSubmissionId')); }
+        catch { this.emit('diagnostic', '原生待办已确认删除，图片保护待重启核对。'); }
+      }
+      return projected;
     } catch (error) {
       const notSent = !accepted && error instanceof DeliveryError && error.delivery === 'not_sent';
       if (notSent && operation.method === 'thread/realtime/start' && wasFresh && state.revision === writeRevision && state.status !== 'active' && state.turnId === null) state.fresh = true;
-      if (notSent) restoreSession?.();
+      if (notSent) {
+        restoreSession?.();
+        if (queueWrite) try { this.attachments.cancelQueueImageWrite(threadId, queueImageWrite); }
+          catch { this.emit('diagnostic', '未发送的待办图片保护将在核对后清理。'); }
+      }
       if (notSent) { try { this.attachments.finishCopy(attachmentCopy); } catch { this.emit('diagnostic', '未发送复制的附件保护待重启核对。'); } }
       try { operation.prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Workflow attachment reservation could not be released'); }
       if (!notSent) { state.unknown = true; if (operation.newThread) this.unknown = true; }
@@ -776,7 +942,7 @@ export class RuntimeService extends EventEmitter {
     } finally { releaseListing?.(); if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
   private async convert(params: JsonObject, context: CallContext): Promise<JsonObject> {
-    onlyKeys(params, ['threadId', 'sourceProvider', 'targetProvider', 'model', 'effort', 'confirm']);
+    onlyKeys(params, ['threadId', 'sourceProvider', 'targetProvider', 'model', 'effort', 'confirm', 'handoffIds']);
     if (params.confirm !== true) throw new DeliveryError('confirmation_required', '请确认转换为新会话；原会话将保留。');
     const threadId = string(params.threadId, 'threadId', 128), sourceProvider = string(params.sourceProvider, 'sourceProvider', 128);
     const targetProvider = string(params.targetProvider, 'targetProvider', 128), model = string(params.model, 'model', 256);
@@ -792,8 +958,13 @@ export class RuntimeService extends EventEmitter {
       if ((await this.continuationForLoad(threadId)).required) throw new DeliveryError('thread_busy', '请先处理原会话的持续目标或队列，再创建转换会话。');
       const same = this.providers.sameProvider(sourceProvider, selected.modelProvider);
       if (same && !this.providers.requiresOpaqueReasoning(sourceProvider)) throw new DeliveryError('provider_unchanged', '同一供应商请直接使用模型菜单；无需转换会话。');
+      const handoffIds = params.handoffIds ?? [];
+      if (!Array.isArray(handoffIds) || handoffIds.length > 128 || !handoffIds.every((id): id is string => typeof id === 'string') ||
+          new Set(handoffIds).size !== handoffIds.length) throw new DeliveryError('invalid_params', '待办副本清单无效。');
+      const owned = handoffIds.length ? this.attachments.listQueueHandoffs(threadId) : [];
+      if (!handoffIds.every(id => owned.some(row => row.id === id && row.state === 'ready'))) throw new DeliveryError('handoff_unconfirmed', '所选待办副本已变化，请重新读取后再转换。');
       const check = () => { this.admit(threadId, true); context.beforeWrite?.(); };
-      return await convertThread(this.config, this.native, thread, snapshot, selected, same ? 'plaintext' : 'foreign', this.providers.displayName(string(selected.modelProvider, 'target provider')), {
+      const converted = await convertThread(this.config, this.native, thread, snapshot, selected, same ? 'plaintext' : 'foreign', this.providers.displayName(string(selected.modelProvider, 'target provider')), {
         reserve: () => { this.admit(); const release = this.liveThreads.reserve(); try { attachmentCopy = this.attachments.reserveCopy(threadId); } catch (error) { release(); throw error; } this.pendingStarts++; this.emitState(); return () => { release(); this.pendingStarts--; this.emitState(); }; },
         copied: (id, path) => this.finishAttachmentCopy(attachmentCopy, { id, path }),
         capture: result => { const id = string(object(result.thread).id, 'new thread'); const target = this.track(id); target.pending = true; this.environments.assertThread(object(result.thread)); this.observeThread(result); this.sessions.capture(result); target.subscribed = true; this.liveThreads.capture(object(result.thread), string(result.cwd, 'new cwd')); },
@@ -801,12 +972,28 @@ export class RuntimeService extends EventEmitter {
         publish: (result, name) => { const thread = object(result.thread), target = this.track(string(thread.id, 'new thread')); this.observeThread(result); this.sessions.capture(result); target.pending = false; target.subscribed = true; target.fresh = false; this.liveThreads.capture(thread, string(result.cwd, 'new cwd')); this.emitEvent('notification', { method: 'thread/name/updated', params: { threadId: thread.id!, threadName: name } }); },
         uncertain: id => { if (id) { try { const target = this.track(id); target.pending = false; target.unknown = true; } catch { this.unknown = true; } } else this.unknown = true; },
       }, check);
+      if (!handoffIds.length) return converted;
+      const targetId = string(object(converted.thread).id, 'converted thread');
+      try {
+        this.attachments.moveReadyQueueHandoffs(threadId, targetId, handoffIds, same ? sourceProvider : targetProvider);
+        return { ...converted, handoffTransfer: 'moved' };
+      } catch {
+        // The target was positively verified. A late change to a selected
+        // backup cannot negate that acknowledgement or trigger a second copy.
+        try {
+          const target = this.attachments.listQueueHandoffs(targetId);
+          const moved = handoffIds.filter(id => target.some(row => row.id === id)).length;
+          return { ...converted, handoffTransfer: moved === handoffIds.length ? 'moved' : moved ? 'unconfirmed' : 'not_moved' };
+        } catch {
+          return { ...converted, handoffTransfer: 'unconfirmed' };
+        }
+      }
     } catch (error) { if (error instanceof DeliveryError && error.delivery === 'not_sent') { try { this.attachments.finishCopy(attachmentCopy); } catch { this.emit('diagnostic', '未发送转换的附件保护待重启核对。'); } } throw error; }
     finally { state.pending = false; this.emitState(); }
   }
   private async newTurn(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, method === 'turn/start' ? ['threadId', 'text', 'attachmentIds', 'options', 'references', 'extraContext'] : ['threadId']);
-    const threadId = string(params.threadId, 'threadId'); this.admit(threadId); this.admitHistory(threadId, context); const activity = this.track(threadId); activity.pending = true; this.emitState();
+    const threadId = string(params.threadId, 'threadId'); this.admit(threadId); this.admitHistory(threadId, context, true); const activity = this.track(threadId); activity.pending = true; this.emitState();
     let accepted = false; let prepared: PreparedAttachments | undefined; const wasFresh = activity.fresh; const initialRevision = activity.revision; let writeRevision: number | undefined; let mediaRevision: number | undefined; let model: JsonValue | undefined;
     try {
       const p: JsonObject = { threadId };
@@ -827,13 +1014,13 @@ export class RuntimeService extends EventEmitter {
           const provider = object(object(current).thread).modelProvider;
           await validateInputModalities((method, params) => method === 'model/list'
             ? this.providers.list({ ...object(params), ...(provider !== undefined ? { modelProvider: provider } : {}) }, (method, params) => this.native.call(method, params), (provider, chatgpt, hidden) => this.providerCatalog(provider, chatgpt, hidden))
-            : this.native.call(method, params), model, p.input);
+            : this.native.call(method, params), model, p.input, item => this.attachments.toolReference(item));
         }
         if (p.environments === undefined) this.environments.assertThread(object(object(current).thread));
       }
       if (activity.directInput === false) throw new DeliveryError('direct_input_unavailable', 'Native thread does not accept direct input');
       if (activity.subscribed === false) throw new DeliveryError('session_not_loaded', 'Explicitly load the thread before starting work');
-      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, context); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
+      const result = await this.native.call(method, p, { beforeWrite: () => { this.admit(threadId, true); this.admitHistory(threadId, context, true); if (mediaRevision !== undefined && mediaRevision !== (activity.settingsRevision ?? 0)) throw new DeliveryError('model_changed', 'Model settings changed during media validation'); prepared?.pin(); context.beforeWrite?.(); this.predictions.invalidate(threadId); if (method === 'turn/start') { activity.fresh = false; if (typeof model === 'string') activity.activeModel = model; else delete activity.activeModel; } writeRevision = activity.revision; } });
       accepted = true; prepared?.settle(true);
       if (activity.revision === writeRevision) {
         if (method === 'turn/start') { const turn = object(object(result).turn); if (turn.status === 'inProgress') { activity.status = 'active'; activity.turnId = string(turn.id, 'turn id'); activity.turnRevision = (activity.turnRevision ?? 0) + 1; } }
@@ -893,7 +1080,7 @@ export class RuntimeService extends EventEmitter {
           continue;
         }
         this.defaultsPending = true;
-        const flight = { key, result: this.probeDefaults(cwd, selected, key, generation, deadline) };
+        const flight = { key, result: this.probeDefaults(cwd, selected, key, generation, deadline, Object.keys(object(object(config.config).mcp_servers ?? {}))) };
         this.defaultsFlight = flight;
         flight.result = flight.result.finally(() => { if (this.defaultsFlight === flight) this.defaultsFlight = undefined; });
         const result = await wait(flight.result, 'unknown');
@@ -901,13 +1088,15 @@ export class RuntimeService extends EventEmitter {
       }
     } finally { this.defaultsReaders--; }
   }
-  private async probeDefaults(cwd: string, selected: JsonObject, key: string, generation: number, deadline: number): Promise<JsonValue | undefined> {
+  private async probeDefaults(cwd: string, selected: JsonObject, key: string, generation: number, deadline: number, servers: string[]): Promise<JsonValue | undefined> {
     let probe: NativeRpc | undefined;
     try {
       const remaining = (): number => { const value = deadline - Date.now(); if (value <= 0) throw new DeliveryError('timeout', 'Effective-defaults probe deadline exceeded', 'unknown'); return value; };
       const timeout = (): number => Math.max(1, Math.min(this.config.requestTimeoutMs || 30000, remaining()));
       probe = new NativeRpc({ ...this.config, cwd, isolatedGroup: true, requestTimeoutMs: timeout() }); this.defaultsProbe = probe; probe.on('fatal', () => {});
-      await probe.initialize(); const result = object(await probe.call('thread/start', { cwd, ...selected, ephemeral: true }, { timeoutMs: timeout() }));
+      await probe.initialize();
+      const overrides = { ...object(selected.config ?? {}), ...Object.fromEntries(servers.map(name => [`mcp_servers.${name}.enabled`, false])) };
+      const result = object(await probe.call('thread/start', { cwd, ...selected, config: overrides, ephemeral: true }, { timeoutMs: timeout() }));
       const defaults: JsonObject = {}; for (const name of ['model', 'modelProvider', 'reasoningEffort', 'approvalPolicy', 'sandbox', 'activePermissionProfile', 'cwd']) defaults[name] = result[name] ?? null;
       // Closing the entire dedicated process is the cleanup acknowledgement; unsubscribe is not sufficient.
       await probe.close(); if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime closed during the defaults probe');
@@ -924,7 +1113,7 @@ export class RuntimeService extends EventEmitter {
     onlyKeys(params, ['cwd', 'projectId', 'rows', 'cols', 'program']); if (params.program !== undefined && params.program !== 'shell') throw new DeliveryError('invalid_params', 'Unknown fixed terminal program'); this.admit(); const cwd = this.cwd(params.cwd); const rows = integer(params.rows ?? 24, 'rows', 1, 500); const cols = integer(params.cols ?? 80, 'cols', 1, 500);
     const ownerKey = this.ownerKey(context.clientId, context.eventChannelId);
     if (this.terminals.size >= LIMITS.terminals || [...this.terminals.values()].filter(item => this.ownerKey(item.clientId, item.eventChannelId) === ownerKey).length >= 2) throw new DeliveryError('capacity', 'Terminal capacity exhausted');
-    const terminalId = randomUUID(); const generation = this.generations.get(ownerKey) ?? 0; const terminal: Terminal = { terminalId, clientId: context.clientId, eventChannelId: context.eventChannelId, generation, ended: false }; this.terminals.set(terminalId, terminal); this.emitState();
+    const terminalId = randomUUID(); const generation = this.generations.get(ownerKey) ?? 0; const terminal: Terminal = { cwd, terminalId, clientId: context.clientId, eventChannelId: context.eventChannelId, generation, ended: false }; this.terminals.set(terminalId, terminal); this.emitState();
     let writtenResolve!: () => void; let writtenReject!: (error: unknown) => void; const written = new Promise<void>((resolve, reject) => { writtenResolve = resolve; writtenReject = reject; });
     const command = [this.config.shell ?? (process.platform === 'win32' ? 'C:\\Windows\\System32\\cmd.exe' : '/bin/sh')];
     void this.native.call('command/exec', { command, cwd, processId: terminalId, tty: true, size: { rows, cols }, disableTimeout: true, disableOutputCap: true, sandboxPolicy: { type: 'dangerFullAccess' } }, { timeoutMs: 0, beforeWrite: () => { if ((this.generations.get(ownerKey) ?? 0) !== generation || this.terminals.get(terminalId) !== terminal) throw new DeliveryError('client_disconnected', 'Terminal owner disconnected'); context.beforeWrite?.(); }, onWritten: writtenResolve }).then(result => {

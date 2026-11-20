@@ -11,7 +11,13 @@ export type QueuedSubmission = NativeQueuedSubmission & {
   attachments?: { attachmentId: string; name: string; mimeType: string; size: number }[];
   attachmentIds?: string[];
   hasOpaqueInput?: boolean;
+  metadataOnly?: boolean;
+  incomplete?: boolean;
+  bytes?: number;
+  oversized?: boolean;
+  containsMedia?: boolean;
 };
+export type QueueHandoff = { id: string; queuedSubmissionId: string; state: 'saved' | 'ready' | 'restoring' | 'restored'; attachmentCount: number; nativeSavedImages?: number; sourceCandidateCount?: number; requiresSameProvider?: boolean; operationId?: string };
 export const INPUT_METHODS = ['conversation/start', 'turn/start', 'turn/steer', 'thread/queue/add'];
 export const queuedText = (entry: QueuedSubmission) =>
   entry.text ??

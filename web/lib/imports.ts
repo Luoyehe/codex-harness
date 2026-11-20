@@ -57,6 +57,11 @@ export function checkedImportPreview(value: unknown): ImportPreview {
     throw new Error('导入预览身份无效，请重新检测。');
   return result as ImportPreview;
 }
+function importFailure(value: unknown): ImportTypeResult['failures'][number] {
+  const row = object(value);
+  return { failureStage: String(row.failureStage ?? '未知阶段'), message: String(row.message ?? '未提供错误说明'),
+    source: typeof row.source === 'string' ? row.source : null };
+}
 /** Successful apply uses a minimal receipt; history retains native success/failure arrays. */
 export function importResults(value: unknown): ImportTypeResult[] {
   const row = object(value);
@@ -69,7 +74,7 @@ export function importResults(value: unknown): ImportTypeResult[] {
           typeof item.successCount === 'number' ? item.successCount : array(item.successes).length,
         failureCount:
           typeof item.failureCount === 'number' ? item.failureCount : array(item.failures).length,
-        failures: array<ImportTypeResult['failures'][number]>(item.failures),
+        failures: array(item.failures).map(importFailure),
       };
     });
   const successes = array<Record<string, unknown>>(row.successes),
@@ -81,10 +86,6 @@ export function importResults(value: unknown): ImportTypeResult[] {
     failureCount: failures.filter((item) => item.itemType === itemType).length,
     failures: failures
       .filter((item) => item.itemType === itemType)
-      .map((item) => ({
-        failureStage: String(item.failureStage),
-        message: String(item.message),
-        source: typeof item.source === 'string' ? item.source : null,
-      })),
+      .map(importFailure),
   }));
 }

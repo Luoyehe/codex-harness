@@ -23,7 +23,7 @@ const rules = [
   ['unix-private-home', /\/(?:home|Users)\/[A-Za-z0-9._-]+/g],
 ];
 const generated = /(?:^|\/)(?:node_modules|dist|coverage|\.work|\.cache|\.pytest_cache|__pycache__)(?:\/|$)|(?:^|\/)reference\/(?:runtime|evidence)(?:\/|$)|\.(?:pyc|pyo|log|sqlite(?:3)?(?:-wal|-shm|-journal)?|tsbuildinfo)$|(?:^|\/)\.DS_Store$/i;
-const privateFile = /(?:^|\/)(?:\.env(?:\..+)?|auth\.json|credentials(?:\.json)?|id_(?:rsa|ed25519|ecdsa)|[^/]+\.(?:pem|p12|pfx|key))$/i;
+const privateFile = /(?:^|\/)(?:\.env(?:\..+)?|auth\.json|credentials(?:[^/]*\.json)?|id_(?:rsa|ed25519|ecdsa)(?:\.[^/]+)?|[^/]+\.(?:pem|p12|pfx|key))$/i;
 const safeCode = error => typeof error?.code === 'string' && /^[A-Z0-9_]+$/.test(error.code) ? error.code : 'SCAN_ERROR';
 const issue = (name, rule, line = 1) => ({ path: name, line, rule });
 const newReport = mode => ({ mode, status: 'incomplete', scannedFiles: 0, scannedBytes: 0, findings: [], artifacts: [], unreadable: [], skipped: [] });
@@ -32,7 +32,7 @@ const finish = report => { report.status = report.unreadable.length || report.sk
 export function pathFindings(name) {
   const result = [];
   if (generated.test(name)) result.push(issue(name, 'generated-artifact'));
-  if (privateFile.test(name) && !/(?:^|\/)\.env\.example$/.test(name)) result.push(issue(name, 'private-file'));
+  if (privateFile.test(name) && !/(?:^|\/)(?:\.env\.example|id_(?:rsa|ed25519|ecdsa)\.pub)$/.test(name)) result.push(issue(name, 'private-file'));
   return result;
 }
 

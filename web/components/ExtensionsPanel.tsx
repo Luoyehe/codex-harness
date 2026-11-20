@@ -46,7 +46,7 @@ function ExtensionsPanelContent({
     tabs = [
       ['skills', '技能与 Hooks'],
       ['plugins', '插件与市场'],
-      ['apps', 'Apps'],
+      ['apps', '应用'],
       ['sharing', '插件共享'],
       ['import', '导入'],
       ['config', '配置与功能'],

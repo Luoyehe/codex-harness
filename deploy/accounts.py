@@ -102,11 +102,16 @@ def instance_proof_key(manager) -> bytes:
         os.close(descriptor)
 
 
+def probe_signature(key: bytes, route: str) -> str:
+    require(route in ("/health", "/api/account/proof"), "Unknown internal readiness probe")
+    return hmac.new(key, b"harness-local-probe-v1\n" + route.encode("ascii"), hashlib.sha256).hexdigest()
+
+
 def verify_server(connection, manager, headers: dict) -> None:
     nonce = secrets.token_hex(32)
     key = instance_proof_key(manager)
     expected = hmac.new(key, ("codex-harness-account-proof-v1\0" + manager.config["origin"] + "\0" + nonce).encode(), hashlib.sha256).hexdigest()
-    connection.request("GET", "/api/account/proof?nonce=" + nonce, headers=headers)
+    connection.request("GET", "/api/account/proof?nonce=" + nonce, headers={**headers, "X-Harness-Local-Probe": probe_signature(key, "/api/account/proof")})
     # Do not permit http.client to reconnect after proof: a different process
     # could acquire the loopback port between authentication and password POST.
     connection.auto_open = 0

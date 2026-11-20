@@ -145,3 +145,25 @@ it('cannot submit media while session/default identity is loading even if old ca
   expect(p.onSend).not.toHaveBeenCalled();
   expect(screen.getByText(/正在核对模型的图片与音频能力/)).toBeTruthy();
 });
+
+it('admits native images or explicit text-model tool use, checking queue and steer independently', () => {
+  const probe = (mime: string, supportsTools?: boolean, intent: 'send'|'queue'|'steer' = 'send', modalities = ['text']) =>
+    mediaAdmission({ ...request, intent, attachments: [{ mimeType: mime }], defaults: { model: 'actual' },
+      models: [{ id: 'actual', inputModalities: modalities, supportsTools }] }).issue;
+  expect(probe('image/png', true)).toBe('');
+  expect(probe('image/jpeg', true, 'queue')).toBe('');
+  expect(probe('image/png', false)).toContain('未声明');
+  expect(probe('image/png')).toContain('未声明');
+  expect(probe('image/webp', true)).toContain('JPEG 和 PNG');
+  expect(probe('image/webp', false, 'send', ['text','image'])).toBe('');
+  expect(probe('audio/wav', true)).toContain('未声明支持音频');
+  expect(probe('image/png', true, 'steer')).toContain('无法确认');
+});
+
+it('never borrows image capability or tool fallback from unowned rows in a mixed or incomplete provider catalog', () => {
+  const old = {id:'same',supportsTools:true,inputModalities:['text']};
+  const input={ ...request,attachments:[image],options:{model:'same',modelProvider:'target'},models:[old] };
+  expect(mediaAdmission({...input,directoryComplete:false}).issue).toContain('明确提供');
+  expect(mediaAdmission({...input,models:[old,{id:'other',modelProvider:'foreign'}]}).issue).toContain('明确提供');
+  expect(mediaAdmission({...input,directoryComplete:true}).toolImageReference).toBe(true);
+});

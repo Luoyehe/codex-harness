@@ -17,7 +17,7 @@ type ServerConfig = {
   hasBearerTokenEnvVar: boolean;
   hasEnvHttpHeaders: boolean;
 };
-type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[] };
+type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; transport: string; overridden: boolean }[] };
 type Pair = { name: string; value: string };
 type Edit = {
   baseName?: string;
@@ -128,6 +128,7 @@ function PairFields({
   );
 }
 type McpConfigurationProps = {
+  onServiceSettings?: () => void;
   api: Api;
   projectId: string;
   epoch: string;
@@ -156,6 +157,7 @@ function McpConfigurationForm({
   enabled,
   visible = true,
   onChanged,
+  onServiceSettings,
 }: McpConfigurationProps) {
   const action = useExtensionAction(
     api, enabled && visible, onChanged, JSON.stringify([epoch, visible, enabled]),
@@ -180,18 +182,15 @@ function McpConfigurationForm({
   const navigation = useSettingsNavigation(drafts.current, navigationOwner);
   const [secretNotice, setSecretNotice] = useState('');
   useEffect(() => {
-    if (edit?.env || edit?.headers || confirm)
-      setSecretNotice('连接状态或页面已变化，新填的敏感值与授权确认已清除。字段名和普通编辑保留，保存前请重新核对。');
     setConfirm(false);
     setCompared(false);
-    setEdit((current) => current
-      ? {
-          ...current,
-          envNames: current.env?.map((row) => row.name) ?? current.envNames,
-          headerNames: current.headers?.map((row) => row.name) ?? current.headerNames,
-          env: undefined, headers: undefined, clearSecrets: false,
-        }
-      : current);
+    if (!visible) {
+      if (editRef.current?.env || editRef.current?.headers) setSecretNotice('已离开配置面板，新填的敏感值已清除。');
+      setEdit(current => current ? { ...current,
+        envNames: current.env?.map(row => row.name) ?? current.envNames,
+        headerNames: current.headers?.map(row => row.name) ?? current.headerNames,
+        env: undefined, headers: undefined, clearSecrets: false } : current);
+    }
   }, [epoch, visible, enabled]);
   const conflict = Boolean(edit && catalog.data && catalog.data.userVersion !== edit.baseVersion),
     removalConflict = Boolean(remove && catalog.data && catalog.data.userVersion !== remove.version);
@@ -298,12 +297,26 @@ function McpConfigurationForm({
           <p className="small muted">
             仅修改选中的用户层服务。未填写的敏感字段保持原值，其他服务保持原样。切换设置类别会清除新填敏感值及其替换选择，并清除授权勾选；其他未保存编辑仍保留。
           </p>
-          {catalog.data.inheritedServers.length > 0 && (
-            <p className="workspace-warning">
-              来自其他配置层：{catalog.data.inheritedServers.join('、')}
-              。用户层移除不会移除管理或项目层服务。
-            </p>
-          )}
+          {catalog.data.inheritedServers.length > 0 && <p className="small muted">来自其他配置层：{catalog.data.inheritedServers.join('、')}</p>}
+          {catalog.data.inheritedDetails?.map(server => (
+            <div className="info-card" key={server.name}>
+              <strong>{server.name}</strong>
+              <p>{server.transport} · {server.overridden ? '用户覆盖' : '继承配置'}</p>
+              {server.overrideAllowed !== true && <p className="small muted">此继承项的来源未授权用户级开关，请在其所属配置层管理。</p>}
+              {server.overrideAllowed === true && ['web-search-prime','web-reader','zread'].includes(server.name) && server.transport === 'http' && <p className="small muted">智谱 Coding Plan 集成默认关闭此远程服务，以兼容当前 Codex 的 MCP 握手。如需使用，可单独启用并核对实际连接状态。</p>}
+              <p>已保存：{server.enabled ? '启用' : '停用'} · 当前生效：{typeof server.effectiveEnabled !== 'boolean' ? '未确认' : server.effectiveEnabled ? '启用' : '停用'}</p>
+              {server.restartRequired && <div className="workspace-warning" role="status">
+                重启原生服务后采用已保存的设置。
+                {onServiceSettings && <button className="button small" onClick={onServiceSettings}>前往服务管理</button>}
+              </div>}
+              <button className="button small" disabled={server.overrideAllowed !== true || !enabled || action.busy || catalog.loading || !!edit}
+                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, name: server.name, change: { type: 'inherit', enabled: !server.enabled } }, '单项设置已保存，请核对有效配置。')}>
+                {server.enabled ? '停用' : '启用'} {server.name}
+              </button>
+              {server.overridden && <button className="button small" disabled={server.overrideAllowed !== true || !enabled || action.busy || catalog.loading || !!edit}
+                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, name: server.name, change: { type: 'inherit', enabled: null } }, '已恢复继承配置。')}>恢复继承设置</button>}
+            </div>
+          ))}
           {catalog.data.servers.map((server) => (
             <article className="info-card stack" key={server.name}>
               <div className="section-heading">

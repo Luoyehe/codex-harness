@@ -97,7 +97,7 @@ export function ProjectDialog({
           <button type="button" className="segmented-option" aria-pressed={mode === 'existing'} onClick={() => setMode('existing')}>添加已有目录</button>
         </div>
         <label className="field">项目名称
-          <input value={name} onChange={event => setName(event.target.value)} required maxLength={120} autoFocus placeholder="例如：我的产品" />
+          <input value={name} onChange={event => setName(event.target.value)} required maxLength={120} placeholder="例如：我的产品" />
         </label>
         <label className="field">项目路径
           <input value={mode === 'create' ? directory : cwd} onChange={event => mode === 'create' ? setDirectory(event.target.value) : setCwd(event.target.value)}

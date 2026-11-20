@@ -50,9 +50,12 @@ def portable_cleanup():
     if child.returncode is not None: raise RuntimeError('group leader already reaped')
     # There is no check-then-signal of a historical PID. Even natural exit keeps
     # the leader unreaped until every live group member has disappeared.
-    try: os.killpg(child.pid,signal.SIGKILL)
-    except ProcessLookupError: pass
     deadline=time.monotonic()+4
+    if not observed_exit() or group_live(deadline):
+        try: os.killpg(child.pid,signal.SIGKILL)
+        except ProcessLookupError: pass
+        except PermissionError:
+            if not observed_exit() or group_live(deadline): raise
     while not observed_exit() or group_live(deadline):
         if time.monotonic()>deadline: raise RuntimeError('group cleanup deadline')
         time.sleep(.01)
@@ -98,6 +101,8 @@ try:
         if not observed_exit():
             try: os.killpg(child.pid,signal.SIGTERM)
             except ProcessLookupError: pass
+            except PermissionError:
+                if not observed_exit() or group_live(deadline): raise
             while not observed_exit() and time.monotonic()<deadline: time.sleep(.01)
         portable_cleanup()
 except BaseException:

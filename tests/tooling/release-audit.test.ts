@@ -173,3 +173,14 @@ test('history cannot report clean when an ordinary tree member is absent', async
   const report = await auditGitObjects(root);
   expect(report.status).toBe('incomplete'); expect(report.unreadable).toContainEqual({ path: 'git-objects', line: 1, rule: 'unreadable', code: 'GIT_TREE_TRAVERSAL_FAILED' });
 });
+
+test('private credential variants are ignored by Git and rejected by the release file check', async () => {
+  const root = fixture(); git(root, ['init', '-q']);
+  put(root, '.gitignore', (await import('node:fs')).readFileSync('.gitignore', 'utf8'));
+  const privateNames = ['credentials.json', 'credentialsLocal.json', 'credentials-demo.json', 'credentials.region.json', 'id_rsa.personal', '.env.local', 'sandbox/client.key'];
+  const publicNames = ['.env.example', 'id_rsa.pub', 'id_ed25519.pub', 'id_ecdsa.pub'];
+  for (const name of [...privateNames, ...publicNames]) put(root, name, 'fixture');
+  expect(git(root, ['check-ignore', '--', ...privateNames, ...publicNames]).trim().split(/\r?\n/).sort()).toEqual([...privateNames].sort());
+  const report = await scanFiles(root, [...privateNames, ...publicNames]);
+  expect(report.artifacts.map((item: {path:string}) => item.path).sort()).toEqual([...privateNames].sort());
+});

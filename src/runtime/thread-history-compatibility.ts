@@ -19,12 +19,15 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
     return { bin: config.env.HARNESS_DEV_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3'),
       args: ['-B', '-m', 'deploy.thread_history', '--home', config.home], cwd: root, env: config.env };
   })();
-    const body = jsonBytes(request, 8192);
+    const attachmentProof = ['attachment-index', 'attachment-inspect'].includes(String(request.action));
+    const body = jsonBytes(request, attachmentProof && request.activeImageDigests !== undefined ? 72 * 1024 : 8192);
+    const maxBuffer = ['queue-item', 'queue-capacity', 'queue-image'].includes(String(request.action)) ? 6 * 1024 * 1024 + 16384 :
+      ['copy-inspect', 'attachment-index', 'attachment-inspect'].includes(String(request.action)) ? 2 * 1024 * 1024 + 16384 : 8192;
     return new Promise((resolve, reject) => {
       // Do not dispatch a helper after the operation's caller/epoch was revoked.
       try { if (mutating) beforeWrite?.(); } catch (error) { reject(error); return; }
       const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true,
-        timeout: mutating || request.action === 'attachment-index' ? 60000 : 15000, maxBuffer: ['copy-inspect', 'attachment-index', 'attachment-inspect'].includes(String(request.action)) ? 2 * 1024 * 1024 + 8192 : 8192, encoding: 'utf8' }, (error, stdout) => {
+        timeout: mutating || request.action === 'attachment-index' ? 60000 : 15000, maxBuffer, encoding: 'utf8' }, (error, stdout) => {
         try {
           const result = object(JSON.parse(stdout));
           if (error || result.error !== undefined) {

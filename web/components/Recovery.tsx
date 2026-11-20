@@ -1,3 +1,4 @@
+import { workspaceErrorMessage } from '../lib/workspace';
 import { isArchivedReceipt } from '../lib/operations';
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
@@ -27,6 +28,7 @@ const operationNames: Record<string, string> = {
   'thread/fork': '复制会话分支', 'thread/compact': '压缩会话上下文', 'thread/revert': '回退会话',
   'thread/settings/update': '修改会话设置', 'turn/settings/update': '修改回合设置',
   'thread/queue/add': '添加待办消息', 'thread/queue/update': '修改待办消息',
+  'thread/queue/handoff/save': '保留待办副本', 'thread/queue/handoff/restore': '从副本恢复待办', 'thread/queue/handoff/discard': '丢弃待办副本',
   'thread/queue/delete': '删除待办消息', 'thread/queue/start': '执行待办消息', 'thread/queue/reorder': '调整待办顺序',
   'thread/goal/set': '设置持续目标', 'thread/goal/clear': '清除持续目标',
   'thread/unsubscribe': '停止会话订阅', 'thread/shellCommand': '执行会话命令',
@@ -42,6 +44,10 @@ const operationNames: Record<string, string> = {
   'process/writeStdin': '发送进程输入', 'process/resize': '调整进程终端',
   'account/login/start': '登录模型账号', 'account/login/cancel': '取消模型账号登录', 'account/logout': '退出模型账号',
   'settings/write': '保存项目配置', 'mcp/configuration/write': '保存 MCP 配置',
+  'mcp/config/write': '修改 MCP 配置', 'mcp/tool/call': '调用 MCP 工具', 'mcp/stream/start': '启动 MCP 订阅', 'mcp/stream/stop': '停止 MCP 订阅',
+  'workspace/git/stage': '暂存工作区文件', 'workspace/git/unstage': '撤销暂存', 'workspace/git/index/recovery/restore': '恢复 Git 索引', 'workspace/git/index/recovery/discard': '丢弃索引备份',
+  'workspace/worktree/create': '创建工作树', 'workspace/worktree/attach': '关联工作树', 'workspace/worktree/archive': '归档工作树', 'workspace/worktree/retire': '退役工作树', 'workspace/worktree/restore': '还原工作树',
+  'workspace/copy': '复制工作区文件', 'workspace/remove': '移除工作区文件', 'workspace/recovery/restore': '恢复工作区文件', 'workspace/recovery/discard': '丢弃工作区备份',
   'mcp/call': '调用 MCP 工具', 'remoteControl/pairing/start': '创建远端配对',
   'plugin/install': '安装插件', 'plugin/uninstall': '卸载插件', 'marketplace/add': '添加插件市场',
   'marketplace/remove': '移除插件市场', 'marketplace/upgrade': '更新插件市场',
@@ -187,7 +193,7 @@ export function Recovery({
           return (
             <div className="recovery-row" key={o.id}>
               <div>
-                <strong title={o.method}>{operationNames[o.method] ?? o.method}</strong>
+                <strong title={o.method}>{Object.hasOwn(operationNames, o.method) ? operationNames[o.method] : o.method}</strong>
                 {o.legacy && o.draftKey && <p className="small muted">旧版恢复记录已迁入；为保留旧页面尚未确认的草稿，本记录不会自动清除草稿，请核对后在草稿页处理。</p>}
                 {o.method.startsWith('workspace/') && o.resourceId && (
                   <small className="path">{o.resourceId}</small>
@@ -206,9 +212,10 @@ export function Recovery({
                   {o.closed === 'recovery_stopped' && ' · 已停止本地恢复'}
                   {o.closed === 'legacy_closed' && ' · 旧版已关闭提醒'}
                 </small>
+                {o.state === 'not_sent' && o.method === 'conversation/start' && o.resolvedThreadId && <p>已创建会话，首条消息未发送。可打开该会话核对，原草稿保留。</p>}
                 {!o.closed && o.state === 'not_sent' && receipt && <p className="small error" role="status">
                   {receipt.state === 'not_sent' && typeof object(receipt.error).message === 'string'
-                    ? String(object(receipt.error).message).slice(0, 2000)
+                    ? workspaceErrorMessage(o.method, object(receipt.error), '工作区操作失败。').slice(0, 2000)
                     : '暂未取得该操作的失败原因，请核对原操作页面的提示；不会自动重试。'}
                 </p>}
                 {!o.closed && receipt?.state === 'pending' && <p className="small" role="status">服务已收到请求，仍在处理。请稍后查询；不要重复提交。</p>}

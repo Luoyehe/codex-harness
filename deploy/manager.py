@@ -222,6 +222,8 @@ class Manager:
             fsync_directory(self.layout.app)
 
     def healthy(self) -> None:
+        from .accounts import instance_proof_key, probe_signature
+        signature = probe_signature(instance_proof_key(self), "/health")
         last_error = None
         for _ in range(30):
             try:
@@ -231,10 +233,12 @@ class Manager:
                             "Service is not running", "health")
                 connection = http.client.HTTPConnection("127.0.0.1", self.config["port"], timeout=2)
                 try:
-                    connection.request("GET", "/health", headers={"Host": self.config["origin"].split("://", 1)[1]})
+                    connection.request("GET", "/health", headers={"Host": self.config["origin"].split("://", 1)[1], "X-Harness-Local-Probe": signature})
                     response = connection.getresponse()
                     body = response.read(65537)
-                    require(response.status == 200 and len(body) <= 65536 and isinstance(json.loads(body), dict), "Gateway health failed", "health")
+                    require(response.status == 200 and len(body) <= 65536, "Gateway health failed", "health")
+                    result = json.loads(body)
+                    require(isinstance(result, dict) and result.get("ok") is True, "Gateway is not ready", "health")
                 finally:
                     connection.close()
                 worker = http.client.HTTPConnection("localhost", timeout=2)
@@ -318,10 +322,10 @@ class Manager:
                     "HTTPS origin or authentication differs from the retained configuration", "integrity")
             self.require_service_ownership()
             regular(self.layout.config / "Caddyfile", {caddy_configuration(self.layout, self.config, metadata).encode()})
-            from .units import render_edge_units
+            from .units import edge_unit_variants, render_edge_units
             unit = self.layout.unit("caddy")
-            regular(self.layout.units / unit, {render_edge_units(self.layout, builtin=metadata.get("authentication") == "builtin",
-                    dns_metadata=metadata if metadata.get("dnsProvider") is not None else None, client_identity=metadata.get("clientIdentity") == 1)[unit].encode()})
+            regular(self.layout.units / unit, edge_unit_variants(render_edge_units(self.layout, builtin=metadata.get("authentication") == "builtin",
+                    dns_metadata=metadata if metadata.get("dnsProvider") is not None else None, client_identity=metadata.get("clientIdentity") == 1)[unit].encode()))
             if metadata.get("clientIdentity") == 1:
                 token = (self.layout.config / "gateway-token").read_text().strip()
                 expected = "HARNESS_EDGE_PROXY_TOKEN=" + hashlib.sha256(("codex-harness-edge-client-v1\0" + token).encode()).hexdigest() + "\n"
@@ -790,21 +794,8 @@ class Manager:
             elif method == "logs":
                 require(not set(params) - {"service", "lines"} and params.get("service", "gateway") in ("gateway", "worker", "caddy"), "Invalid logs parameters")
                 text = self.system.logs(self.layout.unit(params.get("service", "gateway")), params.get("lines", 100))
-                # Service diagnostics may accidentally include credentials. Remove exact known secrets.
-                known_secrets = [(self.layout.config / "gateway-token").read_text().strip()]
-                from .provider_lifecycle import Profiles
-                from .provider_registry import entries
-                known_secrets.extend(row["settings"].get("apiKey") for profile in Profiles(self.layout).records()
-                                     for row in entries(profile["settings"]))
-                for generation in self.providers.root.iterdir():
-                    if re.fullmatch(r"[0-9a-f]{32}", generation.name):
-                        settings = read_json(generation / "settings.json", 4 * 1024 * 1024)
-                        known_secrets.extend(row["settings"].get("apiKey") for row in entries(settings))
-                from .diagnostic_secrets import retained_secrets
-                known_secrets.extend(retained_secrets(self.layout))
-                for secret in sorted({value for value in known_secrets if isinstance(value, str) and value}, key=len, reverse=True):
-                    text = text.replace(secret, "[redacted]")
-                value = {"text": text[-131072:], "truncated": len(text) > 131072, "redactionNotice": "已遮蔽已配置凭据；短凭据可能同时遮蔽普通文本。"}
+                from .diagnostic_secrets import log_result
+                value = log_result(self.layout, self.providers.root, text)
             elif method == "provider/read":
                 require(not params, "provider/read takes no parameters")
                 value = self.providers.public()

@@ -37,6 +37,7 @@ export function TerminalPanel({
   runtimeEpoch = epoch,
   onServiceSettings,
   onShell,
+  onOwnershipChange,
 }: {
   api: Api;
   events: Events;
@@ -48,6 +49,7 @@ export function TerminalPanel({
   runtimeEpoch?: string;
   onServiceSettings?: () => void;
   onShell?: () => void;
+  onOwnershipChange?: (owned: boolean) => void;
 }) {
   const [restartRequired, setRestartRequired] = useState(false);
   const lastRuntime = useRef(runtimeEpoch);
@@ -66,6 +68,8 @@ export function TerminalPanel({
     [error, setError] = useState(''),
     [ended, setEnded] = useState(false),
     [pending, setPending] = useState(false);
+  useEffect(() => { onOwnershipChange?.(Boolean(id || pending || busy)); }, [onOwnershipChange, id, pending, busy]);
+  useEffect(() => () => onOwnershipChange?.(false), [onOwnershipChange]);
   const blocked = useRef(false),
     closeOnly = useRef(false),
     queuedBytes = useRef(0),
@@ -325,10 +329,11 @@ export function TerminalPanel({
       return;
     }
     setError('');
+    // Reset only after the new PTY has been acknowledged and before replaying its buffered output.
+    term.current?.write('\x1bc');
     for (const event of attempt.events)
       if (event.data.terminalId === result.terminalId) applyEvent(event);
     await acknowledge(attempt.operation);
-    if (terminalId.current) term.current?.focus();
   };
   const open = async () => {
     if (
@@ -343,9 +348,6 @@ export function TerminalPanel({
     setBusy(true);
     setError('');
     blocked.current = true;
-    // RIS is queued after every prior output write and before the new PTY can
-    // produce output, resetting alternate-screen, paste and mouse modes too.
-    term.current?.write('\x1bc');
     let attempt: OpenAttempt | undefined;
     try {
       const size =

@@ -438,3 +438,15 @@ describe('bounded document-local drafts', () => {
     expect(readDraft('new:0').text).toBe('draft 0');
   });
 });
+it('coalesces consecutive keystrokes and flushes the exact last edit before leaving', () => {
+  const view = renderHook(() => useDraft('typing'));
+  const write = vi.spyOn(Storage.prototype, 'setItem');
+  try {
+    for (const value of ['a','ab','abc','abcd']) act(() => view.result.current.setText(value));
+    expect(view.result.current.text).toBe('abcd');
+    expect(write.mock.calls.filter(([key]) => key.startsWith('harness.draft.v1.'))).toHaveLength(1);
+    act(() => expect(view.result.current.canNavigateTo('another')).toBe(true));
+    expect(readDraft('typing').text).toBe('abcd');
+    expect(write.mock.calls.filter(([key]) => key.startsWith('harness.draft.v1.'))).toHaveLength(2);
+  } finally { write.mockRestore(); }
+});

@@ -8,6 +8,7 @@ import { Events } from '../lib/events';
 const terminalState = vi.hoisted(() => ({
   input: (_text: string) => {},
   output: [] as string[],
+  focus: vi.fn(),
   proposal: undefined as { rows: number; cols: number } | undefined,
   grid: { rows: 24, cols: 80 },
   resized: () => {},
@@ -32,7 +33,7 @@ vi.mock('@xterm/xterm', () => ({
     writeln(text: string) {
       terminalState.output.push(text);
     }
-    focus() {}
+    focus() { terminalState.focus(); }
     onData(fn: (text: string) => void) {
       terminalState.input = fn;
       return { dispose() {} };
@@ -77,6 +78,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   terminalState.output = [];
+  terminalState.focus.mockClear();
   terminalState.proposal = undefined;
   terminalState.grid = { rows: 24, cols: 80 };
   vi.stubGlobal(
@@ -111,6 +113,7 @@ describe('terminal ownership and bounded input', () => {
       cols: 500,
     });
     expect(terminalState.grid).toEqual({ rows: 500, cols: 500 });
+    expect(terminalState.focus).not.toHaveBeenCalled();
     terminalState.proposal = { rows: 30.7, cols: 10000 };
     act(() => terminalState.resized());
     await waitFor(() =>
@@ -585,6 +588,7 @@ it('recovers the fixed cloud program once and waits for the automatic epoch refr
   fireEvent.click(screen.getByRole('button', { name: '查询并恢复终端' }));
   await screen.findByRole('button', { name: '关闭终端' });
   expect(f.calls.filter((c) => c.method === 'terminal/open')).toHaveLength(1);
+  expect(terminalState.focus).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '关闭终端' }));
   await screen.findByText(/终端已结束，正在自动刷新后台环境/);
   expect(

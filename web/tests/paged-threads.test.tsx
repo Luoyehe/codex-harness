@@ -44,3 +44,20 @@ it('reports a bounded live list without discarding the persistent directory', as
   await waitFor(() => expect(view.result.current.loading).toBe(false));
   expect(view.result.current.warning).toBe('');
 });
+it('keeps all previously confirmed pages on failed refresh and retries the same number of pages', async () => {
+  let round = 0; const visits: string[] = [];
+  const api = { call: vi.fn(async (_m: string, p: { cursor?: string }) => {
+    const i = Number(p.cursor ?? 0); visits.push(round + '/' + i);
+    if (round === 1 && i === 1) throw new Error('interrupted');
+    return { data: [{ id: String(i), round }], nextCursor: i === 2 ? null : String(i+1) };
+  }) } as unknown as Api;
+  const v = renderHook(() => usePaged<{ id: string; round: number }>(api, 'thread/list', {}, 'p'));
+  await waitFor(() => expect(v.result.current.items).toHaveLength(1));
+  await act(() => v.result.current.more()); await act(() => v.result.current.more());
+  round = 1; act(() => v.result.current.refresh());
+  await waitFor(() => expect(v.result.current.error).toBe('interrupted'));
+  expect(v.result.current.items.map(row => row.round)).toEqual([0,0,0]);
+  round = 2; act(() => v.result.current.refresh());
+  await waitFor(() => expect(v.result.current.items.map(row => row.round)).toEqual([2,2,2]));
+  expect(visits).toEqual(['0/0','0/1','0/2','1/0','1/1','2/0','2/1','2/2']);
+});

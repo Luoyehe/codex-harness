@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { RpcError, type Api } from '../lib/api';
 import { useResource } from '../hooks/useResource';
 import { array, composing, object } from '../lib/types';
@@ -139,11 +139,17 @@ function ProviderSettingsForm({
     isGateway = kind === 'chatgpt-gateway';
   const isBedrock = kind === 'bedrock-runtime' || kind === 'bedrock-mantle',
     usesKey = ['responses', 'zhipu-coding', 'bedrock-runtime', 'bedrock-mantle'].includes(kind);
+  const previousSecretTarget = useRef(effectiveId);
+  const secretUnavailable = targetMissing || !visible;
+  useLayoutEffect(() => {
+    if (secretUnavailable || previousSecretTarget.current !== effectiveId) {
+      if (apiKey) setSecretNotice('已离开原供应商设置，新填密钥已清除。');
+      setApiKey('');
+      setClearKey(false);
+    }
+    previousSecretTarget.current = effectiveId;
+  }, [secretUnavailable, effectiveId]);
   useEffect(() => {
-    if (apiKey || clearKey || gatewayConsent || allowInsecureHttp)
-      setSecretNotice('连接状态或设置页面已变化，新填密钥与授权确认已清除；保存前请重新填写并核对。');
-    setApiKey('');
-    setClearKey(false);
     setAllowInsecureHttp(false);
     setGatewayConsent('');
   }, [epoch, visible, enabled, targetMissing]);
@@ -376,8 +382,8 @@ function ProviderSettingsForm({
                 <input
                   type="password"
                   autoComplete="off"
-                  disabled={clearKey}
-                  value={apiKey}
+                  disabled={clearKey || secretUnavailable}
+                  value={secretUnavailable ? '' : apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={
                     provider?.kind === kind && provider?.hasApiKey

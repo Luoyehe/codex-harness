@@ -11,6 +11,8 @@ export class Worktrees {
       id TEXT PRIMARY KEY, origin_id TEXT NOT NULL, active_path TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL, phase TEXT NOT NULL, head TEXT NOT NULL, revision TEXT NOT NULL,
       generation INTEGER NOT NULL, updated_at INTEGER NOT NULL) STRICT;`);
+    // Existing registered projects may already have a newer user-selected name.
+    db.exec('UPDATE worktree_projects SET name=p.name FROM projects AS p WHERE worktree_projects.id=p.id AND worktree_projects.name<>p.name');
   }
   list(originId: string): JsonValue {
     return { data: this.db.prepare("SELECT w.*,p.id AS registered_id FROM worktree_projects w LEFT JOIN projects p ON p.id=w.id WHERE w.origin_id=? AND w.phase<>'retired' ORDER BY w.updated_at DESC,w.id").all(originId).map(row => ({

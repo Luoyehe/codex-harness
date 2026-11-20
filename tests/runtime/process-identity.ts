@@ -22,6 +22,13 @@ export async function processIdentity(pid: number): Promise<string | null> {
       return fields[0] === 'Z' ? null : fields[19]!;
     } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT' || (error as NodeJS.ErrnoException).code === 'ESRCH') return null; throw error; }
   }
+  if (process.platform === 'darwin') {
+    return new Promise((resolve, reject) => execFile('/bin/ps', ['-p', String(pid), '-o', 'state=,lstart=,comm='], { env: { LC_ALL: 'C', PATH: '/bin:/usr/bin' } }, (error, stdout) => {
+      if (error && error.code === 1 && !stdout.trim()) { resolve(null); return; }
+      if (error) { reject(error); return; }
+      const row = stdout.trim(); resolve(row.startsWith('Z') ? null : row.slice(row.indexOf(' ') + 1).trim());
+    }));
+  }
   if (process.platform !== 'win32') throw new Error('This identity fixture requires Windows creation times or Linux procfs');
   const script = `$ErrorActionPreference='Stop'; $PSModuleAutoLoadingPreference='None'
 try { $target=[Diagnostics.Process]::GetProcessById(${pid}) }

@@ -67,18 +67,18 @@ test('unclean, incomplete, skipped, missing-scope, reordered and reused-reviewer
 });
 
 test('changed reviewer bytes, absent artifacts and mismatched snapshot evidence are rejected', () => {
-  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2].reviewers[0]; const file = path.join(root, reviewer.evidence); const original = readFileSync(file, 'utf8');
+  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2]!.reviewers[0]!; const file = path.join(root, reviewer.evidence); const original = readFileSync(file, 'utf8');
   writeFileSync(file, original + '\n'); expect(() => validateAuditRecord(record, current, root)).toThrow(/checksum/);
   const changed = JSON.parse(original); changed.digest = 'f'.repeat(64); const bytes = JSON.stringify(changed); writeFileSync(file, bytes); reviewer.sha256 = createHash('sha256').update(bytes).digest('hex'); expect(() => validateAuditRecord(record, current, root)).toThrow(/artifact/);
   rmSync(file); expect(() => validateAuditRecord(record, current, root)).toThrow();
 });
 
 test('scope names alone cannot substitute for inspecting the claimed source areas', () => {
-  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2].reviewers[0]; const file = path.join(root, reviewer.evidence); const evidence = JSON.parse(readFileSync(file, 'utf8')); evidence.inspectedFiles = ['src/core/example.ts']; const bytes = JSON.stringify(evidence); writeFileSync(file, bytes); reviewer.sha256 = createHash('sha256').update(bytes).digest('hex');
+  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2]!.reviewers[0]!; const file = path.join(root, reviewer.evidence); const evidence = JSON.parse(readFileSync(file, 'utf8')); evidence.inspectedFiles = ['src/core/example.ts']; const bytes = JSON.stringify(evidence); writeFileSync(file, bytes); reviewer.sha256 = createHash('sha256').update(bytes).digest('hex');
   expect(() => validateAuditRecord(record, current, root)).toThrow(/scope coverage/);
 });
 test('one source file per scope cannot authorize a partial review as a complete audit', () => {
-  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2].reviewers[0];
+  const root = fixture(); const { current, record } = audited(root); const reviewer = record.rounds[2]!.reviewers[0]!;
   const file = path.join(root, reviewer.evidence), evidence = JSON.parse(readFileSync(file, 'utf8'));
   evidence.inspectedFiles = inspected;
   const bytes = JSON.stringify(evidence); writeFileSync(file, bytes); reviewer.sha256 = createHash('sha256').update(bytes).digest('hex');
@@ -90,8 +90,8 @@ test('full execution plan requires all three engines before starting and include
   const skipped = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'skipped', reason: 'fixture missing native' }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });
   expect(skipped.status).toBe('skipped'); expect(skipped.exitCode).toBe(3); expect(vitest).not.toHaveBeenCalled(); expect(python).not.toHaveBeenCalled();
   const result = executePlan(plan, root, { nativePrerequisite: () => ({ status: 'ready', binary: path.join(root, 'fixture-native') }), pythonPrerequisite: () => ({ status: 'ready' }), goPrerequisite: () => ({ status: 'ready' }), runVitest: vitest, runPythonTests: python, runGoTests: go });
-  expect(result.status).toBe('passed'); expect(vitest.mock.calls[0][0]).toEqual(expect.arrayContaining(['tests/runtime/native-smoke.test.ts', 'web/tests/example.test.tsx'])); expect(python.mock.calls[0][0]).toEqual(['tests/deploy/root/test_example.py', 'tests/deploy/test_example.py']);
-  expect(go.mock.calls[0][0]).toEqual([goTestFile]);
+  expect(result.status).toBe('passed'); expect(vitest.mock.calls[0]![0]).toEqual(expect.arrayContaining(['tests/runtime/native-smoke.test.ts', 'web/tests/example.test.tsx'])); expect(python.mock.calls[0]![0]).toEqual(['tests/deploy/root/test_example.py', 'tests/deploy/test_example.py']);
+  expect(go.mock.calls[0]![0]).toEqual([goTestFile]);
 });
 
 test('an unavailable Python dependency is skipped explicitly, with no tests reported passed', () => {

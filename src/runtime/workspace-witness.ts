@@ -53,6 +53,7 @@ export class WorkspaceWitness {
         gateway_digest TEXT NOT NULL, helper_digest TEXT NOT NULL, result TEXT,
         created_at INTEGER NOT NULL
       ) STRICT;`);
+    if (!this.db.prepare('PRAGMA table_info(witnesses)').all().some(row => row.name === 'retire_request')) this.db.exec('ALTER TABLE witnesses ADD COLUMN retire_request TEXT');
     this.worktrees = new WorktreeBindings(this.db, nativeHome);
   }
   worktreeBinding(id: unknown, root: string): JsonObject { return this.worktrees.get(id, root); }
@@ -81,7 +82,7 @@ export class WorkspaceWitness {
       const pending = this.db.prepare("SELECT count(*) AS n FROM witnesses WHERE method='workspace/worktree/create' AND result IS NULL").get()!;
       this.worktrees.requireCreateCapacity(Number(pending.n));
     }
-    this.db.prepare('INSERT INTO witnesses(id,method,project_id,root,gateway_digest,helper_digest,created_at) VALUES(?,?,?,?,?,?,?)').run(id, method, projectId, root, gatewayDigest, helperDigest, Date.now());
+    this.db.prepare('INSERT INTO witnesses(id,method,project_id,root,gateway_digest,helper_digest,created_at,retire_request) VALUES(?,?,?,?,?,?,?,?)').run(id, method, projectId, root, gatewayDigest, helperDigest, Date.now(), method === 'workspace/worktree/retire' ? canonical(body) : null);
   }
   complete(method: string, request: JsonObject, result: JsonValue, context: CallContext): JsonValue {
     const id = string(context.operationId, 'operationId', 36); const row = object(result); const params = object(request.params);
@@ -129,6 +130,48 @@ export class WorkspaceWitness {
     const row = this.db.prepare('SELECT * FROM witnesses WHERE id=?').get(id);
     if (!row) return { operationId: id, state: 'not_received' };
     return { operationId: id, state: typeof row.result === 'string' ? 'completed' : 'unknown', method: String(row.method), projectId: String(row.project_id), root: String(row.root), gatewayRequestDigest: String(row.gateway_digest), helperRequestDigest: String(row.helper_digest), ...(typeof row.result === 'string' ? { result: JSON.parse(row.result) as JsonValue } : {}) };
+  }
+  async reconcileRetire(params: JsonObject, info: (root: string, operation: JsonObject) => Promise<JsonValue>,
+    finish: (body: JsonObject, operation: JsonObject) => Promise<JsonValue>): Promise<JsonValue> {
+    const prior = object(this.read(params));
+    if (prior.state !== 'unknown' || prior.method !== 'workspace/worktree/retire') return prior;
+    const operation = { operationId: prior.operationId!, requestDigest: prior.helperRequestDigest! };
+    const id = String(prior.operationId), root = String(prior.root);
+    const saved = this.db.prepare('SELECT retire_request FROM witnesses WHERE id=?').get(id)?.retire_request;
+    const legacy = typeof saved === 'string' ? undefined : object(await info(root, operation));
+    const stillPending = object(this.read(params)); if (canonical(stillPending) !== canonical(prior)) return stillPending;
+    const body = typeof saved === 'string' ? object(JSON.parse(saved)) : {
+      version: 1, root, action: 'worktree/retire', params: legacy!, binding: this.worktrees.get(legacy!.worktreeId, root),
+    };
+    const binding = this.worktrees.get(object(body.params).worktreeId, root);
+    if (canonical(binding) !== canonical(body.binding!) || createHash('sha256').update(canonical(body)).digest('hex') !== prior.helperRequestDigest) throw new DeliveryError('operation_conflict', 'Worktree retirement differs from its original receipt');
+    const receipt = object(await finish(body, operation));
+    if (receipt.state !== 'completed' || receipt.operationId !== id || receipt.requestDigest !== prior.helperRequestDigest || object(receipt.response).ok !== true) return prior;
+    const current = object(this.read(params)); if (canonical(current) !== canonical(prior)) return current;
+    this.complete(String(prior.method), { ...body, operationId: id }, object(receipt.response).result!, { clientId: 'witness-reconcile', operationId: id, projectId: String(prior.projectId), gatewayRequestDigest: String(prior.gatewayRequestDigest) });
+    return this.read(params);
+  }
+  async reconcileCreate(params: JsonObject, lookup: (root: string, id: string, digest: string) => Promise<JsonValue>): Promise<JsonValue> {
+    const prior = object(this.read(params));
+    if (prior.state !== 'unknown' || prior.method !== 'workspace/worktree/create') return prior;
+    const id = String(prior.operationId), digest = String(prior.helperRequestDigest);
+    const receipt = object(await lookup(String(prior.root), id, digest));
+    if (receipt.state !== 'completed' || receipt.operationId !== id || receipt.requestDigest !== digest || object(receipt.response).ok !== true) return prior;
+    const data = object(object(receipt.response).result);
+    // Revalidate the original supervisor-owned reservation within the same
+    // transaction as binding publication. Concurrent lookups are idempotent.
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const current = object(this.read(params));
+      if (current.state === 'unknown' && canonical(current) === canonical(prior)) {
+        const body: JsonObject = { root: prior.root!, operationId: id, params: {} };
+        const version = this.worktrees.complete('worktree/create', body, data, String(prior.projectId));
+        const projected = receiptResult(String(prior.method), { ...data, worktreeVersion: version });
+        this.db.prepare('UPDATE witnesses SET result=? WHERE id=? AND helper_digest=? AND result IS NULL').run(jsonBytes(projected, MAX_RESULT), id, digest);
+      }
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+    return this.read(params);
   }
   usage(): JsonObject {
     const row = this.db.prepare('SELECT count(*) AS total,sum(result IS NULL) AS unresolved FROM witnesses').get()!;

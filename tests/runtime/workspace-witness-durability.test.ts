@@ -62,7 +62,7 @@ test.each(['child', 'parent'])('failed %s directory sync blocks dispatch and an 
   let boundary = 0, closed = false;
   const context = { clientId: 'fixture', operationId: randomUUID(), projectId: randomUUID(), gatewayRequestDigest: 'a'.repeat(64), beforeWrite() { boundary++; } };
   const service = new RuntimeWorkspace({ config: { bin: '/unused', cwd: '/', env: {}, workerHome: home, launcher: { path: '/unused', user: 'ch-fixture-worker' } },
-    cwd: () => '/project', admit() {}, configure: operation => operation(() => {}), pending() {}, uncertain() {} });
+    cwd: () => '/project', admit() {}, repository: (_cwd, operation) => operation(() => {}, 'c'.repeat(64)), pending() {}, uncertain() {} });
   trace.control.fail = target === 'child' ? directory : home;
   try {
     for (let attempt = 0; attempt < 2; attempt++) {

@@ -1,3 +1,4 @@
+import { downloadBlob } from '../lib/download';
 import { useEffect, useState } from 'react';
 import type { Api } from '../lib/api';
 import { object } from '../lib/types';
@@ -79,7 +80,7 @@ function DiagnosticsSession({
       <h3>原生 CLI 诊断</h3>
       <p className="muted">
         使用当前安装的 Codex 检查环境或读取内置模型目录。不会启动模型推理；每次最多 20
-        秒。请先结束任务与终端。报告只对当前连接保留 10 分钟，断线后需重新检查。
+        秒。诊断可与会话并行。报告只对当前连接保留 10 分钟，断线后需重新检查。
       </p>
       <div className="button-row">
         <button className="button" disabled={action.disabled} onClick={() => void run('doctor')}>
@@ -122,14 +123,7 @@ function DiagnosticsSession({
               <button
                 className="button"
                 onClick={() => {
-                  const url = URL.createObjectURL(
-                      new Blob([serialized], { type: 'application/json' }),
-                    ),
-                    anchor = document.createElement('a');
-                  anchor.href = url;
-                  anchor.download = `codex-${data.kind}-report.json`;
-                  anchor.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                  downloadBlob(new Blob([serialized], { type: 'application/json' }), `codex-${data.kind}-report.json`);
                 }}
               >
                 下载诊断报告

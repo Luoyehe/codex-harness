@@ -1,3 +1,4 @@
+import { hookEventLabel, statusLabel, pluginAuthPolicies, pluginAvailability, pluginInstallPolicy } from '../lib/status-labels';
 import { useEffect, useState } from 'react';
 import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import type { PluginListResponse } from '../../protocol/ts/v2/PluginListResponse';
@@ -59,7 +60,8 @@ export function PluginSettings({
   const detail = useResource(
     `${key}:${selected}`,
     (signal) =>
-      api.call<PluginReadResponse & { previewHash: string }>(
+      api.call<Omit<PluginReadResponse, 'plugin'> & { previewHash: string; plugin: Omit<PluginReadResponse['plugin'], 'skills'> & {
+        skills: (PluginReadResponse['plugin']['skills'][number] & { skillPreviewAllowed?: boolean })[] } }>(
         'plugin/read',
         { projectId: project.id, pluginId: selected },
         signal,
@@ -74,7 +76,7 @@ export function PluginSettings({
         { projectId: project.id, pluginId: selected, skillName: skill },
         signal,
       ),
-    visible && Boolean(selected && skill),
+    visible && Boolean(selected && skill) && detail.data?.plugin.skills.some(row => row.name === skill && row.skillPreviewAllowed === true) === true,
   );
   useEffect(() => {
     setConsent(false);
@@ -137,7 +139,7 @@ export function PluginSettings({
             void action.run(
               'plugin/reconcile',
               {},
-              '插件更新请求已受理，正在读取安装状态；请同时核对 Apps 与 MCP 是否可用。',
+              '插件更新请求已受理，正在读取安装状态；请同时核对 应用与 MCP 是否可用。',
             )
           }
         >
@@ -213,13 +215,13 @@ export function PluginSettings({
             <>
               <div className="section-heading">
                 <h3>{summary.interface?.displayName ?? summary.name}</h3>
-                <span className="badge">{summary.availability}</span>
+                <span className="badge">{statusLabel(summary.availability, pluginAvailability)}</span>
               </div>
               <p>{plugin.description ?? summary.interface?.longDescription}</p>
               <p className="small">
                 版本 {summary.localVersion ?? summary.version ?? '未提供'} · 安装策略{' '}
-                {summary.installPolicy} ·{' '}
-                {summary.authPolicy === 'ON_INSTALL' ? '安装后需要认证' : '使用时认证'}
+                {statusLabel(summary.installPolicy, pluginInstallPolicy)} ·{' '}
+                {statusLabel(summary.authPolicy, pluginAuthPolicies)}
               </p>
               {summary.disabledReason && (
                 <p className="workspace-warning">限制原因：{String(summary.disabledReason)}</p>
@@ -232,9 +234,9 @@ export function PluginSettings({
               <h4>此插件提供</h4>
               <ul>
                 <li>技能：{plugin.skills.map((row) => row.name).join('、') || '无'}</li>
-                <li>Hooks：{plugin.hooks.map((row) => row.eventName).join('、') || '无'}</li>
+                <li>钩子：{plugin.hooks.map((row) => hookEventLabel(row.eventName)).join('、') || '无'}</li>
                 <li>MCP 服务：{plugin.mcpServers.join('、') || '无'}</li>
-                <li>Apps：{plugin.apps.map((row) => row.name).join('、') || '无'}</li>
+                <li>应用：{plugin.apps.map((row) => row.name).join('、') || '无'}</li>
                 <li>计划任务：{plugin.scheduledTasks?.length ?? 0}</li>
               </ul>
               {plugin.onboardingSkill && (
@@ -254,7 +256,7 @@ export function PluginSettings({
               )}
               {plugin.appTemplates.length > 0 && (
                 <details>
-                  <summary>App 模板与依赖</summary>
+                  <summary>应用模板与依赖</summary>
                   <ul>
                     {plugin.appTemplates.map((template) => (
                       <li key={template.templateId}>
@@ -269,11 +271,12 @@ export function PluginSettings({
               {plugin.skills.length > 0 && (
                 <label className="field">
                   查看技能说明
-                  <select value={skill} onChange={(event) => setSkill(event.target.value)}>
+                  {plugin.skills.some(row => row.skillPreviewAllowed !== true) && <span className="muted">此技能正文不在当前项目可预览的目录内。请切换到配置该本地市场的来源项目查看不可选的技能。</span>}
+                  <select disabled={!plugin.skills.some(row => row.skillPreviewAllowed === true)} value={skill} onChange={(event) => setSkill(event.target.value)}>
                     <option value="">选择技能</option>
                     {plugin.skills.map((row) => (
-                      <option key={row.name} value={row.name}>
-                        {row.name}
+                      <option key={row.name} value={row.name} disabled={row.skillPreviewAllowed !== true}>
+                        {row.name}{row.skillPreviewAllowed === true ? '' : '（当前项目无法预览）'}
                       </option>
                     ))}
                   </select>
@@ -308,7 +311,7 @@ export function PluginSettings({
                       pluginId: selected,
                       ...(!summary.installed ? { previewHash: detail.data!.previewHash } : {}),
                     },
-                    '操作已受理。请核对重新读取的安装状态，并在 Apps 或 MCP 中完成所需认证。',
+                    '操作已受理。请核对重新读取的安装状态，并在 应用或 MCP 中完成所需认证。',
                   )
                 }
               >

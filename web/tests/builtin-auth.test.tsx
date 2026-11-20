@@ -53,16 +53,18 @@ it('keeps MFA challenge within the same login and never persists credentials', a
   vi.stubGlobal('fetch', fetch);
   const api = new Api(), onLogin = vi.fn(), lost = vi.fn(); api.onAuthenticationLost(lost);
   render(<Login api={api} onLogin={onLogin} />);
+  expect(document.activeElement).not.toBe(screen.getByLabelText('用户名'));
   loginFields();
   fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
   const code = await screen.findByLabelText('验证码或恢复码');
+  expect(document.activeElement).toBe(code);
   expect(api.externalAuthenticationRequired).toBe(false);
   expect(lost).not.toHaveBeenCalled();
   expect((screen.getByLabelText('密码') as HTMLInputElement).value).toBe(password);
   fireEvent.change(code, { target: { value: '123456' } });
   fireEvent.click(screen.getByRole('button', { name: '进入工作台 →' }));
   await waitFor(() => expect(onLogin).toHaveBeenCalledOnce());
-  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ username: 'admin', password, remember: false, otp: '123456' });
+  expect(JSON.parse(fetch.mock.calls[1]![1].body)).toEqual({ username: 'admin', password, remember: false, otp: '123456' });
   expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain(password);
   expect((screen.getByLabelText('密码') as HTMLInputElement).value).toBe('');
 });
@@ -120,8 +122,8 @@ it('submits account creation once and keeps password whitespace intact', async (
   const form = screen.getByLabelText('设置密码').closest('form')!;
   act(() => { fireEvent.submit(form); fireEvent.submit(form); });
   expect(fetch).toHaveBeenCalledOnce();
-  expect(fetch.mock.calls[0][0]).toBe('/api/account/setup');
-  expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({ token: 'synthetic-bootstrap-token', username: 'admin', password: value });
+  expect(fetch.mock.calls[0]![0]).toBe('/api/account/setup');
+  expect(JSON.parse(String(fetch.mock.calls[0]![1].body))).toEqual({ token: 'synthetic-bootstrap-token', username: 'admin', password: value });
   await act(async () => response.resolve(ok(session)));
   await waitFor(() => expect(onLogin).toHaveBeenCalledOnce());
   expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain('synthetic-bootstrap');
@@ -292,9 +294,14 @@ it('keeps invalid password errors local to security settings without logging out
 
 it('revokes only the selected session and binds it to the observed account revision', async () => {
   const f = await security(() => ok({ authenticated: true, operationRecoveryProtocol: 2 }));
+  const draft = 'fixture pending password change';
+  fireEvent.change(screen.getByLabelText('新密码', { exact: true }), { target: { value: draft } });
+  fireEvent.change(screen.getByLabelText('确认新密码'), { target: { value: draft } });
   fireEvent.click(screen.getByRole('button', { name: '撤销此设备登录' }));
   fireEvent.click(screen.getByRole('button', { name: /确认撤销 .* 的登录和终端/ }));
   await screen.findByText('已撤销该设备的登录。');
+  expect(screen.getByLabelText('新密码', { exact: true })).toHaveProperty('value', draft);
+  expect(screen.getByLabelText('确认新密码')).toHaveProperty('value', draft);
   const [, init] = f.fetch.mock.calls.find(([url]) => url === '/api/account/sessions/revoke')!;
   expect(JSON.parse(String(init?.body))).toEqual({ sessionId: 'other-id', expectedRevision: 'revision-1' });
 });
@@ -322,7 +329,7 @@ it('accepts full Unicode passwords and counts setup length by code points', asyn
   fireEvent.change(screen.getByLabelText('再次输入密码'), { target: { value } });
   fireEvent.click(screen.getByRole('button', { name: '创建账号并进入工作台' }));
   await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-  expect(JSON.parse(fetch.mock.calls[0][1].body).password).toBe(value);
+  expect(JSON.parse(fetch.mock.calls[0]![1].body).password).toBe(value);
 });
 
 it('keeps gateway account management available while the worker connection is down', async () => {
@@ -336,7 +343,7 @@ it('keeps gateway account management available while the worker connection is do
   fireEvent.click(screen.getByRole('button', { name: '账号与安全' }));
   await screen.findByText('admin');
   expect(screen.getByRole('button', { name: '撤销此设备登录' }).matches(':disabled')).toBe(false);
-  expect(fetch.mock.calls[0][0]).toBe('/api/account');
+  expect(fetch.mock.calls[0]![0]).toBe('/api/account');
 });
 
 it('does not revoke a device before the target-specific confirmation or after cancellation', async () => {

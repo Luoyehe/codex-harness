@@ -23,6 +23,24 @@ export type WorkspaceSnapshot = FileSnapshot | DirectorySnapshot;
 export type GitEntry = { index: string; worktree: string; path: string; originalPath?: string };
 export type GitRef = { name: string; objectId: string; symbolicTarget: string | null };
 export const byteLength = (text: string) => new TextEncoder().encode(text).length;
+/** Older native helpers and stored gateway receipts may predate localized explanations. */
+export function workspaceErrorMessage(method: string, error: Record<string, unknown>, fallback: string): string {
+  const message = String(error.message ?? fallback);
+  if (!method.startsWith('workspace/') || /[\u3400-\u9fff]/u.test(message)) return message;
+  const code = String(error.code ?? '');
+  const explanations: Record<string, string> = {
+    already_exists: '目标已存在。请选择其他名称，或刷新后核对现有内容。',
+    not_found: '工作区中的目标不存在。请刷新文件列表后核对。',
+    conflict: '文件或工作树已发生变化。请刷新并核对最新版本。',
+    busy: '工作区另有操作正在执行，请稍后查询原操作。',
+    budget: '工作区操作达到容量或遍历上限。请缩小范围，或先处理保留的恢复记录。',
+    recovery_required: '工作区有待核对的恢复材料，请先检查原操作记录。',
+    unsafe_path: '工作区路径、文件类型或权限未通过检查。请核对目标。',
+    workspace_unavailable: '无法取得完整的工作区响应，请查询原操作回执。'
+  };
+  return Object.hasOwn(explanations, code) ? explanations[code]! : '工作区操作失败，请查看原操作记录并核对其送达状态。';
+}
+
 export function workspacePath(path: string, allowRoot = false) {
   if (
     typeof path !== 'string' ||

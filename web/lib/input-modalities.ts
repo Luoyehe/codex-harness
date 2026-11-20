@@ -1,3 +1,4 @@
+import { providerModels } from './provider-models';
 import { object, type Model, type Options } from './types';
 import { executionOptions, type CollaborationModeMask } from './workflows';
 /** This is a UI admission check only; native model and attachment validation remain authoritative. */
@@ -6,6 +7,7 @@ export function mediaAdmission({
   intent,
   models,
   modelsLoading,
+  directoryComplete = true,
   defaults,
   defaultsLoading,
   options,
@@ -15,11 +17,12 @@ export function mediaAdmission({
   intent: 'send' | 'queue' | 'steer';
   models: Model[];
   modelsLoading: boolean;
+  directoryComplete?: boolean;
   defaults?: Record<string, unknown>;
   defaultsLoading: boolean;
   options: Options;
   modes: CollaborationModeMask[];
-}): { modalities: string[]; modelId: string; issue: string } {
+}): { modalities: string[]; modelId: string; issue: string; toolImageReference?: boolean } {
   const modalities = [
     ...new Set(
       attachments.flatMap((file) =>
@@ -54,8 +57,8 @@ export function mediaAdmission({
   if (typeof id !== 'string' || !id)
     return unavailable('尚未确认实际输入模型，不能发送图片或音频附件。');
   const provider = intent === 'send' ? options.modelProvider ?? defaults?.modelProvider : defaults?.modelProvider;
-  const matches = models.filter((row) => (row.id === id || row.model === id) &&
-    (!provider || !row.modelProvider || row.modelProvider === provider || (typeof provider === 'string' && row.providerAliases?.includes(provider))));
+  const candidates = typeof provider === 'string' && provider ? providerModels(models, provider, directoryComplete) : models;
+  const matches = candidates.filter(row => row.id === id || row.model === id);
   if (
     matches.length !== 1 ||
     !Array.isArray(matches[0]!.inputModalities) ||
@@ -66,6 +69,12 @@ export function mediaAdmission({
       id,
     );
   const missing = modalities.filter((value) => !matches[0]!.inputModalities!.includes(value));
+  if (missing.length === 1 && missing[0] === 'image' && matches[0]!.supportsTools === true && matches[0]!.inputModalities!.includes('text')) {
+    if (attachments.some(file => /^image\//i.test(file.mimeType) && !/^image\/(jpeg|png)$/i.test(file.mimeType))) {
+      return unavailable('本站允许通过工具引用传递 JPEG 和 PNG。请换用支持该格式的模型或附件。', id);
+    }
+    return { modalities, modelId: id, issue: '', toolImageReference:true };
+  }
   if (missing.length)
     return unavailable(
       `模型 ${id} 的目录未声明支持${missing.map((value) => (value === 'audio' ? '音频' : '图片')).join('、')}输入。请选择支持的模型或移除这些附件；草稿仍保留。`,

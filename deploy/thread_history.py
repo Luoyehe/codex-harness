@@ -7,27 +7,33 @@ and ordinal, including frozen fork-prefix offsets. Originals are never deleted.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import contextlib
 import hashlib
 import gzip
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 import stat
 import sys
 import tempfile
+import time
 
 from .common import DeployError, fsync_directory
 
-REQUEST_LIMIT = 8192
+REQUEST_LIMIT = 72 * 1024
 ROLLOUT_LIMIT = 1024 * 1024 * 1024
 LINE_LIMIT = 32 * 1024 * 1024
 LINE_COUNT_LIMIT = 1000000
 BACKUP_LIMIT = 512 * 1024 * 1024
 BACKUP_COUNT_LIMIT = 4096
 ANCESTOR_LIMIT = 16
-LOOKUP_ENTRY_LIMIT = 10000
+LOOKUP_ENTRY_LIMIT = 1000000
+ATTACHMENT_CHECKPOINT_BYTES = 8 * 1024 * 1024
 COPY_METADATA_LIMIT = 2 * 1024 * 1024
 ATTACHMENT_REFERENCE_LIMIT = 32768
 
@@ -140,7 +146,7 @@ def _read_witness(path: Path, uid: int) -> dict:
     return _witness(before, digest.hexdigest())
 
 
-def _rollout_index(home: Path, uid: int) -> dict[str, list[Path]]:
+def _rollout_index(home: Path, uid: int, target: str | None = None) -> dict[str, list[Path]]:
     """One bounded directory pass, reused for every ancestor in an inspection."""
     index = {}; count = 0
     _safe(home.lstat(), uid, directory=True)
@@ -152,75 +158,443 @@ def _rollout_index(home: Path, uid: int) -> dict[str, list[Path]]:
             with os.scandir(directory) as listing:
                 for entry in listing:
                     count += 1
-                    check(count <= LOOKUP_ENTRY_LIMIT, "History directory lookup exceeds 10000 entries; attachment reconciliation remains incomplete", "thread_history_limit")
+                    check(count <= LOOKUP_ENTRY_LIMIT, "History directory lookup exceeds its traversal budget; reconciliation remains incomplete", "thread_history_limit")
                     if entry.is_dir(follow_symlinks=False): pending.append(Path(entry.path))
                     else:
                         match = re.search(r"([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\.jsonl(?:\.zst)?$", entry.name)
-                        if match: index.setdefault(match[1], []).append(Path(entry.path))
-                        else: check(not entry.name.endswith((".jsonl", ".jsonl.zst")), "Unrecognized history filename; attachment reconciliation remains incomplete", "thread_history_unsupported")
+                        if match:
+                            if target is None or match[1] == target: index.setdefault(match[1], []).append(Path(entry.path))
+                        elif target is None: check(not entry.name.endswith((".jsonl", ".jsonl.zst")), "Unrecognized history filename; attachment reconciliation remains incomplete", "thread_history_unsupported")
     return index
 
 
-def _attachment_paths(home: Path, uid: int, path: Path, thread_id: str, root: str, index: dict, budget: list[int]) -> list[str]:
-    """Collect exact managed paths in persisted records, including frozen fork prefixes.
+INLINE_IMAGE_BYTES = 4 * 1024 * 1024
+INLINE_IMAGE_MIMES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
-    This does not open attachment paths or grant arbitrary filesystem access.
-    The supervisor subsequently matches them against its private immutable index.
-    """
-    found = set(); seen = set()
+
+def _image_reference(value, active=None):
+    if not isinstance(value, str) or value[:5].lower() != "data:":
+        return None
+    end = value.find(",", 0, 96)
+    check(end > 0, "Invalid inline image header")
+    _, separator, encoding = value[5:end].lower().partition(";")
+    check(separator and encoding == "base64", "Unrecognized inline image encoding")
+    size = len(value) - end - 1
+    check(0 < size <= ((INLINE_IMAGE_BYTES + 2) // 3) * 4, "Inline image exceeds attachment budget", "thread_history_limit")
+    try:
+        raw = base64.b64decode(value[end + 1:], validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise HistoryError("thread_history_invalid", "Invalid inline image encoding") from error
+    check(0 < len(raw) <= INLINE_IMAGE_BYTES, "Inline image exceeds attachment budget", "thread_history_limit")
+    digest = hashlib.sha256(raw).hexdigest()
+    if active is not None and digest not in active: return None
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"): actual = "image/png"
+    elif raw.startswith(b"\xff\xd8\xff"): actual = "image/jpeg"
+    elif raw[:6] in (b"GIF87a", b"GIF89a"): actual = "image/gif"
+    elif raw[:4] == b"RIFF" and raw[8:12] == b"WEBP": actual = "image/webp"
+    else: raise HistoryError("thread_history_invalid", "Unrecognized inline image data")
+    return actual, digest, len(raw)
+
+
+def _reference_record(paths, images):
+    result = {"paths": sorted(paths)}
+    if images:
+        result["images"] = [{"mimeType": mime, "sha256": digest} for mime, digest in sorted(images)]
+    return result
+
+
+def _active_image_digests(request):
+    encoded = request.get("activeImageDigests")
+    if encoded is None: return None
+    check(isinstance(encoded, str) and len(encoded) <= ((32 * 1280 + 2) // 3) * 4, "Invalid active image digest list")
+    try: raw = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError): raise HistoryError("thread_history_invalid", "Invalid active image digest list") from None
+    check(len(raw) <= 32 * 1280 and len(raw) % 32 == 0, "Invalid active image digest length")
+    return frozenset(raw[start:start + 32].hex() for start in range(0, len(raw), 32))
+
+
+@lru_cache(maxsize=4)
+def _digest_filter_stamp(active):
+    if active is None: return None
+    return hashlib.sha256(b"".join(bytes.fromhex(value) for value in sorted(active))).hexdigest()
+
+
+def _managed_references(root: str, active=None, unmatched=None):
+    found = set()
+    images = set()
     attachment_root = _local_path(root)
     check(attachment_root.is_absolute() and ".." not in attachment_root.parts, "Invalid attachment root")
     def collect(value, depth=0):
         check(depth <= 64, "Attachment record nesting exceeds budget", "thread_history_limit")
         if isinstance(value, dict):
+            kind = value.get("type")
+            # Native queue JSON, Responses input_image, and rollout user_message
+            # carry the same file in different input fields. Ignore plain text
+            # that merely mentions a data URI.
+            candidates = []
+            if kind == "image": candidates = [value.get("url"), value.get("image_url")]
+            elif kind == "input_image":
+                url = value.get("image_url")
+                candidates = [url.get("url") if isinstance(url, dict) else url]
+            elif kind == "user_message" and isinstance(value.get("images"), list):
+                candidates = value["images"]
+            for candidate in candidates:
+                if unmatched is not None:
+                    ref = _image_reference(candidate)
+                    if ref and active is not None and ref[1] not in active:
+                        unmatched.add(ref[:2])
+                        check(len(unmatched) <= 128, "Unmatched inline image evidence exceeds per-thread budget", "thread_history_limit")
+                        continue
+                else:
+                    ref = _image_reference(candidate, active) if active is None or active else None
+                if ref: images.add(ref[:2])
+            check(len(images) <= ATTACHMENT_REFERENCE_LIMIT, "Inline image reference budget exceeded", "thread_history_limit")
             for item in value.values(): collect(item, depth + 1)
         elif isinstance(value, list):
             for item in value: collect(item, depth + 1)
         elif isinstance(value, str):
             candidates = [value]
-            match = re.fullmatch(r'Attached file "(?:[^"\\]|\\.)*" is available at ("(?:[^"\\]|\\.)*")\.', value)
+            reference = value.removesuffix('\nDecide whether an available and authorized vision tool can read this file. If the image was not read successfully, say so. Answer any independent text request normally.')
+            match = re.fullmatch(r'Attached file "(?:[^"\\]|\\.)*" is available at ("(?:[^"\\]|\\.)*")\.', reference)
             if match: candidates.append(json.loads(match[1]))
             for candidate in candidates:
-                if not candidate or "\x00" in candidate: continue
+                if len(candidate) > 8192 or not candidate or "\x00" in candidate: continue
                 name = _local_path(candidate)
-                if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg))?", name.name):
+                if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg|jpg|png|gif|webp|mp4|mov))?", name.name):
                     found.add(str(name)); check(len(found) <= 128, "Attachment reference budget exceeded", "thread_history_limit")
+    return collect, found, images
+
+
+@contextlib.contextmanager
+def _scan_checkpoints(home: Path, uid: int):
+    """Resume large immutable rollout prefixes. Each checkpoint is tied to
+    path, owner, file identity, size, ctime, mtime and the requested cutoff."""
+    filename = home / "harness-attachment-checkpoints.sqlite"
+    fd = os.open(filename, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try: _safe(os.fstat(fd), uid)
+    finally: os.close(fd)
+    for suffix in ("", "-journal", "-wal", "-shm"):
+        sidecar = Path(str(filename) + suffix)
+        if sidecar.exists() or sidecar.is_symlink(): _safe(sidecar.lstat(), uid)
+    db = sqlite3.connect(filename)
+    try:
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("PRAGMA synchronous=FULL")
+        db.execute("CREATE TABLE IF NOT EXISTS checkpoints(key TEXT PRIMARY KEY, offset INTEGER NOT NULL, lines INTEGER NOT NULL, paths TEXT NOT NULL, stamp INTEGER NOT NULL)")
+        db.execute("DELETE FROM checkpoints WHERE key IN (SELECT key FROM checkpoints ORDER BY stamp DESC LIMIT -1 OFFSET 1024)")
+        db.commit()
+        yield db
+    finally: db.close()
+
+
+def _attachment_paths(home: Path, uid: int, path: Path, thread_id: str, root: str, index: dict, budget: list[int], checkpoints=None, active=None):
+    """Collect exact managed paths in persisted records, including frozen fork prefixes.
+
+    This does not open attachment paths or grant arbitrary filesystem access.
+    The supervisor subsequently matches them against its private immutable index.
+    """
+    all_paths = set(); all_images = set(); all_unmatched = set()
+    seen = set()
     def scan(filename, identity, cutoff=None):
         check(identity not in seen and len(seen) < ANCESTOR_LIMIT, "Attachment ancestor lineage exceeds budget", "thread_history_limit")
         seen.add(identity); filename = _path(home, str(filename), uid)
+        missing = set()
+        collect, found, images = _managed_references(root, active, missing if active else None)
         with os.fdopen(_open(filename, os.O_RDONLY, uid), "rb") as stream:
             before = os.fstat(stream.fileno()); maximum = before.st_size if cutoff is None else cutoff
-            check(type(maximum) is int and 0 < maximum <= before.st_size and budget[0] + maximum <= ROLLOUT_LIMIT, "Attachment history inspection exceeds budget", "thread_history_limit")
-            size = count = 0; base = None
+            check(type(maximum) is int and 0 < maximum <= before.st_size and
+                  (checkpoints is not None or budget[0] + maximum <= ROLLOUT_LIMIT), "Attachment history inspection exceeds budget", "thread_history_limit")
+            header = stream.readline(min(LINE_LIMIT + 1, maximum))
+            value = _decode(header)
+            check(header.endswith(b"\n") and len(header) <= LINE_LIMIT and value.get("type") == "session_meta" and value["payload"].get("id") == identity, "Attachment history identity mismatch")
+            base = value["payload"].get("history_base"); size = len(header); count = 1
+            key = None
+            if checkpoints is not None and maximum >= ATTACHMENT_CHECKPOINT_BYTES:
+                witness = ["inline-refs-v4", _digest_filter_stamp(active), str(filename), identity, root, *_identity(before), before.st_ctime_ns, maximum]
+                key = hashlib.sha256(json.dumps(witness).encode()).hexdigest()
+                saved = checkpoints.execute("SELECT offset,lines,paths FROM checkpoints WHERE key=?", (key,)).fetchone()
+                if saved:
+                    size, count, paths = saved
+                    check(len(header) <= size <= maximum and count >= 1 and len(paths) <= 1024 * 1024, "Invalid history checkpoint")
+                    recorded = _decode(paths)
+                    check(isinstance(recorded, dict) and isinstance(recorded.get("paths"), list), "Invalid attachment checkpoint")
+                    for item in recorded["paths"]: collect(item)
+                    for field, destination in (("images", images), ("unmatched", missing)):
+                        for image in recorded.get(field, []):
+                            check(isinstance(image, dict) and image.get("mimeType") in INLINE_IMAGE_MIMES and
+                                  isinstance(image.get("sha256"), str) and re.fullmatch("[0-9a-f]{64}", image["sha256"]), "Invalid image checkpoint")
+                            destination.add((image["mimeType"], image["sha256"]))
+                    stream.seek(size)
+            checkpoint = size
             while size < maximum:
                 raw = stream.readline(min(LINE_LIMIT + 1, maximum - size)); size += len(raw); count += 1
-                check(raw.endswith(b"\n") and len(raw) <= LINE_LIMIT and count <= LINE_COUNT_LIMIT, "Incomplete attachment history", "thread_history_changed")
+                check(raw.endswith(b"\n") and len(raw) <= LINE_LIMIT, "Incomplete attachment history", "thread_history_changed")
                 value = _decode(raw); check(isinstance(value, dict) and isinstance(value.get("payload"), dict), "Invalid attachment record")
-                if count == 1:
-                    check(value.get("type") == "session_meta" and value["payload"].get("id") == identity, "Attachment history identity mismatch")
-                    base = value["payload"].get("history_base")
-                else: collect(value["payload"])
+                collect(value["payload"])
+                if key and (size - checkpoint >= ATTACHMENT_CHECKPOINT_BYTES or size == maximum):
+                    check(_identity(before) == _identity(os.fstat(stream.fileno())) and before.st_ctime_ns == os.fstat(stream.fileno()).st_ctime_ns,
+                          "Attachment history changed", "thread_history_changed")
+                    record = _reference_record(found, images)
+                    if missing: record["unmatched"] = _reference_record([], missing)["images"]
+                    checkpoints.execute("INSERT OR REPLACE INTO checkpoints VALUES(?,?,?,?,?)", (key, size, count, json.dumps(record), time.time_ns()))
+                    checkpoints.commit(); checkpoint = size
             check(_identity(before) == _identity(os.fstat(stream.fileno())) and os.path.samestat(before, filename.lstat()), "Attachment history changed", "thread_history_changed")
-            budget[0] += size
+            budget[0] += size; all_paths.update(found); all_images.update(images); all_unmatched.update(missing)
+            check(len(all_unmatched) <= 128, "Unmatched history images exceed per-thread budget", "thread_history_limit")
         if base is not None:
             check(isinstance(base, dict) and isinstance(base.get("thread_id"), str) and type(base.get("end_byte_offset")) is int, "Unsupported attachment ancestor")
             matches = index.get(base["thread_id"], [])
             check(len(matches) == 1 and matches[0].suffix == ".jsonl", "Attachment ancestor unavailable or compressed", "thread_history_inherited")
             scan(matches[0], base["thread_id"], base["end_byte_offset"])
     scan(path, thread_id)
-    return sorted(found)
+    return all_paths, all_images, all_unmatched
 
 
-def _attachment_index(home: Path, uid: int, root: str) -> dict:
-    index = _rollout_index(home, uid); references = []; unresolved = []; budget = [0]; count = 0
-    for identity, paths in index.items():
-        if len(paths) != 1 or paths[0].suffix != ".jsonl": unresolved.append(identity); continue
-        try: matches = _attachment_paths(home, uid, paths[0], identity, root, index, budget)
-        except (HistoryError, OSError, ValueError, TypeError, KeyError): unresolved.append(identity); continue
-        if matches:
-            count += len(matches); check(count <= ATTACHMENT_REFERENCE_LIMIT, "Attachment index exceeds reference budget", "thread_history_limit")
-            references.append({"threadId": identity, "paths": matches})
-    return {"threadIds": sorted(index), "references": references, "unresolvedThreadIds": sorted(unresolved)}
+@contextlib.contextmanager
+def _queue_store(home: Path, uid: int):
+    """Hold a native queue read transaction and verify its identity through the complete read."""
+    configured = os.environ.get("CODEX_SQLITE_HOME")
+    native_config = home / "config.toml"
+    if not configured and native_config.exists():
+        # Native configuration may redirect the durable stores. Parse only when
+        # the setting is present, so older Python installations remain usable.
+        with native_config.open("rb") as stream:
+            raw_config = stream.read(2 * 1024 * 1024 + 1)
+        check(len(raw_config) <= 2 * 1024 * 1024, "Native configuration exceeds the queue lookup budget")
+        if b"sqlite_home" in raw_config:
+            from tomllib import loads
+            configured = loads(raw_config.decode("utf-8")).get("sqlite_home")
+    dbroot = _local_path(configured) if configured else home
+    check(dbroot.is_absolute() and ".." not in dbroot.parts, "Cannot establish the native queue location")
+    _safe(dbroot.lstat(), uid, directory=True)
+    dbpath = dbroot / "queue_1.sqlite"
+    if not dbpath.exists() and not dbpath.is_symlink():
+        check(not any(dbroot.glob("queue_*.sqlite")), "Unknown native queue version")
+        yield None
+        check(not dbpath.exists(), "Native queue appeared during inspection", "thread_history_changed")
+        return
+    _safe(dbpath.lstat(), uid)
+    initial = dbpath.lstat()
+    with contextlib.closing(sqlite3.connect(dbpath.as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
+        db.execute("PRAGMA query_only=ON")
+        db.execute("PRAGMA trusted_schema=OFF")
+        check(db.execute("SELECT type FROM sqlite_schema WHERE name='queued_items'").fetchone() == ("table",),
+              "Unrecognized native queue schema")
+        version = db.execute("PRAGMA data_version").fetchone()
+        db.execute("BEGIN")
+        yield db
+        db.rollback()
+        check(db.execute("PRAGMA data_version").fetchone() == version and os.path.samestat(initial, dbpath.lstat()),
+              "Native queue changed during reconciliation", "thread_history_changed")
+
+
+
+@contextlib.contextmanager
+def _queue_snapshot(home: Path, uid: int, root: str, active=None):
+    with _queue_store(home, uid) as db:
+        if db is None:
+            yield {}, set()
+            return
+        found = {}; unresolved = set(); total = 0
+        for number, (identity, payload) in enumerate(db.execute(
+                "SELECT thread_id, CASE WHEN length(CAST(payload_json AS BLOB)) <= ? THEN payload_json END FROM queued_items", (LINE_LIMIT,))):
+            check(number < ATTACHMENT_REFERENCE_LIMIT and isinstance(identity, str) and 0 < len(identity) <= 256,
+                  "Queue inventory exceeds limits", "thread_history_limit")
+            if not isinstance(payload, str):
+                unresolved.add(identity); continue
+            total += len(payload.encode("utf-8"))
+            check(total <= ROLLOUT_LIMIT, "Queue inventory exceeds its read budget", "thread_history_limit")
+            unmatched = set()
+            collect, paths, images = _managed_references(root, active, unmatched)
+            try:
+                item = _decode(payload)
+                check(isinstance(item, (dict, list)), "Unsupported queue payload")
+                collect(item)
+                existing_paths, existing_images, missing = found.setdefault(identity, (set(), set(), set()))
+                existing_paths.update(paths); existing_images.update(images); missing.update(unmatched)
+            except (ValueError, TypeError, HistoryError, RecursionError):
+                unresolved.add(identity)
+        yield found, unresolved
+
+
+QUEUE_DETAIL_LIMIT = 6 * 1024 * 1024
+
+
+def _queue_inputs(payload):
+    item = _decode(payload)
+    body = item.get("UserInput") if isinstance(item, dict) else None
+    check(isinstance(body, dict) and isinstance(body.get("content"), list) and len(body["content"]) <= 8192 and
+          isinstance(body.get("client_id"), str) and 0 < len(body["client_id"]) <= 256, "无法识别原生待办输入。")
+    result = []
+    for atom in body["content"]:
+        check(isinstance(atom, dict) and isinstance(atom.get("type"), str), "无法识别原生待办内容。")
+        kind = atom["type"]
+        if kind == "text":
+            elements = atom.get("text_elements", [])
+            check(isinstance(atom.get("text"), str) and isinstance(elements, list) and len(elements) <= 8192,
+                  "无法核对原生待办的文字标记。")
+            public = []
+            for element in elements:
+                check(isinstance(element, dict), "无法核对原生待办的文字标记。")
+                span = element.get("byte_range", element.get("byteRange")); placeholder = element.get("placeholder")
+                check(isinstance(span, dict) and type(span.get("start")) is int and type(span.get("end")) is int and
+                      0 <= span["start"] <= span["end"] and (placeholder is None or isinstance(placeholder, str)),
+                      "无法核对原生待办的文字位置。")
+                public.append({"byteRange": {"start": span["start"], "end": span["end"]}, "placeholder": placeholder})
+            part = {"type": "text", "text": atom["text"], "text_elements": public}
+        elif kind in ("skill", "mention"): part = atom.copy()
+        elif kind in ("image", "audio"):
+            part = {"type": kind}
+            url = atom.get(kind + "_url", atom.get("url"))
+            file_id = atom.get("file_id", atom.get("fileId"))
+            check(isinstance(url, str) != isinstance(file_id, str), "无法识别原生待办媒体位置。")
+            if isinstance(url, str): part["url"] = url
+            else: part["fileId"] = file_id
+            if atom.get("detail") is not None: part["detail"] = atom["detail"]
+        elif kind in ("local_image", "localImage", "local_audio", "localAudio"):
+            check(isinstance(atom.get("path"), str), "无法识别原生待办文件。")
+            part = {"type": "localImage" if kind in ("local_image", "localImage") else "localAudio", "path": atom["path"]}
+            if atom.get("detail") is not None: part["detail"] = atom["detail"]
+        else: raise HistoryError("thread_history_unsupported", "该待办包含尚未识别的输入类型。")
+        result.append(part)
+    return result, body["client_id"], body.get("responsesapi_client_metadata")
+
+
+def _queue_summary(row_id, size, payload, attachment_root):
+    row = {"id": row_id, "bytes": size, "oversized": size > QUEUE_DETAIL_LIMIT,
+           "clientUserMessageId": None, "preview": "", "media": []}
+    if payload is None:
+        row["metadataIncomplete"] = True
+        return row
+    try:
+        parts, client_id, _ = _queue_inputs(payload)
+        media = []; seen = set(); preview = ""
+        for part in parts:
+            kind = part["type"]
+            if kind == "text":
+                value = part.get("text")
+                check(isinstance(value, str), "无法识别原生待办文字。")
+                if len(value) <= 8192 and value.startswith("Attached file "):
+                    collect, paths, _ = _managed_references(attachment_root)
+                    collect(value)
+                    if paths:
+                        check(len(value.encode("utf-8")) <= 2048, "受管待办引用过长。")
+                        if value not in seen: media.append({"type": "text", "text": value}); seen.add(value)
+                        continue
+                if not preview: preview = value[:160]
+            elif kind in ("image", "audio", "localImage", "localAudio") and kind not in seen:
+                media.append({"type": kind}); seen.add(kind)
+            check(len(media) <= 128, "待办媒体总数超出核对范围。")
+        row.update(clientUserMessageId=client_id, preview=preview, media=media)
+    except (HistoryError, ValueError, TypeError, KeyError, RecursionError):
+        row["metadataIncomplete"] = True
+    return row
+
+
+def _queue_inspect(home, uid, request):
+    image = request["action"] == "queue-image"
+    single = request["action"] in ("queue-item", "queue-image")
+    check(set(request) <= ({"action", "threadId", "attachmentRoot", "queuedSubmissionId"} | ({"ordinal", "expectedSha256", "expectedBytes"} if image else set())) and
+          isinstance(request.get("threadId"), str) and re.fullmatch("[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", request["threadId"]),
+          "待办会话编号无效。")
+    root = request.get("attachmentRoot")
+    check(isinstance(root, str) and _local_path(root).is_absolute() and ".." not in _local_path(root).parts,
+          "待办附件目录无效。")
+    row_id = request.get("queuedSubmissionId")
+    check(row_id is None and not single or isinstance(row_id, str) and 0 < len(row_id) <= 256, "待办编号无效。")
+    if image:
+        check(type(request.get("ordinal")) is int and 0 <= request["ordinal"] < 8192 and
+              isinstance(request.get("expectedSha256"), str) and re.fullmatch("[0-9a-f]{64}", request["expectedSha256"]) and
+              type(request.get("expectedBytes")) is int and 0 < request["expectedBytes"] <= INLINE_IMAGE_BYTES, "待办图片核对凭据无效。")
+    empty = {"queuedSubmission": None} if single else {"large": False, "data": [], "complete": True}
+    with _queue_store(home, uid) as db:
+        if db is None:
+            check(not image, "待办图片已经变化。", "thread_history_changed")
+            return empty
+        identity = request["threadId"]
+        if image:
+            field = f'$.UserInput.content[{request["ordinal"]}]'
+            stored = db.execute("SELECT CASE WHEN length(CAST(payload_json AS BLOB))<=? THEN json_extract(payload_json,?) END "
+                                "FROM queued_items WHERE thread_id=? AND id=?", (LINE_LIMIT, field, identity, row_id)).fetchone()
+            check(stored and isinstance(stored[0], str) and len(stored[0]) <= 6 * 1024 * 1024, "待办图片已经变化。", "thread_history_changed")
+            part = _decode(stored[0]); url = part.get("image_url", part.get("url")) if isinstance(part, dict) and part.get("type") == "image" else None
+            ref = _image_reference(url)
+            check(ref and ref[1] == request["expectedSha256"] and ref[2] == request["expectedBytes"],
+                  "待办图片已经变化，请重新读取。", "thread_history_changed")
+            return {"mimeType": ref[0], "sha256": ref[1], "bytes": ref[2], "base64": url[url.index(",") + 1:]}
+        if single:
+            row = db.execute("SELECT length(CAST(payload_json AS BLOB)),"
+                             "CASE WHEN length(CAST(payload_json AS BLOB))<=? THEN payload_json END "
+                             "FROM queued_items WHERE thread_id=? AND id=?", (LINE_LIMIT, identity, row_id)).fetchone()
+            if row is None: return empty
+            check(row[0] <= LINE_LIMIT and isinstance(row[1], str), "该待办超过可核对的容量，可在列表按编号核对或删除。", "thread_history_limit")
+            parts, client_id, metadata = _queue_inputs(row[1])
+            if row[0] > QUEUE_DETAIL_LIMIT:
+                for i, part in enumerate(parts):
+                    if part["type"] != "image": continue
+                    ref = _image_reference(part.get("url"))
+                    if ref:
+                        mime, digest, size = ref
+                        parts[i] = {"type": "harnessInlineImageDigest", "mimeType": mime, "sha256": digest, "bytes": size,
+                                    "urlSha256": hashlib.sha256(part["url"].encode("utf-8")).hexdigest(),
+                                    **({"detail": part["detail"]} if "detail" in part else {})}
+            result = {"queuedSubmission": {"id": row_id, "clientUserMessageId": client_id, "input": parts, "responsesapiClientMetadata": metadata}}
+            check(len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) <= QUEUE_DETAIL_LIMIT,
+                  "该待办剩余输入超过容量，可在列表按编号核对或删除。", "thread_history_limit")
+            return result
+        count, total = db.execute("SELECT count(*),sum(length(CAST(payload_json AS BLOB))) FROM queued_items WHERE thread_id=?", (identity,)).fetchone()
+        if not count or total <= QUEUE_DETAIL_LIMIT: return empty
+        check(row_id is not None or count <= 4096, "待办数量超出单次核对范围。", "thread_history_limit")
+        query = "SELECT id,length(CAST(payload_json AS BLOB)) FROM queued_items WHERE thread_id=?"
+        args = [identity]
+        if row_id is not None: query += " AND id=?"; args.append(row_id)
+        rows = []; inspected = 0; response_bytes = 0
+        for key, size in db.execute(query + " ORDER BY queue_order,id", args):
+            check(isinstance(key, str) and 0 < len(key) <= 256 and type(size) is int, "待办元数据无效。")
+            payload = None
+            if size <= LINE_LIMIT and inspected + size <= 128 * 1024 * 1024:
+                payload = db.execute("SELECT payload_json FROM queued_items WHERE thread_id=? AND id=?", (identity, key)).fetchone()[0]
+                inspected += size
+            summary = _queue_summary(key, size, payload, root)
+            response_bytes += len(json.dumps(summary, ensure_ascii=False).encode("utf-8"))
+            if response_bytes >= COPY_METADATA_LIMIT:
+                summary = _queue_summary(key, size, None, root)
+            rows.append(summary)
+        return {"large": True, "data": rows, "complete": True}
+
+
+def _attachment_index(home: Path, uid: int, root: str, active=None) -> dict:
+    index = _rollout_index(home, uid); references = []; count = 0
+    with _queue_snapshot(home, uid, root, active) as (queued, unresolved), _scan_checkpoints(home, uid) as checkpoints:
+        identities = set(index) | set(queued) | unresolved
+        for identity in sorted(identities):
+            if identity in unresolved: continue
+            matches, images, missing = queued.get(identity, (set(), set(), set()))
+            queue_images = sorted(images); history_missing = set()
+            paths = index.get(identity, [])
+            if paths:
+                if len(paths) != 1 or paths[0].suffix != ".jsonl":
+                    unresolved.add(identity); continue
+                try:
+                    history_paths, history_images, history_missing = _attachment_paths(home, uid, paths[0], identity, root, index, [0], checkpoints, active)
+                    matches.update(history_paths); images.update(history_images)
+                except (HistoryError, OSError, ValueError, TypeError, KeyError):
+                    unresolved.add(identity); continue
+            if len(missing) > 128 or len(history_missing | missing) > 128:
+                unresolved.add(identity); continue
+            if matches or images or missing or history_missing:
+                count += len(matches) + len(images) + len(history_missing | missing); check(count <= ATTACHMENT_REFERENCE_LIMIT, "Attachment index exceeds reference budget", "thread_history_limit")
+                entry = {"threadId": identity, **_reference_record(matches, images)}
+                if active is not None and queue_images:
+                    entry["queuedImages"] = _reference_record([], queue_images)["images"]
+                if missing:
+                    entry["unmatchedQueuedImage"] = True
+                    entry["unmatchedQueuedImages"] = _reference_record([], missing)["images"]
+                if history_missing: entry["unmatchedHistoryImages"] = _reference_record([], history_missing)["images"]
+                references.append(entry)
+        # Only owners with references or unresolved evidence are material to GC.
+        reported = identities if len(identities) <= 10000 else unresolved | {row["threadId"] for row in references}
+        return {"threadIds": sorted(reported), "references": references, "unresolvedThreadIds": sorted(unresolved)}
 
 
 def _transform_line(line: bytes, thread_id: str, mode: str, index: int) -> tuple[bytes, int, int, str | None, bool, bool]:
@@ -313,7 +687,6 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
             base = _decode(source.readline(LINE_LIMIT + 1))["payload"].get("history_base")
         if base is None:
             return result
-        index = _rollout_index(home, uid)
         seen = set(); consumed = 0; found = False
         while base is not None:
             check(isinstance(base, dict) and isinstance(base.get("thread_id"), str) and
@@ -324,7 +697,7 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
             identity = base["thread_id"]; cutoff = base["end_byte_offset"]
             check(identity not in seen and len(seen) < ANCESTOR_LIMIT, "Ancestor lineage exceeds budget")
             seen.add(identity)
-            matches = index.get(identity, [])
+            matches = _rollout_index(home, uid, identity).get(identity, [])
             check(len(matches) == 1 and matches[0].suffix == ".jsonl", "Ancestor is unavailable or compressed")
             ancestor = _path(home, str(matches[0]), uid)
             with os.fdopen(_open(ancestor, os.O_RDONLY, uid), "rb") as source:
@@ -590,12 +963,24 @@ def operate(home: Path, uid: int, request: object) -> dict:
     temporary = None
     try:
         check(isinstance(request, dict), "Invalid history request")
+        if request.get("action") in ("queue-item", "queue-capacity", "queue-image"):
+            return _queue_inspect(_local_path(str(home)), uid, request)
+        if request == {"action": "mcp-enabled-read"}:
+            from .mcp_enabled_override import read
+            return read(home)
+        if request == {"action": "mcp-enabled-launch"}:
+            from .mcp_enabled_override import launch_arguments
+            return {"args": launch_arguments(home)}
+        if request.get("action") == "mcp-enabled-override":
+            from .mcp_enabled_override import apply
+            try: return apply(home, {key: value for key, value in request.items() if key != "action"})
+            except DeployError as error: raise HistoryError("thread_history_config_conflict", str(error)) from None
         if request.get("action") == "attachment-index":
-            check(set(request) == {"action", "attachmentRoot"} and isinstance(request["attachmentRoot"], str), "Invalid attachment reconciliation request")
-            return _attachment_index(_local_path(str(home)), uid, request["attachmentRoot"])
+            check(set(request) <= {"action", "attachmentRoot", "activeImageDigests"} and isinstance(request.get("attachmentRoot"), str), "Invalid attachment reconciliation request")
+            return _attachment_index(_local_path(str(home)), uid, request["attachmentRoot"], _active_image_digests(request))
         allowed = {"action", "threadId", "path", "mode", "expected"}
         if request.get("action") == "recovery-copy": allowed |= {"target", "sourceProvider", "targetProvider", "cwd"}
-        if request.get("action") == "attachment-inspect": allowed |= {"attachmentRoot"}
+        if request.get("action") == "attachment-inspect": allowed |= {"attachmentRoot", "activeImageDigests"}
         check(set(request) <= allowed, "Invalid history request")
         check(request.get("action") in ("inspect", "repair", "copy-inspect", "recovery-copy", "attachment-inspect") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
         thread_id = request.get("threadId")
@@ -604,7 +989,8 @@ def operate(home: Path, uid: int, request: object) -> dict:
         path = _path(home, request.get("path"), uid, inspect_compressed=request["action"] == "inspect")
         if request["action"] == "attachment-inspect":
             check(isinstance(request.get("attachmentRoot"), str), "Invalid attachment root")
-            return {"paths": _attachment_paths(home, uid, path, thread_id, request["attachmentRoot"], _rollout_index(home, uid), [0])}
+            found, images, _ = _attachment_paths(home, uid, path, thread_id, request["attachmentRoot"], _rollout_index(home, uid), [0], active=_active_image_digests(request))
+            return _reference_record(found, images)
         if request["action"] == "copy-inspect":
             check("expected" not in request, "Inspection does not accept replacement proof")
             witness, _, metadata, _, _ = _copy_scan(path, uid, thread_id)
@@ -663,11 +1049,15 @@ def history_main(home: Path, uid: int) -> None:
     try:
         raw = sys.stdin.buffer.read(REQUEST_LIMIT + 1)
         check(len(raw) <= REQUEST_LIMIT, "History request exceeds budget")
-        result = operate(home, uid, _decode(raw))
+        request = _decode(raw)
+        if not isinstance(request, dict) or request.get("action") not in ("attachment-index", "attachment-inspect"):
+            check(len(raw) <= 8192, "History request exceeds budget")
+        result = operate(home, uid, request)
         # Metadata can contain Unicode base instructions. Bind the budget to
         # actual UTF-8 stdout bytes instead of ASCII escapes or console locale.
         encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
-        check(len(encoded) <= COPY_METADATA_LIMIT + REQUEST_LIMIT, "History response exceeds budget", "thread_history_limit")
+        output_limit = QUEUE_DETAIL_LIMIT if request.get("action") in ("queue-item", "queue-capacity", "queue-image") else COPY_METADATA_LIMIT
+        check(len(encoded) <= output_limit + 16384, "History response exceeds budget", "thread_history_limit")
         sys.stdout.buffer.write(encoded); sys.stdout.buffer.flush()
     except (ValueError, HistoryError) as error:
         if not isinstance(error, HistoryError):

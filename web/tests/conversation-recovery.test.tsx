@@ -55,7 +55,7 @@ describe('read-only history lifecycle recovery', () => {
     expect(hook.result.current.turns[0]?.items.map(item => item.id)).toEqual(['question', 'answer']);
     expect(hook.result.current.turns[0]?.items[1]?.text).toBe('live before during');
     expect(h.call.mock.calls.filter(([method]) => method === 'thread/history').map(([, params]) => params)).toEqual([
-      { threadId: 'new', limit: 30 }, { threadId: 'new', limit: 30 },
+      { threadId: 'new', limit: 30, timelineFormat: 'references' }, { threadId: 'new', limit: 30, timelineFormat: 'references' },
     ]);
   });
 
@@ -116,6 +116,17 @@ describe('read-only history lifecycle recovery', () => {
     expect(hook.result.current.turns.map(turn => turn.id)).toEqual(['live']);
     expect(hook.result.current.turns[0]?.items[0]?.text).toBe('retained live');
     expect(h.call.mock.calls.filter(([method]) => method === 'thread/history').map(([, params]) => params.cursor ?? null)).toEqual([null, 'old-cursor', 'old-cursor', null]);
+  });
+
+  it('rereads the authoritative thread when an oversized live preview could not preserve its contents', async () => {
+    let version = 0;
+    const h = harness(() => page([{ id: 'turn', status: 'completed', items: [
+      { id: 'answer', type: 'agentMessage', text: version ? 'authoritative answer' : 'before preview gap' }
+    ] }], { historyVersion: version }));
+    const hook = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(hook.result.current.complete).toBe(true));
+    act(() => { version++; event(h.events, 'thread/history/invalidated', { historyVersion: version, previewOmitted: true }); });
+    await waitFor(() => expect(hook.result.current.turns[0]?.items[0]?.text).toBe('authoritative answer'));
   });
 
   it('allows an explicit full read after an invalidation has revoked the old read generation', async () => {
@@ -188,4 +199,210 @@ describe('read-only history lifecycle recovery', () => {
     expect(hook.result.current.turns[0]?.items[0]?.text).toBe('final');
     expect(hook.result.current.turns[0]?.items[0]?.historySync).toBeUndefined();
   });
+});
+
+describe('bounded long conversations', () => {
+  const recent = [{ id: 'tail', status: 'completed', items: [] }];
+  const windowPage = (executionReady: boolean) => page(recent, { complete: false,
+    turnsComplete: false, timelineComplete: false, truncated: true, executionReady });
+  it('retains a bounded stale retry after both capacity fallbacks when a late revert changes the window', async () => {
+    let windowReads = 0;
+    const h = harness(params => {
+      if (params.limit !== 1) throw new RpcError('capacity', 'capacity');
+      if (++windowReads <= 2) throw stale();
+      return windowPage(true);
+    });
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    expect(h.call.mock.calls.filter(([m]) => m === 'thread/history').map(([, p]) => p.limit)).toEqual([30, 20, 1, 1, 1]);
+    expect(view.result.current.complete).toBe(false);
+    expect(view.result.current.truncated).toBe(true);
+  });
+  it.each(['server', 'browser'])('recovers the %s capacity boundary, keeps proof separate from display completeness and reopens only the window', async source => {
+    const h = harness(params => {
+      if (params.intent === 'window') return windowPage(true);
+      if (source === 'server') throw new RpcError('Combined turn and voice history exceeded its traversal budget', 'capacity');
+      return page([{ id: 'huge', status: 'completed', items: [{ id: 'log', type: 'commandExecution', aggregatedOutput: 'a'.repeat(4_000_001) }] }]);
+    });
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    expect(view.result.current.complete).toBe(false);
+    expect(view.result.current.truncated).toBe(true);
+    expect(view.result.current.turns).toEqual(recent);
+    act(() => view.result.current.recheck());
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    expect(h.call.mock.calls.filter(([m]) => m === 'thread/history').map(([, p]) => [p.intent, p.limit])).toEqual([
+      [undefined, 30], ['window', 20], ['window', 20],
+    ]);
+  });
+  it('does not authorize the displayed window with an unresolved activity or after resync until the new proof arrives', async () => {
+    const later = deferred(); let seen = 0;
+    const h = harness(params => {
+      if (!params.intent) throw new RpcError('capacity', 'capacity');
+      return ++seen === 1 ? windowPage(false) : later.promise;
+    });
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.truncated).toBe(true));
+    expect(view.result.current.ready).toBe(false);
+    act(() => h.events.publish({ type: 'resync', data: {} }));
+    expect(view.result.current.ready).toBe(false);
+    await act(async () => later.resolve(windowPage(true)));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+  });
+  it('restores previous rows and live arrivals when the second page of a background refresh fails', async () => {
+    const tail = deferred(); let pass = 0;
+    const h = harness(params => params.cursor ? tail.promise : ++pass === 1 ? page(recent) :
+      page([{ id: 'partial', status: 'completed', items: [] }], { complete: false, turnsComplete: false, nextCursor: 'older' }));
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    act(() => view.result.current.recheck());
+    await waitFor(() => expect(h.call.mock.calls.some(([, p]) => p.cursor === 'older')).toBe(true));
+    act(() => {
+      event(h.events, 'item/started', { turnId: 'stream', item: { id: 'answer', type: 'agentMessage', text: 'live' } });
+      tail.reject(new Error('read interrupted'));
+    });
+    await waitFor(() => expect(view.result.current.error).toBe('read interrupted'));
+    act(() => event(h.events, 'item/agentMessage/delta', { turnId: 'stream', itemId: 'answer', delta: ' after' }));
+    expect(view.result.current.turns.map(row => row.id)).toEqual(['tail', 'stream']);
+    expect(view.result.current.turns.at(-1)?.items[0]?.text).toBe('live after');
+    expect(view.result.current.ready).toBe(false);
+  });
+  it('keeps a confirmed live completion interactive without requesting the same history again', async () => {
+    const h = harness(() => page(recent));
+    const view = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+    await waitFor(() => expect(view.result.current.ready).toBe(true));
+    act(() => {
+      event(h.events, 'turn/started', { turn: { id: 't' } });
+      event(h.events, 'item/completed', { turnId: 't', item: { id: 'i', type: 'agentMessage', text: 'done' } });
+      event(h.events, 'turn/completed', { turn: { id: 't', status: 'completed' } });
+    });
+    expect(view.result.current.ready).toBe(true);
+    expect(h.call.mock.calls.filter(([m]) => m === 'thread/history')).toHaveLength(1);
+  });
+});
+it('renews the bounded execution proof for the next turn even when all live item completions arrived', async () => {
+  let reads=0;
+  const h=harness(params=>{
+    if (!params.intent) throw new RpcError('capacity','capacity');
+    reads++; return page([], {complete:false,turnsComplete:false,truncated:true,executionReady:true});
+  });
+  const v=renderHook(()=>useConversation(h.api,h.events,'new','epoch'));
+  await waitFor(()=>expect(v.result.current.ready).toBe(true));
+  act(()=>event(h.events,'turn/started',{turn:{id:'t'}}));
+  expect(v.result.current.ready).toBe(false);
+  act(()=>{
+    event(h.events,'item/completed',{turnId:'t',item:{id:'i',type:'agentMessage',text:'done'}});
+    event(h.events,'turn/completed',{turn:{id:'t',status:'completed'}});
+  });
+  await waitFor(()=>expect(v.result.current.ready).toBe(true));
+  expect(reads).toBe(2);
+  expect(h.call.mock.calls.filter(([m,p])=>m==='thread/history' && !p.intent)).toHaveLength(1);
+});
+
+it('releases a timeline body received one page before its authoritative turn without losing the message', async () => {
+  const large = { type: 'agentMessage', id: 'long-item', text: 'a'.repeat(2_100_000) };
+  const continuation = deferred();
+  const h = harness(params => params.cursor ? continuation.promise : page([], {
+    turnsComplete: false, complete: false, nextCursor: 'older-turn-page',
+    timeline: [{ type: 'item', position: 2, turnId: 'long-turn', item: large }],
+  }));
+  const v = renderHook(() => useConversation(h.api, h.events, 'new', 'epoch'));
+  await waitFor(() => expect(v.result.current.timeline).toHaveLength(1));
+  expect(v.result.current.timeline[0]).toMatchObject({ item: { text: large.text } });
+  await act(async () => continuation.resolve(page([{ id: 'long-turn', status: 'completed', items: [large] }])));
+  await waitFor(() => expect(v.result.current.ready).toBe(true));
+  expect(v.result.current.turns[0]?.items[0]?.text).toBe(large.text);
+  expect(v.result.current.timeline[0]).toEqual({
+    type: 'item', position: 2, turnId: 'long-turn', itemReference: true,
+    item: { id: 'long-item', type: 'agentMessage' },
+  });
+  expect(h.call.mock.calls.filter(([method]) => method === 'thread/history')).toHaveLength(2);
+});
+
+describe('anchored incremental history repair', () => {
+  const turn = (id: string) => ({ id, status: 'completed', items: [
+    { type: 'agentMessage', id: id + '-item', text: 'canonical ' + id },
+  ] });
+  const sequence = (id: string, at: number) => [
+    { type: 'turnStarted', turnId: id, position: at }, { type: 'item', itemReference: true, turnId: id, position: at + 1, item: { id: id + '-item', type: 'agentMessage' } },
+    { type: 'turnCompleted', status: 'completed', turnId: id, position: at + 2 },
+  ];
+  function stage(mode: string) {
+    const events = new Events(), base = [turn('old'), turn('anchor')], first = [...sequence('old', 0), ...sequence('anchor', 3)];
+    let rawReads = 0;
+    const waiting = deferred();
+    const call = vi.fn(async (method: string, params: Record<string, unknown>) => {
+      if (method === 'thread/read') return { thread: { id: 'new', status: { type: mode === 'inactive connection' ? 'notLoaded' : 'idle' } } };
+      expect(params.timelineFormat).toBe('references');
+      if (params.baseHistoryVersion !== undefined) {
+        const timeline = [...sequence('anchor', 3), ...sequence('next', 6)];
+        if (mode === 'missing item') timeline.splice(4, 1);
+        if (mode === 'wrong timeline anchor') timeline[2] = { ...timeline[2]!, position: 70 };
+        const turns = [turn('anchor'), turn('next')];
+        if (mode === 'different anchor body') turns[0]!.items[0]!.text = 'edited old body';
+        if (mode === 'pending') return waiting.promise;
+        return page(turns, { timeline, truncated: true, complete: false, turnsComplete: false, timelineComplete: false,
+          executionReady: true, activeRealtimeSessionAtPageStart: mode === 'voice session' ? 'voice' : null,
+          historyVersion: mode === 'different version' ? 9 : 8, baseHistoryVerified: mode !== 'lost authorization' });
+      }
+      rawReads++;
+      return rawReads === 1 ? page(base, { timeline: first, historyVersion: 8 }) :
+        page([...base, turn('next')], { timeline: [...first, ...sequence('next', 6)], historyVersion: 9 });
+    });
+    const api = { call } as unknown as Api, view = renderHook(() => useConversation(api, events, 'new', 'epoch'));
+    return { view, call, events, reads: () => rawReads, waiting };
+  }
+  it('preserves the verified prefix and repairs a missing terminal payload with one bounded read', async () => {
+    const h = stage('valid');
+    await waitFor(() => expect(h.view.result.current.ready).toBe(true));
+    const original = h.view.result.current.turns[0];
+    act(() => {
+      event(h.events, 'turn/started', { turn: { id: 'next' } });
+      event(h.events, 'turn/completed', { turn: { id: 'next', status: 'completed' } });
+    });
+    await waitFor(() => expect(h.view.result.current.turns.at(-1)?.items[0]?.text).toBe('canonical next'));
+    expect(h.view.result.current.turns[0]).toBe(original);
+    expect(h.view.result.current.complete).toBe(true); expect(h.view.result.current.ready).toBe(true);
+    expect(h.reads()).toBe(1);
+    expect(h.call.mock.calls.filter(([m,p]) => m === 'thread/history' && p.baseHistoryVersion === 8)).toHaveLength(1);
+  });
+  it('cannot use a tail for a turn whose beginning was never observed', async () => {
+    const h = stage('valid'); await waitFor(() => expect(h.view.result.current.ready).toBe(true));
+    act(() => event(h.events, 'turn/completed', { turn: { id: 'next', status: 'completed' } }));
+    await waitFor(() => expect(h.reads()).toBe(2));
+    expect(h.call.mock.calls.some(([m,p]) => m === 'thread/history' && p.baseHistoryVersion !== undefined)).toBe(false);
+  });
+  it('rereads the prefix when an earlier completed turn received another item', async () => {
+    const h = stage('valid'); await waitFor(() => expect(h.view.result.current.ready).toBe(true));
+    act(() => {
+      event(h.events, 'item/completed', { turnId: 'old', item: { id: 'late-old', type: 'agentMessage', text: 'late' } });
+      event(h.events, 'turn/started', { turn: { id: 'next' } });
+      event(h.events, 'turn/completed', { turn: { id: 'next', status: 'completed' } });
+    });
+    await waitFor(() => expect(h.reads()).toBe(2));
+    expect(h.call.mock.calls.some(([m,p]) => m === 'thread/history' && p.baseHistoryVersion !== undefined)).toBe(false);
+  });
+  it.each(['disconnect', 'revert'])('discards a late incremental reply after %s', async kind => {
+    const h = stage('pending'); await waitFor(() => expect(h.view.result.current.ready).toBe(true));
+    act(() => {
+      event(h.events, 'turn/started', { turn: { id: 'next' } });
+      event(h.events, 'turn/completed', { turn: { id: 'next', status: 'completed' } });
+    });
+    await waitFor(() => expect(h.call.mock.calls.some(([m,p]) => m === 'thread/history' && p.baseHistoryVersion === 8)).toBe(true));
+    act(() => kind === 'disconnect' ? h.events.publish({ type: 'resync', data: {} }) : event(h.events, 'thread/reverted', {}));
+    await waitFor(() => expect(h.reads()).toBe(2));
+    await act(async () => h.waiting.resolve(page([turn('wrong')], { historyVersion: 8, baseHistoryVerified: true })));
+    expect(h.view.result.current.turns.map(row => row.id)).toEqual(['old', 'anchor', 'next']);
+    expect(h.view.result.current.ready).toBe(true);
+  });
+  it.each(['missing item', 'wrong timeline anchor', 'different anchor body', 'different version', 'lost authorization', 'voice session', 'inactive connection'])(
+    'rereads the complete history when the suffix has %s', async mode => {
+      const h = stage(mode); await waitFor(() => expect(h.view.result.current.ready).toBe(true));
+      act(() => {
+        event(h.events, 'turn/started', { turn: { id: 'next' } });
+        event(h.events, 'turn/completed', { turn: { id: 'next', status: 'completed' } });
+      });
+      await waitFor(() => expect(h.reads()).toBe(2));
+      expect(h.view.result.current.turns.map(t => t.id)).toEqual(['old', 'anchor', 'next']);
+    });
 });

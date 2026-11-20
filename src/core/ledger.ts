@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { ErrorBody, JsonValue, Project, Receipt, ReceiptState } from './contracts.js';
+import type { ErrorBody, JsonObject, JsonValue, Project, Receipt, ReceiptState } from './contracts.js';
 import { LIMITS } from './contracts.js';
 import { HarnessError } from './errors.js';
 import { digest, identifier, validText } from './validation.js';
@@ -60,6 +60,11 @@ export class Ledger {
   operationGeneration(): number { return this.retention.generation(); }
   newOperationId(): string { return operationId(this.operationGeneration()); }
   maintenancePreview(): JsonValue { return this.retention.preview(); }
+  connectionPreview(check: () => void): JsonObject | Promise<JsonObject> {
+    const usage = this.retention.usage();
+    return Number(usage.receiptBytes) >= 256 * 1024 || Number(usage.receipts) + Number(usage.retirements) >= 64
+      ? this.retention.previewLarge(check) : this.retention.preview();
+  }
   releaseMaintenanceExport(digest: string): void { this.retention.release(digest); }
   maintenanceChunk(params: { digest: string; offset: number; limit?: number }): JsonValue {
     return this.retention.chunk(params.digest, params.offset, params.limit);
@@ -273,9 +278,18 @@ export class Ledger {
     const label = name.trim(); if (!label) throw new HarnessError('invalid', '项目名称不能为空。');
     const row = this.#db.prepare('SELECT path FROM projects WHERE id=?').get(id);
     if (!row) throw new HarnessError('not_found', '项目已移除，请重新读取项目列表。');
-    this.#db.prepare('UPDATE projects SET name=? WHERE id=?').run(label, id);
+    this.transaction(() => {
+      this.#db.prepare('UPDATE projects SET name=? WHERE id=?').run(label, id);
+      this.#db.prepare('UPDATE worktree_projects SET name=? WHERE id=?').run(label, id);
+    });
     return { id, name: label, path: String(row.path) };
   }
-  removeProject(id: string): void { this.worktrees.protectRemoval(id); this.automations.projectRemoved(id); this.#db.prepare('DELETE FROM projects WHERE id=?').run(id); }
+  removeProject(id: string): void {
+    this.transaction(() => {
+      this.worktrees.protectRemoval(id);
+      this.automations.projectRemoved(id);
+      this.#db.prepare('DELETE FROM projects WHERE id=?').run(id);
+    });
+  }
   close(): void { this.#db.close(); }
 }

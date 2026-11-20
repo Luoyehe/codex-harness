@@ -1,11 +1,43 @@
 import { constants } from 'node:fs';
-import { lstat, open, opendir, realpath } from 'node:fs/promises';
+import { lstat, mkdir, open, opendir, realpath, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { canonical, DeliveryError, string, type JsonObject, type JsonValue } from './types.js';
 
 /** Explicit HARNESS_DEV fallback. Production uses the separate native-identity helper. */
 export async function devResource(cwd: string, action: string, params: JsonObject, skillRoots: string[]): Promise<JsonObject> {
+  if (action === 'project/trust-roots') {
+    try {
+      const git = async (...args: string[]) => (await promisify(execFile)('git', ['-C', cwd, 'rev-parse', ...args], {
+        env: { PATH: process.env.PATH, HOME: cwd, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null' },
+        timeout: 4000, maxBuffer: 8192, windowsHide: true,
+      })).stdout.trim();
+      const checkout = await realpath(await git('--show-toplevel')), marker = path.join(checkout, '.git'), info = await lstat(marker);
+      const common = await realpath(await git('--path-format=absolute', '--git-common-dir')), metadata = await realpath(await git('--absolute-git-dir'));
+      if (info.isDirectory() && marker === common && metadata === common) return { roots: [checkout] };
+      if (info.isFile() && info.nlink === 1 && path.dirname(metadata) === path.join(common, 'worktrees') && path.basename(common) === '.git') {
+        const backlink = path.join(metadata, 'gitdir'), stat = await lstat(backlink);
+        if (stat.isFile() && stat.nlink === 1 && stat.size <= 8192 && await realpath(path.resolve(metadata, (await readFile(backlink, 'utf8')).trim())) === marker)
+          return { roots: [checkout, path.dirname(common)] };
+      }
+    } catch { /* Absence of verified repository metadata supplies no inherited trust evidence. */ }
+    return { roots: [] };
+  }
+  if (action === 'feedback/path') {
+    const directory = path.join(cwd, '.harness-feedback');
+    try { await mkdir(directory, { mode: 0o700 }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
+    const dir = await lstat(directory);
+    if (!dir.isDirectory() || dir.isSymbolicLink() || process.getuid && (dir.uid !== process.getuid() || (dir.mode & 0o077))) throw new DeliveryError('feedback_scope', '反馈目录身份或权限无效。');
+    const ignore = path.join(directory, '.gitignore');
+    try { const file = await open(ignore, 'wx', 0o600); try { await file.writeFile('*\n'); await file.sync(); } finally { await file.close(); } }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
+    const file = await open(ignore, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+    try { const stat = await file.stat(); if (!stat.isFile() || stat.nlink !== 1 || stat.size !== 2 || await file.readFile('utf8') !== '*\n') throw new DeliveryError('feedback_scope', '反馈目录未得到版本控制排除保护。'); }
+    finally { await file.close(); }
+    return { directory };
+  }
   const relative = (root: string, name: string): string => { const rel = path.relative(root, name); if (path.isAbsolute(rel) || rel === '..' || rel.startsWith('..' + path.sep)) throw new DeliveryError('resource_scope', 'Resource is outside its selected root'); return rel; };
   const walk = async (root: string, target: string): Promise<void> => {
     const rel = relative(root, target); if (path.resolve(await realpath(root)) !== path.resolve(root)) throw new DeliveryError('resource_scope', 'Root is not canonical');
@@ -27,14 +59,19 @@ export async function devResource(cwd: string, action: string, params: JsonObjec
   const digest = (value: JsonValue): string => createHash('sha256').update(canonical(value)).digest('hex');
   if (action === 'resource/skill/read') {
     const filename = string(params.path, 'skill path'); if (!path.isAbsolute(filename) || path.basename(filename) !== 'SKILL.md') throw new DeliveryError('resource_scope', 'Only catalog skill documents can be read');
-    const ancestors: string[] = []; let current = path.resolve(cwd), repository = false;
-    for (let depth = 0; depth < 64; depth++) {
-      ancestors.push(path.join(current, '.agents', 'skills'));
-      try { const marker = await lstat(path.join(current, '.git')); if (marker.isSymbolicLink()) break; if (marker.isDirectory() || marker.isFile()) { repository = true; break; } }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') break; }
-      const parent = path.dirname(current); if (parent === current) break; current = parent;
+    const contains = (root: string): boolean => { try { relative(root, filename); return true; } catch { return false; } };
+    let root = [cwd, ...skillRoots].find(contains);
+    if (!root) {
+      const proof = await devResource(cwd, 'project/trust-roots', {}, []);
+      const checkout = Array.isArray(proof.roots) ? proof.roots[0] : null;
+      let current = path.resolve(cwd);
+      for (let depth = 0; typeof checkout === 'string' && depth < 64; depth++) {
+        const skills = path.join(current, '.agents', 'skills');
+        if (contains(skills)) { root = skills; break; }
+        if (current === checkout || path.dirname(current) === current) break;
+        current = path.dirname(current);
+      }
     }
-    const root = [cwd, ...skillRoots, ...(repository ? ancestors : [])].find(root => { try { relative(root, filename); return true; } catch { return false; } });
     if (!root) throw new DeliveryError('resource_scope', 'Skill is outside explicit development roots'); await walk(root, filename);
     const { data, mode } = await read(filename, 512 * 1024); let text: string;
     try { text = new TextDecoder('utf-8', { fatal: true }).decode(data); } catch { throw new DeliveryError('resource_binary', 'Skill must contain UTF-8 text'); }

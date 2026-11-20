@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { EventEmitter } from 'node:events';
+import { isIPv6 } from 'node:net';
 import { chmodSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { HarnessError } from '../core/errors.js';
@@ -12,6 +13,22 @@ export interface AuthOptions { database: string; bootstrapToken?: string; bootst
 type Account = { username: string; password: string; version: string; totp_secret: string | null; totp_counter: number; bootstrap_revision: string | null; bootstrap_digest: string | null };
 type Input = Record<string, unknown>;
 const unauthorized = () => new HarnessError('unauthorized', '用户名、密码或验证码不正确。');
+
+export function clientNetwork(peer: string): string {
+  if (!isIPv6(peer)) return peer;
+  const address = peer.split('%')[0]!;
+  const canonical = new URL('http://[' + address + ']').hostname.slice(1, -1);
+  const mapped = /^::ffff:([0-9a-f]+):([0-9a-f]+)$/.exec(canonical);
+  if (mapped) {
+    const hi = parseInt(mapped[1]!, 16), lo = parseInt(mapped[2]!, 16);
+    return [hi >>> 8, hi & 255, lo >>> 8, lo & 255].join('.');
+  }
+  if (canonical === '::1') return canonical;
+  const [prefix, suffix = ''] = canonical.split('::');
+  const first = prefix ? prefix.split(':') : [], last = suffix ? suffix.split(':') : [];
+  const words = [...first, ...Array<string>(8 - first.length - last.length).fill('0'), ...last];
+  return words.slice(0, 4).join(':') + '::/64';
+}
 
 /** Only the gateway identity can access this database. Passwords and bearer tokens are never persisted in plaintext. */
 export class Authentication extends EventEmitter {
@@ -53,6 +70,11 @@ export class Authentication extends EventEmitter {
   close(): void { this.#db.close(); }
   checkHost(host: string | undefined): void { if (host?.toLowerCase() !== this.origin.host.toLowerCase()) throw new HarnessError('host', '访问地址与服务配置不匹配。'); }
   checkOrigin(origin: string | undefined): void { if (origin !== this.origin.origin) throw new HarnessError('origin', '请求来源与服务地址不匹配。'); }
+  localProbe(path: string, supplied: string | undefined): boolean {
+    if (!this.#tokenHash || !['/health', '/api/account/proof'].includes(path) || !supplied || !/^[a-f0-9]{64}$/.test(supplied)) return false;
+    const expected = createHmac('sha256', this.#tokenHash).update('harness-local-probe-v1\n' + path).digest();
+    return timingSafeEqual(expected, Buffer.from(supplied, 'hex'));
+  }
   proof(nonce: unknown): { nonce: string; proof: string } {
     if (typeof nonce !== 'string' || !/^[a-f0-9]{64}$/.test(nonce)) throw new HarnessError('invalid_input', '认证探测需要新的随机挑战。');
     if (!this.#tokenHash) throw new HarnessError('authentication_unavailable', '认证探测尚未配置。');
@@ -102,10 +124,14 @@ export class Authentication extends EventEmitter {
     this.#db.prepare('DELETE FROM auth_pending WHERE expires_at<=? OR session_id NOT IN (SELECT id FROM auth_sessions)').run(now);
   }
   private attempt(peer: string, session?: Session): void {
-    this.cleanup(); const key = session ? 'session:' + session.id : 'anonymous:' + digest(peer), row = this.#db.prepare('SELECT count FROM auth_attempts WHERE peer=?').get(key);
+    this.cleanup(); const key = session ? 'session:' + session.id : 'anonymous:' + digest(clientNetwork(peer)), row = this.#db.prepare('SELECT count FROM auth_attempts WHERE peer=?').get(key);
     // A trusted session has its own bounded bucket. Anonymous failures through a
     // loopback reverse proxy cannot prevent an existing administrator securing the account.
-    if (row && Number(row.count) >= 8 || !session && !row && Number(this.#db.prepare("SELECT count(*) AS n FROM auth_attempts WHERE peer NOT LIKE 'session:%'").get()!.n) >= 1024) throw new HarnessError('rate_limited', '认证尝试过多，请稍后重试。');
+    if (row && Number(row.count) >= 8) throw new HarnessError('rate_limited', '认证尝试过多，请稍后重试。');
+    if (!session && !row && Number(this.#db.prepare("SELECT count(*) AS n FROM auth_attempts WHERE peer LIKE 'anonymous:%'").get()!.n) >= 1024) {
+      const removed = this.#db.prepare("DELETE FROM auth_attempts WHERE peer=(SELECT peer FROM auth_attempts WHERE peer LIKE 'anonymous:%' AND count=1 ORDER BY reset,peer LIMIT 1)").run();
+      if (!removed.changes) throw new HarnessError('rate_limited', '认证尝试过多，请稍后重试。');
+    }
     this.#db.prepare('INSERT INTO auth_attempts(peer,count,reset) VALUES(?,1,?) ON CONFLICT(peer) DO UPDATE SET count=count+1').run(key, this.now() + 60_000);
   }
   status(cookie?: string): Input {
@@ -143,7 +169,7 @@ export class Authentication extends EventEmitter {
     this.capacity(); const now = this.now(), seconds = remember ? 30 * 24 * 60 * 60 : 12 * 60 * 60, key = randomBytes(32).toString('base64url');
     const session = { id: randomUUID(), csrf: randomBytes(24).toString('base64url'), expires: now + seconds * 1000 };
     this.#db.prepare('INSERT INTO auth_sessions(token_hash,id,csrf,version,created_at,last_seen_at,expires_at,label) VALUES(?,?,?,?,?,?,?,?)').run(digest(key), session.id, session.csrf, account.version, now, now, session.expires, label.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 200));
-    this.#db.prepare('DELETE FROM auth_attempts WHERE peer=?').run('anonymous:' + digest(peer)); return { session, cookie: this.cookie(key, seconds) };
+    this.#db.prepare('DELETE FROM auth_attempts WHERE peer=?').run('anonymous:' + digest(clientNetwork(peer))); return { session, cookie: this.cookie(key, seconds) };
   }
   session(cookie: string | undefined): Session | null {
     try { this.refresh(); } catch { return null; }
@@ -156,7 +182,7 @@ export class Authentication extends EventEmitter {
   }
   require(cookie: string | undefined, csrf?: string): Session {
     const session = this.session(cookie); if (!session) throw new HarnessError('unauthorized', '请先登录管理入口。');
-    if (csrf !== undefined && csrf !== session.csrf) throw new HarnessError('csrf', '会话已过期，请重新加载页面。'); return session;
+    if (csrf !== undefined && !timingSafeEqual(Buffer.from(digest(csrf), 'hex'), Buffer.from(digest(session.csrf), 'hex'))) throw new HarnessError('csrf', '会话已过期，请重新加载页面。'); return session;
   }
   client(session: Session, clientId: unknown): string { return digest(session.id + '\0' + uuid(clientId, '客户端编号')); }
   logout(cookie: string | undefined): string {

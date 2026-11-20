@@ -1,3 +1,4 @@
+import { ArchiveHash } from './archive-hash';
 import type { Api } from './api';
 import { object } from './types';
 
@@ -80,7 +81,8 @@ export async function receiptArchive(
     throw new Error(
       '归档超过浏览器 128 MiB 校验上限。请使用受控离线维护完整导出；本次不会截断或轮换。',
     );
-  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  const chunks: Blob[] = [];
+  const hash = new ArchiveHash();
   let offset = 0;
   do {
     const chunk = await api.call(
@@ -96,7 +98,9 @@ export async function receiptArchive(
       chunk.base64.length > 699052
     )
       throw new Error('归档分片身份或容量不匹配，未允许轮换。');
-    const binary = atob(chunk.base64), bytes = new Uint8Array(binary.length);
+    let binary: string;
+    try { binary = atob(chunk.base64); } catch { throw new Error('归档分片编码损坏，请重新预览并导出。'); }
+    const bytes = new Uint8Array(binary.length);
     // Avoid Array.from's per-character intermediate allocation at 80 MiB.
     for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
     const next = offset + bytes.length;
@@ -107,17 +111,14 @@ export async function receiptArchive(
       (next === preview.bytes && chunk.nextOffset !== null)
     )
       throw new Error('归档分片不连续或结束标记无效，未允许轮换。');
-    chunks.push(bytes);
+    hash.update(bytes);
+    chunks.push(new Blob([bytes]));
     offset = next;
     progress(offset);
   } while (offset < preview.bytes);
   if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError');
   const blob = new Blob(chunks, { type: 'application/json' });
-  // Blob owns its immutable content. Release the temporary chunk list before
-  // allocating the contiguous digest buffer, especially for large exports.
-  chunks.length = 0;
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
-  const digest = Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const digest = hash.finish();
   if (digest !== preview.digest) throw new Error('完整归档 SHA-256 不匹配，未允许轮换。');
   return blob;
 }

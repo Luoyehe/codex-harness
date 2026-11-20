@@ -1,3 +1,4 @@
+import { hookEventLabel, hookHandlers, hookModes, hookOutputs, hookScopes, hookSources, statusLabel } from '../lib/status-labels';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Events } from '../lib/events';
 import { array, object, type HarnessEvent } from '../lib/types';
@@ -186,21 +187,21 @@ export function HookEventsPanel() {
       {records.map((row) => (
         <details className="tool-card" key={`${row.threadId}:${row.id}`}>
           <summary>
-            {row.eventName || 'Hook'} · {statuses[row.status]} · {row.source || '未提供来源'}
+            {hookEventLabel(row.eventName)} · {statusLabel(row.status, statuses)} · {statusLabel(row.source, hookSources)}
           </summary>
           <div className="tool-body stack">
             <p className="small path">
               会话：{row.threadId} · 回合：{row.turnId || '无'} · 运行 ID：{row.id}
             </p>
             <p className="small">
-              {row.handlerType} · {row.mode} · {row.scope}
+              {statusLabel(row.handlerType, hookHandlers)} · {statusLabel(row.mode, hookModes)} · {statusLabel(row.scope, hookScopes)}
               {row.durationMs && ` · 耗时 ${row.durationMs} ms`}
             </p>
             <p className="path small">来源：{row.sourcePath || '未提供'}</p>
             {row.statusMessage && <pre className="raw">{row.statusMessage}</pre>}
             {row.entries.map((entry, index) => (
               <div key={index}>
-                <strong className="small">{entry.kind || '输出'}</strong>
+                <strong className="small">{statusLabel(entry.kind, hookOutputs)}</strong>
                 <pre className="raw">{entry.text}</pre>
               </div>
             ))}

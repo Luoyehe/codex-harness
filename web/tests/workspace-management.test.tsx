@@ -180,7 +180,7 @@ it('requires a successful target version read for overwrite and never converts a
     target: { value: 'replace' },
   });
   fireEvent.click(screen.getByRole('button', { name: '读取目标当前版本' }));
-  await screen.findByText('Cannot inspect target');
+  await screen.findByText('工作区操作失败，请查看原操作记录并核对其送达状态。');
   fireEvent.click(screen.getByRole('checkbox', { name: /确认将所选备份/ }));
   expect((screen.getByRole('button', { name: '执行恢复' }) as HTMLButtonElement).disabled).toBe(
     true,
@@ -552,4 +552,27 @@ it('does not dismiss a later worktree intent when an earlier operation recovery 
   expect((await listOperations()).find((operation) => operation.id === second)?.state).toBe('unknown');
   expect(screen.getByRole('button', { name: '确认归档工作树' })).toBeTruthy();
   expect(initial.onChanged).toHaveBeenCalledTimes(changed);
+});
+it('finishes interrupted retirement with the freshly read revision and hides unrelated restore or attach actions', async () => {
+  const {api,calls}=setup(c=>c.method==='workspace/worktree/read'?{...tree,phase:'recovery',retirementPending:true,revision:'d'.repeat(64)}:undefined);
+  render(<WorkspaceWorktrees {...treeProps(api)} />);
+  await selectTree();
+  await screen.findByText(/上次退役尚待核对，当前目录位置见工作树详情/);
+  expect(screen.queryByRole('button',{name:'修复并恢复工作树…'})).toBeNull();
+  expect(screen.queryByRole('button',{name:'核对并登记为项目…'})).toBeNull();
+  fireEvent.click(await enabledButton({name:'完成退役（保留文件）…'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'确认对上述工作树执行此操作'}));
+  fireEvent.click(screen.getByRole('button',{name:'确认退役工作树'}));
+  await waitFor(()=>expect(calls.find(c=>c.method==='workspace/worktree/retire')?.params).toMatchObject({worktreeId:treeId,expectedRevision:'d'.repeat(64),confirm:true}));
+});
+it('shows preserved state-file evidence and distinguishes oversized byte recovery from escaped-text previews', async () => {
+  const evidence={sha256:'f'.repeat(64),bytes:21,state:null};
+  const {api}=setup(call=>call.method==='workspace/recovery/read'?{...record,state:'unknown',previouslyPublishedState:'running',resolution:'retained',unpublishedState:evidence,retainedState:evidence,entries:[{slot:'before',kind:'file',revision:'a'.repeat(64),bytes:700000,previewUnavailable:'file_too_large'}]}:undefined);
+  render(<WorkspaceRecovery {...recoveryProps(api)} />);
+  await screen.findByRole('option',{name:new RegExp(sourceId)});
+  fireEvent.change(screen.getByRole('combobox',{name:'选择备份记录'}),{target:{value:sourceId}});
+  await screen.findByText(/先前公布的记录状态 · 正在执行/);
+  expect(screen.getByText(/已保留不完整的暂存材料/)).toBeTruthy();
+  expect(screen.getAllByText(/21 字节 · 未提供 · SHA-256/)).toHaveLength(2);
+  expect(screen.getByText(/文件超过预览大小限制，可按原字节恢复/)).toBeTruthy();
 });

@@ -7,7 +7,7 @@ import type { HooksListEntry } from '../../protocol/ts/v2/HooksListEntry';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
 import { useResource } from '../hooks/useResource';
-import { statusLabel, skillScopes, hookTrust } from '../lib/status-labels';
+import { hookEventLabel, statusLabel, skillScopes, hookTrust, hookHandlers } from '../lib/status-labels';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
 export function SkillSettings({
   api,
@@ -162,13 +162,13 @@ export function SkillSettings({
           {row.hooks.map((hook) => (
             <article className="info-card stack" key={hook.key}>
               <div className="section-heading">
-                <strong>{hook.eventName}</strong>
+                <strong>{hookEventLabel(hook.eventName)}</strong>
                 <span className="badge">
                   {hook.enabled ? '已启用' : '已停用'} · {statusLabel(hook.trustStatus, hookTrust)}
                 </span>
               </div>
               <p className="small">
-                {hook.handlerType} · {hook.isManaged ? '受管理' : '本地配置'}
+                {statusLabel(hook.handlerType, hookHandlers)} · {hook.isManaged ? '受管理' : '本地配置'}
                 {hook.matcher ? ` · 匹配 ${hook.matcher}` : ''} · 超时 {String(hook.timeoutSec)} 秒
               </p>
               <p className="small path">{hook.sourcePath}</p>

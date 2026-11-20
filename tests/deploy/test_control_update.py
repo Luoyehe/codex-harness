@@ -260,6 +260,8 @@ class ControlBoundaryTests(unittest.TestCase):
             from deploy.dns_caddy_build import source_material
             for name, data in source_material().items():
                 self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)
+            helper = destination / "deploy/build_tool.mjs"
+            self.assertEqual(helper.read_bytes(), (Path(__file__).resolve().parents[2] / "deploy/build_tool.mjs").read_bytes())
             self.assertTrue((destination / "deploy/control_update.py").is_file())
             self.assertEqual(list(destination.rglob("*.pyc")), [])
             self.assertFalse((destination / "deploy/README.md").exists())

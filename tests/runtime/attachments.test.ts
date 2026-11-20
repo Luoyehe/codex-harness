@@ -8,6 +8,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Attachments } from '../../src/runtime/attachments.js';
 import { LIMITS, object } from '../../src/runtime/types.js';
+import { attachmentMediaType } from '../../src/core/attachment-media.js';
 
 const parent = path.resolve('.work/attachment-tests'); mkdirSync(parent, { recursive: true });
 function setup() { const home = mkdtempSync(path.join(parent, 'run-')); const storage = new Attachments(home); const dir = path.join(home, 'attachments'); return { home, storage, dir }; }
@@ -34,10 +35,52 @@ test('unknown copy persists a byte reservation until complete startup reconcilia
 test('incomplete startup inventory preserves legacy copy candidates until all histories are verified', () => {
   const { storage, home, dir } = setup(), orphan = upload(storage), retained = upload(storage), fresh = upload(storage);
   for (const [id, thread] of [[orphan, 'deleted'], [retained, 'compressed']] as const) { const prepared = storage.prepare([id], thread); prepared.pin(); prepared.settle(true); }
+  const legacyIndex = JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  legacyIndex.version = 2; delete legacyIndex.legacyOwners; writeFileSync(path.join(dir, 'index.json'), JSON.stringify(legacyIndex));
   const restored = new Attachments(home); restored.reconcile({ threadIds: ['compressed'], references: [], unresolvedThreadIds: ['compressed'] });
   expect(existsSync(path.join(dir, orphan))).toBe(true); restored.releaseThread('deleted'); restored.gc(Date.now() + 1); expect(existsSync(path.join(dir, orphan))).toBe(true); expect(existsSync(path.join(dir, fresh))).toBe(true); expect(restored.readHistory({ threadId: 'compressed', path: path.join(dir, retained) })).toMatchObject({ attachmentId: retained });
   const again = new Attachments(home); again.reconcile({ threadIds: ['compressed'], references: [{ threadId: 'compressed', paths: [path.join(dir, retained)] }], unresolvedThreadIds: [] });
   expect(existsSync(path.join(dir, orphan))).toBe(false); expect(existsSync(path.join(dir, retained))).toBe(true);
+});
+
+test('v3 named and new uploads collect independently while an unrelated rollout stays unreadable across cold starts', () => {
+  const { storage, home, dir } = setup(), used = upload(storage, 'used'), canceled = upload(storage, 'cancelled'), uncertain = upload(storage, 'unreadable');
+  for (const [id, scope] of [[used, 'known'], [canceled, 'known'], [uncertain, 'bad']] as const) {
+    const pin = storage.prepare([id], scope); pin.pin(); pin.settle(true);
+  }
+  const index = path.join(dir, 'index.json'), v3 = JSON.parse(readFileSync(index, 'utf8'));
+  writeFileSync(index, JSON.stringify({ version: 3, entries: v3.entries, copies: [] }));
+  const proof = { threadIds: ['known', 'bad'], unresolvedThreadIds: ['bad'], references: [{ threadId: 'known', paths: [path.join(dir, used)] }] };
+  const upgrade = new Attachments(home); upgrade.protectUnverifiedReferences(); upgrade.reconcile(proof);
+  expect(existsSync(path.join(dir, canceled))).toBe(false);
+  expect(upgrade.readHistory({ threadId: 'bad', path: path.join(dir, uncertain) })).toMatchObject({ attachmentId: uncertain });
+  const recent = upload(upgrade), pin = upgrade.prepare([recent], 'known'); pin.pin(); pin.settle(true);
+  const second = new Attachments(home); second.protectUnverifiedReferences(); second.reconcile(proof);
+  expect(existsSync(path.join(dir, recent))).toBe(false); expect(existsSync(path.join(dir, uncertain))).toBe(true);
+  expect(existsSync(path.join(dir, used))).toBe(true);
+});
+
+test('legacy untracked and reservation-protected copies keep only the original unreadable cohort, even after failed reads and restarts', () => {
+  const { storage, home, dir } = setup();
+  const old = upload(storage), fresh = upload(storage), source = upload(storage);
+  for (const [id, scope] of [[old, 'gone'], [source, 'source']] as const) {
+    const held = storage.prepare([id], scope); held.pin(); held.settle(true);
+  }
+  const index = path.join(dir, 'index.json'), v2 = JSON.parse(readFileSync(index, 'utf8'));
+  writeFileSync(index, JSON.stringify({ version: 2, entries: v2.entries }));
+  const first = new Attachments(home);
+  const held = first.prepare([fresh], 'source'); held.pin(); held.settle(true);
+  expect(first.reserveCopy('source')).toBeTruthy();
+  const proof = (unknown: string[]) => ({ threadIds: ['source', ...unknown], unresolvedThreadIds: unknown, references: [{ threadId: 'source', paths: [path.join(dir, source)] }] });
+  first.reconcile(proof(['still-unreadable']));
+  expect(existsSync(path.join(dir, old))).toBe(true);
+  expect(existsSync(path.join(dir, fresh))).toBe(true);
+  const cold = new Attachments(home); cold.protectUnverifiedReferences(); cold.reconcile(proof(['still-unreadable', 'later']));
+  expect(existsSync(path.join(dir, old))).toBe(true);
+  const last = new Attachments(home); last.reconcile(proof(['later']));
+  expect(existsSync(path.join(dir, old))).toBe(false); expect(existsSync(path.join(dir, fresh))).toBe(false);
+  expect(last.readHistory({ threadId: 'source', path: path.join(dir, source) })).toMatchObject({ attachmentId: source });
+  expect(JSON.parse(readFileSync(index, 'utf8')).copies).toEqual([]);
 });
 
 test('audio uses a fixed native-recognized suffix while opaque IDs, identity checks and retained history survive restart', () => {
@@ -188,3 +231,28 @@ test.skipIf(process.platform !== 'win32')('real OS unlink denial leaves a durabl
   } finally { child.stdin.end('\n'); await exited; expect(child.exitCode).toBe(0); }
   const recovered = new Attachments(home); expect(existsSync(file)).toBe(false); expect(() => upload(recovered)).not.toThrow();
 }, 15000);
+
+test.each([['mp4', 'video/mp4'], ['mov', 'video/quicktime']])('video container bytes override empty or incorrect browser audio types for %s', (extension, mimeType) => {
+  const { storage, dir } = setup();
+  const bytes = readFileSync(path.join('tests/fixtures/visual-media', 'sample.' + extension));
+  for (const declared of ['', 'audio/quicktime', 'audio/mp4']) {
+    const uploaded = object(storage.upload({ name: '无扩展名', mimeType: declared, base64: bytes.toString('base64') }, 'user'));
+    expect(uploaded.mimeType).toBe(mimeType);
+    expect(readFileSync(path.join(dir, uploaded.attachmentId + '.' + extension))).toEqual(bytes);
+  }
+});
+
+test('a classic unbranded QuickTime file uses the track handler to distinguish video, audio and unidentified bytes', () => {
+  const movie = readFileSync('tests/fixtures/visual-media/sample-classic.mov');
+  expect(movie.includes('ftyp')).toBe(false);
+  const offset = movie.indexOf('mhlrvide');
+  expect(offset).toBeGreaterThan(0);
+  expect(attachmentMediaType(movie, '')).toBe('video/quicktime');
+  expect(attachmentMediaType(movie, 'video/mp4')).toBe('video/quicktime');
+  const sound = Buffer.from(movie);
+  sound.write('soun', offset + 4);
+  expect(attachmentMediaType(sound, '')).toBe('audio/quicktime');
+  const unknown = Buffer.from(movie);
+  unknown.fill(0, offset, offset + 4);
+  expect(attachmentMediaType(unknown, '')).toBe('application/octet-stream');
+});

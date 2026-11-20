@@ -48,12 +48,13 @@ it('retains the accepted converted destination until that conversation consumes 
   const api = new Api();
   await api.mutate('thread/convert', { threadId: 'source', sourceProvider: 'a', targetProvider: 'b', model: 'model', confirm: true });
   const [record] = await listOperations();
+  if (!record) throw new Error('Missing accepted conversation conversion');
   expect(record).toMatchObject({ state: 'accepted', threadId: 'source', resolvedThreadId: 'converted' });
   expect(record.consumed).not.toBe(true);
   await consumeThreadOperations('source', [record.id]);
-  expect((await listOperations())[0].consumed).not.toBe(true);
+  expect((await listOperations())[0]!.consumed).not.toBe(true);
   await consumeThreadOperations('converted', [record.id]);
-  expect((await listOperations())[0].consumed).toBe(true);
+  expect((await listOperations())[0]!.consumed).toBe(true);
 });
 
 describe('independent operation recovery', () => {
@@ -201,6 +202,15 @@ describe('independent operation recovery', () => {
     });
     await expect(createOperation('conversation/start', { projectId: 'p' })).rejects.toThrow('待确认');
   });
+  it.each([true, false])('keeps a definite first-input rejection tied to the created thread only with complete proof (%s)', async proof => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({
+      ok: false, error: { code: 'first_turn_not_sent', message: 'first input rejected', delivery: 'not_sent',
+        data: { threadId: 'new-thread', ...(proof ? { threadCreated: true, inputSent: false } : {}) } },
+    }) }));
+    await expect(new Api().mutate('conversation/start', { projectId: 'p', text: 'retain this' })).rejects.toThrow('first input rejected');
+    const op = (await listOperations())[0]!;
+    expect(op.state).toBe('not_sent'); expect(op.resolvedThreadId).toBe(proof ? 'new-thread' : undefined);
+  });
   it('does not clear retained drafts if a stopped unknown operation later receives an HTTP success', async () => {
     const draft = { ...emptyDraft('a'), text: 'retain for review' };
     writeDraft(draft);
@@ -313,4 +323,26 @@ it('keeps unresolved opens exclusive within their lease while allowing a replace
       projectId: 'p',
       terminalOwner: { clientId: 'doc', connectionId: 'new' },
     })).resolves.toBeDefined();
+});
+
+it('keeps in-flight receipts pending and never opens a second send or overwrites a resolved outcome', async () => {
+  const op = await createOperation('turn/start', { threadId: 'pending-fixture' });
+  await updateOperation(op.id, 'unknown');
+  for (const state of ['pending', 'dispatching']) {
+    await reconcileOperation(op.id, { state });
+    expect((await listOperations()).find(row => row.id === op.id)?.state).toBe('pending');
+    await expect(createOperation('turn/start', { threadId: 'pending-fixture' })).rejects.toThrow('待确认');
+  }
+  await reconcileOperation(op.id, { state:'not_sent' });
+  await reconcileOperation(op.id, { state:'dispatching' });
+  expect((await listOperations()).find(row => row.id === op.id)?.state).toBe('not_sent');
+});
+it('grants the explicit manual tool and plugin install deadlines independently of unrelated reads', async () => {
+  const timeout = vi.spyOn(AbortSignal, 'timeout');
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ok:true,result:{}}))));
+  const api = new Api();
+  for (const method of ['mcp/tool/call','plugin/install','thread/read']) {
+    await api.call(method, {});
+    expect(timeout).toHaveBeenLastCalledWith(method === 'thread/read' ? 30_000 : method === 'mcp/tool/call' ? 1_950_000 : 360_000);
+  }
 });

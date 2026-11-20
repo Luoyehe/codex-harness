@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { timelineRows, type RealtimeItem, type TimelineEntry } from '../lib/timeline';
 import { object, type Turn, type Project } from '../lib/types';
@@ -57,6 +57,8 @@ type Props = {
   timeline?: TimelineEntry[];
   loading: boolean;
   complete: boolean;
+  truncated?: boolean;
+  onLocateConsumed?: () => void;
   onMore: () => void;
   focusTarget?: { turnId: string; itemId: string };
   onAction?: (turn: Turn, action: 'fork' | 'edit' | 'revert') => void;
@@ -64,7 +66,7 @@ type Props = {
   actionsDisabled?: boolean;
   active?: boolean;
 };
-export function Messages({
+export const Messages = memo(function Messages({
   api,
   threadId,
   project,
@@ -72,6 +74,8 @@ export function Messages({
   timeline = [],
   loading,
   complete,
+  truncated = false,
+  onLocateConsumed,
   onMore,
   focusTarget,
   onAction,
@@ -83,6 +87,7 @@ export function Messages({
     anchors = useRef(new Map<string, HTMLDivElement>());
   const [follow, setFollow] = useState(true),
     [endKey, setEndKey] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<string | null>(null);
   const [locateError, setLocateError] = useState(''),
     [locating, setLocating] = useState<string | null>(null);
   const rows = useMemo(() => timelineRows(turns, timeline), [turns, timeline]);
@@ -101,12 +106,14 @@ export function Messages({
       return;
     }
     setLocateError('');
+    setHighlight(key);
     setFollow(false);
     const element = anchors.current.get(key);
     if (element) {
       element.scrollIntoView({ block: 'center', behavior: 'instant' });
       element.focus({ preventScroll: true });
       setLocating(null);
+      onLocateConsumed?.();
     } else {
       if (index < start || index >= end)
         setEndKey(rows[Math.min(rows.length - 1, index + Math.floor(WINDOW_ROWS / 2))]!.key);
@@ -117,6 +124,7 @@ export function Messages({
     setEndKey(null);
     setFollow(true);
     setLocating(null);
+    setHighlight(null);
     setLocateError('');
   }, [threadId]);
   useLayoutEffect(() => {
@@ -135,6 +143,7 @@ export function Messages({
       element.scrollIntoView({ block: 'center', behavior: 'instant' });
       element.focus({ preventScroll: true });
       setLocating(null);
+      onLocateConsumed?.();
     }
   }, [locating, start, end]);
   const page = (nextEnd: number) => {
@@ -155,7 +164,8 @@ export function Messages({
       }}
     >
       <div className="conversation-content">
-        {!complete && rows.length > 0 && (
+        {truncated && <p className="muted small" role="status">当前显示最近的会话窗口。可在会话操作中压缩上下文或搜索完整历史。</p>}
+        {!complete && !truncated && rows.length > 0 && (
           <button className="button history-more" disabled={loading} onClick={onMore}>
             {loading ? '正在加载…' : '加载更早的内容'}
           </button>
@@ -199,7 +209,7 @@ export function Messages({
             return (
               <div
                 tabIndex={-1}
-                className={`message-anchor ${focusTarget?.turnId === row.turnId && focusTarget.itemId === row.item.id ? 'search-selected' : ''}`}
+                className={`message-anchor ${(highlight === row.key || (focusTarget?.turnId === row.turnId && focusTarget.itemId === row.item.id)) ? 'search-selected' : ''}`}
                 key={row.key}
                 ref={(element) => {
                   if (element) anchors.current.set(row.key, element);
@@ -221,7 +231,7 @@ export function Messages({
                 </div>
               )}
               {turn.error ? (
-                <p className="error" role="alert">
+                <p className="error">
                   {String(object(turn.error).message ?? JSON.stringify(turn.error))}
                 </p>
               ) : null}
@@ -237,6 +247,8 @@ export function Messages({
         <button
           className="jump-bottom button"
           onClick={() => {
+            setHighlight(null);
+            onLocateConsumed?.();
             setEndKey(null);
             setFollow(true);
           }}
@@ -246,4 +258,4 @@ export function Messages({
       )}
     </div>
   );
-}
+});

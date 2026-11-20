@@ -8,7 +8,7 @@ import os
 import stat
 
 from .common import Layout, require
-from .units import render_config_check, render_edge_units, render_units, sudo_rule
+from .units import edge_unit_variants, render_config_check, render_edge_units, render_units, sudo_rule
 
 ROLES = ("worker", "gateway", "authelia", "caddy", "config-check")
 SYSTEMD_PATHS = ("etc/systemd/system", "run/systemd/system", "usr/local/lib/systemd/system",
@@ -49,6 +49,8 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                 metadata = read_https_metadata(layout)
                 if metadata.get("dnsProvider") is not None:
                     allowed.add(render_edge_units(layout, builtin=True, dns_metadata=metadata, client_identity=metadata.get("clientIdentity") == 1)[unit].encode())
+        if role in ("caddy", "authelia"):
+            allowed = set().union(*(edge_unit_variants(unit_bytes) for unit_bytes in allowed))
         if role == "worker":
             allowed.update(worker_variants)
         if prior_units and prior_units.get(role) is not None:

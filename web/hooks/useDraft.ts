@@ -33,7 +33,12 @@ export function useDraft(key: string) {
       mounted.current = false;
     };
   }, [visit]);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const queued = useRef(false);
   const persist = useCallback((next: Draft, failure = '草稿保存失败') => {
+    clearTimeout(timer.current);
+    timer.current = undefined;
+    queued.current = false;
     if (savedKey.current !== next.key) {
       try { saved.current = readDraft(next.key); }
       catch { saved.current = emptyDraft(next.key); }
@@ -56,6 +61,8 @@ export function useDraft(key: string) {
       return false;
     }
   }, []);
+  const flush = useCallback(() => queued.current ? persist(current.current) : !unsaved.current, [persist]);
+  useLayoutEffect(() => () => { flush(); clearTimeout(timer.current); timer.current = undefined; }, [visit, flush]);
   const removeCurrentAttachment = useCallback((attachmentId: string) => {
     const previous = current.current;
     // A confirmed server deletion must not be undone by restoring saved input.
@@ -128,18 +135,30 @@ export function useDraft(key: string) {
   }, [key, load, removeCurrentAttachment, visit]);
   useEffect(() => {
     const leaving = (event: BeforeUnloadEvent) => {
-      if (!mounted.current || !unsaved.current) return;
+      if (!mounted.current || flush()) return;
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', leaving);
     return () => window.removeEventListener('beforeunload', leaving);
-  }, []);
+  }, [flush]);
   const update = (patch: Partial<Draft>) => {
     if (!visit.active || current.current.key !== key) return false;
     const previous = current.current;
     const next = { ...previous, ...patch, key, revision: uuid(), updatedAt: Date.now() };
-    persist(next);
+    if (Object.keys(patch).length === 1 && patch.text !== undefined) {
+      if (timer.current === undefined) {
+        if (!persist(next)) return true;
+      } else {
+        current.current = next;
+        unsaved.current = true;
+        queued.current = true;
+        acceptedClear.current = undefined;
+        setDraft(next);
+        clearTimeout(timer.current);
+      }
+      timer.current = setTimeout(() => { timer.current = undefined; flush(); }, 120);
+    } else persist(next);
     return true;
   };
   // Removal belongs to its original draft, including a later visit in this mounted instance.
@@ -183,9 +202,10 @@ export function useDraft(key: string) {
   return {
     ...(draft.key === key ? draft : emptyDraft(key)),
     error,
-    hasUnsaved: current.current.key === key && unsaved.current,
+    flush,
+    hasUnsaved: current.current.key === key && unsaved.current && !queued.current,
     canNavigateTo: (targetKey: string) => visit.active &&
-      (targetKey === current.current.key || !unsaved.current),
+      (targetKey === current.current.key || flush()),
     retrySave: () => {
       if (!visit.active || current.current.key !== key) return false;
       return persist(current.current);
@@ -223,7 +243,7 @@ export function useDraft(key: string) {
     },
     // Non-input operations do not accept this draft. They may leave only a saved,
     // unchanged snapshot; in particular, pre-existing save failures must stay put.
-    canLeave: () => visit.active && ownership.current === snapshotOwnership && !unsaved.current && current.current.key === key &&
+    canLeave: () => visit.active && ownership.current === snapshotOwnership && flush() && current.current.key === key &&
       current.current.revision === draft.revision,
     // A successful send may clear its exact snapshot before its promise resolves.
     // Check the live owner synchronously: edits (including ABA) revoke this render's

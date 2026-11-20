@@ -1,3 +1,4 @@
+import { experimentalStages, statusLabel } from '../lib/status-labels';
 import { composing } from '../lib/types';
 import { useEffect, useState } from 'react';
 import type { ExperimentalFeature } from '../../protocol/ts/v2/ExperimentalFeature';
@@ -430,7 +431,7 @@ export function ConfigSettings({
             <div className="section-heading">
               <strong>{feature.displayName ?? feature.name}</strong>
               <span className="badge">
-                {feature.stage} · {feature.enabled ? '已启用' : '已停用'}
+                {statusLabel(feature.stage, experimentalStages)} · {feature.enabled ? '已启用' : '已停用'}
               </span>
             </div>
             {feature.description && <p>{feature.description}</p>}
@@ -446,7 +447,7 @@ export function ConfigSettings({
                 requirements.loading ||
                 Boolean(requirements.error) ||
                 managed ||
-                ['deprecated', 'removed'].includes(feature.stage)
+                !['underDevelopment', 'beta', 'stable'].includes(feature.stage)
               }
               onClick={() =>
                 void action.run('experimentalFeature/enablement/set', {

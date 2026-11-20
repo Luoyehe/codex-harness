@@ -72,8 +72,8 @@ export class Extensions {
   private trust: ProjectTrust;
   private accounts: AccountTools;
   constructor(private host: ExtensionHost) {
-    this.mcpConfiguration = new McpConfiguration(host.native); this.imports = new Imports(host.native); this.feedback = new Feedback(host.native);
-    this.trust = new ProjectTrust(host.native);
+    this.mcpConfiguration = new McpConfiguration(host.native, host.resource ? cwd => this.resource(cwd, 'mcp/enabled-read', {}) : undefined); this.imports = new Imports(host.native); this.feedback = new Feedback(host.native, cwd => this.resource(cwd, 'feedback/path', {}));
+    this.trust = new ProjectTrust(host.native, cwd => this.resource(cwd, 'project/trust-roots', {}));
     this.accounts = new AccountTools(host);
     this.sharing = new PluginSharing({ native: host.native, select: params => this.selectPlugin(params), preview: (cwd, relative) => this.resource(cwd, 'resource/plugin/preview', { path: relative }) });
   }
@@ -136,7 +136,19 @@ export class Extensions {
         onlyKeys(params, ['cwd', 'pluginId']); const selected = await this.selectPlugin(params);
         const detail = await this.request(method, selected.locator, 'PluginReadParams', 'PluginReadResponse');
         if (object(object(detail.plugin).summary).id !== selected.plugin.id) throw new DeliveryError('plugin_changed', 'Plugin identity changed; refresh its catalog');
-        return { ...detail, previewHash: hash(detail.plugin!) };
+        const plugin = object(detail.plugin), skills = plugin.skills as JsonValue[];
+        const remote = typeof selected.locator.remoteMarketplaceName === 'string' && typeof selected.plugin.remotePluginId === 'string';
+        const scoped: JsonObject[] = [];
+        for (let index = 0; index < skills.length; index += 4) {
+          scoped.push(...await Promise.all(skills.slice(index, index + 4).map(async value => {
+            const skill = object(value);
+            if (remote) return { ...skill, skillPreviewAllowed: true };
+            if (typeof skill.path !== 'string') return { ...skill, skillPreviewAllowed: false };
+            try { await this.resource(this.host.cwd(params.cwd), 'resource/skill/read', { path: skill.path }); return { ...skill, skillPreviewAllowed: true }; }
+            catch { return { ...skill, skillPreviewAllowed: false }; }
+          })));
+        }
+        return { ...detail, plugin: { ...plugin, skills: scoped }, previewHash: hash(detail.plugin!) };
       }
       case 'plugin/skill/read': {
         onlyKeys(params, ['cwd', 'pluginId', 'skillName']); const skillName = string(params.skillName, 'skillName', 256); const selected = await this.selectPlugin(params);

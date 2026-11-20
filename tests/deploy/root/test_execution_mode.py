@@ -214,14 +214,16 @@ class ExecutionModeRootTests(unittest.TestCase):
 
     def test_partial_publication_recovers_with_mixed_old_new_sudo_and_config(self):
         self.grant();before=snapshot(self.layout)
-        original=atomic_write
         failed=False
-        def fail(path, data, *args, **kwargs):
+        from deploy.sudo_publish import publish
+        def fail_publish(path, data, mode):
             nonlocal failed
-            if path==paths(self.layout)["sudo"] and not failed:
-                failed=True;raise OSError("fixture sudo publication failed")
-            return original(path,data,*args,**kwargs)
-        with patch("deploy.execution_mode.atomic_write",side_effect=fail),self.assertRaises(OSError):change(self.manager,self.params("root"))
+            if not failed:
+                failed = True
+                raise OSError("fixture sudo publication failed")
+            publish(path, data, mode)
+        with patch("deploy.sudo_publish.publish", side_effect=fail_publish), self.assertRaises(OSError):
+            change(self.manager,self.params("root"))
         self.assertEqual(snapshot(self.layout), before);self.manager.require_update_ready(persist=False)
 
     def test_crash_then_explicit_candidate_recovery_and_default_verify(self):

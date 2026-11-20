@@ -77,12 +77,13 @@ def control_material(layout: Layout) -> dict[str, tuple[bytes, int]]:
     result = {}
     # Never import cached bytecode from the checkout, or copy documentation and
     # unrelated files into the sudo-authorized Python package.
-    for path in sorted(source.glob("*.py")):
+    for path in sorted([*source.glob("*.py"), source / "build_tool.mjs"]):
         details = path.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= 1024 * 1024,
                 "Unsafe trusted deployment source", "unsafe_path")
         data = path.read_bytes()
-        compile(data, str(path), "exec")
+        if path.suffix == ".py":
+            compile(data, str(path), "exec")
         result["deploy/" + path.name] = (data, 0o644)
     from .dns_caddy_build import source_material
     for name, data in source_material().items():

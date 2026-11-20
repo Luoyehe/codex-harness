@@ -17,7 +17,7 @@ class Native extends EventEmitter {
     if (method === 'remoteControl/pairing/start') return { pairingCode: 'secret-pair-code', ...(this.manualPairingCode === undefined ? {} : { manualPairingCode: this.manualPairingCode }), environmentId: 'native-remote', expiresAt: Math.floor(Date.now() / 1000) + 60 };
     if (method === 'remoteControl/pairing/status') return { claimed: false };
     if (method === 'remoteControl/client/list') return { data: [], ...(this.cursor === undefined ? {} : { nextCursor: this.cursor }) };
-    if (method === 'thread/read' || method === 'thread/start') return { thread: { id: method === 'thread/read' ? object(params).threadId : 'thread', cwd: '/local', status: { type: 'idle' }, historyMode: 'paginated', turns: [] } };
+    if (method === 'thread/read' || method === 'thread/start') return { thread: { id: method === 'thread/read' ? object(params).threadId! : 'thread', cwd: '/local', status: { type: 'idle' }, historyMode: 'paginated', turns: [] } };
     if (method === 'thread/turns/list') return { data: [], nextCursor: null, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
     return {};

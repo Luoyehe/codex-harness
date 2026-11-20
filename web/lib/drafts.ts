@@ -138,7 +138,9 @@ export function damagedDrafts(storage: Storage = sessionStorage) {
 export function discardDamagedDraft(storageKey: string, expectedRaw: string, storage: Storage = sessionStorage) {
   if (!storageKey.startsWith(prefix) || storage.getItem(storageKey) !== expectedRaw)
     throw new Error('草稿已变化，请重新检查后再处理。');
-  storage.removeItem(storageKey); draftChanged('');
+  storage.removeItem(storageKey);
+  try { draftChanged(decodeURIComponent(storageKey.slice(prefix.length))); }
+  catch { window.dispatchEvent(new Event('harness-drafts')); }
 }
 export function discardDraft(key: string, storage: Storage = sessionStorage) {
   storage.removeItem(storageKey(key));

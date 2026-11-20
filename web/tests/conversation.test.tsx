@@ -227,7 +227,7 @@ describe('conversation synchronization', () => {
     expect(result.current.turns[1]?.items[0]?.text).toBe('kept');
     expect(api.call).toHaveBeenCalledWith(
       'thread/history',
-      { threadId: 'a', cursor, limit: 30 },
+      { threadId: 'a', cursor, limit: 30, timelineFormat: 'references' },
       expect.anything(),
     );
   });

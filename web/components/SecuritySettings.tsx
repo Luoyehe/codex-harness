@@ -65,7 +65,9 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
     pending.current = true;
     const owner = epoch.current;
     setBusy(action); setError(''); setNotice(''); setConfirmAction('');
-    setPassword(''); setOtp(''); setNewPassword(''); setConfirmation(''); setEnrollmentCode('');
+    if (action !== 'sessions/revoke') {
+      setPassword(''); setOtp(''); setNewPassword(''); setConfirmation(''); setEnrollmentCode('');
+    }
     try {
       const result = await api.account<T>(action, { ...params, expectedRevision: account.revision });
       if (epoch.current !== owner || !available.current) return;
@@ -73,7 +75,7 @@ export function SecuritySettings({ api, authenticated }: { api: Api; authenticat
       await read();
     } catch (e) {
       if (epoch.current !== owner || !available.current) return;
-      setError(`${message(e)} 本次输入的密码和验证码已清除，请重新输入后再试。`);
+      setError(action === 'sessions/revoke' ? message(e) : `${message(e)} 本次输入的密码和验证码已清除，请重新输入后再试。`);
       if (!(e instanceof RpcError) || e.delivery !== 'not_sent' || e.code === 'account_changed') {
         setBlocked(true);
         setNotice('操作结果或账号版本需要核对。请重新读取状态，再决定下一步；不会自动重复提交。');

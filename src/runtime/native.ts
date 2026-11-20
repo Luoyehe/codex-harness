@@ -1,3 +1,6 @@
+import { MANUAL_MCP_DEFAULT_SECONDS, MANUAL_MCP_REPLY_GRACE_MS } from '../shared/mcp-timeouts.js';
+import { NativeMediaEvent } from './native-media-event.js';
+import { QueueReplyIdentity } from './queue-reply-identity.js';
 import { EventEmitter } from 'node:events';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { DeliveryError, jsonBytes, LIMITS, type JsonValue } from './types.js';
@@ -9,7 +12,7 @@ import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
 export interface NativeOptions { beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
-interface Pending { id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
+interface Pending { frameKind?: 'history' | 'queue-read' | 'queue-write' | undefined; id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
 
 /** One process, one protocol epoch. A failed process is never restarted in place. */
 export class NativeRpc extends EventEmitter {
@@ -20,6 +23,9 @@ export class NativeRpc extends EventEmitter {
   private retained = 0;
   private input = Buffer.alloc(0);
   private inputBytes = 0;
+  private mediaEvent?: NativeMediaEvent;
+  private discardingHistoryFrame = false;
+  private queueReply?: { reader: QueueReplyIdentity; entry: Pending };
   private writing = false;
   private ready = false;
   private failed = false;
@@ -70,12 +76,19 @@ export class NativeRpc extends EventEmitter {
     try { frame = Buffer.from(jsonBytes({ id, method, params }) + '\n'); } catch (error) { return Promise.reject(error); }
     if (this.pending.size >= LIMITS.pending || this.retained + frame.length > LIMITS.retainedBytes) return Promise.reject(new DeliveryError('capacity', 'Native request budget exhausted'));
     return new Promise((resolve, reject) => {
-      const entry: Pending = { id, frame, bytes: frame.length, sent: false, flushed: false, resolved: false, timer: null, options, resolve, reject };
+      const entry: Pending = { frameKind: method === 'thread/queue/list' ? 'queue-read' : ['thread/queue/add','thread/queue/update'].includes(method) ? 'queue-write' : ['thread/items/list', 'thread/timeline/list', 'thread/items/read'].includes(method) ? 'history' : undefined, id, frame, bytes: frame.length, sent: false, flushed: false, resolved: false, timer: null, options, resolve, reject };
       this.pending.set(id, entry); this.retained += entry.bytes; this.queue.push(entry);
-      const timeout = options.timeoutMs ?? this.config.requestTimeoutMs ?? 30000;
+      const slowOperation = method === 'mcpServer/tool/call' || method === 'plugin/install';
+      const fallback = method === 'mcpServer/tool/call' ? MANUAL_MCP_DEFAULT_SECONDS * 1000 + MANUAL_MCP_REPLY_GRACE_MS :
+        method === 'plugin/install' ? 320_000 : (this.config.requestTimeoutMs ?? 30_000);
+      const timeout = options.timeoutMs ?? fallback;
       if (timeout > 0) entry.timer = setTimeout(() => {
         if (entry.resolved) return;
-        if (entry.sent) this.fail(new Error('Native request timed out after write'));
+        if (entry.sent && slowOperation) {
+          entry.resolved = true;
+          reject(new DeliveryError('timeout', '此操作已提交但结果尚未确认，请核对原回执。', 'unknown'));
+          this.release(entry);
+        } else if (entry.sent) this.fail(new Error('Native request timed out after write'));
         else { entry.resolved = true; entry.flushed = true; this.queue = this.queue.filter(item => item !== entry); reject(new DeliveryError('timeout', 'Native request timed out before write')); this.release(entry); }
       }, timeout);
       this.pump();
@@ -116,13 +129,60 @@ export class NativeRpc extends EventEmitter {
       this.pump();
     });
   }
+  private finishOversizedQueue(entry: Pending, reader: QueueReplyIdentity): void {
+    entry.resolved = true;
+    entry.reject(new DeliveryError('queue_frame_unconfirmed', '原生待办回执超过传输容量。请核对原操作、会话内容和队列，勿重复提交。', 'unknown', reader.proof()));
+    this.release(entry);
+  }
+  private finishMediaEvent(): boolean {
+    const projection = this.mediaEvent?.projection();
+    delete this.mediaEvent;
+    if (!projection) { this.fail(new Error('Invalid oversized native notification')); return false; }
+    this.emit('notification', projection); return true;
+  }
   private receive(chunk: Buffer): void {
     if (this.failed) return;
     let offset = 0;
     while (offset < chunk.length) {
       const newline = chunk.indexOf(10, offset); const end = newline < 0 ? chunk.length : newline;
       const piece = chunk.subarray(offset, end);
-      if (this.inputBytes + piece.length > LIMITS.frameBytes) { this.fail(new Error('Native frame exceeds byte budget')); return; }
+      if (this.discardingHistoryFrame) {
+        this.queueReply?.reader.update(piece);
+        this.mediaEvent?.update(piece);
+        if (newline < 0) return;
+        if (this.queueReply) this.finishOversizedQueue(this.queueReply.entry, this.queueReply.reader);
+        delete this.queueReply;
+        if (this.mediaEvent && !this.finishMediaEvent()) return;
+        this.discardingHistoryFrame = false; offset = newline + 1; continue;
+      }
+      if (this.inputBytes + piece.length > LIMITS.frameBytes) {
+        // This pinned server prefixes successful responses with their numeric ID.
+        // Only positively identified reads and queue replies are drained. An oversized
+        // mutation reply cannot prove its exact identity, so its outcome stays unknown.
+        const prefix = (this.inputBytes ? this.input.subarray(0, Math.min(this.inputBytes, 128)) : piece.subarray(0, 128)).toString('ascii');
+        const match = /^\{"id":([0-9]+),"result":/.exec(prefix);
+        const entry = match ? this.pending.get(Number(match[1])) : undefined;
+        if (!entry && NativeMediaEvent.matches(prefix)) {
+          this.mediaEvent = new NativeMediaEvent();
+          this.mediaEvent.update(this.input.subarray(0, this.inputBytes)); this.mediaEvent.update(piece);
+          if (newline >= 0 && !this.finishMediaEvent()) return;
+        } else if (!entry?.frameKind || !entry.sent || entry.resolved) {
+          this.fail(new Error('Native frame exceeds byte budget')); return;
+        } else if (entry.frameKind === 'queue-write') {
+          const reader = new QueueReplyIdentity(entry.id);
+          reader.update(this.input.subarray(0, this.inputBytes)); reader.update(piece);
+          if (newline < 0) this.queueReply = { reader, entry };
+          else this.finishOversizedQueue(entry, reader);
+        } else {
+          entry.resolved = true;
+          entry.reject(entry.frameKind === 'queue-read' ? new DeliveryError('queue_frame_capacity', '原生队列页超过传输容量，正在核对已保存的队列摘要。')
+            : new DeliveryError('history_frame_capacity', '单页历史超过传输容量，请缩小读取窗口。'));
+          this.release(entry);
+        }
+        this.input = Buffer.alloc(0); this.inputBytes = 0;
+        if (newline < 0) { this.discardingHistoryFrame = true; return; }
+        offset = newline + 1; continue;
+      }
       if (this.inputBytes + piece.length > this.input.length) {
         const next = Buffer.allocUnsafe(Math.min(LIMITS.frameBytes, Math.max(this.inputBytes + piece.length, this.input.length * 2, 8192)));
         this.input.copy(next, 0, 0, this.inputBytes); this.input = next;

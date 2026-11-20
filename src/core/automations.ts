@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { JsonObject, JsonValue } from './contracts.js';
 import { HarnessError } from './errors.js';
 import { canonical, identifier, object, uuid, validText } from './validation.js';
@@ -33,6 +33,9 @@ export class Automations {
       CREATE TABLE IF NOT EXISTS automation_runs(id TEXT PRIMARY KEY,automation_id TEXT NOT NULL,revision INTEGER NOT NULL,scheduled_at INTEGER NOT NULL,manual INTEGER NOT NULL,operation_id TEXT NOT NULL UNIQUE,client_id TEXT NOT NULL,state TEXT NOT NULL,thread_id TEXT,turn_id TEXT,started_at INTEGER,finished_at INTEGER,stop_requested INTEGER NOT NULL DEFAULT 0,stop_sent INTEGER NOT NULL DEFAULT 0,code TEXT,spec TEXT NOT NULL) STRICT;
       CREATE UNIQUE INDEX IF NOT EXISTS automation_occurrence ON automation_runs(automation_id,revision,scheduled_at) WHERE manual=0;
       CREATE INDEX IF NOT EXISTS automation_run_order ON automation_runs(automation_id,scheduled_at DESC);`);
+    if (!db.prepare('PRAGMA table_info(automation_runs)').all().some(column => column.name === 'attention_before_stop')) {
+      db.exec('ALTER TABLE automation_runs ADD COLUMN attention_before_stop INTEGER NOT NULL DEFAULT 0');
+    }
     this.pruneRemoved();
   }
   get(id: string): Automation { const row = this.db.prepare('SELECT * FROM automations WHERE id=?').get(uuid(id)); if (!row || row.state === 'removed') throw new HarnessError('automation_missing', '计划已移除。'); return job(row); }
@@ -41,10 +44,17 @@ export class Automations {
     if (method === 'automation/list') { keys(params, []); return { data: this.db.prepare("SELECT * FROM automations WHERE state!='removed' ORDER BY created_at,id").all().map(row => job(row)) as unknown as JsonValue }; }
     if (method === 'automation/preview') { keys(params, ['schedule']); return { next: schedulePreview(schedule(params.schedule!), this.now()), missedPolicy: 'skip_after_5_minutes', dstPolicy: 'skip_nonexistent_first_repeated' }; }
     if (method === 'automation/read') { keys(params, ['id']); return this.get(uuid(params.id)) as unknown as JsonValue; }
-    keys(params, ['id', 'before', 'limit']); const id = uuid(params.id); this.get(id); const limit = positive(params.limit ?? 50, 1, 100);
+    keys(params, ['id', 'before', 'limit', 'track']); const id = uuid(params.id); this.get(id); const limit = positive(params.limit ?? 50, 1, 100);
     const before = params.before == null ? Number.MAX_SAFE_INTEGER : positive(params.before, 0, Number.MAX_SAFE_INTEGER);
     const rows = this.db.prepare('SELECT rowid AS cursor,* FROM automation_runs WHERE automation_id=? AND rowid<? ORDER BY rowid DESC LIMIT ?').all(id, before, limit + 1);
-    return { data: rows.slice(0, limit).map(row => publicRun(run(row))), next: rows.length > limit ? Number(rows[limit - 1]!.cursor) : null };
+    const stamp = this.db.prepare('SELECT group_concat(id ORDER BY rowid) AS ids,min(rowid) AS first,max(rowid) AS last FROM automation_runs WHERE automation_id=?').get(id)!;
+    const membership = createHash('sha256').update(`${stamp.first}:${stamp.last}:${stamp.ids}`).digest('hex');
+    const track = params.track ?? [];
+    if (!Array.isArray(track) || track.length > 1000) throw new HarnessError('invalid', '跟踪的运行编号过多。');
+    const ids = track.map(value => uuid(value));
+    const changed = ids.length ? this.db.prepare('SELECT * FROM automation_runs WHERE automation_id=? AND id IN (SELECT value FROM json_each(?))')
+      .all(id, JSON.stringify(ids)).map(row => publicRun(run(row))) : [];
+    return { membership, tracked: changed, data: rows.slice(0, limit).map(row => publicRun(run(row))), next: rows.length > limit ? Number(rows[limit - 1]!.cursor) : null };
   }
   command(method: string, params: JsonObject): JsonValue {
     const now = this.now();
@@ -128,9 +138,15 @@ export class Automations {
     if (!['completed', 'failed', 'interrupted', 'unknown', 'closed_unknown', 'not_sent', 'canceled'].includes(state)) throw new Error('Invalid final automation state');
     this.db.prepare("UPDATE automation_runs SET state=?,code=?,finished_at=? WHERE id=? AND state IN ('queued','dispatching','running','needs_attention','stopping','unknown')").run(state, code, this.now(), id);
   }
-  attention(threadId: string): void { this.db.prepare("UPDATE automation_runs SET state='needs_attention' WHERE thread_id=? AND state='running'").run(threadId); }
+  attention(threadId: string): void {
+    this.db.prepare("UPDATE automation_runs SET state=CASE state WHEN 'running' THEN 'needs_attention' ELSE state END,attention_before_stop=1 WHERE thread_id=? AND state IN ('running','stopping')").run(threadId);
+  }
+  restoreActive(id: string, threadId: string, turnId: string): boolean {
+    const update = this.db.prepare("UPDATE automation_runs SET state=CASE WHEN attention_before_stop=1 THEN 'needs_attention' ELSE 'running' END,finished_at=NULL,code=NULL WHERE id=? AND thread_id=? AND turn_id=? AND state='unknown' AND code='gateway_restarted' AND stop_sent=0").run(id, threadId, turnId);
+    return Number(update.changes) === 1;
+  }
   requestStop(id: string): void { this.db.prepare("UPDATE automation_runs SET stop_requested=1 WHERE id=? AND state IN ('running','needs_attention')").run(id); }
-  claimStop(id: string): boolean { return !!Number(this.db.prepare("UPDATE automation_runs SET stop_sent=1,state='stopping' WHERE id=? AND state IN ('running','needs_attention') AND stop_requested=1 AND stop_sent=0").run(id).changes); }
-  stopNotSent(id: string, code: string): void { this.db.prepare("UPDATE automation_runs SET stop_sent=0,state='running',code=? WHERE id=? AND state='stopping'").run(code, id); }
-  recover(): void { this.db.prepare("UPDATE automation_runs SET state='unknown',code='gateway_restarted',finished_at=? WHERE state IN ('dispatching','running','needs_attention','stopping')").run(this.now()); }
+  claimStop(id: string): boolean { return !!Number(this.db.prepare("UPDATE automation_runs SET attention_before_stop=(state='needs_attention'),stop_sent=1,state='stopping' WHERE id=? AND state IN ('running','needs_attention') AND stop_requested=1 AND stop_sent=0").run(id).changes); }
+  stopNotSent(id: string, code: string): void { this.db.prepare("UPDATE automation_runs SET stop_sent=0,state=CASE WHEN attention_before_stop=1 THEN 'needs_attention' ELSE 'running' END,code=? WHERE id=? AND state='stopping'").run(code, id); }
+  recover(): void { this.db.prepare("UPDATE automation_runs SET attention_before_stop=CASE WHEN state='needs_attention' THEN 1 ELSE attention_before_stop END,state='unknown',code='gateway_restarted',finished_at=? WHERE state IN ('dispatching','running','needs_attention','stopping')").run(this.now()); }
 }

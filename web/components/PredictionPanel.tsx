@@ -1,3 +1,4 @@
+import { predictionStates, statusLabel } from '../lib/status-labels';
 import { isArchivedReceipt } from '../lib/operations';
 import { useEffect, useRef, useState } from 'react';
 import { RpcError, type Api } from '../lib/api';
@@ -53,10 +54,11 @@ export function PredictionPanel(props: Props) {
     if (
       value.predictionId !== record.predictionId ||
       value.threadId !== record.threadId ||
-      value.sourceTurnId !== record.sourceTurnId ||
-      !['pending', 'completed', 'failed', 'stale', 'unknown'].includes(String(value.state))
+      value.sourceTurnId !== record.sourceTurnId
     )
-      throw new Error('建议结果身份或状态不匹配。');
+      throw new Error('建议结果身份不匹配。');
+    if (typeof value.state !== 'string' || !Object.hasOwn(predictionStates, value.state))
+      throw new Error('不支持此建议状态：' + statusLabel(typeof value.state === 'string' ? value.state : null, predictionStates));
     if (
       record.state === 'stale' ||
       (record.state && record.state !== 'pending' && value.state === 'pending') ||
@@ -272,8 +274,7 @@ export function PredictionPanel(props: Props) {
         )}
       </div>
       <p className="small muted">
-        按官方说明，生成建议不占 Codex 用量或
-        credits；发送建议才按正常请求计费。是否可用仍取决于账号、模型和地区，以服务返回为准。仅针对最新已完成回合，每个回合在此运行时最多请求一次。建议不会自动发送；请先放入空白编辑框，审阅修改后再发送。结果只保留在本次连接内。
+        按官方说明，生成建议不占 Codex 用量或点数；发送建议才按正常请求计费。是否可用仍取决于账号、模型和地区，以服务返回为准。仅针对最新已完成回合，每个回合在此运行时最多请求一次。建议不会自动发送；请先放入空白编辑框，审阅修改后再发送。结果只保留在本次连接内。
         <a
           href="https://learn.chatgpt.com/docs/features/composer-predictions"
           target="_blank"
@@ -301,7 +302,7 @@ export function PredictionPanel(props: Props) {
       {notice && <p role="status">{notice}</p>}
       {record && (
         <article className="info-card stack">
-          <p className="small path">来源回合：{record.sourceTurnId}</p>
+          <p className="small path">来源回合：{record.sourceTurnId} · 建议状态：{statusLabel(stale ? 'stale' : record.state, predictionStates)}</p>
           {record.error && (
             <p className="error" role="alert">
               {record.error}

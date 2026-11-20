@@ -1,3 +1,4 @@
+import { MANUAL_MCP_WORKER_WAIT_MS } from '../shared/mcp-timeouts.js';
 import { EventEmitter } from 'node:events';
 import http from 'node:http';
 import net from 'node:net';
@@ -130,14 +131,19 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
               const data = detail?.phase === 'conversion' && identity(conversionSource) && detail.sourceThreadId === conversionSource &&
                 identity(detail.threadId) && detail.threadId !== conversionSource && detail.inputSent === false
                 ? { phase: 'conversion', threadId: detail.threadId, sourceThreadId: conversionSource, inputSent: false }
+                : (detail?.phase === 'source_unsubscribed' || detail?.phase === 'source_unsubscribe') && identity(conversionSource) &&
+                  detail?.sourceThreadId === conversionSource && detail.targetCreated === false && detail.inputSent === false
+                  ? { phase: detail.phase, sourceThreadId: conversionSource, targetCreated: false, inputSent: false }
                 : (detail?.phase === 'first_turn' || detail?.phase === 'review') && typeof detail.threadId === 'string' && detail.threadId.length > 0 && detail.threadId.length <= 256 && typeof detail.causeCode === 'string' && detail.causeCode.length > 0 && detail.causeCode.length <= 128
-                  ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode } : undefined;
+                  ? { phase: detail.phase, threadId: detail.threadId, causeCode: detail.causeCode,
+                      ...(detail.phase === 'first_turn' && requestBody?.method === 'conversation/start' && detail.threadCreated === true
+                        ? { threadCreated: true, ...(detail.inputSent === false && error.delivery === 'not_sent' ? { inputSent: false } : {}) } : {}) } : undefined;
               finish(new HarnessError(error.code.slice(0, 128), error.message.slice(0, 4096), error.delivery === 'not_sent' ? 'not_sent' : 'unknown', data));
             }
           } catch (error) { finish(error instanceof HarnessError && error.delivery === 'unknown' ? error : new HarnessError('worker_protocol', '后台返回不符合协议，结果需要核对。', wrote ? 'unknown' : 'not_sent')); }
         });
       });
-      const timeout = setTimeout(() => { req.destroy(); finish(new HarnessError('worker_timeout', '后台确认超时，请核对结果，不要重复提交。', wrote ? 'unknown' : 'not_sent')); }, 350000);
+      const timeout = setTimeout(() => { req.destroy(); finish(new HarnessError('worker_timeout', '后台确认超时，请核对结果，不要重复提交。', wrote ? 'unknown' : 'not_sent')); }, path === '/rpc' && requestBody?.method === 'mcp/tool/call' ? MANUAL_MCP_WORKER_WAIT_MS : 350_000);
       req.on('error', () => finish(new HarnessError('worker_lost', '后台连接中断，请核对结果。', wrote ? 'unknown' : 'not_sent')));
       req.once('socket', socket => {
         const send = () => {

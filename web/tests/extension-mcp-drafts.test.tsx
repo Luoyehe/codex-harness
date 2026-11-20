@@ -103,7 +103,7 @@ it('keeps both MCP argument modes across internal tabs and directory reload but 
   fireEvent.click(screen.getByRole('button', { name: '事件订阅' }));
   fireEvent.click(screen.getByRole('button', { name: '工具' }));
   fireEvent.click(screen.getByRole('button', { name: '重新读取目录与订阅' }));
-  await waitFor(() => expect(calls.filter(call => call.method === 'mcp/list')).toHaveLength(2));
+  await waitFor(() => expect(calls.filter(call => call.method === 'mcp/list').map(call => call.params.detail)).toEqual(['toolsAndAuthOnly', 'full', 'toolsAndAuthOnly', 'toolsAndAuthOnly']));
   expect(screen.getByRole('textbox', { name: '工具参数 JSON' })).toHaveProperty('value', '{"text":"json draft"}');
   expect(calls.some(call => call.operationId)).toBe(false);
 });

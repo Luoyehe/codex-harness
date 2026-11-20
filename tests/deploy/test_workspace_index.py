@@ -88,6 +88,35 @@ class IndexFilesystemTests(unittest.TestCase):
         chosen = next(entry for entry in snapshot["entries"] if entry["slot"] == slot)
         return self.call("git/index/recovery/restore", {**self.versions(), "recoveryOperationId": source, "slot": slot, "sourceRevision": chosen["revision"]})["result"]
 
+    def test_git_mode_and_unrelated_reference_count_follow_selected_git_paths(self):
+        original = self.path / ".git/config"
+        with original.open("ab") as config:
+            config.write(b"\n# \xff legacy comment\n[CORE]\n FILEMODE = false\n")
+        a = self.path / "a"
+        a.chmod(0o755)
+        a.write_text("updated")
+        self.stage(["a"])
+        self.assertTrue(self.git("ls-files", "--stage", "a").startswith(b"100644 "))
+        self.git("config", "--replace-all", "core.filemode", "true")
+        a.chmod(0o654)
+        a.write_text("group execute only")
+        self.stage(["a"])
+        self.assertTrue(self.git("ls-files", "--stage", "a").startswith(b"100644 "))
+        a.chmod(0o744)
+        refs = self.path / ".git/refs/tags"
+        commit = self.git("rev-parse", "HEAD")
+        for n in range(4210):
+            (refs / ("old-" + str(n))).write_bytes(commit)
+        self.stage(["a"])
+        self.assertTrue(self.git("ls-files", "--stage", "a").startswith(b"100755 "))
+        result = self.call("git/commit", {**self.versions(), "author":{"name":"Operator","email":"op@example.invalid"}, "message":"changed"})
+        self.assertEqual(result["result"]["commitId"], self.git("rev-parse", "HEAD").decode().strip())
+        self.git("config", "--replace-all", "core.filemode", "false")
+        a.chmod(0o644)
+        a.write_text("preserve tracked mode")
+        self.stage(["a"])
+        self.assertTrue(self.git("ls-files", "--stage", "a").startswith(b"100755 "))
+
     def test_stage_unstage_and_commit_only_selected_paths_preserve_worktree_and_other_index_entries(self):
         (self.path / "a").write_text("changed a\n")
         (self.path / "b").write_text("changed b\n")

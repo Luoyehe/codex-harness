@@ -70,7 +70,7 @@ export class AccountTools {
         const response = checked('GatewayOAuthLoginResponse', await write(method, { modelProvider: providerId }, { beforeWrite: () => { if (this.login !== login || login.revoked) throw new DeliveryError('client_disconnected', 'OAuth owner disconnected before login'); login.dispatched = true; } }));
         if (response.prompt !== null) {
           const prompt = object(response.prompt), authUrl = string(prompt.verificationUrl, 'gateway verification URL', 8192), userCode = string(prompt.userCode, 'gateway user code', 256), id = string(prompt.loginId, 'gateway login id', 256);
-          this.host.redactor.addSecret(authUrl); this.host.redactor.addSecret(userCode);
+          this.host.redactor.addSecret(authUrl, login.expiresAt); this.host.redactor.addSecret(userCode, login.expiresAt);
           const url = new URL(authUrl); if (url.protocol !== 'https:' || url.username || url.password) throw new DeliveryError('invalid_native_response', 'Gateway authorization requires an HTTPS URL without embedded credentials', 'unknown');
           if (!login.revoked && this.login === login && login.status !== 'failed' && login.status !== 'succeeded') { if (login.nativeLoginId && login.nativeLoginId !== id) throw new DeliveryError('invalid_native_response', 'Gateway login identity changed', 'unknown'); login.nativeLoginId = id; login.authUrl = authUrl; login.userCode = userCode; }
         }
@@ -93,7 +93,7 @@ export class AccountTools {
   notification(method: string, params: JsonObject): boolean {
     if (method !== 'account/gatewayOAuth/changed') return false;
     checked('GatewayOAuthChangedNotification', params); const login = this.login;
-    if (typeof params.authUrl === 'string') this.host.redactor.addSecret(params.authUrl);
+    if (typeof params.authUrl === 'string') this.host.redactor.addSecret(params.authUrl, Date.now() + 600000);
     if (login && !login.revoked && params.providerId === login.providerId && (!login.nativeLoginId || params.loginId === login.nativeLoginId)) {
       if (typeof params.loginId === 'string') login.nativeLoginId = params.loginId;
       login.observed = true;
@@ -101,7 +101,7 @@ export class AccountTools {
       if (typeof params.authUrl === 'string') {
         let url: URL; try { url = new URL(params.authUrl); } catch { throw new DeliveryError('invalid_native_response', 'Invalid gateway authorization URL', 'unknown'); }
         if (url.protocol !== 'https:' || url.username || url.password) throw new DeliveryError('invalid_native_response', 'Gateway authorization requires an HTTPS URL without embedded credentials', 'unknown');
-        this.host.redactor.addSecret(params.authUrl); login.authUrl = params.authUrl;
+        this.host.redactor.addSecret(params.authUrl, Date.now() + 600000); login.authUrl = params.authUrl;
       }
       if (login.status === 'failed' || login.status === 'succeeded') { delete login.authUrl; delete login.userCode; }
     }

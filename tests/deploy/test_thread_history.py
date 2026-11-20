@@ -1,9 +1,14 @@
 """Real local files/locks; synthetic history only, no native or provider network."""
 import hashlib
+import base64
 import gzip
 import json
 import os
+import random
+import struct
+import zlib
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -144,7 +149,7 @@ class ThreadHistoryTests(unittest.TestCase):
             result = self.inspect("plaintext")
             self.assertTrue(result["inspectionUnsupported"])
             self.assertEqual(result["inspectionIssue"]["code"], "thread_history_limit")
-            self.assertIn("10000", result["inspectionIssue"]["message"])
+            self.assertIn("traversal budget", result["inspectionIssue"]["message"])
             with self.assertRaises(history.HistoryError) as caught: history._rollout_index(self.home, self.uid)
             self.assertEqual(caught.exception.code, "thread_history_limit")
 
@@ -254,6 +259,20 @@ class ThreadHistoryTests(unittest.TestCase):
         target.write_bytes(target.read_bytes() + line("compacted", {"replacement_history": [{"type": "message", "role": "user", "content": [{"type": "localAudio", "path": later}]}]}))
         self.assertEqual(history.operate(self.home, self.uid, request)["paths"], sorted([first, later]))
 
+    def test_guided_vision_reference_and_older_bare_reference_both_retain_their_original_files(self):
+        root = self.home / "attachments"
+        old = str(root / "11111111-1111-4111-8111-111111111111")
+        current = str(root / "22222222-2222-4222-8222-222222222222.png")
+        from_code = Path("src/core/attachment-media.ts").read_text()
+        tip = "Decide whether an available and authorized vision tool can read this file. If the image was not read successfully, say so. Answer any independent text request normally."
+        self.assertIn(tip, from_code)
+        self.save(line("response_item", {"type": "message", "content": [
+            {"type": "input_text", "text": 'Attached file "legacy.png" is available at ' + json.dumps(old) + '.'},
+            {"type": "input_text", "text": 'Attached file "new.png" is available at ' + json.dumps(current) + '.\n' + tip},
+        ]}))
+        result = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root)})
+        self.assertEqual(result["references"], [{"threadId": THREAD, "paths": sorted([old, current])}])
+
     def test_attachment_inventory_keeps_uninspectable_history_distinct_from_confirmed_absence(self):
         attachment_root = self.home / "attachments"
         attachment = str(attachment_root / "11111111-1111-4111-8111-111111111111")
@@ -265,6 +284,180 @@ class ThreadHistoryTests(unittest.TestCase):
         self.assertEqual(result["references"], [{"threadId": THREAD, "paths": [attachment]}])
         self.assertEqual(result["unresolvedThreadIds"], [compressed_id])
         self.assertEqual(result["threadIds"], sorted([THREAD, compressed_id]))
+
+    def test_known_ancestor_lookup_beyond_ten_thousand_directory_entries(self):
+        for i in range(10050):
+            (self.home / "sessions" / ("unrelated-" + str(i))).touch()
+        self.save(self.user)
+        self.assertEqual(history._rollout_index(self.home, self.uid, target=THREAD), {THREAD: [self.path]})
+
+    def test_attachment_scans_resume_after_interruption_and_invalidate_changed_files(self):
+        root = self.home / "attachments"
+        one = str(root / "11111111-1111-4111-8111-111111111111.png")
+        two = str(root / "22222222-2222-4222-8222-222222222222.png")
+        rows = [line("event_msg", {"type": "fixture", "value": one}) for _ in range(6)]
+        raw = self.save(*rows)
+        request = {"action": "attachment-index", "attachmentRoot": str(root)}
+        decode = history._decode
+        scanned = []
+        def observed(data):
+            value = decode(data)
+            if isinstance(value, dict) and value.get("type") == "event_msg": scanned.append(True)
+            return value
+        def interrupt(data):
+            value = observed(data)
+            if len(scanned) == 4: raise KeyboardInterrupt()
+            return value
+        with patch.object(history, "ATTACHMENT_CHECKPOINT_BYTES", 1):
+            with patch.object(history, "_decode", interrupt), self.assertRaises(KeyboardInterrupt):
+                history._attachment_index(self.home, self.uid, str(root))
+            scanned.clear()
+            with patch.object(history, "_decode", observed):
+                self.assertEqual(history.operate(self.home, self.uid, request)["references"][0]["paths"], [one])
+            self.assertEqual(len(scanned), 3)
+            self.path.write_bytes(raw.replace(one.encode(), two.encode()))
+            self.assertEqual(history.operate(self.home, self.uid, request)["references"][0]["paths"], [two])
+
+    def test_independent_rollouts_remain_collectable_when_aggregate_exceeds_per_history_limit(self):
+        root = self.home / "attachments"
+        ref = str(root / "11111111-1111-4111-8111-111111111111.png")
+        row = line("event_msg", {"path": ref, "message": "x" * 2048})
+        self.save(row)
+        other = "00000000-0000-4000-8000-000000000009"
+        target = self.path.with_name("rollout-" + other + ".jsonl")
+        target.write_bytes(line("session_meta", {"id": other}) + row); target.chmod(0o600)
+        with patch.object(history, "ROLLOUT_LIMIT", self.path.stat().st_size + 1):
+            result = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root)})
+        self.assertEqual(result["unresolvedThreadIds"], [])
+        self.assertEqual(result["references"], [{"threadId": key, "paths": [ref]} for key in [THREAD, other]])
+
+    def test_inline_queue_and_rollout_evidence_is_scoped_to_thread_and_content(self):
+        png = Path("tests/fixtures/visual-media/sample.png").read_bytes()
+        jpeg = Path("tests/fixtures/visual-media/sample.jpg").read_bytes()
+        uri = lambda mime, data: "data:" + mime + ";base64," + base64.b64encode(data).decode()
+        evidence = lambda mime, data: {"mimeType": mime, "sha256": hashlib.sha256(data).hexdigest()}
+        p, j = uri("image/png", png), uri("image/jpeg", jpeg)
+        other = "00000000-0000-4000-8000-000000000099"
+        queue = self.home / "queue_1.sqlite"
+        with sqlite3.connect(queue) as db:
+            db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT)")
+            db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("a", THREAD, json.dumps({"UserInput": {"content": [{"type": "image", "image_url": p}], "client_id": "native-client"}})))
+            db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("b", other, json.dumps({"input": [{"type": "image", "url": j}]})))
+        queue.chmod(0o600)
+        self.save(line("event_msg", {"type": "user_message", "images": [p]}),
+                  line("response_item", {"type": "message", "role": "user", "content": [
+                      {"type": "input_image", "image_url": p}, {"type": "input_text", "text": j}]}))
+        request = {"action": "attachment-index", "attachmentRoot": str(self.home / "attachments")}
+        with patch.object(history, "ATTACHMENT_CHECKPOINT_BYTES", 1):
+            for _ in range(2):
+                result = history.operate(self.home, self.uid, request)
+                self.assertEqual(result["references"], [
+                    {"threadId": THREAD, "paths": [], "images": [evidence("image/png", png)]},
+                    {"threadId": other, "paths": [], "images": [evidence("image/jpeg", jpeg)]}])
+                self.assertNotIn("base64", json.dumps(result))
+        with sqlite3.connect(queue) as db:
+            db.execute("DELETE FROM queued_items WHERE thread_id=?", (other,))
+            db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("c", other, json.dumps({"input": [{"type": "image", "url": "data:image/png;base64,!"}]})))
+        result = history.operate(self.home, self.uid, request)
+        self.assertEqual(result["unresolvedThreadIds"], [other])
+        self.assertEqual(result["references"], [{"threadId": THREAD, "paths": [], "images": [evidence("image/png", png)]}])
+        inspected = history.operate(self.home, self.uid, dict(request, action="attachment-inspect", threadId=THREAD, path=str(self.path), mode="plaintext"))
+        self.assertEqual(inspected, {"paths": [], "images": [evidence("image/png", png)]})
+
+    def test_filtered_image_digests_survive_different_owners_duplicates_and_checkpoint_changes(self):
+        png = Path("tests/fixtures/visual-media/sample.png").read_bytes()
+        other = "00000000-0000-4000-8000-000000000088"
+        url = "data:;base64," + base64.b64encode(png).decode()
+        digest = hashlib.sha256(png).digest()
+        rows = [line("response_item", {"type": "message", "role": "user", "content":
+                [{"type": "input_image", "image_url": url}, {"type": "input_image", "image_url": url}]})]
+        self.save(*rows)
+        path = self.path.with_name("rollout-" + other + ".jsonl")
+        path.write_bytes(line("session_meta", {"id": other}) + rows[0]); path.chmod(0o600)
+        req = {"action": "attachment-index", "attachmentRoot": str(self.home / "attachments")}
+        with patch.object(history, "ATTACHMENT_CHECKPOINT_BYTES", 1):
+            empty = history.operate(self.home, self.uid, dict(req, activeImageDigests=""))
+            self.assertEqual(empty["references"], [])
+            filtered = history.operate(self.home, self.uid, dict(req, activeImageDigests=base64.b64encode(digest).decode()))
+            self.assertEqual(filtered["references"], [{"threadId": tid, "paths": [], "images": [
+                {"mimeType": "image/png", "sha256": digest.hex()}]} for tid in [THREAD, other]])
+            filtered = history.operate(self.home, self.uid, dict(req, activeImageDigests=base64.b64encode(b"x" * 32).decode()))
+            for row in filtered["references"]:
+                self.assertNotIn("images", row)
+                self.assertEqual(row["unmatchedHistoryImages"], [{"mimeType": "image/png", "sha256": digest.hex()}])
+        self.save(line("event_msg", {"type": "user_message", "images": ["data:image/png;base64,Y29ycnVwdA=="]}))
+        self.assertEqual(history.operate(self.home, self.uid, req)["unresolvedThreadIds"], [THREAD])
+        with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, dict(req, activeImageDigests="YQ=="))
+
+    def test_large_native_queue_keeps_ids_order_models_and_only_returns_small_owned_image_proofs(self):
+        def chunk(kind, data): return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        w, h = 1024, 800
+        pixels = random.Random(37).randbytes(3 * w * h)
+        png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) +
+               chunk(b"IDAT", zlib.compress(b"".join(b"\0" + pixels[i:i + 3*w] for i in range(0, len(pixels), 3*w)))) + chunk(b"IEND", b""))
+        uri = "data:image/png;base64," + base64.b64encode(png).decode()
+        large = [{"type": "text", "text": "Screenshot question", "text_elements": []}] + [
+            {"type": "image", "image_url": uri, "detail": "high"} for _ in range(4)]
+        root = self.home / "attachments"; root.mkdir()
+        text = 'Attached file "a.png" is available at ' + json.dumps(str(root / "11111111-1111-4111-8111-111111111111.png")) + '.'
+        small = [{"type": "text", "text": text, "text_elements": []},
+                 {"type": "text", "text": "原始上下文", "text_elements": [{"byte_range": {"start": 0, "end": 15}, "placeholder": "附件来源"}]}]
+        def payload(parts, cid): return json.dumps({"UserInput": {"content": parts, "client_id": cid}})
+        queue = self.home / "queue_1.sqlite"
+        with sqlite3.connect(queue) as db:
+            db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT,queue_order INTEGER)")
+            db.executemany("INSERT INTO queued_items VALUES(?,?,?,?)", [
+                ("large", THREAD, payload(large, "first"), 1), ("small", THREAD, payload(small, "second"), 2),
+                ("different", "00000000-0000-4000-8000-000000000088", payload(small, "different"), 0)])
+        queue.chmod(0o600)
+        req = {"action": "queue-capacity", "threadId": THREAD, "attachmentRoot": str(root)}
+        listing = history.operate(self.home, self.uid, req)
+        self.assertTrue(listing["large"]); self.assertTrue(listing["complete"])
+        first, second = listing["data"]
+        self.assertEqual((first["id"], first["clientUserMessageId"], first["preview"], first["media"]), ("large", "first", "Screenshot question", [{"type": "image"}]))
+        self.assertGreater(first["bytes"], 12*1024*1024)
+        self.assertTrue(first["oversized"]); self.assertFalse(second["oversized"]); self.assertEqual(second["media"], [{"type": "text", "text": text}])
+        detail = history.operate(self.home, self.uid, dict(req, action="queue-item", queuedSubmissionId="large"))["queuedSubmission"]
+        self.assertEqual(detail["input"][0], large[0])
+        self.assertEqual(detail["input"][1:], [{"type": "harnessInlineImageDigest", "mimeType": "image/png",
+            "sha256": hashlib.sha256(png).hexdigest(), "bytes": len(png), "detail": "high",
+            "urlSha256": hashlib.sha256(uri.encode("utf-8")).hexdigest()}] * 4)
+        self.assertNotIn("base64", json.dumps(detail)); self.assertEqual(len(listing["data"]), 2)
+        self.assertEqual(history.operate(self.home, self.uid, dict(req, action="queue-item", queuedSubmissionId="small"))["queuedSubmission"]["input"],
+                         [small[0], {"type": "text", "text": "原始上下文", "text_elements": [{"byteRange": {"start": 0, "end": 15}, "placeholder": "附件来源"}]}])
+        image_request = dict(req, action="queue-image", queuedSubmissionId="large", ordinal=1,
+                             expectedSha256=hashlib.sha256(png).hexdigest(), expectedBytes=len(png))
+        image = history.operate(self.home, self.uid, image_request)
+        self.assertEqual(image["mimeType"], "image/png"); self.assertEqual(base64.b64decode(image["base64"]), png)
+        for wrong in [{"ordinal": 0}, {"expectedSha256": "f" * 64}, {"expectedBytes": 1}, {"queuedSubmissionId": "different"}]:
+            with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, {**image_request, **wrong})
+        alternate = base64.b64encode(hashlib.sha256(b"old upload pre-encoding").digest()).decode()
+        old = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root), "activeImageDigests": alternate})
+        self.assertTrue(next(row for row in old["references"] if row["threadId"] == THREAD)["unmatchedQueuedImage"])
+        known = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root), "activeImageDigests": base64.b64encode(hashlib.sha256(png).digest()).decode()})
+        own = next(row for row in known["references"] if row["threadId"] == THREAD)
+        self.assertEqual(own["queuedImages"], [{"mimeType": "image/png", "sha256": hashlib.sha256(png).hexdigest()}])
+        self.assertNotIn("unmatchedQueuedImage", own)
+        self.assertIsNone(history.operate(self.home, self.uid, dict(req, action="queue-item", queuedSubmissionId="different"))["queuedSubmission"])
+        with sqlite3.connect(queue) as db: db.execute("DELETE FROM queued_items WHERE id='large'")
+        self.assertEqual(history.operate(self.home, self.uid, req), {"large": False, "data": [], "complete": True})
+
+    def test_queue_only_reference_survives_reopen_and_clear_removes_evidence(self):
+        attachment_root = self.home / "attachments"; attachment_root.mkdir()
+        item = attachment_root / "11111111-1111-4111-8111-111111111111"
+        item.write_bytes(b"actual queued bytes")
+        queue = self.home / "queue_1.sqlite"
+        request = {"action": "attachment-index", "attachmentRoot": str(attachment_root)}
+        with sqlite3.connect(queue) as db:
+            db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT)")
+            db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("a", THREAD, json.dumps({"input": [{"type": "text", "text": 'Attached file "a.txt" is available at ' + json.dumps(str(item)) + "."}]})))
+        queue.chmod(0o600)
+        self.assertEqual(history.operate(self.home, self.uid, request)["references"], [{"threadId": THREAD, "paths": [str(item)]}])
+        self.assertEqual(item.read_bytes(), b"actual queued bytes")
+        with sqlite3.connect(queue) as db:
+            db.execute("DELETE FROM queued_items")
+        self.assertEqual(history.operate(self.home, self.uid, request)["references"], [])
+
 
 
 class RecoveryCopyTests(unittest.TestCase):

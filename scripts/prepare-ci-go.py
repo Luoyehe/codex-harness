@@ -230,6 +230,25 @@ def run_go(binary: Path, arguments: list[str], source: Path, env: dict, log: Pat
         return output.read().decode("utf-8", errors="replace")
 
 
+def seal_module_cache(base: Path) -> None:
+    """Seal only the preparer's own ordinary module cache. Never follow links."""
+    cache = ordinary(base / ".work/ci-go/modules", base / ".work", directory=True)
+    entries, total = 0, 0
+    for directory, children, files in os.walk(cache, topdown=False, followlinks=False):
+        for name in children + files:
+            item = Path(directory) / name
+            info = item.lstat()
+            require(not stat.S_ISLNK(info.st_mode) and (stat.S_ISDIR(info.st_mode) or
+                    stat.S_ISREG(info.st_mode) and info.st_nlink == 1), "Non-ordinary Go module cache entry")
+            entries += 1
+            if stat.S_ISREG(info.st_mode):
+                total += info.st_size
+                require(info.st_size <= 256 * 1024**2, "Oversized Go module file")
+            require(entries <= 150000 and total <= 3 * 1024**3, "Go module cache exceeds preparation budget")
+            item.chmod(stat.S_IMODE(info.st_mode) & ~0o222)
+    cache.chmod(stat.S_IMODE(cache.stat().st_mode) & ~0o222)
+
+
 def prepare(base: Path = ROOT, *, archive: Path | None = None, seed_cache: Path | None = None,
             download_proxy: str | None = None, system: str | None = None, machine: str | None = None) -> Path:
     base = base.absolute()
@@ -275,6 +294,7 @@ def prepare(base: Path = ROOT, *, archive: Path | None = None, seed_cache: Path 
                 "Go dependency preparation changed the sealed source lock")
     require({name: hashlib.sha256(data).hexdigest() for name, data in source_material().items()} == hashes,
             "Reviewed Go source changed during preparation")
+    seal_module_cache(base)
     manifest = {"schemaVersion": 1, **{name: selected[name] for name in ("goVersion", "platform", "architecture", "archiveSha256")},
                 "goBinarySha256": sha256(binary), "archive": str(verified), "binary": str(binary),
                 "moduleCache": str(work / "modules"), "sources": hashes}
@@ -285,11 +305,18 @@ def prepare(base: Path = ROOT, *, archive: Path | None = None, seed_cache: Path 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--seal-cache", action="store_true", help="Seal this checkout's previously prepared Go module cache for shared offline reads")
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--seed-cache", type=Path)
     parser.add_argument("--download-proxy", help="Explicit credential-free loopback HTTP proxy for preparation downloads only")
     args = parser.parse_args()
     try:
+        if args.seal_cache:
+            require(not any([args.archive, args.seed_cache, args.download_proxy]), "Use --seal-cache on its own")
+            ordinary(ROOT / ".work/ci-go/prepared.json", ROOT / ".work")
+            seal_module_cache(ROOT)
+            print("Sealed prepared Go module cache")
+            sys.exit(0)
         result = prepare(archive=args.archive, seed_cache=args.seed_cache, download_proxy=args.download_proxy)
         if os.environ.get("GITHUB_ENV"):
             with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as output:

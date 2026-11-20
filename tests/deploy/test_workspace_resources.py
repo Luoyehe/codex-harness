@@ -79,10 +79,25 @@ class ResourceFilesystemTests(unittest.TestCase):
         secret = self.skill(self.project / "secrets")
         nested = Root(str(child), self.forbidden)
         try:
+            with self.assertRaises(DeployError):
+                read_skill(nested, {"path": str(target)}, self.layout, self.settings, self.forbidden)
+            import subprocess
+            subprocess.run(["git", "init", "-q", str(self.project)], check=True)
             self.assertEqual(read_skill(nested, {"path": str(target)}, self.layout, self.settings, self.forbidden)["text"], target.read_text())
             for rejected in (outside, secret):
                 with self.assertRaises(DeployError): read_skill(nested, {"path": str(rejected)}, self.layout, self.settings, self.forbidden)
         finally: nested.close()
+
+    def test_native_feedback_directory_is_fixed_self_ignored_and_reusable(self):
+        from deploy.workspace_resources import feedback_directory
+        location = Path(feedback_directory(self.root)["directory"])
+        self.assertEqual(location, self.project / ".harness-feedback")
+        self.assertEqual(location.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((location / ".gitignore").read_text(), "*\n")
+        self.assertEqual(feedback_directory(self.root)["directory"], str(location))
+        (location / ".gitignore").write_text("different")
+        with self.assertRaises(DeployError):
+            feedback_directory(self.root)
 
     def test_symlink_hardlink_fifo_and_ancestor_links_are_refused(self):
         source = self.skill(self.project / ".agents/skills/source")

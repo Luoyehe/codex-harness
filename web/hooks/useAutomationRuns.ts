@@ -15,6 +15,7 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
     error: '',
     loading: false,
   });
+  const cache = useRef<{ membership?: string; items: Run[] }>({ items: [] });
   const pageCount = useRef(1),
     boundary = useRef<number | null | undefined>(undefined),
     pending = useRef(false),
@@ -43,13 +44,18 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
       }));
       try {
         const records = new Map<string, Run>();
+        const prior = cache.current;
+        const track = prior.items.filter(row => ['queued', 'dispatching', 'running', 'needs_attention', 'stopping', 'unknown'].includes(row.state)).map(row => row.id);
+        let membership: string | undefined;
+        let aligned = false;
         let last: number | null = null,
-          before: number | undefined,
+          before: number | undefined = more && prior.membership && next !== null ? next : undefined,
           pages = 0;
         do {
-          const result = await api.call<{ data: Run[]; next: number | null }>('automation/runs', {
+          const result = await api.call<{ data: Run[]; next: number | null; membership?: string; tracked?: Run[] }>('automation/runs', {
             id,
             limit: 50,
+            ...(prior.membership && !pages && track.length ? { track } : {}),
             ...(before === undefined ? {} : { before }),
           });
           if (owner.current !== expectedOwner || generation.current !== gen) return;
@@ -62,6 +68,13 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
                 (before !== undefined && result.next >= before)))
           )
             throw new Error('运行记录分页响应无效。');
+          if (!pages) {
+            membership = result.membership;
+            aligned = Boolean(membership && membership === prior.membership && Array.isArray(result.tracked) &&
+              result.tracked.length === track.length && new Set(result.tracked.map(row => row.id)).size === track.length && result.tracked.every(row => row.automationId === id && track.includes(row.id)));
+            if (more && before !== undefined && !aligned) { before = undefined; continue; }
+          } else if (membership !== result.membership) throw new Error('加载时运行记录已变化，请刷新。');
+          if (aligned && more) for (const row of prior.items) records.set(row.id, row);
           for (const run of result.data) {
             if (run.automationId !== id || typeof run.id !== 'string')
               throw new Error('运行记录归属不匹配。');
@@ -70,12 +83,20 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
           last = result.next;
           before = result.next ?? undefined;
           pages++;
+          if (aligned) {
+            for (const row of prior.items) if (!records.has(row.id)) records.set(row.id, row);
+            for (const row of result.tracked ?? []) if (records.has(row.id)) records.set(row.id, row);
+            pages = wantedPages;
+            if (!more) last = oldBoundary ?? null;
+            break;
+          }
         } while (
           last !== null &&
           pages < 20 &&
           (pages < wantedPages ||
             (oldBoundary !== undefined && (oldBoundary === null || last > oldBoundary)))
         );
+        cache.current = { membership, items: [...records.values()] };
         pageCount.current = pages;
         boundary.current = last;
         setState({
@@ -104,6 +125,7 @@ export function useAutomationRuns(api: Api, id: string, epoch: string, enabled: 
     generation.current++;
     pending.current = false;
     queuedRefresh.current = false;
+    cache.current = { items: [] };
     pageCount.current = 1;
     boundary.current = undefined;
     void fetchPages();

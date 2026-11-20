@@ -15,6 +15,14 @@ export function DialogScope({ active, children }: { active: boolean; children: R
 }
 let nextOrder = 0;
 const layers: { dialog: HTMLDialogElement; order: number }[] = [];
+// The platform can emit both Escape and cancel for one close request.
+let skipNativeCancel = false;
+let cancelTimer: ReturnType<typeof setTimeout> | undefined;
+function consumeNativeCancelThisTurn() {
+  skipNativeCancel = true;
+  clearTimeout(cancelTimer);
+  cancelTimer = setTimeout(() => { skipNativeCancel = false; }, 0);
+}
 const visible = (element: HTMLElement) =>
   !element.closest('[hidden],dialog:not([open])') && element.getClientRects().length > 0;
 const controls =
@@ -34,6 +42,7 @@ export function Dialog({
     available = useRef(active);
   available.current = active;
   const ref = useRef<HTMLDialogElement>(null);
+  const compositionActive = useRef(false);
   const [order] = useState(() => nextOrder++);
   const titleId = useId();
   const close = useRef(onClose);
@@ -47,15 +56,23 @@ export function Dialog({
     // React mounts child layout effects first. Restore native stacking in owner
     // order so a retained inner dialog stays above its parent after renewal.
     const above = layers.slice(layers.findIndex((layer) => layer.dialog === dialog) + 1);
+    // Native close() restores the previously focused control before React can
+    // choose its reading target. Clear a text entry owner before opening a
+    // passive dialog so native restoration cannot briefly summon its keyboard.
+    if (previous?.matches('textarea,input:not([type=button]):not([type=checkbox]):not([type=radio]),[contenteditable=true]'))
+      previous.blur();
     dialog.showModal();
+    if (!above.length) dialog.querySelector<HTMLElement>('[data-initial-focus]')?.focus();
     for (const layer of above) {
       layer.dialog.close();
       layer.dialog.showModal();
     }
-    if (previous && above.some((layer) => layer.dialog.contains(previous)) && visible(previous))
+    if (previous && !previous.matches('textarea,input:not([type=button]):not([type=checkbox]):not([type=radio]),[contenteditable=true]') && above.some((layer) => layer.dialog.contains(previous)) && visible(previous))
       previous.focus();
     const keyboard = (event: KeyboardEvent) => {
-      if (layers.at(-1)?.dialog !== dialog || !dialog.open || composing(event) || event.defaultPrevented) return;
+      if (layers.at(-1)?.dialog !== dialog || !dialog.open) return;
+      if (event.key === 'Escape') consumeNativeCancelThisTurn();
+      if (compositionActive.current || composing(event) || event.defaultPrevented) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         close.current();
@@ -84,6 +101,7 @@ export function Dialog({
     };
     document.addEventListener('keydown', keyboard);
     return () => {
+      compositionActive.current = false;
       document.removeEventListener('keydown', keyboard);
       const wasTop = layers.at(-1)?.dialog === dialog;
       layers.splice(
@@ -97,7 +115,7 @@ export function Dialog({
       const remaining = layers.at(-1)?.dialog;
       if (
         previous?.isConnected &&
-        !previous.matches(':disabled,[aria-disabled="true"]') &&
+        !previous.matches(':disabled,[aria-disabled="true"],textarea,input:not([type=button]):not([type=checkbox]):not([type=radio]),[contenteditable=true]') &&
         visible(previous) &&
         (!remaining || remaining.contains(previous))
       )
@@ -105,7 +123,7 @@ export function Dialog({
       else if (remaining) remaining.focus();
       else
         Array.from(
-          document.querySelectorAll<HTMLElement>('.mobile-menu,.sidebar-settings,#message-input'),
+          document.querySelectorAll<HTMLElement>('.mobile-menu,.sidebar-settings'),
         )
           .find(visible)
           ?.focus();
@@ -117,8 +135,13 @@ export function Dialog({
       hidden={!active}
       className={wide ? 'dialog wide' : 'dialog'}
       aria-labelledby={titleId}
+      onCompositionStart={() => { compositionActive.current = true; }}
+      onCompositionEnd={() => { compositionActive.current = false; consumeNativeCancelThisTurn(); }}
       onCancel={(e) => {
+        const alreadyConsumed = e.defaultPrevented;
         e.preventDefault();
+        if (!alreadyConsumed && !skipNativeCancel && !compositionActive.current && e.target === ref.current &&
+            active && ref.current?.open && layers.at(-1)?.dialog === ref.current) close.current();
       }}
     >
       <div className="dialog-head">

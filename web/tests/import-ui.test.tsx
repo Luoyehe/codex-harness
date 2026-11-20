@@ -279,3 +279,31 @@ it('exposes import and shared-plugin entries and prevents a foreign project from
   await screen.findByText('先打开已注册项目中的一个会话，再生成或提交原生反馈。');
   expect(screen.queryByText(/会话：current-thread/)).toBeNull();
 });
+it('normalizes older nested and flat import failures to the same renderable fields', () => {
+  const item={itemType:'CONFIG',failureStage:41,message:503,source:42};
+  const nested=importResults({itemTypeResults:[{itemType:'CONFIG',failures:[item]}]});
+  const flat=importResults({failures:[item]});
+  expect(nested).toEqual(flat);
+  expect(nested[0]?.failures).toEqual([{failureStage:'41',message:'503',source:null}]);
+});
+
+it('keeps a selected inventory when settings closure is canceled and only discards it on explicit confirmation', async () => {
+  const { Settings } = await import('../components/Settings');
+  const { Events } = await import('../lib/events');
+  const { api, calls } = setup();
+  const onClose = vi.fn();
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  render(<Settings api={api} events={new Events()} epoch="one" projects={[project]} projectId={project.id}
+    theme="system" onTheme={vi.fn()} onClose={onClose} onChanged={vi.fn()} onProjectAction={vi.fn()} onLogout={vi.fn()} onOpenDraft={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', {name: '扩展与配置'}));
+  fireEvent.click(screen.getByRole('button', {name: '导入'}));
+  await selectGuidance();
+  fireEvent.click(screen.getByRole('button', {name:'关闭对话框'}));
+  fireEvent.click(await screen.findByRole('button', {name:'继续编辑'}));
+  expect(screen.getByRole('checkbox', {name:'项目指引 · 当前项目'})).toHaveProperty('checked', true);
+  expect(onClose).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', {name:'关闭对话框'}));
+  fireEvent.click(await screen.findByRole('button', {name:'放弃编辑并关闭'}));
+  expect(onClose).toHaveBeenCalledTimes(1); expect(calls.some(c => c.method === 'import/apply')).toBe(false);
+});

@@ -48,3 +48,17 @@ it('reads unloaded history metadata without silently resuming queued work', asyn
   expect(mutate).not.toHaveBeenCalled();
   expect(call).toHaveBeenCalledWith('thread/session', { threadId: 't', checkContinuation: true }, expect.any(AbortSignal));
 });
+it('keeps confirmed settings through a same-owner input receipt without duplicating history, but revokes them for a settings change', async () => {
+  const replies: ((v: unknown) => void)[] = [], onLoaded = vi.fn();
+  const api = { call: () => new Promise(resolve => { replies.push(resolve); }) } as unknown as Api;
+  const v = renderHook(({ receipt, settings }) => useResume(api, 't', receipt, onLoaded, 'visit', settings),
+    {initialProps:{receipt:'first',settings:'old'}});
+  const value = {requiresResume:false,thread:{id:'t'},model:'original'};
+  await act(async () => replies[0]!(value));
+  v.rerender({receipt:'accepted-turn',settings:'old'});
+  expect(v.result.current.resumedThread).toBe('t'); expect(v.result.current.loading).toBe(true);
+  await act(async () => replies[1]!(value));
+  expect(onLoaded).toHaveBeenCalledTimes(1);
+  v.rerender({receipt:'accepted-settings',settings:'new'});
+  expect(v.result.current.resumedThread).toBe('');
+});

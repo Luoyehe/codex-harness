@@ -155,12 +155,12 @@ export function InputContextPicker({
       {open && (
         <div className="stack context-panel">
           <nav className="extension-tabs" aria-label="输入上下文类型">
-            {[
+            {([
               ['skills', '技能'],
               ['apps', 'Apps'],
               ['notes', '补充上下文'],
               ['schema', '输出格式'],
-            ].map(([id, label]) => (
+            ] as const).map(([id, label]) => (
               <button
                 className={`button small ${tab === id ? 'selected' : ''}`}
                 type="button"

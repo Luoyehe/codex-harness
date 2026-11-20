@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { visionReferenceGuidance } from '../../src/core/attachment-media';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
@@ -215,7 +216,7 @@ test('unsafe media signatures, excessive image dimensions and escaping project p
   expect(projectMediaPath('/workspace', '/workspace-other/a')).toBeUndefined();
 });
 
-test('an empty retained file remains downloadable without treating it as playable media', async () => {
+test.each([['original', ''], ['guided', visionReferenceGuidance]] as const)('an empty retained file remains downloadable with a %s reference without being treated as playable media', async (_name, guidance) => {
   const call = vi.fn().mockResolvedValue({ name: 'empty.txt', size: 0, base64: '' });
   render(
     <MessageMedia
@@ -225,7 +226,7 @@ test('an empty retained file remains downloadable without treating it as playabl
         id: 'file',
         type: 'userMessage',
         content: [
-          { type: 'text', text: 'Attached file "empty.txt" is available at "/attachments/empty".' },
+          { type: 'text', text: 'Attached file "empty.txt" is available at "/attachments/empty".' + guidance },
         ],
       }}
     />,
@@ -281,4 +282,12 @@ test('hook prompt fragments display source and text without interpreting markup 
   expect(screen.getByText(/不构成执行授权/)).toBeTruthy();
   expect(screen.getByText('来源：run-one')).toBeTruthy();
   expect(screen.getByText('<script>execute</script>')).toBeTruthy();
+});
+
+test('reads bounded folded base64 and only accepts WebM DocType for an EBML audio preview', () => {
+  expect([...mediaBytes('Y WJj\r\nZA==')]).toEqual([97,98,99,100]);
+  const ebml = (kind: string) => Uint8Array.from([0x1a,0x45,0xdf,0xa3,0x80+3+kind.length,0x42,0x82,0x80+kind.length,...new TextEncoder().encode(kind)]);
+  expect(mediaMime(ebml('webm'), 'audio')).toBe('audio/webm');
+  expect(() => mediaMime(ebml('matroska'), 'audio')).toThrow('不支持');
+  expect(() => mediaMime(ebml('webm').subarray(0,9), 'audio')).toThrow('不支持');
 });

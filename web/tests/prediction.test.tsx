@@ -214,3 +214,11 @@ it('atomically rejects inserting over text or context added since a prior render
   expect(result.current.insertTextIfEmpty('Suggestion')).toBe(false);
   expect(result.current.extraContext).toEqual([{ label: 'context', text: 'keep' }]);
 });
+
+it.each([['futureState','未知值（futureState）'], ['', '未提供']])('retains the native identity while explaining unsupported suggestion state %s', async (state,label) => {
+  const s=setup(call=>call.method==='thread/prediction/read'?{...identity,state}:undefined);
+  generate();
+  expect(await screen.findByText('不支持此建议状态：'+label)).toBeTruthy();
+  expect(s.calls.filter(c=>c.method==='thread/prediction/request')).toHaveLength(1);
+  expect(s.insert).not.toHaveBeenCalled();
+});

@@ -6,8 +6,8 @@ import stat
 from contextlib import contextmanager
 
 from .common import DeployError, canonical, digest, require
-from .workspace_paths import MAX_FILE, read_file, rename_absent, revision
-from .workspace_store import MAX_RECORDS, Record, operation_id, private_directory, read_record, write_new
+from .workspace_paths import MAX_FILE, copy_slot, transfer_file, read_file, rename_absent, revision
+from .workspace_store import MAX_RECORDS, Record, operation_id, private_directory, pending_state, read_record, write_new
 
 SLOTS = ("before", "next")
 
@@ -37,6 +37,10 @@ def payload(directory: int, slot: str) -> tuple[dict, bytes | None, os.stat_resu
             after = os.fstat(fd)
             require((info.st_mtime_ns, info.st_ctime_ns) == (after.st_mtime_ns, after.st_ctime_ns), "Recovery directory changed", "conflict")
             return {"slot": slot, "kind": "directory", "revision": revision(after)}, None, after
+        if info.st_size > MAX_FILE:
+            info, sha = transfer_file(fd)
+            return {"slot": slot, "kind": "file", "bytes": info.st_size, "revision": revision(info, sha256=sha),
+                    "editable": False, "previewUnavailable": "file_too_large"}, None, info
         data, info = read_file(fd)
         return {"slot": slot, "kind": "file", "bytes": len(data), "revision": revision(info, data)}, data, info
     finally:
@@ -44,8 +48,20 @@ def payload(directory: int, slot: str) -> tuple[dict, bytes | None, os.stat_resu
 
 
 def inspect(directory: int, identity: str, *, preview: bool = False) -> tuple[dict, dict]:
-    saved = read_record(directory)
-    require(saved.get("state") in ("running", "completed", "failed"), "Invalid recovery receipt state", "corrupt_state")
+    pending = pending_state(directory)
+    retained_state = pending_state(directory, ".state-incomplete")
+    try:
+        saved = read_record(directory)
+    except FileNotFoundError:
+        if not pending and not retained_state:
+            raise
+        saved = {"state": "unknown"}
+    evidence = {}
+    for name, value in (("unpublishedState", pending), ("retainedState", retained_state)):
+        if value:
+            details, candidate = value
+            evidence[name] = {**details, "state": candidate.get("state") if candidate else None}
+    require(saved.get("state") in ("running", "completed", "failed", "unknown"), "Invalid recovery receipt state", "corrupt_state")
     entries, plain = [], []
     for slot in SLOTS:
         try:
@@ -69,15 +85,19 @@ def inspect(directory: int, identity: str, *, preview: bool = False) -> tuple[di
                 else:
                     entry["previewUnavailable"] = "escaped_text_exceeds_budget"
         entries.append(entry)
-    manifest = digest({"record": saved, "entries": plain})
+    manifest = digest({"record": saved, "entries": plain, **evidence})
     return {"operationId": identity, "state": saved["state"], "requestDigest": saved.get("requestDigest"),
-            "manifest": manifest, "discarded": saved.get("recoveryDiscarded") is True, "entries": entries}, saved
+            **evidence, "manifest": manifest, "discarded": saved.get("recoveryDiscarded") is True, "entries": entries}, saved
 
 
 def read(workspace, action: str, params: dict) -> dict:
     if action == "recovery/read":
-        with retained(workspace, params["operationId"]) as directory:
-            return inspect(directory, params["operationId"], preview=True)[0]
+        identity = params["operationId"]
+        publication = workspace.store.read(identity, recover=True, describe=True)
+        with retained(workspace, identity) as directory:
+            result = inspect(directory, identity, preview=True)[0]
+            result.update({key: publication[key] for key in ("previouslyPublishedState", "unpublishedState", "resolution") if key in publication})
+            return result
     try:
         store = workspace.store.open()
     except FileNotFoundError:
@@ -86,7 +106,7 @@ def read(workspace, action: str, params: dict) -> dict:
         names = []
         with os.scandir(store) as listing:
             for entry in listing:
-                if entry.name == "lock":
+                if entry.name in ("lock", "unpublished"):
                     continue
                 operation_id(entry.name)
                 names.append(entry.name)
@@ -114,7 +134,14 @@ def restore(workspace, params: dict, record: Record) -> dict:
         entry, data, info = payload(source, slot)
         require(entry["revision"] == params["sourceRevision"], "Retained recovery content changed", "conflict")
         mode = stat.S_IMODE(info.st_mode) & 0o777
-        if data is None:
+        sha = None
+        if data is None and entry["kind"] == "file":
+            fd = os.open(slot, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=source)
+            try:
+                written, sha = copy_slot(fd, record.fd, mode, entry["revision"])
+            finally:
+                os.close(fd)
+        elif data is None:
             os.mkdir("next", mode, dir_fd=record.fd)
             directory = os.open("next", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=record.fd)
             try:
@@ -131,10 +158,10 @@ def restore(workspace, params: dict, record: Record) -> dict:
         workspace.capture(record, destination, params["expectedRevision"], empty_directory=target["kind"] == "directory")
     with workspace.root.parent(destination) as (parent, name):
         rename_absent(record.fd, "next", parent, name)
-    result = {"path": destination, "kind": entry["kind"], "revision": revision(written, data),
+    result = {"path": destination, "kind": entry["kind"], "revision": revision(written, data, sha256=sha),
               "restoredFromOperationId": identity, "recoveryOperationId": record.identity}
-    if data is not None:
-        result["bytes"] = len(data)
+    if entry["kind"] == "file":
+        result["bytes"] = written.st_size
     return result
 
 

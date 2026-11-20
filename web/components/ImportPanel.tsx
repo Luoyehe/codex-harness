@@ -1,3 +1,4 @@
+import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import type { Project } from '../lib/types';
@@ -75,6 +76,7 @@ export function ImportPanel({
   const current = preview?.key === key ? preview.value : undefined,
     selectedItems = current?.items.filter((item) => selected.includes(item.itemId)) ?? [],
     executable = selectedItems.some(executionReview);
+  useSettingsDraft(selectedItems.length > 0);
   useEffect(() => {
     setSelected([]);
     setConfirmed(false);

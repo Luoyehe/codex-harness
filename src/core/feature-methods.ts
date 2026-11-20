@@ -6,7 +6,7 @@ import { remoteMethods } from './remote-methods.js';
 /** Public workflows, deliberately enumerated rather than an arbitrary native RPC tunnel. */
 export interface FeatureMethod {
   access: 'read' | 'write' | 'live';
-  activity?: 'start' | 'continue' | 'idle' | 'configuration';
+  activity?: 'start' | 'continue' | 'idle' | 'configuration' | 'repository';
   project?: boolean;
 }
 const read: FeatureMethod = Object.freeze({ access: 'read' });
@@ -24,7 +24,7 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   ...remoteMethods,
   'collaborationMode/list': read,
   'modelProvider/capabilities/read': read,
-  'diagnostics/cli/run': Object.freeze({ access: 'write', activity: 'configuration' }),
+  'diagnostics/cli/run': write,
   'diagnostics/cli/result/read': read,
   'permissionProfile/list': projectRead,
   'attachment/history/read': read,
@@ -57,6 +57,11 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'thread/history/window': read,
   'thread/export': read,
   'thread/queue/list': read,
+  'thread/queue/handoff/list': read,
+  'thread/queue/handoff/candidates': read,
+  'thread/queue/handoff/save': continuation,
+  'thread/queue/handoff/discard': continuation,
+  'thread/queue/handoff/restore': continuation,
   'thread/goal/get': read,
   'turn/steer': continuation,
   'thread/queue/add': continuation,
@@ -84,13 +89,13 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'workspace/git/status': projectRead,
   'workspace/git/diff': projectRead,
   'workspace/git/refs': projectRead,
-  'workspace/git/commit': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/git/stage': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/git/unstage': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
+  'workspace/git/commit': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/git/stage': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/git/unstage': Object.freeze({ access: 'write', activity: 'repository', project: true }),
   'workspace/git/index/recovery/list': projectRead,
   'workspace/git/index/recovery/read': projectRead,
-  'workspace/git/index/recovery/restore': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/git/index/recovery/discard': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
+  'workspace/git/index/recovery/restore': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/git/index/recovery/discard': Object.freeze({ access: 'write', activity: 'repository', project: true }),
   'workspace/operation/read': projectRead,
   'workspace/recovery/list': projectRead,
   'workspace/recovery/read': projectRead,
@@ -102,11 +107,11 @@ const methods: Readonly<Record<string, FeatureMethod>> = Object.freeze({
   'workspace/recovery/discard': projectWrite,
   'workspace/worktree/list': projectRead,
   'workspace/worktree/read': projectRead,
-  'workspace/worktree/create': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/worktree/attach': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/worktree/archive': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/worktree/retire': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
-  'workspace/worktree/restore': Object.freeze({ access: 'write', activity: 'configuration', project: true }),
+  'workspace/worktree/create': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/worktree/attach': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/worktree/archive': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/worktree/retire': Object.freeze({ access: 'write', activity: 'repository', project: true }),
+  'workspace/worktree/restore': Object.freeze({ access: 'write', activity: 'repository', project: true }),
 });
 export function featureMethod(method: string): FeatureMethod | undefined {
   return Object.hasOwn(methods, method) ? methods[method] : undefined;

@@ -2,13 +2,28 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { gitChanges, nativePrerequisite, nativeTestFiles, runSelection, selectTests } from '../../scripts/select-tests.mjs';
+import { gitChanges, nativePrerequisite, nativeTestFiles, runSelection, selectTests, testInventory } from '../../scripts/select-tests.mjs';
 
 const available = ['tests/core/ledger.test.ts', 'tests/gateway/auth.test.ts', 'tests/runtime/native.test.ts', ...nativeTestFiles, 'tests/deploy/test_deployment.py', 'web/tests/composer.test.tsx', 'tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts'];
 const fixtures: string[] = [];
 function fixture(): string { const parent = path.resolve('.work/tooling-selection'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'case-')); fixtures.push(root); return root; }
 function git(root: string, args: string[]): string { return execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }).trim(); }
 afterEach(() => { vi.unstubAllEnvs(); for (const root of fixtures.splice(0)) rmSync(root, { recursive: true, force: true }); });
+
+test('shared transport, media and form changes select their browser, gateway and runtime consumers', () => {
+  const inventory = testInventory();
+  for (const [file, expected] of [
+    ['src/shared/mcp-timeouts.ts', ['tests/runtime/mcp.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/native.test.ts', 'tests/gateway/worker-client.test.ts', 'web/tests/operations.test.ts']],
+    ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'tests/runtime/service.test.ts']],
+    ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/visual-routing-native.test.ts']],
+  ] as const) {
+    const plan = selectTests([file], inventory);
+    expect(plan.status).toBe('selected');
+    expect(Object.values(plan.groups).flat()).toEqual(expect.arrayContaining([...expected]));
+    expect(selectTests([file], inventory.filter(name => name !== expected[0])).requiresFullAudit)
+      .toContainEqual({ path: expected[0], reason: 'missing-shared-consumer' });
+  }
+});
 
 test('source dependencies, Python deployment, browser and independent native tests stay in explicit groups', () => {
   const plan = selectTests(['src/core/contracts.ts', 'deploy/install.py', 'web/components/Composer.tsx'], available);
@@ -19,7 +34,9 @@ test('source dependencies, Python deployment, browser and independent native tes
 
 test('the one-stop shell entry retains deployment and operator journey coverage', () => {
   const operator = 'tests/deploy/test_operator.py';
-  const plan = selectTests(['harness.sh'], [...available, operator]);
+  const recovery = 'tests/deploy/root/test_v240_deploy_recovery.py';
+  const plan = selectTests(['harness.sh'], [...available, operator, recovery]);
+  expect(plan.groups['deploy-root']).toEqual([recovery]);
   expect(plan.status).toBe('selected');
   expect(plan.groups.deploy).toEqual(['tests/deploy/test_deployment.py', operator]);
   expect(plan.requiresFullAudit).toEqual([]);
@@ -78,17 +95,20 @@ test.each(['control_update'])('%s root ownership fixtures have a separate impact
     .toContainEqual({ path: privileged, reason: 'missing-deployment-identity-coverage' });
 });
 
-test('proxy core and transaction fixture changes select exactly all four identity companions', () => {
+test('proxy identity companions and overlapping configuration fixtures are all selected', () => {
   const ordinary = ['tests/deploy/test_proxy_core.py', 'tests/deploy/test_proxy_transaction.py'];
   const privileged = ['tests/deploy/root/test_proxy_core.py', 'tests/deploy/root/test_proxy_transaction.py'];
-  const companions = [...ordinary, ...privileged], inventory = [...available, ...companions];
+  const configRoots = ['tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_execution_mode.py'];
+  const companions = [...ordinary, ...privileged], inventory = [...available, ...companions, ...configRoots];
   for (const changed of companions) {
+    const expectedRoots = changed.endsWith('/root/test_proxy_transaction.py') ? [...privileged, ...configRoots].sort() : privileged;
+    const required = [...ordinary, ...expectedRoots].sort();
     const plan = selectTests([changed], inventory);
     expect(plan.status).toBe('selected');
     expect(plan.requiresFullAudit).toEqual([]);
-    expect(plan.groups).toEqual({ unit: [], deploy: ordinary, 'deploy-root': privileged, native: [], go: [] });
-    expect(plan.mappings).toEqual([{ path: changed, reason: 'changed-test', tests: [...companions].sort() }]);
-    for (const missing of companions.filter(name => name !== changed)) {
+    expect(plan.groups).toEqual({ unit: [], deploy: ordinary, 'deploy-root': expectedRoots, native: [], go: [] });
+    expect(plan.mappings).toEqual([{ path: changed, reason: 'changed-test', tests: required }]);
+    for (const missing of required.filter(name => name !== changed)) {
       const incomplete = selectTests([changed], inventory.filter(name => name !== missing));
       expect(incomplete.status).toBe('requires-full-audit');
       expect(incomplete.requiresFullAudit).toEqual([{ path: missing, reason: 'missing-deployment-identity-coverage' }]);
@@ -161,12 +181,14 @@ test('the privileged group cannot disappear from execution or convert an unavail
 });
 test('provider layer identity fixtures and workspace recovery companions remain jointly required', () => {
   const providers = ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'];
-  const workspace = ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py'];
-  const inventory = [...available, ...providers, ...workspace];
+  const workspace = ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py', 'tests/deploy/test_repository_identity.py'];
+  const configRoots = ['tests/deploy/root/test_execution_mode.py', 'tests/deploy/root/test_proxy_transaction.py'];
+  const inventory = [...available, ...providers, ...workspace, ...configRoots];
   for (const changed of providers) {
     const plan = selectTests([changed], inventory);
     expect(plan.groups.deploy).toEqual(providers.slice(0, 3).sort());
-    expect(plan.groups['deploy-root']).toEqual(providers.slice(3).sort());
+    const extra = changed.endsWith('/root/test_config_layer.py') ? configRoots : [];
+    expect(plan.groups['deploy-root']).toEqual([...providers.slice(3), ...extra].sort());
   }
   for (const changed of workspace) expect(selectTests([changed], inventory).groups.deploy).toEqual([...workspace].sort());
   expect(selectTests([workspace[0]!], inventory.filter(name => name !== workspace[1])).requiresFullAudit).toContainEqual({ path: workspace[1], reason: 'missing-deployment-identity-coverage' });
@@ -174,12 +196,12 @@ test('provider layer identity fixtures and workspace recovery companions remain 
 
 test('a deleted source still maps to surviving regressions and a deleted test demands review', () => {
   expect(selectTests(['src/runtime/removed-module.ts'], available).groups.native).toHaveLength(nativeTestFiles.length);
-  const plan = selectTests(['tests/runtime/removed.test.ts'], available); expect(plan.status).toBe('requires-full-audit'); expect(plan.requiresFullAudit[0].reason).toBe('deleted-test-requires-coverage-review');
+  const plan = selectTests(['tests/runtime/removed.test.ts'], available); expect(plan.status).toBe('requires-full-audit'); expect(plan.requiresFullAudit[0]?.reason).toBe('deleted-test-requires-coverage-review');
 });
 
 test('unknown files, absent coverage, dependency metadata and an empty diff cannot silently pass', () => {
   for (const changed of [['new-surface/config.toml'], ['.github/workflows/unmapped.yml'], ['verification/runtime-config.json'], ['verification/hidden.mjs'], ['package.json'], ['pnpm-lock.yaml'], ['web/vite.config.ts'], []]) expect(selectTests(changed, available).status).toBe('requires-full-audit');
-  const missing = selectTests(['deploy/install.py'], available.filter(file => !file.endsWith('.py'))); expect(missing.status).toBe('requires-full-audit'); expect(missing.requiresFullAudit[0].reason).toBe('missing-test-coverage');
+  const missing = selectTests(['deploy/install.py'], available.filter(file => !file.endsWith('.py'))); expect(missing.status).toBe('requires-full-audit'); expect(missing.requiresFullAudit[0]?.reason).toBe('missing-test-coverage');
   expect(runSelection(missing).exitCode).toBe(2);
   expect(selectTests(['src/runtime/service.ts'], available.filter(file => !file.endsWith('native-smoke.test.ts'))).status).toBe('requires-full-audit');
 });
@@ -204,7 +226,7 @@ test('missing independent native dependency is an explicit skip with nonzero exi
   expect(nativePrerequisite(fixture(), '')).toEqual({ status: 'skipped', reason: 'independent-official-cli-path-not-provided', requiredVersion: '0.169.0' });
   expect(nativePrerequisite(fixture(), path.resolve('outside-native-fixture'))).toEqual({ status: 'failed', reason: 'native-binary-must-belong-to-independent-runtime' });
   vi.stubEnv('HARNESS_TEST_CODEX_BIN', '');
-  const result = runSelection(selectTests(['src/runtime/service.ts'], available), 'native', fixture()); expect(result.status).toBe('skipped'); expect(result.exitCode).toBe(3);
+  const result = runSelection(selectTests(['src/runtime/service.ts'], testInventory()), 'native', fixture()); expect(result.status).toBe('skipped'); expect(result.exitCode).toBe(3);
 });
 
 test('a group with no affected tests reports not-affected instead of a passing test result', () => {
@@ -220,7 +242,9 @@ test('CI entrypoints select exact changes and reconcile real identities without 
   expect(workflow).toContain('scripts/ci-checks.mjs'); expect(workflow).toContain('scripts/reviewed-history.mjs');
   expect(workflow).not.toMatch(/(?:vitest[^\n]*\brun|--full|test:full|audits\.json|passWithNoTests)/);
   expect(workflow).toContain('0.169.0'); expect(workflow).toContain('scripts/prepare-ci-native.mjs');
-  const rootJob = workflow.split('\n  root_deploy:\n')[1].split('\n  coverage:\n')[0];
+  const rootSection = workflow.split('\n  root_deploy:\n')[1];
+  if (!rootSection) throw new Error('Missing root_deploy job');
+  const rootJob = rootSection.split('\n  coverage:\n')[0]!;
   expect(rootJob).toContain('runs-on: ubuntu-24.04');
   expect(rootJob).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');
   expect(rootJob).toContain('test "$(id -u)" -ne 0');
@@ -232,6 +256,9 @@ test('CI entrypoints select exact changes and reconcile real identities without 
   expect(rootJob).toContain('for entry in .git node_modules dist; do');
   expect(rootJob).toContain('/usr/bin/cp -a --no-preserve=ownership --');
   expect(rootJob).toContain('cd "$root_checkout"');
+  expect(rootJob).toContain('test_mcp_native_configuration.py');
+  expect(rootJob).toContain('console.log(prepareCiNative())');
+  expect(rootJob).toContain('HARNESS_TEST_CODEX_BIN="$root_native"');
   expect(rootJob).toContain('/usr/bin/install -m 0644 "$root_checkout/.work/result-linux-root.json" "$source_root/.work/result-linux-root.json"');
   expect(rootJob).not.toContain('safe.directory');
   expect(rootJob).not.toContain('SUDO_UID=');
@@ -240,4 +267,68 @@ test('CI entrypoints select exact changes and reconcile real identities without 
   expect(rootJob).toContain('scripts/ci-checks.mjs linux-root');
   expect(workflow).toContain('reconcile .work/ci-results/ci-plan.json');
   expect(workflow).toContain('if-no-files-found: error');
+});
+
+test('requires the specific deployment recovery, workspace acknowledgement and MCP override regressions', () => {
+  const recovery = 'tests/deploy/root/test_v240_deploy_recovery.py';
+  const ack = 'tests/deploy/test_workspace_ack.py';
+  const privilegedMcp = 'tests/deploy/root/test_mcp_native_configuration.py';
+  const overrides = ['tests/deploy/test_mcp_enabled_override.py', privilegedMcp, 'tests/runtime/mcp-configuration.test.ts', 'tests/runtime/mcp-native.test.ts'];
+  const inventory = [...available, recovery, ack, ...overrides, 'tests/tooling/other.test.ts'];
+  expect(selectTests(['tests/fixtures/mcp-system-native.mjs'], inventory).groups['deploy-root']).toContain(privilegedMcp);
+  expect(selectTests(['tests/fixtures/native-env.ts'], inventory).groups.native).toEqual([...nativeTestFiles].sort());
+  expect(selectTests(['tests/fixtures/native-env.ts'], inventory).groups['deploy-root']).toContain(privilegedMcp);
+  expect(selectTests(['scripts/prepare-ci-native.mjs'], inventory).groups['deploy-root']).toContain(privilegedMcp);
+  const actual = testInventory();
+  for (const source of ['deploy/thread_history.py', 'src/runtime/thread-history-compatibility.ts',
+      'src/runtime/queue-reply-identity.ts', 'src/runtime/queue-image-bindings.ts', 'src/runtime/native-media-event.ts']) {
+    if (source.endsWith('native-media-event.ts')) expect(selectTests([source], actual).groups.unit).toContain('web/tests/conversation-recovery.test.tsx');
+    const queueTest = 'tests/runtime/queue-handoff-native.test.ts';
+    expect(selectTests([source], actual).groups.native).toContain(queueTest);
+    expect(selectTests([source], actual).groups.deploy).toContain('tests/deploy/test_thread_history.py');
+    expect(selectTests([source], actual.filter(name => name !== queueTest)).requiresFullAudit)
+      .toContainEqual({ path: queueTest, reason: 'missing-deployment-identity-coverage' });
+  }
+  for (const name of ['https', 'units', 'dns_archive', 'dns_caddy_build', 'sudo_publish', 'service_proxy', 'diagnostic_secrets', 'harness']) {
+    const source = name === 'harness' ? 'harness.sh' : 'deploy/'+name+'.py';
+    expect(selectTests([source], inventory).groups['deploy-root']).toContain(recovery);
+    expect(selectTests([source], inventory.filter(path => path !== recovery)).requiresFullAudit).toContainEqual({ path:recovery, reason:'missing-deployment-identity-coverage' });
+  }
+  for (const [source, required] of [['deploy/workspace_store.py',[ack]], ['deploy/mcp_enabled_override.py',overrides],
+    ['src/runtime/mcp-configuration.ts',overrides], ['src/runtime/service.ts',overrides]] as const) {
+    const plan = selectTests([source], inventory);
+    expect(Object.values(plan.groups).flat()).toEqual(expect.arrayContaining([...required]));
+    for (const path of required) expect(selectTests([source],inventory.filter(item => item !== path)).requiresFullAudit)
+      .toContainEqual({ path, reason:'missing-deployment-identity-coverage' });
+  }
+});
+
+test('selects all actual Python importers, including transitive dependencies across ordinary and root jobs', () => {
+  const inventory = testInventory();
+  const binary = process.env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const graph = JSON.parse(execFileSync(binary,['scripts/deploy-test-imports.py','.'], {encoding:'utf8'})) as Record<string,string[]>;
+  const ordinary='tests/deploy/', privileged=ordinary+'root/';
+  expect(graph[ordinary+'test_control_update.py']).toContain(privileged+'test_config_layer.py');
+  for (const [source, adjacent] of Object.entries(graph)) {
+    const imports = new Set(adjacent);
+    for (const relative of imports) for (const further of graph[relative] ?? []) imports.add(further);
+    const plan = selectTests([source], inventory);
+    expect([...plan.groups.deploy,...plan.groups['deploy-root']]).toEqual(expect.arrayContaining([...imports]));
+  }
+  const deep=selectTests([ordinary+'test_control_update.py'], inventory);
+  expect(deep.groups['deploy-root']).toEqual(expect.arrayContaining(['test_candidate_archive.py','test_execution_mode.py','test_proxy_transaction.py'].map(name=>privileged+name)));
+  const tooling = selectTests(['deploy/build_tool.mjs'], inventory);
+  expect([...tooling.groups.unit,...tooling.groups.deploy]).toEqual(expect.arrayContaining(['tests/runtime/entrypoint.test.ts','tests/tooling/audit-remediation.test.ts','tests/deploy/test_control_update.py']));
+});
+
+test('derives deployment impact from nested and relative Python imports without executing test code', () => {
+  const root = fixture();
+  const dir = path.join(root,'tests/deploy/root'); mkdirSync(dir,{recursive:true});
+  writeFileSync(path.join(root,'tests/deploy/test_shared.py'),"raise Exception('AST fixtures must never run')\n");
+  writeFileSync(path.join(dir,'test_child.py'),"def fixture():\n from .. import test_shared as shared\n");
+  writeFileSync(path.join(dir,'test_grandchild.py'),"from .test_child import (\n fixture as common,\n)\n");
+  const binary = process.env.HARNESS_TEST_PYTHON || (process.platform==='win32'?'python':'python3');
+  const graph=JSON.parse(execFileSync(binary,['scripts/deploy-test-imports.py',root],{encoding:'utf8'}));
+  expect(graph).toEqual({'tests/deploy/test_shared.py':['tests/deploy/root/test_child.py'],
+    'tests/deploy/root/test_child.py':['tests/deploy/root/test_grandchild.py']});
 });

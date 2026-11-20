@@ -190,3 +190,33 @@ describe('dialog keyboard containment', () => {
     wrapper.remove();
   });
 });
+
+it('honors a standalone system cancel on the top dialog and consumes Escape, composition and already handled events once', async () => {
+  const outer = vi.fn(), inner = vi.fn();
+  const page = (nested: boolean) => <Dialog title="Outer" onClose={outer}><input aria-label="edit" />
+    {nested && <Dialog title="Inner" onClose={inner}>child</Dialog>}</Dialog>;
+  const view = render(page(true));
+  await new Promise(resolve => setTimeout(resolve, 1));
+  const dialog = (title: string) => screen.getByRole('dialog', {name:title});
+  const cancel = (target: HTMLElement) => fireEvent(target, new Event('cancel', { bubbles:false, cancelable:true }));
+  cancel(dialog('Outer')); expect(outer).not.toHaveBeenCalled();
+  cancel(dialog('Inner')); expect(inner).toHaveBeenCalledTimes(1);
+  fireEvent.keyDown(dialog('Inner'), {key:'Escape'});
+  expect(inner).toHaveBeenCalledTimes(2);
+  view.rerender(page(false));
+  cancel(dialog('Outer')); expect(outer).not.toHaveBeenCalled();
+  await new Promise(resolve => setTimeout(resolve,1));
+  const input = screen.getByLabelText('edit');
+  fireEvent.compositionStart(input); cancel(dialog('Outer'));
+  fireEvent.compositionEnd(input); cancel(dialog('Outer'));
+  expect(outer).not.toHaveBeenCalled();
+  await new Promise(resolve => setTimeout(resolve,1));
+  const consumed = new Event('cancel',{cancelable:true}); consumed.preventDefault();
+  fireEvent(dialog('Outer'), consumed); expect(outer).not.toHaveBeenCalled();
+  cancel(dialog('Outer')); expect(outer).toHaveBeenCalledTimes(1);
+  const scoped=(active:boolean)=><DialogScope active={active}>{page(false)}</DialogScope>;
+  view.rerender(scoped(true));
+  fireEvent.compositionStart(screen.getByLabelText('edit'));
+  view.rerender(scoped(false)); view.rerender(scoped(true));
+  cancel(dialog('Outer')); expect(outer).toHaveBeenCalledTimes(2);
+});

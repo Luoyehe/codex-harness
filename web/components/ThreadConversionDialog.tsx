@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { object, type Model } from '../lib/types';
+import type { QueueHandoff } from '../lib/workflows';
+import { useResource } from '../hooks/useResource';
+import { providerRelation } from '../lib/provider-models';
 import { Dialog } from './Dialog';
 import { ExtensionStatus, useExtensionAction } from './ExtensionControls';
 import { effortName, modelSelection } from './ModelPicker';
@@ -11,6 +14,7 @@ export function ThreadConversionDialog({ api, threadId, sourceProvider, epoch, m
   more?: boolean; onMore: () => void; enabled: boolean; onBusy: (busy: boolean) => void;
   onCreated: (id: string) => void; onClose: () => void;
 }) {
+  const transferState = (value: unknown) => value === 'moved' || value === 'not_moved' ? value : 'unconfirmed';
   const [choice, setChoice] = useState(''), [effort, setEffort] = useState(''), [step, setStep] = useState<1 | 2>(1);
   const [error, setError] = useState('');
   const heading = useRef<HTMLParagraphElement>(null), opened = useRef('');
@@ -19,6 +23,14 @@ export function ThreadConversionDialog({ api, threadId, sourceProvider, epoch, m
   const efforts = selected?.supportedReasoningEfforts ?? [];
   const valid = Boolean(selected && (!effort || efforts.some(row => row.reasoningEffort === effort)));
   const scope = JSON.stringify([threadId, sourceProvider, epoch]);
+  const [transferResult, setTransferResult] = useState<{ id: string; state: 'moved' | 'not_moved' | 'unconfirmed' }>();
+  const [handoffIds, setHandoffIds] = useState<string[]>([]);
+  const [showCopies, setShowCopies] = useState(false);
+  const copies = useResource(scope, signal => api.call<{ data: QueueHandoff[] }>('thread/queue/handoff/list', { threadId }, signal), enabled && showCopies);
+  const available = (copies.data?.data ?? []).filter(row => row.state === 'ready');
+  const sameProvider = selected?.modelProvider && (selected.modelProvider === sourceProvider || providerRelation(models, sourceProvider, selected.modelProvider, !more) === 'same');
+  const canMove = (row: QueueHandoff) => !row.requiresSameProvider || sameProvider;
+  const missingCopy = handoffIds.some(id => !available.some(row => row.id === id && canMove(row)));
   const action = useExtensionAction(api, enabled && Boolean(sourceProvider), () => {}, scope);
   const unresolved = action.operation && ['pending', 'unknown'].includes(action.operation.state);
   const created = (id: unknown) => {
@@ -34,24 +46,42 @@ export function ThreadConversionDialog({ api, threadId, sourceProvider, epoch, m
     if (step === 2) heading.current?.focus();
   }, [step]);
   useEffect(() => {
-    if (action.operation?.state === 'accepted' && action.operation.resolvedThreadId)
-      created(action.operation.resolvedThreadId);
+    const op = action.operation;
+    if (op?.state !== 'accepted' || !op.resolvedThreadId) return;
+    if (!handoffIds.length) { created(op.resolvedThreadId); return; }
+    let current = true;
+    const id = op.resolvedThreadId;
+    void api.call('operation/read', { operationId: op.id }).then(receipt => {
+      if (current && action.isCurrent() && receipt.operationId === op.id && receipt.method === 'thread/convert' && receipt.state === 'accepted')
+        setTransferResult({ id, state: transferState(object(receipt.result).handoffTransfer) });
+    }, () => { if (current && action.isCurrent()) setTransferResult({ id, state: 'unconfirmed' }); });
+    return () => { current = false; };
   }, [action.operation?.id, action.operation?.state, action.operation?.resolvedThreadId]);
   const submit = async () => {
-    if (action.disabled || loading || !valid || !selected || step !== 2) return;
+    if (action.disabled || loading || missingCopy || !valid || !selected || step !== 2) return;
     setError('');
     onBusy(true);
     try {
       const result = await action.run('thread/convert', { threadId, sourceProvider,
         targetProvider: selected.modelProvider!, model: selected.model ?? selected.id,
-        ...(effort ? { effort } : {}), confirm: true }, '转换会话已创建，正在读取新会话。');
-      if (result && action.isCurrent()) created(object(result.thread).id);
+        ...(effort ? { effort } : {}), ...(handoffIds.length ? { handoffIds } : {}), confirm: true }, '转换会话已创建，正在读取新会话。');
+      if (result && action.isCurrent()) {
+        const id = object(result.thread).id;
+        if (handoffIds.length && typeof id === 'string' && id !== threadId) setTransferResult({ id, state: transferState(result.handoffTransfer) });
+        else created(id);
+      }
     } finally { onBusy(false); }
   };
+  if (transferResult) return <Dialog title="转换会话已创建" onClose={onClose}>
+    <p>目标会话 {transferResult.id} 已创建，可继续使用。</p>
+    <p>{transferResult.state === 'moved' ? '选中的待办副本已移交。打开目标会话的消息队列可逐份恢复。' :
+       transferResult.state === 'not_moved' ? '选中的副本未移交。可返回原会话的消息队列核对现有副本。' : '副本移交未获确认。请分别在目标与原会话的消息队列核对副本，并查看原操作回执。'}</p>
+    <div className="inline"><button className="button primary" onClick={() => created(transferResult.id)}>打开已创建的目标会话</button>
+      <button className="button" onClick={onClose}>返回原会话</button></div></Dialog>;
   return <Dialog title="切换供应商 / 转换会话" onClose={onClose}>
     <section className="stack">
       <p ref={heading} tabIndex={-1} aria-live="polite"><strong>第 {step}/2 步：{step === 1 ? '选择新会话的模型' : '确认创建转换会话'}</strong></p>
-      <p>转换会创建同一项目下带供应商备注的新会话，原会话保持不变。当前草稿不会作为消息发送。</p>
+      <p>转换会创建同一项目下带供应商备注的新会话，原会话会保留。当前草稿不会作为消息发送。</p>
       {step === 1 ? <>
         <label className="field">目标模型<select value={choice} disabled={action.busy || Boolean(unresolved) || loading}
           onChange={event => { setChoice(event.target.value); setEffort(''); setError(''); }}>
@@ -75,12 +105,23 @@ export function ThreadConversionDialog({ api, threadId, sourceProvider, epoch, m
         <p>这不会撤销已经发生的命令、文件修改或外部操作。转换完成后打开新会话；你仍可回到原会话。</p>
       </>}
       {!enabled && !action.busy && !unresolved && <p role="status">原会话必须已加载且空闲。若原供应商已停用或删除，请先恢复其配置并加载会话；转换不会替你加载或继续任务。</p>}
+      {step === 1 && <button className="button small" aria-expanded={showCopies} onClick={() => { if (showCopies) setHandoffIds([]); setShowCopies(!showCopies); }}>选择随转换移交的待办副本</button>}
+      {step === 1 && showCopies && !copies.loading && !copies.error && !available.length && <p className="small">当前没有可移交的副本。</p>}
+      {copies.error && <p className="small">待办副本清单暂时无法读取。<button className="button small" onClick={copies.refresh}>重新读取副本</button></p>}
+      {step === 1 && available.length > 0 && <fieldset className="stack">
+        <legend>随本次转换移交的待办副本（可选）</legend>
+        {available.map(row => <label key={row.id}><input type="checkbox" checked={handoffIds.includes(row.id)} disabled={action.busy || !canMove(row)}
+          onChange={e => setHandoffIds(ids => e.target.checked ? [...ids, row.id] : ids.filter(id => id !== row.id))} />
+          待办 {row.queuedSubmissionId}（{row.attachmentCount} 个附件）{row.requiresSameProvider && ' · 含原客户端私有元数据，仅可移交给同一供应商'}</label>)}
+      </fieldset>}
+      {step === 2 && handoffIds.length > 0 && <p>选中的 {handoffIds.length} 份待办副本将在转换成功后移交给目标会话。打开目标会话的消息队列可逐份确认恢复。</p>}
+      {missingCopy && <p role="alert">已选副本发生变化。<button className="button small" onClick={() => { setHandoffIds(ids => ids.filter(id => available.some(row => row.id === id && canMove(row)))); setStep(1); }}>清除失效选择并重新核对</button></p>}
       {error && <p role="alert" className="error">{error}</p>}
       <ExtensionStatus api={api} action={action} recoveryLabel="查询原转换操作回执" />
       <div className="inline wrap">
         <button className="button" onClick={onClose}>{action.busy || unresolved ? '关闭（保留操作记录）' : '取消'}</button>
         {step === 2 && <button className="button" disabled={action.busy || Boolean(unresolved)} onClick={() => setStep(1)}>返回选择</button>}
-        <button key={step} className="button primary" disabled={action.disabled || loading || !valid}
+        <button key={step} className="button primary" disabled={action.disabled || loading || missingCopy || !valid}
           onKeyDown={event => { if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault(); }}
           onClick={event => {
             if (event.detail > 1 || action.disabled || loading || !valid) return;

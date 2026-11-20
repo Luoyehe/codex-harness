@@ -1,3 +1,4 @@
+import { planTypes, statusLabel } from '../lib/status-labels';
 import { object } from '../lib/types';
 
 export function AccountLimits({ value }: { value: unknown }) {
@@ -9,7 +10,7 @@ export function AccountLimits({ value }: { value: unknown }) {
       const limit = object(raw), credits = object(limit.credits);
       return <div className="info-card" key={id}>
         <strong>{String(limit.limitName ?? limit.limitId ?? '账户配额')}</strong>
-        {typeof limit.planType === 'string' && <p>套餐：{limit.planType}</p>}
+        <p>套餐：{statusLabel(typeof limit.planType === 'string' ? limit.planType : null, planTypes)}</p>
         {(['primary', 'secondary'] as const).map((key, index) => {
           const window = object(limit[key]);
           if (!Object.keys(window).length) return null;

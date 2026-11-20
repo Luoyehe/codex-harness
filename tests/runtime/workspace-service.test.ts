@@ -9,7 +9,9 @@ const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: stri
 vi.mock('../../src/runtime/workspace.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/runtime/workspace.js')>();
   return { ...actual, runWorkspace: async (_config: unknown, root: import('../../src/runtime/workspace.js').WorkspaceRoot, action: string, params: JsonObject, context: import('../../src/runtime/types.js').CallContext, internal = false) => {
-    actual.workspaceRequest(root, action, params, context, internal); helper.hook?.(action);
+    actual.workspaceRequest(root, action, params, context, internal);
+    if (action === 'repository/identity') return { identity: root.path === '/independent' ? 'b'.repeat(64) : 'a'.repeat(64) };
+    helper.hook?.(action);
     if (actual.workspaceMutations.has(action) || action === 'operation/ack') context.beforeWrite?.();
     helper.calls.push({ action, binding: root.worktreeBinding }); await helper.gate;
     if (helper.failure) throw helper.failure;
@@ -54,7 +56,7 @@ test('worktree changes wait for prior file writes and exclude new work until ack
   let complete!: () => void; helper.gate = new Promise(resolve => { complete = resolve; });
   const next = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, { ...context, operationId: randomUUID() });
   await expect.poll(() => helper.calls.length).toBe(3);
-  await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'other' }, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'configuration_busy' });
+  await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'other' }, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'activity_busy' });
   complete(); await next;
 });
 test('worktree helper final boundary rejects newly active work and revoked owners before dispatch', async () => {
@@ -105,7 +107,8 @@ test.each([
   expect(await service.call('workspace/witness/read', { operationId: context.operationId }, context)).toMatchObject({ state: 'unknown', method: `workspace/${action}` });
   expect(object(object(service.status()).activity).unknown).toBe(true);
   await expect(service.call(`workspace/${action}`, { cwd: '/project', ...params }, context)).rejects.toBeInstanceOf(DeliveryError);
-  expect(helper.calls).toHaveLength(1);
+  // Querying the original creation may inspect its read-only recovery record.
+  expect(helper.calls.filter(call => call.action !== 'worktree/reconcile-create')).toHaveLength(1);
 });
 
 test('positive helper reply with mismatched identity preserves the original unknown outcome', async () => {
@@ -123,4 +126,48 @@ test('definite helper rejection before a positive reply releases its witness wit
   expect(object(object(service.status()).activity).unknown).toBe(false);
   helper.failure = undefined;
   await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context)).resolves.toMatchObject({ created: true });
+});
+test('permits overlapping independent repository writes but holds the common repository across two registered worktrees', async () => {
+  const { service, context } = setup(); let release!: () => void;
+  helper.gate = new Promise(resolve => { release = resolve; });
+  const origin = service.call('workspace/worktree/create', {cwd:'/project',ref:'HEAD'}, context);
+  await expect.poll(() => helper.calls.length).toBe(1);
+  const separate = service.call('workspace/worktree/create', {cwd:'/independent',ref:'HEAD'}, {...context,projectId:randomUUID(),operationId:randomUUID()});
+  try {
+    await expect.poll(() => helper.calls.length).toBe(2);
+    await expect(service.call('workspace/worktree/create',{cwd:'/linked',ref:'HEAD'},{...context,projectId:randomUUID(),operationId:randomUUID()}))
+      .rejects.toMatchObject({code:'activity_busy',delivery:'not_sent'});
+    expect(helper.calls).toHaveLength(2);
+  } finally { release(); await Promise.all([origin, separate]); }
+});
+
+test('an active conversation blocks its Git worktrees and permits a mutation in an independent repository', async () => {
+  const { service, context, native } = setup();
+  const nativeRead = vi.spyOn(native, 'call').mockResolvedValueOnce({
+    thread: { id: 'busy', cwd: '/project', status: { type: 'active' } },
+  } as Awaited<ReturnType<typeof native.call>>);
+  await service.call('thread/read', { threadId: 'busy' }, context);
+  expect(nativeRead).toHaveBeenCalledWith('thread/read', { threadId: 'busy' });
+  const create = (cwd: string) => service.call('workspace/worktree/create', { cwd, ref: 'HEAD' },
+    { ...context, operationId: randomUUID(), projectId: randomUUID() });
+  await expect(create('/linked')).rejects.toMatchObject({ code: 'activity_busy', delivery: 'not_sent' });
+  await expect(create('/independent')).resolves.toMatchObject({ created: true });
+  expect(helper.calls.map(call => call.action)).toEqual(['worktree/create']);
+});
+
+test('an admitted worktree write retains its verified repository identity throughout the mutation', async () => {
+  const { RepositoryLeases } = await import('../../src/runtime/repository-leases.js');
+  const identities = new Map([['/origin', 'first'], ['/linked', 'first']]);
+  const leases = new RepositoryLeases(async cwd => identities.get(cwd)!, () => []);
+  let release!: () => void;
+  const admitted = new Promise<void>(done => { release = done; });
+  let entered!: () => void;
+  const started = new Promise<void>(done => { entered = done; });
+  const first = leases.run('/origin', true, async () => { entered(); await admitted; });
+  await started;
+  try {
+    identities.set('/origin', 'replacement');
+    await expect(leases.run('/linked', true, async () => {})).rejects.toMatchObject({ code: 'activity_busy' });
+  } finally { release(); await first; }
+  await expect(leases.run('/linked', true, async () => 'ok')).resolves.toBe('ok');
 });

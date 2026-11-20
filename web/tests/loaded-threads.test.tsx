@@ -66,16 +66,18 @@ it('discovers paginated ids and opens only the explicitly selected thread withou
       : undefined,
   );
   fireEvent.click(await screen.findByRole('button', { name: '加载更多已加载会话' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'second' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Name second' }));
   await screen.findByRole('heading', { name: 'Name second' });
   fireEvent.click(screen.getByRole('button', { name: '打开此会话' }));
   expect(s.onOpenThread).toHaveBeenCalledWith('second');
   expect(s.calls.some((c) => c.method === 'thread/resume')).toBe(false);
-  expect(s.calls.filter((c) => c.method === 'thread/read')).toHaveLength(1);
+  expect(s.calls.filter(c => c.method === 'thread/read' && c.params.threadId === 'first')).toHaveLength(1);
+  // One label lookup and one explicit fresh status check for the selected session.
+  expect(s.calls.filter(c => c.method === 'thread/read' && c.params.threadId === 'second')).toHaveLength(2);
 });
 it('confirms an idle identity and reports unsubscribe without claiming process cleanup', async () => {
   const s = setup();
-  fireEvent.click(await screen.findByRole('button', { name: 'first' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^(?:Name )?first$/ }));
   const stop = await screen.findByRole('button', { name: '停止订阅所选会话' });
   expect((stop as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole('checkbox', { name: /确认停止订阅此空闲会话/ }));
@@ -95,7 +97,7 @@ it('blocks an active thread and does not accept malformed directory identities',
       ? { thread: { id: 'first', status: { type: 'active' } } }
       : undefined,
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'first' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^(?:Name )?first$/ }));
   fireEvent.click(await screen.findByRole('checkbox', { name: /确认停止订阅此空闲会话/ }));
   expect(
     (screen.getByRole('button', { name: '停止订阅所选会话' }) as HTMLButtonElement).disabled,
@@ -118,7 +120,7 @@ it('recovers only the original unknown unsubscribe operation', async () => {
     if (c.method === 'operation/read')
       return { operationId: id, method: 'thread/unsubscribe', state: 'unknown' };
   });
-  fireEvent.click(await screen.findByRole('button', { name: 'first' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^(?:Name )?first$/ }));
   fireEvent.click(await screen.findByRole('checkbox', { name: /确认停止订阅此空闲会话/ }));
   fireEvent.click(screen.getByRole('button', { name: '停止订阅所选会话' }));
   fireEvent.click(await screen.findByRole('button', { name: '查询原停止订阅回执' }));

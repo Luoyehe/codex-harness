@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Prompts } from '../components/Prompts';
@@ -587,4 +587,22 @@ describe('opaque question identifiers and answer text', () => {
       answers: Object.fromEntries([['__proto__', { answers: ['  自定义草稿  '] }]]),
     });
   });
+});
+
+it('invalidates revoked approvals immediately and only accepts the authoritative list after resync', async () => {
+  const old:PromptRecord={promptId:'old',method:'fixture',params:{}};
+  const next={...old,promptId:'new'};
+  let release!: (value:unknown)=>void;
+  const api={ call:vi.fn().mockResolvedValueOnce({prompts:[old]}).mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;})), mutate:vi.fn().mockResolvedValue({}) };
+  const events=new Events();
+  const view=renderHook(()=>usePrompts(api as unknown as Api,events,'epoch'));
+  await waitFor(()=>expect(view.result.current.prompts).toEqual([old]));
+  act(()=>events.publish({type:'resync',data:{reason:'events_lost'}}));
+  expect(view.result.current.prompts).toEqual([]);
+  await expect(view.result.current.answer('old',{})).rejects.toThrow('请求已失效');
+  act(()=>events.publish({type:'prompt-closed',data:{promptId:'old'}}));
+  await act(async()=>release({prompts:[old,next]}));
+  expect(view.result.current.prompts).toEqual([next]);
+  await act(async()=>view.result.current.answer('new',{}));
+  expect(api.mutate).toHaveBeenCalledTimes(1);
 });

@@ -15,7 +15,7 @@ vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (a
 import { RuntimeService } from '../../src/runtime/service.js';
 class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = [];
-  async call(method: string, params: JsonValue, options?: NativeOptions) { options?.beforeWrite?.(); this.calls.push({ method, params }); return {}; }
+  async call(method: string, params: JsonValue, options?: NativeOptions) { options?.beforeWrite?.(); this.calls.push({ method, params }); if (method === 'thread/start') return { thread: { id: 'parallel-thread', status: { type: 'idle' }, historyMode: 'paginated', turns: [] } }; return {}; }
   async close() { this.connected = false; }
 }
 const parent = path.resolve('.work/cli-diagnostics-tests'); mkdirSync(parent, { recursive: true }); const services: RuntimeService[] = [];
@@ -28,9 +28,9 @@ function setup() {
 }
 beforeEach(() => { fixture.jobs.length = 0; fixture.commands.length = 0; fixture.gate = undefined; });
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.useRealTimers(); });
-test('diagnostic maintenance holds until cleanup proof and output remains private and redacted', async () => {
+test('a diagnostic overlaps an independent new chat while retaining private cleanup and output', async () => {
   const f = setup(), pending = f.run(); await expect.poll(() => f.native.calls.length).toBe(1); const handle = f.handle(); expect(fixture.commands).toEqual([[process.execPath, 'debug', 'models', '--bundled']]);
-  await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).rejects.toMatchObject({ code: 'configuration_busy' });
+  await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).resolves.toMatchObject({ thread: { id: 'parallel-thread' } });
   f.output(handle, JSON.stringify({ models: [{ note: 'fixture-private-key' }] })); f.exit(handle); await Promise.resolve(); expect(object(object(f.service.status()).activity).pendingStarts).toBe(1); fixture.jobs[0]!.finish(0);
   const result = object(await pending); expect(result).toMatchObject({ kind: 'models-bundled', status: 'completed' });
   expect(await f.service.call('diagnostics/cli/result/read', { resultId: result.resultId! }, owner)).toMatchObject({ data: { models: [{ note: '[redacted]' }] } });

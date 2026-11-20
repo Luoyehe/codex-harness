@@ -6,7 +6,7 @@ import { indexFields, indexMutations, validateIndexAction } from './workspace-in
 
 // The caller resolves this from its project registry; browser-supplied roots are
 // never accepted in params. The native helper repeats descriptor/path checks.
-export interface WorkspaceRoot { path: string; worktreeBinding?: JsonObject }
+export interface WorkspaceRoot { path: string; worktreeBinding?: JsonObject; repositoryIdentity?: string }
 const fields: Record<string, readonly string[]> = {
   ...indexFields,
   list: ['path'], read: ['path'], download: ['path', 'expectedRevision'], metadata: ['path'], write: ['path', 'text', 'expectedRevision'], mkdir: ['path'],
@@ -33,9 +33,12 @@ function operationId(value: unknown): string {
   return id;
 }
 export function workspaceRequest(root: WorkspaceRoot, action: string, input: JsonObject, context: CallContext, internal = false): JsonObject {
-  const internalAck = internal && action === 'operation/ack';
-  if (!internalAck && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
-  onlyKeys(input, internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
+  const mcpOverride = internal && action === 'mcp/enabled-override';
+  const internalRead = internal && ['feedback/path', 'repository/identity', 'project/trust-roots', 'mcp/enabled-read'].includes(action);
+  const retire = internal && action === 'worktree/reconcile-retire';
+  const internalAck = internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire-info', 'worktree/reconcile-retire'].includes(action);
+  if (!internalAck && !internalRead && !mcpOverride && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
+  onlyKeys(input, mcpOverride ? ['name', 'enabled', 'expectedVersion', 'expectedFlags'] : internalRead ? [] : retire ? ['operationId', 'requestDigest', 'worktreeId', 'expectedRevision', 'confirm'] : internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
   const rootPath = string(root.path, 'registered workspace root');
   if (!rootPath.startsWith('/') || path.posix.normalize(rootPath) !== rootPath || /[\u0000-\u001f\u007f]/.test(rootPath)) throw new DeliveryError('invalid_project', 'Registered native workspace root must be canonical');
   const params = { ...input };
@@ -86,8 +89,8 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
         (params.expectedRevision !== null && (typeof params.expectedRevision !== 'string' || !/^[0-9a-f]{64}$/.test(params.expectedRevision)))) throw new DeliveryError('invalid_params', 'Restoring requires an exact source revision and current destination revision or null');
   }
   if (action === 'recovery/discard' && (params.confirm !== true || typeof params.expectedManifest !== 'string' || !/^[0-9a-f]{64}$/.test(params.expectedManifest))) throw new DeliveryError('invalid_params', 'Discarding recovery payloads requires the current manifest and explicit confirmation');
-  const request: JsonObject = { version: 1, root: rootPath, action, params };
-  if (action.startsWith('worktree/')) {
+  const request: JsonObject = { version: 1, root: rootPath, action, params, ...(root.repositoryIdentity ? { repositoryIdentity: root.repositoryIdentity } : {}) };
+  if (retire || !internalAck && action.startsWith('worktree/')) {
     if (action === 'worktree/create') {
       const ref = string(params.ref, 'Git ref', 300);
       if (!/^(?:HEAD|[0-9a-f]{40}|[0-9a-f]{64}|refs\/(?:heads|remotes|tags)\/[A-Za-z0-9][A-Za-z0-9._/-]{0,255})$/.test(ref) || ref.includes('..') || ref.includes('//') || /(?:\/|\.|\.lock)$/.test(ref)) throw new DeliveryError('invalid_params', 'Select HEAD, a full ref or a commit id');
@@ -99,7 +102,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
       for (const key of ['commonDevice', 'commonInode', 'gitDirDevice', 'gitDirInode', 'worktreeDevice', 'worktreeInode']) if (typeof binding[key] !== 'number' || !Number.isSafeInteger(binding[key]) || binding[key] < 0) throw new DeliveryError('worktree_unbound', 'Invalid bound directory identity');
       request.binding = { ...binding };
       if (action !== 'worktree/read' && (typeof params.expectedRevision !== 'string' || !/^[0-9a-f]{64}$/.test(params.expectedRevision))) throw new DeliveryError('invalid_params', 'Read the current worktree revision before changing it');
-      if (['worktree/archive', 'worktree/restore', 'worktree/retire'].includes(action) && params.confirm !== true) throw new DeliveryError('invalid_params', 'Worktree movement requires explicit confirmation');
+      if ((retire || ['worktree/archive', 'worktree/restore', 'worktree/retire'].includes(action)) && params.confirm !== true) throw new DeliveryError('invalid_params', 'Worktree movement requires explicit confirmation');
     }
   }
   if (workspaceMutations.has(action)) request.operationId = operationId(context.operationId);
@@ -109,7 +112,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
 
 export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, action: string, params: JsonObject, context: CallContext, internal = false): Promise<JsonValue> {
   const request = workspaceRequest(root, action, params, context, internal);
-  const mutation = workspaceMutations.has(action) || (internal && action === 'operation/ack');
+  const mutation = workspaceMutations.has(action) || (internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire', 'mcp/enabled-override'].includes(action));
   if (mutation && !context.beforeWrite) throw new DeliveryError('operation_required', 'Workspace mutations require the durable operation boundary');
   const body = jsonBytes(request, 1024 * 1024);
   const command = nativeCommand(config, 'workspace');

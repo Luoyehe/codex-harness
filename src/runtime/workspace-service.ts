@@ -8,7 +8,7 @@ interface WorkspaceHost {
   config: LaunchConfig & { workerHome: string; nativeHome?: string };
   cwd(value: JsonValue | undefined): string;
   admit(): void;
-  configure(operation: (boundary: () => void) => Promise<JsonValue>, context: CallContext): Promise<JsonValue>;
+  repository(cwd: string, work: (check: () => void, identity?: string) => Promise<JsonValue>): Promise<JsonValue>;
   pending(change: 1 | -1): void;
   uncertain(): void;
 }
@@ -17,6 +17,8 @@ interface WorkspaceHost {
 export class RuntimeWorkspace {
   private store: WorkspaceWitness | undefined;
   private tasks = new Set<Promise<JsonValue>>();
+  private ordinaryWrites = new Map<Promise<JsonValue>, string>();
+  get pendingWrites(): number { return this.ordinaryWrites.size; }
   constructor(private readonly host: WorkspaceHost) {}
 
   get pending(): number { return this.tasks.size; }
@@ -30,7 +32,17 @@ export class RuntimeWorkspace {
   }
 
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
-    if (method === 'workspace/witness/read') return this.witness().read(params);
+    if (method === 'workspace/witness/read') {
+      const store = this.witness(), current = object(store.read(params)), guard = { ...context, beforeWrite: () => {} };
+      if (current.state === 'unknown' && current.method === 'workspace/worktree/retire') {
+        return this.track(store.reconcileRetire(params,
+          (root, operation) => runWorkspace(this.host.config, { path: root }, 'worktree/reconcile-retire-info', operation, guard, true),
+          (body, operation) => runWorkspace(this.host.config, { path: String(body.root), worktreeBinding: object(body.binding), ...(typeof body.repositoryIdentity === 'string' ? { repositoryIdentity: body.repositoryIdentity } : {}) },
+            'worktree/reconcile-retire', { ...object(body.params), ...operation }, guard, true)));
+      }
+      return this.track(store.reconcileCreate(params, (root, operationId, requestDigest) =>
+        runWorkspace(this.host.config, { path: root }, 'worktree/reconcile-create', { operationId, requestDigest }, guard, true)));
+    }
     if (method === 'workspace/witness/pending') return this.witness().pending(params);
     if (method === 'workspace/witness/ack') {
       return this.track(this.witness().acknowledge(params, async (root, operationId, requestDigest) => {
@@ -77,13 +89,21 @@ export class RuntimeWorkspace {
       }
     };
     if (worktree || action === 'git/commit' || indexMutations.includes(action)) {
-      await Promise.allSettled([...this.tasks]);
-      return this.host.configure(boundary => this.track(execute(boundary)), context);
+      const sameRoot = [...this.ordinaryWrites].filter(([, path]) => path === root.path);
+      if (sameRoot.length) await Promise.allSettled(sameRoot.map(([task]) => task));
+      this.host.admit();
+      return this.host.repository(root.path, (check, identity) => {
+        if (!identity) throw new DeliveryError('activity_unknown', '仓库身份尚未确认。');
+        root.repositoryIdentity = identity;
+        return this.track(execute(() => { this.host.admit(); check(); context.beforeWrite!(); }));
+      });
     }
     this.host.admit();
     this.host.pending(1);
-    try { return await this.track(execute(() => { this.host.admit(); context.beforeWrite!(); })); }
-    finally { this.host.pending(-1); }
+    const task = this.track(execute(() => { this.host.admit(); context.beforeWrite!(); }));
+    this.ordinaryWrites.set(task, root.path);
+    try { return await task; }
+    finally { this.ordinaryWrites.delete(task); this.host.pending(-1); }
   }
 
   async close(): Promise<void> {

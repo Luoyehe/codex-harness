@@ -3,7 +3,7 @@ import { DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, t
 import { validateOfficial } from './validation.js';
 type Call = (method: string, params: JsonValue) => Promise<JsonValue>;
 export class Feedback {
-  constructor(private native: Call) {}
+  constructor(private native: Call, private destination?: (cwd: string) => Promise<JsonObject>) {}
   async submit(method: string, params: JsonObject, context: CallContext, write: Call): Promise<JsonValue> {
     const save = method === 'feedback/save';
     onlyKeys(params, ['cwd', 'classification', 'reason', 'threadId', 'includeLogs', 'confirm']);
@@ -17,7 +17,11 @@ export class Feedback {
     }
     const id = string(context.operationId, 'operationId', 36);
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id)) throw new DeliveryError('invalid_params', 'Feedback requires a durable operation id');
-    const filename = '.harness-feedback-' + id + '.zip'; if (save) body.savePath = path.join(cwd, filename);
+    const filename = path.join('.harness-feedback', id + '.zip');
+    if (save) {
+      if (!this.destination || (await this.destination(cwd)).directory !== path.join(cwd, '.harness-feedback')) throw new DeliveryError('feedback_scope', '无法确认项目的专属反馈目录。');
+      body.savePath = path.join(cwd, filename);
+    }
     validateOfficial(save ? 'FeedbackSaveParams' : 'FeedbackUploadParams', body); jsonBytes(body, 24 * 1024);
     const response = await write(method, body);
     try {

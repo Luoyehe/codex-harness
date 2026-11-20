@@ -22,13 +22,13 @@ class WorkspaceFailureTests(unittest.TestCase):
     def test_missing_resource_code_never_reclassifies_a_dispatched_mutation(self):
         for dispatched, delivery in ((False, "not_sent"), (True, "unknown")):
             result = failure(FileNotFoundError("private internal path"), dispatched=dispatched)
-            self.assertEqual(result, {"ok": False, "error": {"code": "not_found", "message": "Workspace resource does not exist", "delivery": delivery}})
+            self.assertEqual(result, {"ok": False, "error": {"code": "not_found", "message": "工作区中的目标不存在。请刷新文件列表后核对。", "delivery": delivery}})
 
     def test_explicit_errors_preserve_their_code_and_generic_failures_hide_internal_paths(self):
         self.assertEqual(failure(DeployError("conflict", "Resource changed"), dispatched=True)["error"],
-                         {"code": "conflict", "message": "Resource changed", "delivery": "unknown"})
+                         {"code": "conflict", "message": "文件或工作树已发生变化。请刷新并核对最新版本。", "delivery": "unknown"})
         self.assertEqual(failure(OSError("private internal path"), dispatched=False)["error"],
-                         {"code": "workspace_error", "message": "Workspace operation failed", "delivery": "not_sent"})
+                         {"code": "workspace_error", "message": "工作区操作失败，请查看原操作记录并核对其送达状态。", "delivery": "not_sent"})
 
 
 class WorkspaceValidationTests(unittest.TestCase):
@@ -41,6 +41,17 @@ class WorkspaceValidationTests(unittest.TestCase):
                 relative(path)
         self.assertEqual(relative("src/AGENTS.md"), ["src", "AGENTS.md"])
         self.assertEqual(relative("", empty=True), [])
+
+    def test_fixed_mcp_switch_never_accepts_a_config_path_or_transport_fields(self):
+        base = {"name": "zai-mcp-server", "enabled": False, "expectedVersion": "sha256:" + "a" * 64, "expectedFlags": "sha256:" + "b" * 64}
+        for change in ({"path": "/tmp/fixture.toml"}, {"env": {}}, {"name": "invalid\nserver"},
+                       {"enabled": 1}, {"expectedVersion": "invalid"}):
+            with self.subTest(change=change), self.assertRaises(DeployError):
+                validate(self.request("mcp/enabled-override", {**base, **change}))
+        for enabled in (True, False, None):
+            for version in (None, base["expectedVersion"]):
+                self.assertEqual(validate(self.request("mcp/enabled-override", {**base, "enabled": enabled, "expectedVersion": version}))["action"],
+                                 "mcp/enabled-override")
 
     def test_write_requires_explicit_revision_and_canonical_operation(self):
         for params, operation in (({"path": "a", "text": "new"}, str(uuid.uuid4())),

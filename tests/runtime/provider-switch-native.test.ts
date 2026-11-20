@@ -4,11 +4,13 @@ import type { ChildProcess } from 'node:child_process';
 import type { AddressInfo } from 'node:net';
 import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { Attachments } from '../../src/runtime/attachments.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject } from '../../src/runtime/types.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
 import * as compatibility from '../../src/runtime/thread-history-compatibility.js';
-import { withFixtureCleanup } from './fixture-cleanup.js';
+import { withFixtureCleanup, type FixtureCleanup } from './fixture-cleanup.js';
 
 function trackNativeClose(service: RuntimeService) {
   // Bind cleanup proof to this spawned child, never to a PID that a later
@@ -22,15 +24,17 @@ function trackNativeClose(service: RuntimeService) {
   };
 }
 
-test('explicit conversion creates independent named threads while original history and provider remain unchanged', () => withFixtureCleanup(async defer => {
+async function providerFixture(defer: FixtureCleanup, responseGate?: Promise<void>) {
   const parent = path.resolve('.work/provider-switch-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')), codex = path.join(home, 'codex'), cwd = path.join(home, 'project'), temporary = path.join(home, 'tmp');
   mkdirSync(cwd); const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
   const requests: { route: string; body: JsonObject }[] = [], errors: unknown[] = [];
+  let sequence = 0;
   const server = createServer((req, res) => { void (async () => {
     if (req.method !== 'POST' || !['/a/v1/responses', '/b/v1/responses'].includes(req.url ?? '')) throw new Error('Unexpected fixture route');
     let body = ''; for await (const chunk of req) { body += chunk; if (body.length > 4 * 1024 * 1024) throw new Error('Fixture request exceeded budget'); }
     requests.push({ route: req.url!, body: object(JSON.parse(body)) });
+    if (responseGate) await responseGate;
     if (req.url === '/b/v1/responses') {
       const input = requests.at(-1)!.body.input;
       const incompatible = Array.isArray(input) ? input.findIndex(value => object(value).type === 'other' || object(value).type === 'reasoning' && Array.isArray(object(value).content) && (object(value).content as unknown[]).length > 0) : -1;
@@ -40,7 +44,7 @@ test('explicit conversion creates independent named threads while original histo
         return;
       }
     }
-    const n = requests.length, item = { id: 'msg_' + n, type: 'message', role: 'assistant', status: 'completed', phase: 'final_answer', content: [{ type: 'output_text', text: 'Local answer ' + n, annotations: [], logprobs: [] }] };
+    const n = ++sequence, item = { id: 'msg_' + n, type: 'message', role: 'assistant', status: 'completed', phase: 'final_answer', content: [{ type: 'output_text', text: 'Local answer ' + n, annotations: [], logprobs: [] }] };
     const reasoning = { id: 'rs_' + n, type: 'reasoning', summary: [{ type: 'summary_text', text: 'Public reasoning summary fixture' }], content: [{ type: 'reasoning_text', text: 'Foreign provider reasoning ' + n }], encrypted_content: null };
     const output = req.url === '/a/v1/responses' ? [reasoning, item] : [item];
     const response = { id: 'resp_' + n, object: 'response', created_at: 1, status: 'completed', model: 'harness-loopback-fixture', output, usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15, input_tokens_details: { cached_tokens: 0 }, output_tokens_details: { reasoning_tokens: 0 } } };
@@ -60,6 +64,11 @@ test('explicit conversion creates independent named threads while original histo
   const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'provider_a', connections: ['a', 'b'].map((id, i) => ({ id: i ? 'b'.repeat(32) : 'default', modelProvider: 'provider_' + id, kind: 'responses', name: id, enabled: true, model: 'harness-loopback-fixture', models: [{ id: 'harness-loopback-fixture', defaultEffort: 'low', efforts: ['low'] }], catalogPath: catalog })) };
   env.HARNESS_DEV_PYTHON = process.env.HARNESS_TEST_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
   const config = { bin: process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
+  return { config, registry, home, codex, cwd, requests, errors };
+}
+
+test('explicit conversion creates independent named threads while original history and provider remain unchanged', () => withFixtureCleanup(async defer => {
+  const { config, registry, home, codex, cwd, requests, errors } = await providerFixture(defer);
   let runtime = await RuntimeService.create(config);
   const rpc = runtime.native, context = { clientId: 'provider-switch-native', beforeWrite: () => {} };
   const nativeCall = rpc.call.bind(rpc);
@@ -170,3 +179,107 @@ test('explicit conversion creates independent named threads while original histo
   await expect(runtime.call('attachment/read', { attachmentId: attachment.attachmentId! }, context)).rejects.toMatchObject({ code: 'not_found' });
   expect(errors).toEqual([]);
 }), 120000);
+
+test('converts an oversized source through a verified tail and keeps the first and last source messages on the independent target', () => withFixtureCleanup(async defer => {
+  const { config, cwd, requests, errors } = await providerFixture(defer);
+  const service = await RuntimeService.create(config); defer(trackNativeClose(service));
+  const context = { clientId: 'long-conversion' };
+  const source = object(await service.call('thread/start', { cwd,
+    options: { model: 'harness-loopback-fixture', modelProvider: 'provider_a' } }, context));
+  const threadId = String(object(source.thread).id);
+  async function sendNative(id: string, text: string) {
+    const finished = new Promise<void>((resolve, reject) => {
+      const listener = (message: JsonObject) => {
+        if (message.method !== 'turn/completed' || object(message.params).threadId !== id) return;
+        service.native.off('notification', listener);
+        if (object(object(message.params).turn).status === 'completed') resolve();
+        else reject(Error('Local provider turn did not finish'));
+      };
+      service.native.on('notification', listener);
+    });
+    await service.native.call('turn/start', { threadId: id, input: [{ type: 'text', text, text_elements: [] }] });
+    await finished;
+  }
+  for (let i = 1; i <= 335; i++) {
+    requests.length = 0;
+    await sendNative(threadId, 'Long conversion checkpoint ' + i + '.');
+  }
+  async function readAll() {
+    let cursor;
+    do {
+      const page = object(await service.call('thread/history', { threadId, limit: 50, ...(cursor ? { cursor } : {}) }, context));
+      cursor = page.nextCursor;
+    } while (cursor);
+  }
+  await expect(readAll()).rejects.toMatchObject({ code: 'capacity' });
+  expect(await service.call('thread/history', { threadId, intent: 'window', limit: 5 }, context)).toMatchObject({
+    truncated: true, executionReady: true, complete: false });
+  const copy = object(await service.call('thread/convert', { threadId, sourceProvider: 'provider_a', targetProvider: 'provider_b',
+    model: 'harness-loopback-fixture', effort: 'low', confirm: true }, context));
+  const target = object(copy.thread);
+  expect(target.id).not.toBe(threadId);
+  expect(target.modelProvider).toBe('provider_b');
+  const rollout = readFileSync(String(target.path), 'utf8');
+  for (const n of [1, 168, 335]) expect(rollout).toContain('Long conversion checkpoint ' + n + '.');
+  expect(object(object(await service.native.call('thread/read', { threadId })).thread).modelProvider).toBe('provider_a');
+  await sendNative(String(target.id), 'Continue the converted long conversation.');
+  expect(requests.at(-1)?.route).toBe('/b/v1/responses');
+  expect(errors).toEqual([]);
+}), 120000);
+
+test.each(['moved', 'not_moved', 'unconfirmed'] as const)('confirmed cross-provider conversion keeps the target and independently reports selected copies %s', async outcome => withFixtureCleanup(async defer => {
+  const gate = Promise.withResolvers<void>();
+  const { config, cwd, requests } = await providerFixture(defer, gate.promise);
+  const runtime = await RuntimeService.create(config); defer(trackNativeClose(runtime)); defer(() => gate.resolve());
+  const actor = { clientId: 'conversion-copy' }, options = { modelProvider: 'provider_a', model: 'harness-loopback-fixture' };
+  const initial = object(await runtime.call('thread/start', { cwd, options }, actor)), source = String(object(initial.thread).id);
+  await runtime.call('thread/history', { threadId: source }, actor);
+  const done = new Promise<void>(resolve => runtime.native.on('notification', event => {
+    if (event.method === 'turn/completed' && object(event.params).threadId === source) resolve();
+  }));
+  await runtime.call('turn/start', { threadId: source, text: 'One real turn; hold until both pending queue entries are removed.' }, actor);
+  await expect.poll(() => requests.length).toBe(1);
+  const copies: string[] = [];
+  for (const text of ['selected copy', 'original-only copy']) {
+    const queue = object(object(await runtime.call('thread/queue/add', { threadId: source, text, clientUserMessageId: randomUUID() }, actor)).queuedSubmission);
+    expect(typeof queue.id).toBe('string');
+    const scoped = { threadId: source, queuedSubmissionId: String(queue.id) };
+    const saved = object(await runtime.call('thread/queue/handoff/save', scoped, actor));
+    copies.push(String(saved.id));
+    expect(await runtime.call('thread/queue/delete', scoped, actor)).toEqual({ deleted: true });
+  }
+  gate.resolve(); await done;
+  const params = { threadId: source, sourceProvider: 'provider_a', targetProvider: 'provider_b', model: 'harness-loopback-fixture', confirm: true };
+  const missing = randomUUID();
+  await expect.poll(async () => {
+    try { await runtime.call('thread/convert', { ...params, handoffIds: [missing] }, actor); return 'unexpected success'; }
+    catch (error) { return (error as { code: string }).code; }
+  }, { timeout: 8000 }).toBe('handoff_unconfirmed');
+  expect(object(await runtime.call('thread/queue/handoff/list', { threadId: source }, actor)).data).toHaveLength(2);
+  const originalNative = runtime.native.call.bind(runtime.native);
+  let discarded = false, storageFailed = false;
+  if (outcome === 'unconfirmed') {
+    const original = Attachments.prototype.listQueueHandoffs;
+    const transfer = vi.spyOn(Attachments.prototype, 'moveReadyQueueHandoffs').mockImplementationOnce(() => { storageFailed = true; throw Error('private store unavailable'); });
+    const listing = vi.spyOn(Attachments.prototype, 'listQueueHandoffs').mockImplementation(function(this: Attachments, id) {
+      if (storageFailed && id !== source) { storageFailed = false; throw Error('readback unavailable'); }
+      return original.call(this, id);
+    });
+    defer(() => { listing.mockRestore(); transfer.mockRestore(); });
+  }
+  runtime.native.call = async (method, value, nativeOptions) => {
+    if (outcome === 'not_moved' && method === 'thread/name/set' && object(value).threadId !== source && !discarded) {
+      discarded = true;
+      await runtime.call('thread/queue/handoff/discard', { threadId: source, handoffId: copies[0]! }, actor);
+    }
+    return originalNative(method, value, nativeOptions);
+  };
+  const result = object(await runtime.call('thread/convert', { ...params, handoffIds: [copies[0]!] }, actor));
+  expect(result.handoffTransfer).toBe(outcome);
+  const target = String(object(result.thread).id); expect(target).not.toBe(source);
+  const read = object(await runtime.call('thread/read', { threadId: target }, actor)); expect(object(read.thread).modelProvider).toBe('provider_b');
+  expect(object(await runtime.call('thread/queue/handoff/list', { threadId: source }, actor)).data).toMatchObject(
+    outcome === 'unconfirmed' ? copies.map(id => ({ id, state: 'ready' })) : [{ id: copies[1], state: 'ready' }]);
+  expect(object(await runtime.call('thread/queue/handoff/list', { threadId: target }, actor)).data).toMatchObject(outcome === 'moved' ? [{ id: copies[0], state: 'ready' }] : []);
+  expect(requests).toHaveLength(1);
+}), 45000);

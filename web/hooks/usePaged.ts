@@ -26,7 +26,7 @@ export function usePaged<T>(
   const running = useRef(false);
   const refresh = useCallback(() => setRevision(v => v + 1), []);
   const [snapshotKey, setSnapshotKey] = useState<string>();
-  const validate = (value: unknown, current: T[]) => {
+  const validate = (value: unknown, current: T[], count: number, cursors: Set<string>) => {
     const result = object(value), raw = result.data ?? result.threads ?? result.models ?? result.servers;
     if (!Array.isArray(raw)) throw new Error('目录响应格式无效。');
     let data: unknown[] = raw;
@@ -46,11 +46,11 @@ export function usePaged<T>(
     if (
       next !== null &&
       next !== undefined &&
-      (typeof next !== 'string' || next.length > 4096 || seen.current.has(next))
+      (typeof next !== 'string' || next.length > 4096 || cursors.has(next))
     )
       throw new Error('目录返回了无效或循环游标。');
     if (
-      pageCount.current >= 50 ||
+      count >= 50 ||
       current.length + data.length > 3000 ||
       JSON.stringify(data).length > 2_000_000
     )
@@ -71,13 +71,12 @@ export function usePaged<T>(
     loadedScope.current = scope;
     setLoadedOwner(owner);
     running.current = false;
-    if (!sameScope || !['thread/list', 'model/list', 'thread/backgroundTerminals/list'].includes(method)) setItems([]);
+    if (!sameScope || !['thread/list', 'thread/search', 'model/list', 'thread/backgroundTerminals/list'].includes(method)) setItems([]);
     setError('');
     setWarning('');
     setCursor(null);
     if (!sameScope) setSnapshotKey(undefined);
-    seen.current.clear();
-    pageCount.current = 0;
+    if (!sameScope) { seen.current.clear(); pageCount.current = 0; }
     if (!enabled) {
       setLoading(false);
       return;
@@ -86,13 +85,15 @@ export function usePaged<T>(
     void (async () => {
       try {
         let collected: T[] = [], next: string | null = null, warnings: string[] = [];
+        const cursors = new Set<string>();
+        let fetched = 0;
         for (let pageNumber = 0; pageNumber < wantedPages; pageNumber++) {
           const value = await api.call(method, { ...paramsRef.current, limit: 50,
             ...(next === null ? {} : { cursor: next }) }, controller.signal);
           if (epoch.current !== gen) return;
-          const page = validate(value, collected);
-          if (page.next !== null) seen.current.add(page.next);
-          pageCount.current++;
+          const page = validate(value, collected, fetched, cursors);
+          if (page.next !== null) cursors.add(page.next);
+          fetched++;
           const merged = new Map<string, T>();
           for (const item of [...collected, ...page.data]) {
             const row = object(item), identity = String(row.id ?? row.processId ?? row.name ?? JSON.stringify(item));
@@ -102,6 +103,8 @@ export function usePaged<T>(
           if (page.warning) warnings.push(page.warning);
           if (next === null) break;
         }
+        pageCount.current = fetched;
+        seen.current = cursors;
         setItems(collected); setWarning([...new Set(warnings)].join('；'));
         setCursor(next); setSnapshotKey(resourceKey);
       } catch (e) {
@@ -122,7 +125,7 @@ export function usePaged<T>(
     try {
       const value = await api.call(method, { ...paramsRef.current, cursor, limit: 50 });
       if (epoch.current !== gen) return;
-      const page = validate(value, items);
+      const page = validate(value, items, pageCount.current, seen.current);
       if (page.next !== null) seen.current.add(page.next);
       pageCount.current++;
       const merged = new Map<string, T>();
@@ -150,7 +153,7 @@ export function usePaged<T>(
     loading: enabled && (!current || loading),
     error: current ? error : '',
     warning: current ? warning : '',
-    snapshotKey: current ? snapshotKey : undefined,
+    snapshotKey: enabled && loadedScope.current === scope ? snapshotKey : undefined,
     hasMore: current && cursor !== null,
     more,
     refresh,

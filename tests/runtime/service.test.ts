@@ -48,14 +48,26 @@ function setup(providerRegistry?: RuntimeConfig['providerRegistry']): { service:
 }
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.restoreAllMocks(); });
 const context = { clientId: 'client-a' };
+test('a media preview gap requests a thread-scoped history reread without dispatching a turn', async () => {
+  const { native, events } = setup();
+  native.emit('notification', { method: 'harness/historyPreviewOmitted', params: { threadId: 'gap-thread' } });
+  expect(events.filter(event => event.type === 'notification').map(event => event.data)).toEqual([
+    { method: 'thread/history/invalidated', params: { threadId: 'gap-thread', historyVersion: 1, previewOmitted: true } }
+  ]);
+  expect(native.calls).toEqual([]);
+});
+
 test('general diagnostic events redact registered credentials while ordinary assistant prose is preserved', async () => {
   const { service, native, events } = setup();
   await service.call('account/login', {}, { ...context, beforeWrite: () => {} });
   native.emit('notification', { method: 'warning', params: { threadId: null, message: 'upstream private-code' } });
+  native.emit('notification', { method: 'mcpServer/startupStatus/updated', params: { threadId: 'thread', name: 'fixture', status: 'failed', error: 'private-code', failureReason: null } });
   native.emit('notification', { method: 'error', params: { threadId: 'thread', turnId: 'turn', willRetry: false, error: { message: 'private-code', codexErrorInfo: null, additionalDetails: null } } });
   native.emit('notification', { method: 'item/agentMessage/delta', params: { threadId: 'thread', turnId: 'turn', itemId: 'item', delta: 'private-code in user-authored prose' } });
   const notifications = events.filter(event => event.type === 'notification').map(event => object(event.data));
   for (const event of notifications.filter(event => event.method === 'warning' || event.method === 'error')) expect(JSON.stringify(event)).not.toContain('private-code');
+  const startup = notifications.find(event => event.method === 'mcpServer/startupStatus/updated');
+  expect(startup).toBeDefined(); expect(JSON.stringify(startup)).not.toContain('private-code');
   expect(notifications.find(event => event.method === 'item/agentMessage/delta')).toMatchObject({ params: { delta: 'private-code in user-authored prose' } });
 });
 test('project lists include every recorded provider while preserving native page filters and boundaries', async () => {
@@ -292,7 +304,8 @@ describe('RuntimeService admission and recovery', () => {
     expect(await service.call('thread/session', { threadId: 'stored' }, context)).toMatchObject({ requiresResume: false, model: 'fixture' });
     expect(object(object(service.status()).activity).unknown).toBe(false);
     expect(native.calls.filter(call => call.method === 'thread/goal/get')).toHaveLength(1);
-    expect(native.calls.filter(call => call.method === 'thread/queue/list')).toHaveLength(1);
+    const checks = native.calls.map(call => call.method).filter(method => method === 'thread/queue/list' || method === 'thread/resume');
+    expect(checks).toEqual(['thread/queue/list', 'thread/resume', 'thread/queue/list']);
   });
 
   test('inspects cold continuation without loading and automatically loads an ordinary conversation once', async () => {
@@ -406,6 +419,7 @@ describe('RuntimeService admission and recovery', () => {
     native.call = async (method, params, options) => {
       const result = await original(method, params, options);
       if (method === 'thread/read') object(object(result).thread).status = { type: 'notLoaded' };
+      if (method === 'thread/queue/list') return { data: [], nextCursor: null };
       return result;
     };
     native.page = { data: [], nextCursor: 'older', backwardsCursor: null };
@@ -505,6 +519,32 @@ describe('RuntimeService admission and recovery', () => {
     native.emit('notification', { method: 'thread/realtime/item/completed', params: { threadId: 't', item: { id: 'voice', realtimeSessionId: 'session', type: 'transcriptSegment', role: 'assistant', text: 'new context' } } });
     release(); await rejected; await expect(service.call('turn/start', { threadId: 't', text: 'blocked' }, context)).rejects.toMatchObject({ code: 'history_incomplete' });
   });
+  test.each(['turn/start', 'thread/compact'])('a bounded latest window admits %s after historical bytes exceed budget only for its current owner', async method => {
+    const { service, native } = setup(), owner = { clientId: 'chat', eventChannelId: 'live' };
+    const voice = { type: 'realtime', position: 1, item: { id: 'segment', realtimeSessionId: 'voice', type: 'transcriptSegment', role: 'user', text: 'x'.repeat(4200000) } };
+    native.timeline = { data: [voice], nextCursor: 'older', activeRealtimeSessionAtPageStart: null };
+    const first = object(await service.call('thread/history', { threadId: 'long', limit: 1 }, owner));
+    native.timeline = { data: [{ ...voice, position: 2 }], nextCursor: null, activeRealtimeSessionAtPageStart: null };
+    await expect(service.call('thread/history', { threadId: 'long', cursor: first.nextCursor! }, owner)).rejects.toMatchObject({ code: 'capacity' });
+    native.timeline = { data: [{ ...voice, item: { ...voice.item, text: 'latest' } }], nextCursor: 'older', activeRealtimeSessionAtPageStart: null };
+    const window = { threadId: 'long', limit: 1, intent: 'window' }, operation = method === 'turn/start' ? { threadId: 'long', text: 'continue' } : { threadId: 'long' };
+    expect(await service.call('thread/history', window, owner)).toMatchObject({ truncated: true, complete: false, executionReady: true });
+    await expect(service.call(method, operation, { ...owner, eventChannelId: 'other' })).rejects.toMatchObject({ code: 'history_incomplete' });
+    await service.clientDisconnected(owner.clientId, owner.eventChannelId);
+    await expect(service.call(method, operation, owner)).rejects.toMatchObject({ code: 'history_incomplete' });
+    await service.call('thread/history', window, owner);
+    await expect(service.call(method, operation, owner)).resolves.toBeDefined();
+    expect(native.calls.filter(call => call.method === (method === 'thread/compact' ? 'thread/compact/start' : method))).toHaveLength(1);
+  });
+  test('a pending tail read cannot grant a history capability after its browser disconnects', async () => {
+    const { service, native } = setup(); const owner = { clientId: 'owner', eventChannelId: 'browser' };
+    let release!: () => void; native.readGate = new Promise(resolve => { release = resolve; });
+    const read = service.call('thread/history', { intent: 'window', threadId: 'revoked', limit: 1 }, owner);
+    await expect.poll(() => native.calls.some(call => call.method === 'thread/read')).toBe(true);
+    await service.clientDisconnected(owner.clientId, owner.eventChannelId); release();
+    await expect(read).rejects.toMatchObject({ code: 'history_stale' });
+    await expect(service.call('turn/start', { threadId: 'revoked', text: 'late' }, owner)).rejects.toMatchObject({ code: 'history_incomplete' });
+  });
   test('combined history byte accounting never grants completeness after oversized voice pages', async () => {
     const { service, native } = setup(); const voice = { type: 'realtime', position: 1, item: { id: 'voice', realtimeSessionId: 'session', type: 'transcriptSegment', role: 'user', text: 'x'.repeat(4 * 1024 * 1024) } };
     native.timeline = { data: [voice], nextCursor: 'more', activeRealtimeSessionAtPageStart: null }; const first = object(await service.call('thread/history', { threadId: 't', limit: 1 }, context));
@@ -531,7 +571,7 @@ describe('RuntimeService admission and recovery', () => {
     const attachmentId = object(await service.call('attachment/upload', { name: 'unsent.txt', base64: 'dW5zZW50' }, owner)).attachmentId!;
     let unblock!: () => void; native.readGate = new Promise(resolve => { unblock = resolve; });
     const pending = service.call('conversation/start', { cwd, text: 'first message', attachmentIds: [attachmentId] }, { ...owner, beforeWrite: () => { checks++; if (revoked) throw new DeliveryError(code, 'Owner was revoked'); } });
-    const rejected = expect(pending).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'unknown', data: { phase: 'first_turn', threadId: 'created-thread', causeCode: code, causeDelivery: 'not_sent' } });
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'not_sent', data: { threadCreated: true, inputSent: false, phase: 'first_turn', threadId: 'created-thread', causeCode: code, causeDelivery: 'not_sent' } });
     await expect.poll(() => native.calls.some(call => call.method === 'thread/read')).toBe(true); revoked = true;
     if (code === 'client_disconnected') await service.clientDisconnected(owner.clientId, owner.eventChannelId); else await service.gatewayDisconnected(owner.eventChannelId);
     unblock(); await rejected;
@@ -539,9 +579,9 @@ describe('RuntimeService admission and recovery', () => {
     expect(object(object(service.status()).activity)).toMatchObject({ unknown: false, activeThreads: [] });
     await expect(service.call('attachment/remove', { attachmentId }, context)).resolves.toEqual({});
   });
-  test('a created conversation whose first turn is rejected remains unknown with partial thread identity', async () => {
+  test('a created conversation whose first turn is rejected retains its confirmed empty thread', async () => {
     const { service, native, cwd } = setup(); native.beforeNativeWrite = method => { if (method === 'turn/start') throw new DeliveryError('fixture_rejection', 'first turn rejected'); };
-    await expect(service.call('conversation/start', { cwd, text: 'first message' }, context)).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'unknown', data: { phase: 'first_turn', threadId: 'created-thread', causeDelivery: 'not_sent' } });
+    await expect(service.call('conversation/start', { cwd, text: 'first message' }, context)).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'not_sent', data: { threadCreated: true, inputSent: false, phase: 'first_turn', threadId: 'created-thread', causeDelivery: 'not_sent' } });
     expect(object(object(service.status()).activity)).toMatchObject({ unknown: false, activeThreads: [] });
     expect(await service.call('thread/history', { threadId: 'created-thread' }, context)).toMatchObject({ complete: true, turns: [] });
   });
@@ -697,7 +737,7 @@ describe('RuntimeService admission and recovery', () => {
   });
   test('a definitively rejected first native turn remains fresh and does not publish unknown activity', async () => {
     const { service, native, cwd } = setup(); native.turnError = new DeliveryError('fixture_rejection', 'fixture', 'not_sent');
-    await expect(service.call('conversation/start', { cwd, text: 'first' }, context)).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'unknown', data: { causeDelivery: 'not_sent' } });
+    await expect(service.call('conversation/start', { cwd, text: 'first' }, context)).rejects.toMatchObject({ code: 'conversation_start_incomplete', delivery: 'not_sent', data: { threadCreated: true, inputSent: false, causeDelivery: 'not_sent' } });
     expect(object(object(service.status()).activity)).toMatchObject({ unknown: false, activeThreads: [] });
     expect(await service.call('thread/history', { threadId: 'created-thread' }, context)).toMatchObject({ complete: true, turns: [] });
   });
@@ -735,6 +775,20 @@ describe('official approval responses and form semantics', () => {
     const params = { mode: 'form', requestedSchema: { type: 'object', properties: { empty: { type: 'string', enum: ['', 'other'] }, flag: { type: 'boolean' }, count: { type: 'integer', minimum: 0 }, values: { type: 'array', items: { type: 'string' }, minItems: 0 } }, required: ['empty', 'flag', 'count', 'values'], additionalProperties: false } };
     expect(() => validatePrompt('mcpServer/elicitation/request', params, { action: 'accept', content: { empty: '', flag: false, count: 0, values: [] }, _meta: null })).not.toThrow();
     expect(() => validatePrompt('mcpServer/elicitation/request', params, { action: 'accept', content: { flag: false, count: 0, values: [] }, _meta: null })).toThrow(DeliveryError);
+  });
+  test('form dialects are checked at each schema node while literal data and names stay intact', () => {
+    const draft = 'https://json-schema.org/draft-07/schema#', schema = { type: 'object', $schema: draft,
+      properties: { $schema: { type: 'string', const: 'ordinary', $schema: draft }, nested: { type: 'string', $schema: draft } } };
+    const request = (value: JsonValue) => validatePrompt('mcpServer/elicitation/request', { mode: 'form', requestedSchema: value }, { action: 'accept', content: { $schema: 'ordinary', nested: 'ok' }, _meta: null });
+    expect(() => request(schema)).not.toThrow();
+    expect(() => request({ ...schema, properties: { ...schema.properties, nested: { type: 'string', $schema: 'urn:unknown' } } })).toThrow();
+  });
+  test('form accepts native email and absolute URI syntax and rejects incomplete addresses and relative references', () => {
+    const fields = { email: { type: 'string', format: 'email' }, uri: { type: 'string', format: 'uri' } };
+    const answer = (email: string, uri: string) => validatePrompt('mcpServer/elicitation/request', { mode: 'form', requestedSchema: { type: 'object', properties: fields } }, { action: 'accept', content: { email, uri }, _meta: null });
+    expect(() => answer('a.b@example.org', 'mailto:abc@example.org')).not.toThrow();
+    expect(() => answer('a@-invalid.org', 'urn:example:test')).toThrow();
+    expect(() => answer('a@example.org', '/relative/path')).toThrow();
   });
   test('unsupported schemas/extensions can be canceled but cannot be accepted', () => {
     const params = { mode: 'openai/form', requestedSchema: { type: 'object' } };

@@ -1,3 +1,5 @@
+import { fullFormats } from 'ajv-formats/dist/formats.js';
+import { supportsFormDialect } from '../../src/shared/form-formats';
 import { object } from './types';
 import { validDateTime } from '../../src/shared/date-time';
 const supported = new Set([
@@ -35,6 +37,7 @@ export const fieldType = (s: Record<string, unknown>): string | undefined =>
 export function schemaSupported(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const s = object(value);
+  if (!supportsFormDialect(s.$schema)) return false;
   if (Object.keys(s).some((k) => !supported.has(k))) return false;
   const types = Array.isArray(s.type) ? s.type : s.type === undefined ? [] : [s.type];
   if (
@@ -116,14 +119,10 @@ export function validateValue(schema: unknown, value: unknown, name = '字段'):
       errors.push(`${name}至少需要 ${s.minLength} 个字符。`);
     if (typeof s.maxLength === 'number' && [...value].length > s.maxLength)
       errors.push(`${name}不能超过 ${s.maxLength} 个字符。`);
-    if (s.format === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-      errors.push(`${name}需要有效邮箱。`);
-    if (s.format === 'uri') {
-      try {
-        new URL(value);
-      } catch {
-        errors.push(`${name}需要完整 URL。`);
-      }
+    if (s.format === 'uri' || s.format === 'email') {
+      const format = fullFormats[s.format];
+      const valid = format instanceof RegExp ? format.test(value) : typeof format === 'function' && format(value);
+      if (!valid) errors.push(s.format === 'email' ? `${name}需要有效邮箱。` : `${name}需要完整 URI。`);
     }
     if (
       s.format === 'date' &&

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { array, object, type Item, type Turn } from '../lib/types';
 import { Icon } from './Icon';
 
@@ -15,7 +15,7 @@ function finalAnswer(turn: Turn): string {
   return candidates.map(text).filter(value => value.trim()).join('\n\n');
 }
 
-export function TurnFooter({ turn, onAction, actionsDisabled = false, active = false }: {
+export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisabled = false, active = false }: {
   turn: Turn;
   onAction?: (turn: Turn, action: 'fork' | 'edit' | 'revert') => void;
   actionsDisabled?: boolean;
@@ -88,4 +88,4 @@ export function TurnFooter({ turn, onAction, actionsDisabled = false, active = f
     {feedback?.owner === scope && <span className={'small ' + (feedback.error ? 'error' : 'muted')}
       role={feedback.error ? 'alert' : 'status'}>{feedback.text}</span>}
   </div>;
-}
+});

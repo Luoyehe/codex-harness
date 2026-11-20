@@ -73,7 +73,7 @@ export class McpOauth {
       } }));
       if (result.loginId != null) login.loginId = string(result.loginId, 'loginId', 256);
       const url = string(result.authorizationUrl, 'authorizationUrl', 8192);
-      this.host.redactor.addSecret(url);
+      this.host.redactor.addSecret(url, login.expiresAt);
       let parsed: URL; try { parsed = new URL(url); } catch { throw new Error('Invalid URL'); }
       if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('Unsafe authorization URL');
       login.responded = true;

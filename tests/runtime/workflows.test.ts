@@ -1,13 +1,14 @@
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
+import * as compatibility from '../../src/runtime/thread-history-compatibility.js';
 import { UnifiedHistory } from '../../src/runtime/history.js';
 import type { Activity } from '../../src/runtime/thread-activity.js';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 test('export and page traversal interleave without replacing each other or granting page completeness', async () => {
   const state: Activity = { status: 'idle', turnId: null, pending: false, unknown: false, revision: 1, historyMode: 'paginated' };
@@ -373,4 +374,226 @@ test('task settings reject conflicting permission profiles, deprecated flags and
   await expect(service.call('turn/settings/update', { threadId: 't', turnId: 'stale', serviceTier: null }, context)).rejects.toMatchObject({ code: 'turn_changed' });
   expect(native.calls.filter(item => item.method.endsWith('settings/update'))).toHaveLength(0);
   expect(await service.call('turn/settings/update', { threadId: 't', turnId: 'active', serviceTier: null }, context)).toEqual({ status: 'applied' });
+});
+
+
+const queuePng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBAQEAgrYAAAAASUVORK5CYII=';
+const queueModels = { defaultProviderId: 'default', nativeCatalogProvider: 'fixture', connections: [
+  { id: 'default', enabled: true, modelProvider: 'fixture', kind: 'openai-compatible', name: 'Fixture', models: [
+    { id: 'image-model', inputModalities: ['text', 'image'], supportsTools: false },
+    { id: 'tool-model', inputModalities: ['text'], supportsTools: true },
+    { id: 'no-tools', inputModalities: ['text'], supportsTools: false },
+  ] },
+] };
+async function queuedImageFixture(model: string) {
+  const cwd = mkdtempSync(path.join(roots, 'queue-media-')), native = new Native(cwd);
+  const config = { bin: process.execPath, home: cwd, workerHome: cwd, cwd, env: {}, providerRegistry: queueModels };
+  const service = new RuntimeService(config, native as unknown as NativeRpc); services.push(service);
+  const state: { model: string | null } = { model };
+  const call = native.call.bind(native);
+  native.call = async (method, input, options) => {
+    const result = await call(method, input, options), row = object(result);
+    if (method === 'thread/queue/add' || method === 'thread/queue/update') {
+      const queued = object(row.queuedSubmission);
+      queued.input = (queued.input as JsonValue[]).map(value => {
+        const image = object(value);
+        if (image.type !== 'localImage') return value;
+        const original = readFileSync(String(image.path));
+        const stored = original.length > 2_000_000 ? queuePng : original.toString('base64');
+        return { type:'image', url:'data:image/png;base64,' + stored, detail:'original' };
+      });
+    }
+    if (method === 'thread/read') object(row.thread).model = state.model;
+    if (method === 'thread/settings/update') state.model = String(object(input).model);
+    return result;
+  };
+  await hydrate(service);
+  const upload = object(await service.call('attachment/upload', { name: 'fixture.png', mimeType: '', base64: queuePng }, context));
+  const entry = object(object(await service.call('thread/queue/add', { threadId: 't', clientUserMessageId: 'initial', text: 'Keep text',
+    extraContext: [{ label: 'note', text: 'Keep context' }], attachmentIds: [upload.attachmentId!] }, context)).queuedSubmission);
+  const original = structuredClone(entry.input) as JsonValue[], id = String(entry.id);
+  return { service, native, state, id, original };
+}
+test.each([['tool-model','image-model'], ['image-model','tool-model']])('immutable queue requires an explicit handoff from %s to %s', async (from, to) => {
+  const { service, native, state, id, original } = await queuedImageFixture(from!);
+  const scope = { threadId: 't' };
+  const task = { ...scope, queuedSubmissionId: id };
+  for (const params of [{ ...scope, model: to! }, { ...scope, collaborationMode: { mode: 'default', settings: { model: to!, developer_instructions: null, reasoning_effort: null } } }])
+    await expect(service.call('thread/settings/update', params, context)).rejects.toMatchObject({ code: 'queue_media_route_change', delivery: 'not_sent' });
+  await expect(service.call('thread/resume', { ...scope, options: { modelProvider: 'fixture', model: to! } }, context)).rejects.toMatchObject({ code: 'queue_media_route_change', delivery: 'not_sent' });
+  state.model = to!;
+  await expect(service.call('thread/resume', scope, context)).rejects.toMatchObject({ code: 'queue_media_route_change', delivery: 'not_sent' });
+  await expect(service.call('thread/queue/start', task, context)).rejects.toMatchObject({ code: 'queue_media_route_change', delivery: 'not_sent' });
+  state.model = null;
+  await expect(service.call('thread/resume', scope, context)).rejects.toMatchObject({ code: 'model_capability_unknown', delivery: 'not_sent' });
+  state.model = from!;
+  expect(native.calls.filter(call => ['thread/resume', 'thread/queue/start', 'thread/settings/update'].includes(call.method))).toEqual([]);
+  const saved = object(await service.call('thread/queue/handoff/save', task, context)), restore = { ...scope, handoffId: saved.id! };
+  expect(saved.state).toBe('saved'); expect(JSON.stringify(saved)).not.toContain('Keep');
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'handoff_unconfirmed' });
+  await expect(service.call('thread/queue/delete', task, context)).resolves.toMatchObject({ deleted: true });
+  expect(await service.call('thread/queue/handoff/list', scope, context)).toMatchObject({ data: [{ state: 'ready' }] });
+  await service.call('thread/settings/update', { ...scope, model: to! }, context);
+  const receipt = await service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() });
+  expect(receipt).toMatchObject({ queuedSubmission: { clientUserMessageId: saved.id } });
+  const input = native.queue[0]!.input as JsonValue[];
+  expect(input.length).toBe(original.length);
+  expect(input[0]).toEqual(original[0]); expect(input[2]).toEqual(original[2]);
+  if (to === 'image-model') expect(input[1]).toMatchObject({ type: 'image', url: 'data:image/png;base64,' + queuePng });
+  else expect(input[1]).toMatchObject({ type: 'text', text: expect.stringContaining('authorized vision tool') });
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'handoff_unconfirmed' });
+  expect(native.calls.filter(call => call.method === 'thread/queue/add')).toHaveLength(2);
+});
+test('a queue backup never enables resend after a false delete, edited source, automatic consumption or an uncertain restore', async () => {
+  const { service, native, id } = await queuedImageFixture('tool-model');
+  const task = { threadId: 't', queuedSubmissionId: id };
+  const saved = object(await service.call('thread/queue/handoff/save', task, context));
+  const restore = { threadId: 't', handoffId: saved.id! };
+  native.responseOverride = { method: 'thread/queue/delete', value: { deleted: false } };
+  await expect(service.call('thread/queue/delete', task, context)).resolves.toMatchObject({ deleted: false });
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'handoff_unconfirmed' });
+  delete native.responseOverride;
+  const original = native.queue[0]!;
+  const source = original.input as JsonValue[], preserved = source[0]!;
+  source[0] = { type: 'text', text: 'changed by another tab', text_elements: [] };
+  await expect(service.call('thread/queue/delete', task, context)).rejects.toMatchObject({ code: 'handoff_changed' });
+  source[0] = preserved; native.queue = [];
+  await expect(service.call('thread/queue/delete', task, context)).rejects.toMatchObject({ code: 'not_found' });
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'handoff_unconfirmed' });
+  native.queue = [original]; await service.call('thread/queue/delete', task, context);
+  const op = randomUUID();
+  native.afterWrite = name => { if (name === 'thread/queue/add') throw new DeliveryError('gone', 'No reply', 'unknown'); };
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: op })).rejects.toMatchObject({ delivery: 'unknown' });
+  expect(await service.call('thread/queue/handoff/list', { threadId: 't' }, context)).toMatchObject({ data: [{ state: 'restoring', operationId: op }] });
+  await expect(service.call('thread/queue/handoff/restore', restore, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'handoff_unconfirmed' });
+  expect(native.calls.filter(call => call.method === 'thread/queue/add')).toHaveLength(2);
+});
+test('an explicit same-item media edit transcodes a saved path after a model change and keeps its opaque rows in original order', async () => {
+  const { service, native, state, id, original } = await queuedImageFixture('tool-model');
+  state.model = 'image-model';
+  // Also accept the v2.4.0 single-line managed path, before the fixed vision guidance was available.
+  const old = object(original[1]); old.text = String(old.text).split('\n')[0]!;
+  native.queue[0]!.input = [original[2]!, old, original[0]!];
+  await service.call('thread/queue/update', { threadId: 't', queuedSubmissionId: id }, context);
+  expect(native.queue[0]!.input).toEqual([original[2], { type: 'image', url:'data:image/png;base64,' + queuePng, detail:'original' }, original[0]]);
+  expect(native.calls.filter(call => call.method === 'thread/queue/start')).toHaveLength(0);
+});
+
+test('unreadable persisted queue rows can be inspected by identity and explicitly removed before cold resume', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const host = service['workflows']['host'];
+  const manifest = { complete: true, large: true, data: [
+    { id: 'unsafe-row', clientUserMessageId: null, bytes: 40 * 1024 * 1024, preview: '', media: [], oversized: true, metadataIncomplete: true },
+    { id: 'small-row', clientUserMessageId: 'small-c', bytes: 30, preview: 'safe preview', media: [], oversized: false },
+  ] };
+  native.queue = [{ id: 'unsafe-row', clientUserMessageId: 'large-c', input: [] }, { id: 'small-row', clientUserMessageId: 'small-c', input: [{ type: 'text', text: 'full second row', text_elements: [] }] }];
+  host.queueCapacity = async () => ({ ...manifest, data: manifest.data.filter(row => native.queue.some(item => item.id === row.id)) });
+  host.queueItem = async (_id, key) => ({ queuedSubmission: native.queue.find(row => row.id === key) ?? null });
+  const first = object(await service.call('thread/queue/list', { threadId: 't', limit: 1 }, context));
+  expect(first.data).toMatchObject([{ id: 'unsafe-row', incomplete: true, metadataOnly: true }]);
+  expect(object(await service.call('thread/queue/list', { threadId: 't', cursor: first.nextCursor!, limit: 1 }, context)).data).toMatchObject([{ id: 'small-row' }]);
+  expect(object(await service.call('thread/queue/list', { threadId: 't', queuedSubmissionId: 'small-row' }, context)).data).toMatchObject([{ text: 'full second row' }]);
+  await expect(service.call('thread/resume', { threadId: 't' }, context)).rejects.toMatchObject({ code: 'queue_reply_capacity', delivery: 'not_sent' });
+  await expect(service.call('thread/queue/start', { threadId: 't', queuedSubmissionId: 'unsafe-row' }, context)).rejects.toMatchObject({ code: 'queue_reply_capacity', delivery: 'not_sent' });
+  expect(native.calls.filter(row => row.method === 'thread/resume' || row.method === 'thread/queue/start')).toEqual([]);
+  expect(await service.call('thread/queue/delete', { threadId: 't', queuedSubmissionId: 'unsafe-row' }, context)).toEqual({ deleted: true });
+  expect(native.queue.map(row => row.id)).toEqual(['small-row']);
+  expect(await service.call('turn/start', { threadId: 't', text: 'Continue after explicit deletion.' }, context)).toMatchObject({ turn: { status: 'inProgress' } });
+});
+test('queue preparation admits the same four images once on each model and uses its actual input modality', async () => {
+  const { service, native, state } = await queuedImageFixture('image-model');
+  const ids: JsonValue[] = [];
+  for (let i = 0; i < 4; i++) {
+    const bytes = Buffer.alloc(2460000, i); Buffer.from(queuePng, 'base64').copy(bytes);
+    const uploaded = object(await service.call('attachment/upload', { name: String(i) + '.png', mimeType: 'image/png', base64: bytes.toString('base64') }, context));
+    ids.push(uploaded.attachmentId!);
+  }
+  const args = { threadId: 't', text: 'Four images', attachmentIds: ids, clientUserMessageId: 'four' };
+  const nativeRow = object(object(await service.call('thread/queue/add', args, context)).queuedSubmission);
+  expect((nativeRow.input as JsonValue[]).filter(value => object(value).type === 'image')).toHaveLength(4);
+  expect(nativeRow.attachmentIds).toEqual(ids);
+  state.model = 'tool-model';
+  const result = object(object(await service.call('thread/queue/add', { ...args, clientUserMessageId: 'as-tools' }, context)).queuedSubmission);
+  expect(result.attachmentIds).toEqual(ids); expect((result.input as JsonValue[]).filter(value => object(value).type === 'text')).toHaveLength(5);
+});
+test('ordinary queue pages whose summed text exceeds the history budget do not block model changes', async () => {
+  const { service, native } = setup(); await hydrate(service);
+  const base = native.call.bind(native), text = 'ordinary'.repeat(650000);
+  native.call = async (method, params, options) => {
+    if (method === 'thread/queue/list') {
+      const n = object(params).cursor === 'second' ? 2 : 1;
+      return { data: [{ id: String(n), clientUserMessageId: String(n), input: [{ type:'text', text, text_elements: [] }] }], nextCursor: n === 1 ? 'second' : null };
+    }
+    return base(method, params, options);
+  };
+  expect(await service.call('thread/settings/update', { threadId:'t', model:'fixture' }, context)).toEqual({});
+});
+
+test.each([false, true])('an explicitly saved legacy native queue image with no original identity uses the stored pixels (compact SQLite item: %s)', async compact => {
+  const { service, native, state } = await queuedImageFixture('image-model');
+  const bytes = readFileSync(path.resolve('tests/fixtures/visual-media/sample.png')), encoded = bytes.toString('base64');
+  const old = { id: 'old-import', clientUserMessageId: 'old-client', input: [
+    { type: 'text', text: 'Keep legacy prompt', text_elements: [] },
+    { type: 'image', url: 'data:image/png;base64,' + encoded, detail: 'original' },
+  ] };
+  native.queue = [old];
+  const scope = { threadId: 't' }, task = { ...scope, queuedSubmissionId: old.id };
+  const host = service['workflows']['host'], digest = createHash('sha256').update(bytes).digest('hex');
+  if (compact) {
+    host.queueCapacity = async () => ({ large: true, complete: true, data: native.queue.map(row => ({ id:String(row.id),clientUserMessageId:String(row.clientUserMessageId),preview:'Keep legacy prompt',bytes:13*1048576,media:[{type:'image'}],oversized:true })) });
+    host.queueItem = async () => ({ queuedSubmission: { ...old, input:[old.input[0]!,{ type:'harnessInlineImageDigest',mimeType:'image/png',sha256:digest,bytes:bytes.length,detail:'original' }] } });
+    host.queueImage = async (id, queueId, ordinal, marker) => {
+      expect([id, queueId, ordinal, marker.sha256, marker.bytes]).toEqual(['t', old.id, 1, digest, bytes.length]);
+      return { mimeType:'image/png',sha256:digest,bytes:bytes.length,base64:encoded };
+    };
+  }
+  const dir = service['attachments'].root;
+  const before = readdirSync(dir).sort();
+  await service.call('thread/queue/list', scope, context);
+  expect(readdirSync(dir).sort()).toEqual(before);
+  const saved = object(await service.call('thread/queue/handoff/save', task, context));
+  expect(saved.nativeSavedImages).toBe(1);
+  expect(await service.call('thread/queue/delete', task, context)).toMatchObject({deleted:true});
+  state.model='tool-model';
+  await service.call('thread/queue/handoff/restore', { ...scope, handoffId:saved.id! }, { ...context, operationId:randomUUID() });
+  const restored = native.queue[0]!.input as JsonValue[];
+  expect(object(restored[0]).text).toBe('Keep legacy prompt');
+  const match = / is available at ("[^"\n]+")\./.exec(String(object(restored[1]).text));
+  expect(match).toBeTruthy(); expect(readFileSync(JSON.parse(match![1]!))).toEqual(bytes);
+});
+
+test('preserves external queue client metadata privately for same-provider restoration and rejects another provider', async () => {
+  const { service,native } = await queuedImageFixture('tool-model');
+  const fixture = { vendorContext: 'fixture-private-metadata' };
+  native.queue[0]!.responsesapiClientMetadata = fixture;
+  const scope = { threadId: 't' }, task = { ...scope, queuedSubmissionId: String(native.queue[0]!.id) };
+  expect(JSON.stringify(await service.call('thread/queue/list', scope, context))).not.toContain('fixture-private-metadata');
+  const saved = object(await service.call('thread/queue/handoff/save', task, context));
+  expect(saved.requiresSameProvider).toBe(true);
+  expect(JSON.stringify(saved)).not.toContain('fixture-private-metadata');
+  expect(await service.call('thread/queue/delete', task, context)).toEqual({ deleted: true });
+  expect(() => service['attachments'].queueHandoffMetadata('t', String(saved.id), 'other')).toThrow();
+  const confirmed = await service.call('thread/queue/handoff/restore', { ...scope, handoffId:saved.id! }, { ...context, operationId:randomUUID() });
+  expect(native.calls.filter(row => row.method === 'thread/queue/add').at(-1)!.params.responsesapiClientMetadata).toEqual(fixture);
+  expect(JSON.stringify(confirmed)).not.toContain('fixture-private-metadata');
+});
+
+test.each(['match','changed media','changed text','lost row'])('oversized successful queue frames must match durable identity, content and per-slot URL: %s', async outcome => {
+  const {service,native} = await queuedImageFixture('image-model');
+  const attachment = object(await service.call('attachment/upload',{name:'proof.png',mimeType:'image/png',base64:queuePng}, context));
+  const url = 'data:image/png;base64,' + queuePng;
+  const proof = { queuedSubmissionId:'accepted-id',clientUserMessageId:'large-once',inputCount:2,urlBySlot:[{ordinal:1,sha256:createHash('sha256').update(url).digest('hex')}] };
+  const input = [{type:'text',text:outcome==='changed text'?'another revision':'steady',text_elements:[]},
+    {type:'image',url:outcome==='changed media'?url+'AAAA':url,detail:'original'}];
+  const stored = vi.spyOn(compatibility,'historyHelper').mockResolvedValue({queuedSubmission:outcome==='lost row'?null:
+    {id:'accepted-id',clientUserMessageId:'large-once',input,responsesapiClientMetadata:null}});
+  native.afterWrite = method => { if(method==='thread/queue/add') throw new DeliveryError('queue_frame_unconfirmed','drained','unknown',proof); };
+  const before = native.calls.filter(row=>row.method==='thread/queue/add').length;
+  try {
+    const pending = service.call('thread/queue/add',{threadId:'t',clientUserMessageId:'large-once',text:'steady',attachmentIds:[attachment.attachmentId!]}, {...context,operationId:randomUUID()});
+    if(outcome==='match') await expect(pending).resolves.toMatchObject({queuedSubmission:{id:'accepted-id',clientUserMessageId:'large-once'}});
+    else await expect(pending).rejects.toMatchObject({code:'queue_frame_unconfirmed',delivery:'unknown'});
+    expect(stored).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({action:'queue-item',threadId:'t',queuedSubmissionId:'accepted-id'}));
+    expect(native.calls.filter(row=>row.method==='thread/queue/add')).toHaveLength(before+1);
+  } finally { stored.mockRestore(); }
 });

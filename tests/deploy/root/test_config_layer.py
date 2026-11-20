@@ -121,6 +121,28 @@ class ConfigurationLayerTests(unittest.TestCase):
         self.assertNotIn(b" catalog-server *", old)
         self.assertEqual(self.user.read_bytes(), self.user_bytes)
 
+    def test_migrate_preserves_old_immutable_coding_plan_and_selects_new_remote_defaults(self):
+        from deploy.provider_registry import configuration
+        change_config_layer(self.manager)
+        current = self.manager.providers.read()
+        old = change({"expectedRevision":current["revision"],"kind":"zhipu-coding","providerId":"new","apiKey":"fixture-plan"}, current)
+        for row in old["connections"]:
+            row["settings"].pop("codingMcpPolicy", None)
+        # Reproduce the previous supported generation format through its original renderer.
+        with patch("deploy.provider_registry.upgrade_mcp_defaults", side_effect=lambda settings: settings):
+            source = self.manager.providers.prepare(old,layered=True)
+        self.manager.providers.select(source)
+        path = self.manager.providers.root / source / "settings.json"
+        before = path.read_bytes()
+        self.assertNotIn("enabled", configuration(self.manager.providers.read(), self.layout)["mcp_servers"]["zread"])
+        self.assertTrue(change_config_layer(self.manager)["changed"])
+        selected = self.manager.providers.read()
+        self.assertNotEqual(selected["revision"], source)
+        self.assertIs(configuration(selected,self.layout)["mcp_servers"]["zread"]["enabled"],False)
+        self.assertEqual(path.read_bytes(),before)
+        self.assertFalse(change_config_layer(self.manager)["changed"])
+        self.assertEqual(self.user_bytes,self.user.read_bytes())
+
     def test_existing_registry_with_previous_sudo_uses_transaction_then_becomes_noop(self):
         change_config_layer(self.manager)
         self.install_previous_sudo()

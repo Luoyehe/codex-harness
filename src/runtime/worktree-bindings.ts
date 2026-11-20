@@ -36,7 +36,7 @@ export class WorktreeBindings {
     const expected = retired ? path.posix.join(home, 'worktree-state', 'retired', id, 'checkout') : archived ? path.posix.join(home, 'worktree-state', id, 'checkout') : path.posix.join(home, 'worktrees', id);
     if (result.phase !== phase || result.path !== expected || result[creating ? 'created' : action.slice(9) === 'attach' ? 'attached' : retired ? 'retired' : archived ? 'archived' : 'restored'] !== true || retired && result.retained !== true) throw new DeliveryError('worktree_unbound', 'Worktree phase or fixed location mismatch', 'unknown');
     if (creating) {
-      if (Number(this.db.prepare('SELECT count(*) AS n FROM managed_worktrees').get()!.n) >= 32) throw new DeliveryError('capacity', 'Managed worktree retention budget reached', 'unknown');
+      if (Number(this.db.prepare('SELECT count(*) AS n FROM managed_worktrees').get()!.n) >= 32) throw new DeliveryError('capacity', '受管工作树保留数量已达上限（普通与 ROOT 模式共用）；目录可能已创建，请核对原回执，勿重复创建。', 'unknown');
       this.db.prepare('INSERT INTO managed_worktrees(id,root,project_id,binding,generation) VALUES(?,?,?,?,1)').run(id, root, projectId, canonical(binding));
       return 1;
     } else {

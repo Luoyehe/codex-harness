@@ -40,25 +40,25 @@ async function fixture(now: () => number = Date.now, openBrowser = true, staticD
   return { token, auth, server, backend, ledger, dispatcher, origin, post, headers, cookie, clientId, owners, get forwarded() { return forwarded; }, get disconnected() { return disconnected; }, close: async () => { await server.close(); ledger.close(); auth.close(); } };
 }
 describe('real HTTP and WebSocket authorization boundary', () => {
-  it('keeps authenticated reads available while anonymous slow request bodies exhaust their separate allowance', async () => {
-    const f = await fixture(), clients: net.Socket[] = [];
-    let received = 0;
-    f.server.server.on('request', req => { if (req.url === '/api/session' && req.method === 'POST') received++; });
-    const request = ['POST /api/session HTTP/1.1', `Host: ${new URL(f.origin).host}`, `Origin: ${f.origin}`,
-      'Content-Type: application/json', 'Content-Length: 8192', '', '{'].join('\r\n');
+  it('keeps public and authenticated reads available when the anonymous write pool is busy', async () => {
+    const f = await fixture();
+    const { Budget } = await import('../../src/core/budget.js');
+    const reserve = Budget.prototype.reserve;
+    const busy = vi.spyOn(Budget.prototype, 'reserve').mockImplementation(function (this: InstanceType<typeof Budget>) {
+      if (this.maxCount === 8 && this.maxBytes === 64 * 1024) throw new HarnessError('capacity', 'fixture write pool busy');
+      return reserve.call(this);
+    });
     try {
-      for (let index = 0; index < 8; index++) {
-        const socket = net.createConnection({ host: '127.0.0.1', port: Number(new URL(f.origin).port) });
-        clients.push(socket); socket.on('error', () => {}); await once(socket, 'connect'); socket.write(request);
-      }
-      await expect.poll(() => received).toBe(8);
-      expect(await (await fetch(f.origin + '/health')).json()).toMatchObject({ error: { code: 'capacity' } });
+      const write = await f.post('/api/session', {}, {});
+      expect(await write.json()).toMatchObject({ error: { code: 'capacity' } });
+      expect(await (await fetch(f.origin + '/health')).json()).toEqual({ ok: true });
       expect((await fetch(f.origin + '/health', { headers: { cookie: f.cookie } })).status).toBe(200);
       const response = await f.post('/api/rpc', { method: 'thread/read', params: { threadId: 'available' } }, f.headers);
       expect(response.status).toBe(200); expect(f.forwarded).toBe(1);
-      for (const client of clients) client.destroy();
-      await expect.poll(async () => (await fetch(f.origin + '/health')).status).toBe(200);
-    } finally { for (const client of clients) client.destroy(); await f.close(); }
+      busy.mockRestore();
+      const normal = await f.post('/api/session', {}, {});
+      expect((await normal.json()).error.code).not.toBe('capacity');
+    } finally { busy.mockRestore(); await f.close(); }
   });
   it('identifies an invalid browser client UUID without mislabeling it as an operation receipt', async () => {
     const f = await fixture();

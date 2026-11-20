@@ -276,6 +276,123 @@ class WorktreeFilesystemTests(unittest.TestCase):
             self.create()
         self.assertEqual(len(list((self.native / "worktrees").iterdir())), 1)
 
+    def test_registered_creation_recovers_original_binding_with_partial_files(self):
+        from deploy import workspace_worktrees as lifecycle
+        for partial in ("registered", "partial", "indexed", "edited"):
+            with self.subTest(partial=partial):
+                operation = str(uuid.uuid4())
+                original = lifecycle.materialize
+                def interrupted(workspace, root, head, prepared):
+                    if partial == "indexed":
+                        original(workspace, root, head, prepared)
+                    elif partial == "partial":
+                        lifecycle.write_new(root.fd, "file", b"base\n", 0o644)
+                    elif partial == "edited":
+                        lifecycle.write_new(root.fd, "private", b"my changes", 0o600)
+                    raise DeployError("interrupted", "Fixture stops during original creation")
+                with patch.object(lifecycle, "materialize", side_effect=interrupted), self.assertRaises(DeployError):
+                    self.call("worktree/create", {"ref": "HEAD"}, operation=operation)
+                saved = self.call("operation/read", {"operationId": operation})
+                self.assertEqual(saved["response"]["error"]["delivery"], "unknown")
+                params = {"operationId": operation, "requestDigest": saved["requestDigest"]}
+                if partial == "edited":
+                    with self.assertRaises(DeployError):
+                        self.call("worktree/reconcile-create", params)
+                    self.assertEqual((self.native / "worktrees" / operation / "private").read_bytes(), b"my changes")
+                    continue
+                result = self.call("worktree/reconcile-create", params)
+                self.assertEqual(result, self.call("worktree/reconcile-create", params))
+                self.assertEqual(result["state"], "completed")
+                checkout = result["response"]["result"]
+                self.assertEqual(self.read(checkout)["binding"], checkout["binding"])
+                self.assertEqual(Path(checkout["path"], "file").read_text(), "base\n")
+
+    def test_retire_repairs_moved_checkout_using_original_operation(self):
+        from deploy import workspace_worktrees as lifecycle
+        created = self.create()
+        params = {"worktreeId": created["worktreeId"], "expectedRevision": created["revision"], "confirm": True}
+        operation = str(uuid.uuid4())
+        original = lifecycle.git
+        def interrupt(root, args, **kwargs):
+            if args[:2] == ["worktree", "repair"]:
+                raise DeployError("interrupted", "after retired move")
+            return original(root, args, **kwargs)
+        with patch.object(lifecycle, "git", side_effect=interrupt), self.assertRaises(DeployError):
+            self.call("worktree/retire", params, created["binding"], operation=operation)
+        observed = self.read(created)
+        self.assertTrue(observed["retirementPending"])
+        self.assertIn("/retired/", observed["path"])
+        receipt = self.call("operation/read", {"operationId":operation})
+        source = {"operationId":operation,"requestDigest":receipt["requestDigest"]}
+        info = self.call("worktree/reconcile-retire-info", source)
+        self.assertEqual(info, params)
+        completed = self.call("worktree/reconcile-retire", {**source, **info}, created["binding"])
+        self.assertEqual(completed["state"],"completed")
+        done = completed["response"]["result"]
+        self.assertTrue(done["retired"])
+        self.assertEqual(done, self.call("worktree/retire", params, created["binding"], operation=operation))
+        self.assertFalse(self.read(created)["retirementPending"])
+
+    def test_pending_retire_after_lock_and_after_registration_repair_is_retryable(self):
+        from deploy import workspace_worktrees as lifecycle
+        for point in ("locked", "repaired"):
+            created = self.create()
+            params = {"worktreeId": created["worktreeId"], "expectedRevision":created["revision"],"confirm":True}
+            op = str(uuid.uuid4())
+            original = lifecycle.git
+            def stop(root,args,**kwargs):
+                result = original(root,args,**kwargs)
+                if args[:2] == ["worktree", "lock" if point == "locked" else "repair"]:
+                    raise DeployError("interrupted",point)
+                return result
+            with patch.object(lifecycle, "git", side_effect=stop), self.assertRaises(DeployError):
+                self.call("worktree/retire", params, created["binding"], operation=op)
+            self.assertTrue(self.read(created)["retirementPending"])
+            self.assertTrue(self.call("worktree/retire",params,created["binding"],operation=op)["retired"])
+
+    def test_phase_receipt_completes_only_with_original_operation_and_real_phase(self):
+        from deploy import workspace_worktrees as lifecycle
+        created = self.create()
+        operation = str(uuid.uuid4())
+        params = {"worktreeId": created["worktreeId"], "expectedRevision": created["revision"], "confirm": True}
+        original = lifecycle.Record.save
+        def interrupt(record, value):
+            if value.get("phase") == "archived":
+                lifecycle.write_new(record.fd, ".state-next", lifecycle.canonical(value))
+                raise DeployError("interrupted", "before publishing phase")
+            return original(record, value)
+        with patch.object(lifecycle.Record, "save", new=interrupt), self.assertRaises(DeployError):
+            self.call("worktree/archive", params, created["binding"], operation=operation)
+        holder = self.native / "worktree-state" / created["worktreeId"]
+        self.assertTrue((holder / ".state-next").exists())
+        archived = self.read(created)
+        self.assertFalse((holder / ".state-next").exists())
+        self.assertEqual(self.move("restore", archived)["phase"], "active")
+        pending = holder / ".state-next"
+        for content in (b"{", lifecycle.canonical({"phase": "active", "operationId": str(uuid.uuid4())})):
+            pending.write_bytes(content)
+            pending.chmod(0o600)
+            with self.assertRaises(DeployError):
+                self.read(created)
+            self.assertEqual(pending.read_bytes(), content)
+            pending.unlink()
+
+    def test_preflight_failures_release_capacity_and_safe_relative_links_survive_archive(self):
+        with patch("deploy.workspace_store.MAX_RECORDS", 2):
+            for _ in range(5):
+                with self.assertRaises(DeployError) as error:
+                    self.call("worktree/create", {"ref": "refs/heads/missing"})
+                self.assertEqual(error.exception.delivery, "not_sent")
+        created = self.create()
+        target = Path(created["path"])
+        bins = target / "node_modules/.bin"
+        bins.mkdir(parents=True)
+        (bins / "tool").symlink_to("../../file")
+        seen = self.read(created)
+        attached = self.call("worktree/attach", {"worktreeId": seen["worktreeId"], "expectedRevision": seen["revision"]}, seen["binding"])
+        restored = self.move("restore", self.move("archive", attached))
+        self.assertEqual(Path(restored["path"], "node_modules/.bin/tool").read_text(), "base\n")
+
     def test_unsupported_tracked_symlink_is_rejected_before_git_worktree_creation(self):
         (self.path / "link").symlink_to("file")
         self.git(self.path, "add", "link")

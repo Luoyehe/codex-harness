@@ -12,7 +12,7 @@ class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = []; source = { ...turn }; status = 'idle'; gate?: Promise<void>; before?: (method: string) => void; failure?: DeliveryError; early = false;
   async call(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue> {
     if (method === 'thread/turns/list') await this.gate; this.before?.(method); options?.beforeWrite?.(); this.calls.push({ method, params });
-    if (method === 'thread/read') return { thread: { id: 'thread', historyMode: 'paginated', status: { type: this.status }, canAcceptDirectInput: true, turns: [] } };
+    if (method === 'thread/read') return { thread: { id: object(params).threadId!, historyMode: 'paginated', status: { type: this.status }, canAcceptDirectInput: true, turns: [] } };
     if (method === 'thread/turns/list') return { data: [{ ...this.source, itemsView: object(params).itemsView ?? 'full' }], nextCursor: null, backwardsCursor: null };
     if (method === 'thread/items/list') return { data: [], nextCursor: null, backwardsCursor: null };
     if (method === 'thread/timeline/list') return { data: [], nextCursor: null, activeRealtimeSessionAtPageStart: null };
@@ -72,3 +72,25 @@ test('timeout and malformed terminal notifications retain a recovery requirement
   const second = setup(); await second.history(); const bad = object(await second.request()); second.native.update({ type: 'completed', text: 'x'.repeat(17000) }); expect(await second.read(bad.predictionId!)).toMatchObject({ state: 'unknown' }); expect(second.activity().unknown).toBe(true);
   const third = setup(); await third.history(); const ok = object(await third.request()); third.native.update({ type: 'completed', text: null }); expect(await third.read(ok.predictionId!)).toMatchObject({ state: 'completed', result: { text: null } }); await vi.advanceTimersByTimeAsync(600001); await expect(third.read(ok.predictionId!)).rejects.toMatchObject({ code: 'not_found' }); await expect(third.request()).rejects.toMatchObject({ code: 'prediction_already_requested' });
 });
+
+test('an unknown prediction leaves another completed thread able to load and send', async () => {
+  const f = setup(); await f.history();
+  f.native.failure = new DeliveryError('timeout', 'local timeout', 'unknown');
+  await expect(f.request()).rejects.toMatchObject({ delivery: 'unknown' });
+  await f.service.call('thread/history', { threadId: 'other' }, owner);
+  await expect(f.service.call('turn/start', { threadId: 'other', text: 'independent input' }, owner)).resolves.toMatchObject({ turn: { id: 'new-turn' } });
+});
+
+test('more than 2048 completed prediction sources expire in one epoch while their original IDs stay spent', async () => {
+  const f = setup(); await f.history(); let clock = Date.now();
+  vi.spyOn(Date, 'now').mockImplementation(() => clock);
+  try {
+    for (let n = 0; n < 2050; n++) {
+      const sourceTurnId = 'observed-' + n; f.native.source.id = sourceTurnId;
+      await f.service.call('thread/prediction/request', { threadId: 'thread', sourceTurnId }, owner);
+      f.native.update({ type: 'completed', text: 'fixture' }, sourceTurnId); clock += 600001;
+    }
+    await expect(f.service.call('thread/prediction/request', { threadId: 'thread', sourceTurnId: 'observed-0' }, owner)).rejects.toMatchObject({ code: 'prediction_already_requested' });
+    expect(object(object(f.service.status()).predictionBudget).retained).toBe(0);
+  } finally { vi.restoreAllMocks(); }
+}, 20000);

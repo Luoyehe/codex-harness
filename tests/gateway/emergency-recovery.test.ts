@@ -182,9 +182,45 @@ describe('explicit stop-confirmed recovery admission', () => {
       expect(f.ledger.getMeta('activityUncertain')).toBe('true');
       expect(await f.dispatcher.call({ method: 'operation/read', params: { operationId: call.operationId } }, owner)).toMatchObject({ state: 'unknown' });
       validProof = true;
-      expect(await f.dispatcher.call({ method: 'operation/read', params: { operationId: call.operationId } }, owner)).toMatchObject({ state: 'accepted', result: accepted });
+      const events: string[] = [];
+      f.dispatcher.on('event', event => events.push(event.type));
+      const read = () => f.dispatcher.call({ method: 'operation/read', params: { operationId: call.operationId } }, owner);
+      const receipts = await Promise.all([read(), read()]);
+      for (const receipt of [...receipts, await read()]) expect(receipt).toMatchObject({ state: 'accepted', result: accepted });
+      expect(events).toEqual(['receipt', 'state']);
       expect(mutations).toBe(1);
     } finally { f.ledger.close(); }
+  });
+
+  it.each(['unavailable', 'malformed', 'revoked'])('checks the latest durable receipt and reader identity after a late %s proof', async outcome => {
+    const f = fixture(), call = recover(), gate = deferred<void>();
+    const request = { method: 'operation/read', params: { operationId: call.operationId } };
+    let queries = 0, authorized = true;
+    f.manager.call = async (method, _params, _id, before) => {
+      before?.();
+      if (method !== 'operation/read') throw new HarnessError('stop_unknown', 'No stop proof', 'unknown');
+      if (++queries === 1) {
+        await gate.promise;
+        if (outcome === 'malformed') return null;
+        throw Error('Read interrupted');
+      }
+      return { operationId: call.operationId, method: 'recover', state: 'completed', result: accepted,
+        gatewayRequestDigest: digest({ method: call.method, params: call.params }) };
+    };
+    try {
+      await expect(f.dispatcher.call(call, owner)).rejects.toMatchObject({ delivery: 'unknown' });
+      const events: string[] = [];
+      f.dispatcher.on('event', event => events.push(event.type));
+      const first = f.dispatcher.call(request, { ...owner, requireAuthorization() {
+        if (!authorized) throw new HarnessError('unauthorized', 'Session ended');
+      } });
+      expect(await f.dispatcher.call(request, owner)).toMatchObject({ state: 'accepted' });
+      authorized = outcome !== 'revoked';
+      gate.resolve();
+      if (authorized) await expect(first).resolves.toMatchObject({ state: 'accepted', result: accepted });
+      else await expect(first).rejects.toMatchObject({ code: 'unauthorized' });
+      expect(events).toEqual(['receipt', 'state']);
+    } finally { gate.resolve(); f.ledger.close(); }
   });
 
   it('requires a confirmed release receipt and never stores manager-private fields', () => {

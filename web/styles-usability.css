@@ -35,7 +35,7 @@
 .model-picker > summary > span:last-child { flex-shrink: 0; }
 .model-picker-panel { position: absolute; bottom: calc(100% + 12px); left: -40px; z-index: 15; width: min(380px, calc(100vw - 48px)); max-height: min(460px, calc(100dvh - 200px)); overflow: auto; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
 .model-picker-panel select { width: 100%; min-width: 0; }
-.composer-toolbar .options-trigger { font-size: 12px !important; white-space: nowrap; }
+.composer-toolbar .options-trigger { font-size: 12px; padding: 6px 7px; white-space: nowrap; }
 .composer-toolbar .mode-select { flex: 0 0 auto; min-width: 0; max-width: 100%; }
 .composer-toolbar .mode-select select { font-size: 12px; max-width: 100%; width: auto; white-space: nowrap; padding: 7px 10px; }
 .composer-send-mode { min-width: 0; }
@@ -67,7 +67,7 @@
   .composer-toolbar .model-picker > summary small { font-size: 12px; }
   .composer-toolbar .mode-select select { min-height: 40px; }
   .composer-tools > .icon-button, .composer-send-actions > .send-button { width: 40px; height: 40px; }
-  .composer-toolbar .options-trigger { min-height: 40px; padding: 6px 8px !important; font-size: 14px !important; }
+  .composer-toolbar .options-trigger { min-height: 40px; padding: 6px 8px; font-size: 14px; }
   .composer-send-actions > .stop-button { min-width: 40px; min-height: 40px; padding: 6px 8px; }
   .composer-send-mode select { min-height: 40px; padding: 6px 8px; }
   .composer-extras .composer-options { max-height: none; overflow: visible; }
@@ -82,4 +82,13 @@
   select {
     font-size: 16px !important;
   }
+}
+
+@media (max-height: 640px), (max-width: 640px) {
+  .composer-slot:has(.composer-extras:not([hidden])) {
+    max-height: min(58dvh, calc(100dvh - 8rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .composer-extras { max-height: min(32dvh, 20rem); }
 }

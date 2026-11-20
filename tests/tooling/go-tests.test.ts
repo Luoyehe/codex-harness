@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { goExpectedTests, goPrerequisite, goSources, goTestFile, parseGoEvents, runGoTests, validateGoResult } from '../../scripts/go-tests.mjs';
 import { reconcileCi, selectCiPlan } from '../../scripts/ci-checks.mjs';
@@ -47,11 +47,12 @@ test('Go enters discovery, affected selection and exact targeted plans', () => {
   expect(prepareRun('--targeted', [goTestFile], base).files).toEqual([goTestFile]);
   const inventory = testInventory(base);
   for (const changed of dnsChanges) {
-    const plan = selectTests([changed], inventory);
+    const recovery = 'tests/deploy/root/test_v240_deploy_recovery.py';
+    const plan = selectTests([changed], changed === 'deploy/dns_caddy_build.py' ? [...inventory, recovery] : inventory);
     expect(plan.status).toBe('selected');
     expect(plan.groups.go).toEqual([goTestFile]);
     expect(plan.groups.deploy).toEqual([dnsPortableFile]);
-    expect(plan.groups['deploy-root']).toEqual([dnsRootFile]);
+    expect(plan.groups['deploy-root']).toEqual(changed === 'deploy/dns_caddy_build.py' ? [dnsRootFile, recovery] : [dnsRootFile]);
   }
   expect(goExpectedTests(base)).toEqual(names);
 });
@@ -107,12 +108,13 @@ test('missing preparation is explicit and a Go prerequisite blocks mixed-engine 
 
 test('runner uses isolated offline state, compiles the executable, and checks its pinned plugin', () => {
   const base = fixture(); const cache = path.join(base, '.work/prepared/modules'); mkdirSync(cache, { recursive: true });
+  chmodSync(cache, 0o555);
   const binary = path.join(base, '.work/prepared/go-fixture'); writeFileSync(binary, 'fixture');
   const ready = { status: 'ready', binary, moduleCache: cache, manifest: { platform: process.platform === 'win32' ? 'windows' : 'linux', goBinarySha256: createHash('sha256').update('fixture').digest('hex') } };
   const spawned = vi.fn((_binary: string, args: string[], options: any) => {
     expect(options.env).toMatchObject({ GOTOOLCHAIN: 'local', GOENV: 'off', GOWORK: 'off', GOAUTH: 'off', GOPROXY: 'off', GOFLAGS: '-mod=readonly' });
     expect(options.env.HOME).not.toBe('personal-home'); expect(options.env.OPENAI_API_KEY).toBeUndefined();
-    expect(options.env.GOMODCACHE).not.toBe(cache); expect(options.env.GOCACHE.startsWith(path.join(base, '.work'))).toBe(true);
+    expect(options.env.GOMODCACHE).toBe(cache); expect(options.env.GOCACHE.startsWith(path.join(base, '.work'))).toBe(true);
     return { status: 0, stdout: args.includes('-list') ? names.join('\n') : args.includes('-json') ? json(events()) : args[0] === 'harness-dns-build-check' ? JSON.stringify(proof) + '\n' : '', stderr: '' };
   });
   const result = runGoTests([goTestFile], base, { HOME: 'personal-home', OPENAI_API_KEY: 'fixture' }, { goPrerequisite: () => ready, spawnSync: spawned });
@@ -147,8 +149,8 @@ test('CI reconciliation requires all Go top levels, observed subtests and actual
     (value: any) => value.expectedTopLevel.pop(),
     (value: any) => value.sources['main.go'] = 'f'.repeat(64),
   ]) { const changed = structuredClone(go); mutate(changed); expect(() => validateGoResult(changed, base)).toThrow(); }
-  const changed = structuredClone(reports); changed[0].results = []; expect(() => reconcileCi(plan, changed, base)).toThrow(/Go execution/);
+  const changed = structuredClone(reports); changed[0]!.results = []; expect(() => reconcileCi(plan, changed, base)).toThrow(/Go execution/);
   expect(() => reconcileCi(plan, reports.filter(report => report.target !== 'linux-root'), base)).toThrow(/Every expected platform/);
-  const skippedRoot = structuredClone(reports); skippedRoot[2].exitCode = 3; skippedRoot[2].cases[0].status = 'skipped';
+  const skippedRoot = structuredClone(reports); skippedRoot[2]!.exitCode = 3; skippedRoot[2]!.cases[0]!.status = 'skipped';
   expect(() => reconcileCi(plan, skippedRoot, base)).toThrow(/Uncovered platform skips/);
 });

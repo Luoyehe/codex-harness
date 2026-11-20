@@ -43,9 +43,13 @@ def search(root: Root, params: dict) -> dict:
     def matches(value):
         return query in (value if params.get("caseSensitive", False) else value.casefold())
 
-    def stopped():
-        if len(results) >= limit:
+    def append_match(result):
+        if len(results) == limit:
             reasons.add("result_limit")
+        else:
+            results.append(result)
+
+    def stopped():
         if visited >= MAX_NODES:
             reasons.add("entry_limit")
         if read_bytes >= MAX_BYTES:
@@ -84,7 +88,7 @@ def search(root: Root, params: dict) -> dict:
                             # result later performs its own fresh containment checks.
                             location(directory, root.path / prefix)
                             if matches(name):
-                                results.append({"path": name})
+                                append_match({"path": name})
                         elif info.st_size <= MAX_FILE:
                             if read_bytes + info.st_size > MAX_BYTES:
                                 reasons.add("byte_limit")
@@ -113,7 +117,7 @@ def search(root: Root, params: dict) -> dict:
                                     # Case folding can change character count; the
                                     # preview is context, never an exact edit range.
                                     start = max(0, min(offset, len(line)) - 80)
-                                    results.append({"path": name, "line": number, "preview": line[start:start + 320]})
+                                    append_match({"path": name, "line": number, "preview": line[start:start + 320]})
                         else:
                             skipped += 1
                     else:

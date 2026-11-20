@@ -1,7 +1,8 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { WorkspaceWitness } from '../../src/runtime/workspace-witness.js';
 import { object, type JsonValue } from '../../src/runtime/types.js';
 function setup() {
@@ -106,4 +107,36 @@ test('unconfirmed creations reserve binding capacity; exact not_sent cleanup rel
     expect(() => f.witness.reserve('workspace/worktree/create', request, context)).not.toThrow();
     expect(f.witness.usage()).toMatchObject({ total: 32, unresolved: 32 });
   } finally { f.witness.close(); }
+});
+
+test.each([false, true])('reconciles original create and retire receipts across restart, legacy retirement %s', async legacy => {
+  const f = setup(); f.witness.reserve('workspace/worktree/create', f.request, f.context); f.witness.close();
+  const witness = new WorkspaceWitness(f.home, '/native'), op = { operationId: f.id };
+  try {
+    const digest = String(object(witness.read(op)).helperRequestDigest);
+    const lookup = vi.fn(async (root: string, id: string, received: string) => {
+      expect([root, id, received]).toEqual(['/origin', f.id, digest]);
+      return { state: 'completed', operationId: id, requestDigest: received, response: { ok: true, result: f.result } };
+    });
+    expect(await witness.reconcileCreate(op, async () => ({ state: 'completed', operationId: f.id, requestDigest: 'wrong' }))).toMatchObject({ state: 'unknown' });
+    expect(await witness.reconcileCreate(op, lookup)).toMatchObject({ state: 'completed', result: { created: true } });
+    await witness.reconcileCreate(op, lookup); expect(lookup).toHaveBeenCalledTimes(1);
+    const operationId = randomUUID(), ctx = { ...f.context, operationId }, params = { worktreeId: f.id, expectedRevision: f.result.revision, confirm: true };
+    const req = { ...f.request, action: 'worktree/retire', operationId, params, binding: f.binding, ...(legacy ? {} : { repositoryIdentity: '1'.repeat(64) }) };
+    witness.reserve('workspace/worktree/retire', req, ctx);
+    if (legacy) {
+      const db = new DatabaseSync(path.join(f.home, 'workspace-witness', 'witness.sqlite'));
+      try { db.prepare('UPDATE witnesses SET retire_request=NULL WHERE id=?').run(operationId); } finally { db.close(); }
+    }
+    const retired = { ...f.result, phase: 'retired', path: '/native/worktree-state/retired/' + f.id + '/checkout', retained: true, retired: true };
+    const info = vi.fn(async () => params);
+    const result = await witness.reconcileRetire({ operationId }, info, async (body, op) => {
+      expect(body).toMatchObject({ root: '/origin', params, binding: f.binding });
+      if (!legacy) expect(body.repositoryIdentity).toBe(req.repositoryIdentity);
+      return { state: 'completed', operationId, requestDigest: op.requestDigest!, response: { ok: true, result: retired } };
+    });
+    expect(info).toHaveBeenCalledTimes(legacy ? 1 : 0);
+    expect(result).toMatchObject({ state: 'completed', result: { retired: true } });
+    expect(() => witness.worktreeBinding(f.id, '/origin')).toThrow();
+  } finally { witness.close(); }
 });

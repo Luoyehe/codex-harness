@@ -283,7 +283,7 @@ export function ThreadTerminals({
       {!validation &&
         directory.items.map((row) => (
           <TerminalRow
-            key={JSON.stringify(row)}
+            key={JSON.stringify([row.itemId, row.processId, row.command, row.cwd, row.osPid])}
             row={row}
             scope={scope}
             disabled={!ready || action.disabled}

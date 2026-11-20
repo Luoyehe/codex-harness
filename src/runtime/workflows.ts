@@ -1,4 +1,5 @@
 import { DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
+import { mediaModalities } from './input-modalities.js';
 import { options, validateOfficial } from './validation.js';
 import type { Attachments, PreparedAttachments } from './attachments.js';
 import type { NativeOptions } from './native.js';
@@ -10,7 +11,7 @@ export interface WorkflowMutation {
   threadId: string; mode: 'idle' | 'active' | 'any'; history?: boolean; expectedTurnId?: string;
   prepared?: PreparedAttachments; workResult?: 'turn' | 'goal' | 'shell'; newThread?: boolean; invalidateHistory?: boolean; directInput?: boolean;
   project?: (result: JsonValue) => JsonValue;
-  preflight?: (thread: JsonObject) => Promise<void>;
+  preflight?: (thread: JsonObject) => Promise<void | { timeoutMs: number }>;
   beforeWrite?: () => void;
   mediaInput?: JsonValue[];
 }
@@ -20,7 +21,11 @@ export interface WorkflowHost {
   call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue>;
   historyTraversal(context: CallContext): { read(params: JsonObject): Promise<JsonValue>; close(): void };
   prepare(ids: JsonValue | undefined, threadId: string): PreparedAttachments;
-  describeInput(input: JsonValue, threadId: string): ReturnType<Attachments['describeInput']>;
+  queueCapacity(threadId: string): Promise<JsonObject | undefined>;
+  queueItem(threadId: string, id: string): Promise<JsonObject>;
+  queueImage(threadId: string, id: string, ordinal: number, marker: JsonObject): Promise<JsonObject>;
+  queueHandoffs: Pick<Attachments, 'listQueueHandoffs' | 'movedQueueHandoffSources' | 'queueHandoffCandidates' | 'saveQueueHandoff' | 'queueHandoffMatches' | 'markQueueHandoffRemoved' | 'queueHandoffRestoreInput' | 'queueHandoffMetadata' | 'beginQueueHandoffRestore' | 'settleQueueHandoffRestore' | 'discardQueueHandoff' | 'rerouteQueueInput' | 'queueMediaEvidence' | 'compactQueuedInput'>;
+  describeInput(input: JsonValue, threadId: string, queuedId?: string): ReturnType<Attachments['describeInput']>;
   contextInput(cwd: string, references: JsonValue | undefined, extraContext: JsonValue | undefined, context: CallContext, threadId: string): Promise<PreparedInputContext>;
   checkHistory(turns: JsonValue[]): void;
   cwd(value: JsonValue | undefined): string;
@@ -85,34 +90,129 @@ export class Workflows {
       case 'thread/queue/add': case 'thread/queue/update': {
         const adding = method === 'thread/queue/add'; onlyKeys(params, ['threadId', 'text', 'attachmentIds', 'references', 'extraContext', adding ? 'clientUserMessageId' : 'queuedSubmissionId']);
         const field = adding ? 'clientUserMessageId' : 'queuedSubmissionId'; const id = string(params[field], field, 256);
-        let input: JsonValue[], prepared: PreparedAttachments;
-        ({ input, prepared } = this.input(params, threadId));
-        if (!adding && (params.text === undefined || params.attachmentIds === undefined || params.references === undefined || params.extraContext === undefined)) {
-          const original = await this.findQueued(threadId, id); const retained = this.host.describeInput(original.input!, threadId);
-          if (params.text === undefined) input[0] = { type: 'text', text: retained.text, text_elements: [] };
-          if (params.attachmentIds === undefined) input.push(...retained.retainedAttachments);
-          if (params.references === undefined) input.push(...retained.retainedReferences);
-          if (params.extraContext === undefined) input.push(...retained.retainedExtras);
-          if (retained.retainedLegacyContext.length) {
-            if (params.references === undefined && params.extraContext === undefined) input.push(...retained.retainedLegacyContext);
-            else if (params.references === undefined || params.extraContext === undefined) throw new DeliveryError('legacy_context_ambiguous', '旧版排队内容无法区分文件引用与说明；请同时提供 references 和 extraContext 进行整体替换，或保留这两项。');
+        const { input, prepared } = this.input(params, threadId);
+        const checkInput = this.inputPreflight(input, params, context, threadId);
+        const preflight = async (thread: JsonObject) => {
+          if (!adding && (params.text === undefined || params.attachmentIds === undefined || params.references === undefined || params.extraContext === undefined)) {
+            const writable = () => context.beforeWrite?.();
+            const original = await this.findQueued(threadId, id, writable);
+            const routed = params.attachmentIds === undefined ? this.host.queueHandoffs.rerouteQueueInput(original.input as JsonValue[], threadId, id, writable) : original.input as JsonValue[];
+            if (Object.keys(params).every(key => key === 'threadId' || key === 'queuedSubmissionId')) {
+              input.splice(0, input.length, ...routed);
+            } else {
+              const retained = this.host.describeInput(routed, threadId, id);
+              if (params.text === undefined) input[0] = { type: 'text', text: retained.text, text_elements: [] };
+              if (params.attachmentIds === undefined) input.push(...retained.retainedAttachments);
+              if (params.references === undefined) input.push(...retained.retainedReferences);
+              if (params.extraContext === undefined) input.push(...retained.retainedExtras);
+              if (retained.retainedLegacyContext.length) {
+                if (params.references === undefined && params.extraContext === undefined) input.push(...retained.retainedLegacyContext);
+                else if (params.references === undefined || params.extraContext === undefined) throw new DeliveryError('legacy_context_ambiguous', '旧版排队内容无法区分文件引用与说明；请同时提供 references 和 extraContext 进行整体替换，或保留这两项。');
+              }
+            }
           }
-        }
+          await checkInput(thread);
+        };
         const p = { threadId, input, [field]: id };
-        return mutate(adding ? 'ThreadQueueAddParams' : 'ThreadQueueUpdateParams', adding ? 'ThreadQueueAddResponse' : 'ThreadQueueUpdateResponse', 'any', p, { prepared, directInput: true, history: true, preflight: this.inputPreflight(input, params, context, threadId), project: result => ({ queuedSubmission: this.queued(object(object(result).queuedSubmission), threadId) }) });
+        return mutate(adding ? 'ThreadQueueAddParams' : 'ThreadQueueUpdateParams', adding ? 'ThreadQueueAddResponse' : 'ThreadQueueUpdateResponse', 'any', p, { prepared, directInput: true, history: true, preflight, project: result => ({ queuedSubmission: this.queued(object(object(result).queuedSubmission), threadId) }) });
       }
       case 'thread/queue/list': {
-        onlyKeys(params, ['threadId', 'cursor', 'limit']); const p = pageParams(params); validateOfficial('ThreadQueueListParams', p);
-        const result = pageResult('ThreadQueueListResponse', await this.host.native(method, p), params.cursor); return { ...result, data: (result.data as JsonValue[]).map(item => this.queued(object(item), threadId)) };
+        onlyKeys(params, ['threadId', 'cursor', 'limit', 'queuedSubmissionId', 'view']);
+        if (params.view !== undefined && params.view !== 'summary') throw new DeliveryError('invalid_params', '未知待办显示方式。');
+        if (params.queuedSubmissionId !== undefined) {
+          if (params.cursor != null) throw new DeliveryError('invalid_params', '单项读取不使用分页游标。');
+          const item = await this.findQueued(threadId, string(params.queuedSubmissionId, 'queuedSubmissionId'));
+          return { data: [this.queued(item, threadId, params.view === 'summary')], nextCursor: null };
+        }
+        const page = pageParams(params);
+        return this.queuePage(threadId, Number(page.limit), page.cursor, params.view === 'summary');
       }
-      case 'thread/queue/delete': onlyKeys(params, ['threadId', 'queuedSubmissionId']); return mutate('ThreadQueueDeleteParams', 'ThreadQueueDeleteResponse', 'any');
+      case 'thread/queue/handoff/list': {
+        onlyKeys(params, ['threadId']);
+        const movedSources = this.host.queueHandoffs.movedQueueHandoffSources(threadId);
+        return { data: this.host.queueHandoffs.listQueueHandoffs(threadId), ...(movedSources.length ? { movedSources } : {}) };
+      }
+      case 'thread/queue/handoff/candidates':
+        onlyKeys(params, ['threadId', 'handoffId', 'attachmentId']);
+        return this.host.queueHandoffs.queueHandoffCandidates(threadId, string(params.handoffId, 'handoffId', 36),
+          params.attachmentId !== undefined ? string(params.attachmentId, 'attachmentId', 36) : undefined);
+      case 'thread/queue/handoff/save': {
+        onlyKeys(params, ['threadId', 'queuedSubmissionId']);
+        const id = string(params.queuedSubmissionId, 'queuedSubmissionId');
+        const original = await this.findQueued(threadId, id, () => context.beforeWrite?.());
+        const metadata = original.responsesapiClientMetadata;
+        let provider: string | undefined;
+        if (metadata != null && Object.keys(object(metadata)).length) {
+          const thread = object(object(await this.host.native('thread/read', { threadId })).thread);
+          if (thread.id !== threadId) throw new DeliveryError('thread_changed', '待办所属会话已变化。');
+          provider = string(thread.modelProvider, 'modelProvider');
+        }
+        context.beforeWrite?.();
+        return this.host.queueHandoffs.saveQueueHandoff(threadId, id, original.input as JsonValue[], metadata, provider);
+      }
+      case 'thread/queue/handoff/discard': {
+        onlyKeys(params, ['threadId', 'handoffId']);
+        const id = string(params.handoffId, 'handoffId');
+        context.beforeWrite?.(); this.host.queueHandoffs.discardQueueHandoff(threadId, id);
+        return { discarded: true };
+      }
+      case 'thread/queue/handoff/restore': {
+        onlyKeys(params, ['threadId', 'handoffId']);
+        const store = this.host.queueHandoffs, id = string(params.handoffId, 'handoffId');
+        const operationId = string(context.operationId, 'operationId');
+        const input = store.rerouteQueueInput(store.queueHandoffRestoreInput(threadId, id), threadId);
+        const p: JsonObject = { threadId, clientUserMessageId: id, input };
+        let claimed = false;
+        try {
+          return await this.host.mutate({
+            method: 'thread/queue/add', params: p, schema: 'ThreadQueueAddParams', responseSchema: 'ThreadQueueAddResponse',
+            threadId, mode: 'any', history: true, directInput: true,
+            preflight: async thread => {
+              const metadata = store.queueHandoffMetadata(threadId, id, typeof thread.modelProvider === 'string' ? thread.modelProvider : '');
+              if (metadata) p.responsesapiClientMetadata = metadata;
+            },
+            beforeWrite: () => { store.beginQueueHandoffRestore(threadId, id, operationId); claimed = true; },
+            project: result => {
+              const queued = object(object(result).queuedSubmission);
+              store.settleQueueHandoffRestore(threadId, id, operationId, 'accepted');
+              return { queuedSubmission: { id: queued.id!, clientUserMessageId: id } };
+            },
+          }, context);
+        } catch (error) {
+          if (claimed && error instanceof DeliveryError && error.delivery === 'not_sent') store.settleQueueHandoffRestore(threadId, id, operationId, 'not_sent');
+          throw error;
+        }
+      }
+      case 'thread/queue/delete': {
+        onlyKeys(params, ['threadId', 'queuedSubmissionId']);
+        const id = string(params.queuedSubmissionId, 'queuedSubmissionId');
+        let original: JsonValue[] | undefined, metadata: JsonValue | undefined;
+        const store = this.host.queueHandoffs;
+        return mutate('ThreadQueueDeleteParams', 'ThreadQueueDeleteResponse', 'any', params, {
+          preflight: async () => {
+            if (!store.listQueueHandoffs(threadId).some(row => row.queuedSubmissionId === id && row.state === 'saved')) return;
+            const row = await this.findQueued(threadId, id); original = row.input as JsonValue[]; metadata = row.responsesapiClientMetadata;
+            if (!store.queueHandoffMatches(threadId, id, original, metadata)) throw new DeliveryError('handoff_changed', '待办已修改，请先重存副本或放弃旧副本，再删除当前待办。');
+          },
+          project: result => {
+            if (object(result).deleted === true && original) store.markQueueHandoffRemoved(threadId, id, original, metadata);
+            return result;
+          },
+        });
+      }
       case 'thread/queue/reorder': {
         onlyKeys(params, ['threadId', 'queuedSubmissionIds']); if (!Array.isArray(params.queuedSubmissionIds) || params.queuedSubmissionIds.length > 100 || new Set(params.queuedSubmissionIds).size !== params.queuedSubmissionIds.length) throw new DeliveryError('invalid_params', 'Queue order requires at most 100 distinct identifiers');
         return mutate('ThreadQueueReorderParams', 'ThreadQueueReorderResponse', 'any');
       }
       case 'thread/queue/start': {
         onlyKeys(params, ['threadId', 'queuedSubmissionId']); const mediaInput: JsonValue[] = [];
-        return mutate('ThreadQueueStartParams', 'ThreadQueueStartResponse', 'idle', params, { history: true, workResult: 'turn', directInput: true, mediaInput, preflight: async () => { mediaInput.push(...(await this.findQueued(threadId, params.queuedSubmissionId == null ? undefined : string(params.queuedSubmissionId, 'queuedSubmissionId'))).input as JsonValue[]); } });
+        return mutate('ThreadQueueStartParams', 'ThreadQueueStartResponse', 'idle', params, { history: true, workResult: 'turn', directInput: true, mediaInput, preflight: async () => { const id = params.queuedSubmissionId == null ? undefined : string(params.queuedSubmissionId, 'queuedSubmissionId');
+          const summary = await this.largeQueue(threadId);
+          if (summary) {
+            const row = id ? summary.find(row => row.id === id) : summary[0];
+            if (!row) throw new DeliveryError('not_found', '待办已不存在。');
+            mediaInput.push(...this.summaryMedia(row, threadId));
+          } else mediaInput.push(...(await this.findQueued(threadId, id)).input as JsonValue[]); } });
       }
       case 'thread/goal/get': onlyKeys(params, ['threadId']); return response('ThreadGoalGetResponse', await this.host.native(method, { threadId }));
       case 'thread/goal/set': case 'thread/goal/clear': {
@@ -164,30 +264,107 @@ export class Workflows {
       default: throw new DeliveryError('method_not_found', 'Unsupported task workflow');
     }
   }
-  private queued(item: JsonObject, threadId: string): JsonObject {
-    const { retainedInput: _retained, retainedAttachments: _attachments, retainedReferences: _references, retainedExtras: _extras, retainedLegacyContext: _legacy, ...display } = this.host.describeInput(item.input!, threadId); return { ...item, ...display };
+  private queued(item: JsonObject, threadId: string, summary = false): JsonObject {
+    const { retainedInput: _retained, retainedAttachments: _attachments, retainedReferences: _references, retainedExtras: _extras, retainedLegacyContext: _legacy, ...display } = this.host.describeInput(item.input!, threadId, typeof item.id === 'string' ? item.id : undefined);
+    const { responsesapiClientMetadata: _private, ...publicItem } = item;
+    if (!summary || !Array.isArray(item.input)) return { ...publicItem, ...display };
+    // The editor submits text and the original ID. Keep the actual bytes and
+    // opaque context at the native owner, including after an edit or refresh.
+    const summaryInput = item.input.map(value => {
+      const part = object(value);
+      if (part.type === 'text') return { type: 'text', text: '', text_elements: [] };
+      if (part.type === 'image' || part.type === 'audio') return { type: part.type };
+      return part;
+    });
+    return { ...publicItem, ...display, input: summaryInput };
   }
-  private async findQueued(threadId: string, id?: string): Promise<JsonObject> {
-    let cursor: JsonValue = null, bytes = 0; const seen = new Set<string>();
+  private async largeQueue(threadId: string): Promise<JsonObject[] | undefined> {
+    const result = await this.host.queueCapacity(threadId);
+    if (!result) return;
+    if (result.complete !== true || !Array.isArray(result.data) || typeof result.large !== 'boolean') throw new DeliveryError('queue_unverified', '待办的存储状态尚未核实，请重新读取。');
+    return result.large ? result.data.map(row => object(row)) : undefined;
+  }
+  private summaryMedia(row: JsonObject, threadId: string): JsonValue[] {
+    if (row.metadataIncomplete === true)
+      throw new DeliveryError('queue_reply_capacity', `待办 ${String(row.id)} 超过可安全执行或核对的原生容量。可在消息队列中按编号明确删除此项，再继续会话。`);
+    if (!Array.isArray(row.media)) throw new DeliveryError('queue_unverified', '无法核对待办媒体。');
+    return this.host.queueHandoffs.queueMediaEvidence(row.media, threadId);
+  }
+  private async queuePage(threadId: string, limit: number, cursor?: JsonValue, summary = false): Promise<JsonObject> {
+    let large = await this.largeQueue(threadId);
+    if (!large) {
+      if (typeof cursor === 'string' && cursor.startsWith('harness-queue:')) throw new DeliveryError('queue_changed', '队列已变化，请刷新。');
+      try {
+        const p = { threadId, limit, ...(cursor == null ? {} : { cursor }) };
+        validateOfficial('ThreadQueueListParams', p);
+        const page = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', p), cursor);
+        return { ...page, data: (page.data as JsonValue[]).map(row => this.queued(object(row), threadId, summary)) };
+      } catch (error) {
+        if (!(error instanceof DeliveryError) || !['queue_frame_capacity', 'capacity'].includes(error.code)) throw error;
+        large = await this.largeQueue(threadId);
+        if (!large) throw error;
+      }
+    }
+    const found = typeof cursor === 'string' && cursor.startsWith('harness-queue:') ? large.findIndex(row => row.id === cursor.slice(14)) : -1;
+    if (cursor != null && found < 0) throw new DeliveryError('queue_changed', '队列分页已变化，请刷新后继续。');
+    const offset = found + 1, selected = large.slice(offset, offset + limit);
+    return { data: selected.map(row => ({ id: row.id!, clientUserMessageId: row.clientUserMessageId ?? null, text: row.preview ?? '', input: [], metadataOnly: true,
+      incomplete: row.metadataIncomplete === true, bytes: row.bytes!, oversized: row.oversized === true, containsMedia: Array.isArray(row.media) && row.media.length > 0 })),
+      nextCursor: offset + selected.length < large.length ? 'harness-queue:' + selected.at(-1)!.id : null };
+  }
+  async hasQueued(threadId: string): Promise<boolean> {
+    try {
+      const page = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', { threadId, limit: 1 }));
+      if ((page.data as JsonValue[]).length > 1) throw new DeliveryError('invalid_native_response', '原生队列分页超过请求条数。');
+      return (page.data as JsonValue[]).length > 0 || page.nextCursor != null;
+    } catch (error) {
+      if (!(error instanceof DeliveryError) || !['queue_frame_capacity', 'capacity'].includes(error.code)) throw error;
+      const rows = await this.largeQueue(threadId);
+      if (!rows) throw error;
+      return rows.length > 0;
+    }
+  }
+  private async findQueued(threadId: string, id?: string, beforeMaterialize?: () => void): Promise<JsonObject> {
+    const large = await this.largeQueue(threadId);
+    if (large) {
+      const row = id ? large.find(row => row.id === id) : large[0];
+      if (!row) throw new DeliveryError('not_found', '待办已不存在。');
+      const key = string(row.id, 'queuedSubmissionId');
+      const result = await this.host.queueItem(threadId, key);
+      if (result.queuedSubmission === null) throw new DeliveryError('not_found', '待办已不存在。');
+      const item = object(result.queuedSubmission);
+      if (item.id !== key || !Array.isArray(item.input)) throw new DeliveryError('queue_changed', '待办已变化，请刷新。');
+      const input = await this.host.queueHandoffs.compactQueuedInput(item.input, threadId, key, (slot, marker) => this.host.queueImage(threadId, key, slot, marker), beforeMaterialize);
+      return { ...item, input };
+    }
+    let cursor: JsonValue = null; const seen = new Set<string>();
     for (let count = 0; count < 128; count++) {
-      const result = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', { threadId, cursor, limit: 100 }), cursor); bytes += Buffer.byteLength(jsonBytes(result));
-      if (bytes > LIMITS.historyBytes) throw new DeliveryError('capacity', 'Queue traversal exceeds byte budget');
+      const result = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', { threadId, cursor, limit: 100 }), cursor);
       const match = (result.data as JsonValue[]).map(item => object(item)).find(item => id === undefined || item.id === id); if (match) return match;
-      if (result.nextCursor === null) throw new DeliveryError('not_found', 'Queued submission no longer exists');
+      if (result.nextCursor === null) throw new DeliveryError('not_found', '待办已不存在。');
       const next = string(result.nextCursor, 'nextCursor', LIMITS.cursorBytes, true); if (seen.has(next)) throw new DeliveryError('cursor_loop', 'Queue cursor returned to a previous page'); seen.add(next); cursor = next;
     }
     throw new DeliveryError('capacity', 'Queue traversal exceeds page budget');
   }
-  private async queuedInputs(threadId: string): Promise<JsonValue[]> {
-    let cursor: JsonValue = null, bytes = 0; const seen = new Set<string>(), input: JsonValue[] = [];
-    for (let page = 0; page < 32; page++) {
-      const result = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', { threadId, cursor, limit: 100 }), cursor); bytes += Buffer.byteLength(jsonBytes(result));
-      if (bytes > LIMITS.historyBytes) throw new DeliveryError('capacity', 'Queued media validation exceeds its byte budget');
-      for (const entry of result.data as JsonValue[]) input.push(...object(entry).input as JsonValue[]);
-      if (result.nextCursor === null) return input;
-      const next = string(result.nextCursor, 'nextCursor', LIMITS.cursorBytes); if (seen.has(next)) throw new DeliveryError('cursor_loop', 'Queue cursor repeated'); seen.add(next); cursor = next;
+  async queuedInputs(threadId: string): Promise<JsonValue[]> {
+    const types = new Set<string>();
+    const remember = (input: JsonValue[]) => {
+      for (const item of input) if (mediaModalities([item]).length) types.add(String(object(item).type));
+    };
+    const large = await this.largeQueue(threadId);
+    if (large) {
+      for (const row of large) remember(this.summaryMedia(row, threadId));
+    } else {
+      let cursor: JsonValue = null; const seen = new Set<string>();
+      for (let page = 0; ; page++) {
+        if (page >= 128) throw new DeliveryError('capacity', 'Queued media validation exceeds its page budget');
+        const result = pageResult('ThreadQueueListResponse', await this.host.native('thread/queue/list', { threadId, cursor, limit: 100 }), cursor);
+        for (const entry of result.data as JsonValue[]) remember(this.host.queueHandoffs.queueMediaEvidence(object(entry).input as JsonValue[], threadId));
+        if (result.nextCursor === null) break;
+        const next = string(result.nextCursor, 'nextCursor', LIMITS.cursorBytes); if (seen.has(next)) throw new DeliveryError('cursor_loop', 'Queue cursor repeated'); seen.add(next); cursor = next;
+      }
     }
-    throw new DeliveryError('capacity', 'Queued media validation exceeds its page budget');
+    return [...types].map(type => ({ type }));
   }
   private async newReview(params: JsonObject, context: CallContext): Promise<JsonValue> {
     onlyKeys(params, ['projectId', 'cwd', 'target', 'options']); const cwd = this.host.cwd(params.cwd); validateOfficial('ReviewTarget', params.target!); options(params.options, false);
@@ -201,13 +378,27 @@ export class Workflows {
     const traversal = this.host.historyTraversal(context);
     try { for (let page = 0; ; page++) {
       if (page >= 128) throw new DeliveryError('capacity', 'Export exceeds 128 pages');
-      const result = object(await traversal.read({ threadId, cursor, limit: 100 })); const batch = result.turns as JsonValue[];
+      const result = object(await traversal.read({ threadId, cursor, limit: 100, timelineFormat: 'references' })); const batch = result.turns as JsonValue[];
       const canonical = result.timeline as JsonValue[]; size += Buffer.byteLength(jsonBytes({ turns: batch, timeline: canonical })); if (size > LIMITS.historyBytes) throw new DeliveryError('capacity', 'Complete export exceeds 8 MiB'); turns.unshift(...batch); timeline.unshift(...canonical);
       if (result.complete === true) break; cursor = result.nextCursor!;
     } } finally { traversal.close(); }
     // Markdown retains every structured item as JSON, including tool results and
     // approval records; exporting only assistant prose would lose the transcript.
     timeline.sort((a, b) => Number(object(a).position) - Number(object(b).position));
+    // Keep the exported document compatible with the native timeline schema.
+    // References avoid charging the same stored message twice during traversal.
+    const byTurn = new Map(turns.map(value => {
+      const turn = object(value);
+      return [turn.id, new Map((turn.items as JsonValue[]).map(item => [object(item).id, item]))] as const;
+    }));
+    for (const [index, value] of timeline.entries()) {
+      const entry = object(value);
+      if (entry.itemReference !== true) continue;
+      const reference = object(entry.item), item = byTurn.get(entry.turnId)?.get(reference.id);
+      if (!item || object(item).type !== reference.type) throw new DeliveryError('history_stale', '导出所需的历史消息不完整。');
+      const { itemReference: _reference, ...nativeEntry } = entry;
+      timeline[index] = { ...nativeEntry, item };
+    }
     const generated = (value: JsonValue): boolean => { const item = object(value); return item.type === 'imageGeneration' && (item.generatedMedia !== undefined || item.generatedMediaError !== undefined); };
     const hasGenerated = turns.some(turn => (object(turn).items as JsonValue[]).some(generated)) || timeline.some(value => { const entry = object(value); return entry.type === 'item' && generated(entry.item!); });
     const note = '生成图片以当前会话中的引用保留，导出文件不包含图片字节；需要保留图片时，请在会话中单独下载。';

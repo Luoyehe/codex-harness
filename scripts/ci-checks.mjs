@@ -39,7 +39,7 @@ export function selectCiPlan({ changed, available, head, sourceDigest, authoriza
 
 export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   const event = suppliedEvent ?? (env.GITHUB_EVENT_PATH ? json(env.GITHUB_EVENT_PATH) : {});
-  const head = env.HARNESS_CI_HEAD || event.pull_request?.head?.sha || env.GITHUB_SHA;
+  const head = env.HARNESS_CI_HEAD || env.GITHUB_SHA || event.pull_request?.head?.sha;
   let baseCommit = env.HARNESS_CI_BASE || event.pull_request?.base?.sha || event.before;
   const pullRequestBase = !env.HARNESS_CI_BASE && event.pull_request?.base?.sha;
   // Repository approval is only a PR trust anchor. Its previous-release value
@@ -52,10 +52,17 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   if (explicitChecksum && !hasAuthorizationFile) throw Error('Explicit authorization checksum requires its source-bound authorization file');
   // A PR-controlled file cannot authenticate its own approval. Maintainer-run
   // manual checks can supply the exact checksum outside the proposed source.
-  if (hasAuthorizationFile && (!event.pull_request || expectedChecksum)) {
-    const checksum = expectedChecksum || hash(readFileSync(file));
-    try { authorization = releaseAuthorization(base, authorizationPath, checksum); }
-    catch (error) { if (expectedChecksum) throw error; }
+  const current = snapshot(base);
+  const onTag = env.GITHUB_REF?.startsWith('refs/tags/');
+  if ((onTag || explicitChecksum) && !hasAuthorizationFile) throw Error('Release authorization is missing');
+  let historical;
+  if (hasAuthorizationFile) {
+    const actualHash = hash(readFileSync(file));
+    historical = releaseAuthorization(base, authorizationPath, actualHash, { allowHistorical: true });
+    const matching = historical.sourceDigest === current.digest && historical.sourceFiles === current.files;
+    if (explicitChecksum || onTag || (matching && (!event.pull_request || actualHash === expectedChecksum))) {
+      authorization = releaseAuthorization(base, authorizationPath, expectedChecksum || actualHash);
+    }
   }
   // A new ref/tag has a zero before SHA. Only an explicitly reviewed base may
   // replace it; HEAD~1 could silently omit most of a new branch or rewrite.
@@ -73,8 +80,16 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   } else {
     execFileSync('git', ['merge-base', '--is-ancestor', baseCommit, head], { cwd: base, stdio: 'ignore', windowsHide: true });
   }
-  const current = snapshot(base);
-  const plan = selectCiPlan({ changed: gitChanges(baseCommit, head, base), available: testInventory(base), head, sourceDigest: current.digest, authorization });
+  if (pullRequestBase && env.GITHUB_ACTIONS === 'true' && !env.HARNESS_CI_HEAD) {
+    const parents = execFileSync('git', ['show', '-s', '--format=%P', head], { cwd: base, encoding: 'utf8' }).trim().split(' ');
+    if (parents.length !== 2 || parents[0] !== requestedBaseCommit || parents[1] !== event.pull_request.head.sha)
+      throw Error('PR build must use the reviewed merge of the exact base and topic commits');
+  }
+  const changed = gitChanges(baseCommit, head, base);
+  if (changed.includes(authorizationPath) && !authorization) {
+    throw Error('Changed authorization must match the current source and trusted checksum');
+  }
+  const plan = selectCiPlan({ changed, available: testInventory(base), head, sourceDigest: current.digest, authorization });
   return { ...plan, baseCommit, ...(pullRequestBase ? { requestedBaseCommit } : {}) };
 }
 
@@ -104,7 +119,7 @@ export function reconcileCi(plan, reports, base = root) {
   }
   const gaps = [...cases].filter(([, values]) => !values.some(value => value.status === 'passed')).map(([id]) => id);
   if (gaps.length) throw Error(`Uncovered platform skips: ${gaps.join(', ')}`);
-  return { status: plan.files.length ? 'passed' : 'no-behavior-change', sourceDigest: plan.sourceDigest, head: plan.head, files: plan.files.length, cases: cases.size, coverageGaps: [], note: plan.files.length ? 'All observed cases passed on an appropriate platform; individual skips remain recorded.' : 'No tests were run for documentation-only changes.' };
+  return { mode: plan.mode, targets: plan.targets, authorizationSha256: plan.authorization?.sha256, status: plan.files.length ? 'passed' : 'no-behavior-change', sourceDigest: plan.sourceDigest, head: plan.head, files: plan.files.length, cases: cases.size, coverageGaps: [], note: plan.files.length ? 'All observed cases passed on an appropriate platform; individual skips remain recorded.' : 'No tests were run for documentation-only changes.' };
 }
 
 const goPhases = ['module-verification', 'test-discovery', 'go-test', 'executable-build', 'version-plugin-probe'];

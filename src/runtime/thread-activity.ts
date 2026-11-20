@@ -1,6 +1,7 @@
 import { DeliveryError } from './types.js';
 
 export interface Activity {
+  cwd?: string;
   status: string;
   turnId: string | null;
   pending: boolean;

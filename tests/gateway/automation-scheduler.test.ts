@@ -223,3 +223,60 @@ describe('durable bounded automation execution', () => {
     const close = cleanups.pop()!; cleanups.push(async () => { await close(); rmSync(directory, { recursive: true }); });
   });
 });
+
+it('admits another repository while an earlier project start is suspended, without starting either twice', async () => {
+  const f = setup(), second = f.ledger.addProject('/other', 'Other');
+  await f.create(); await f.command('automation/create', { spec: { ...f.spec, projectId: second.id } as unknown as JsonValue });
+  let release!: () => void;
+  const first = new Promise<void>(resolve => { release = resolve; });
+  f.behavior(async (method, params, context) => {
+    if (method !== 'conversation/start') return {};
+    context.beforeWrite?.();
+    if (params.cwd === '/project') await first;
+    return { thread: { id: params.cwd === '/project' ? 'first' : 'second', cwd: params.cwd! }, turn: { id: 'turn', status: 'inProgress' } };
+  });
+  f.advance(60_000); const ticking = f.scheduler.tick();
+  try {
+    await vi.waitFor(() => expect(f.ledger.automations.outstanding().some(row => row.threadId === 'second' && row.state === 'running')).toBe(true));
+    expect(f.calls.filter(row => row.method === 'conversation/start')).toHaveLength(2);
+  } finally { release(); await ticking; }
+  await f.scheduler.tick(); expect(f.calls.filter(row => row.method === 'conversation/start')).toHaveLength(2);
+});
+
+it('restores pending approval when a stop is explicitly not sent', async () => {
+  const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+  const run = f.ledger.automations.outstanding()[0]!;
+  f.ledger.automations.attention(run.threadId!);
+  f.behavior(async method => {
+    if (method === 'turn/interrupt') throw new HarnessError('busy', '请稍后再试', 'not_sent');
+    return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
+  });
+  f.advance(600_000); await f.scheduler.tick();
+  expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'needs_attention', stopRequested: true, stopSent: false });
+});
+
+it('honors an expired deadline after restart identifies the original running turn', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'harness-recovered-deadline-')), file = join(dir, 'journal.sqlite');
+  const f = setup(file); await f.create(); f.advance(60_000); await f.scheduler.tick();
+  const original = f.ledger.automations.outstanding()[0]!;
+  await cleanups.pop()!();
+  const restored = setup(file, original.startedAt! + 601_000);
+  const close = cleanups.pop()!; cleanups.push(async () => { await close(); rmSync(dir, { recursive: true }); });
+  await restored.scheduler.tick(); await restored.scheduler.tick();
+  expect(restored.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+  expect(restored.calls.some(call => call.method === 'conversation/start')).toBe(false);
+});
+
+it('rolls back project removal, job pausing, queued cancellation and public events on receipt failure', async () => {
+  const f = setup(), job = await f.create();
+  const run = await f.command('automation/run', { id: job.id!, expectedRevision: 1 }) as JsonObject;
+  const events = vi.fn(); f.dispatcher.on('automation-changed', events);
+  const settle = f.ledger.settle.bind(f.ledger);
+  f.ledger.settle = (id, result) => { if (result.ok) throw Error('simulated disk failure'); return settle(id, result); };
+  const id = randomUUID();
+  await expect(f.command('project/remove', { id: f.project.id }, id)).rejects.toMatchObject({ delivery: 'not_sent' });
+  expect(f.ledger.project(f.project.id).id).toBe(f.project.id);
+  expect(f.ledger.automations.get(String(job.id)).state).toBe('active');
+  expect(f.ledger.automations.getRun(String(run.runId)).state).toBe('queued');
+  expect(f.ledger.read(id)?.state).toBe('not_sent'); expect(events).not.toHaveBeenCalled();
+});

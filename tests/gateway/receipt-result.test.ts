@@ -14,6 +14,13 @@ describe('durable receipt data minimization', () => {
       .toEqual(result);
     for (const fields of [{ thread: { id: 'source' } }, { sourceThreadId: '' }, { targetProvider: '' }])
       expect(() => receiptResult('thread/convert', { ...result, ...fields })).toThrow();
+    const selected = { handoffIds: ['chosen'] };
+    for (const handoffTransfer of ['moved', 'not_moved', 'unconfirmed']) {
+      expect(receiptResult('thread/convert', { ...result, handoffTransfer, rawCopies: ['private'] }, selected))
+        .toEqual({ ...result, handoffTransfer });
+    }
+    expect(() => receiptResult('thread/convert', result, selected)).toThrow();
+    expect(() => receiptResult('thread/convert', { ...result, handoffTransfer: 'unexpected' }, selected)).toThrow();
   });
   it('projects fixed root management results and nested saved profiles without future secret fields', () => {
     const model = { id: 'fixture', defaultEffort: null, efforts: [], inputModalities: ['text'], contextWindow: 4096, supportsTools: false, instructions: 'Known\nmodel instructions' };
@@ -93,6 +100,20 @@ describe('durable receipt data minimization', () => {
   });
   it('retains task workflow identities without queued text, goal objectives or review findings', () => {
     expect(receiptResult('thread/queue/add', { queuedSubmission: { id: 'q', clientUserMessageId: 'm', input: [{ text: 'private queued text' }] } })).toEqual({ queuedSubmission: { id: 'q', clientUserMessageId: 'm' } });
+    const copy = { id: 'h', queuedSubmissionId: 'q', state: 'saved', attachmentCount: 2 };
+    expect(receiptResult('thread/queue/handoff/save', { ...copy, rawInput: ['private'] })).toEqual(copy);
+    expect(() => receiptResult('thread/queue/handoff/save', { ...copy, attachmentCount: -1 })).toThrow();
+    expect(receiptResult('thread/queue/handoff/save', { ...copy, nativeSavedImages: 1, sourceCandidateCount: 2, rawMedia: ['private'] }))
+      .toEqual({ ...copy, nativeSavedImages: 1, sourceCandidateCount: 2 });
+    for (const value of [-1, 129, 0.5, '1']) expect(() => receiptResult('thread/queue/handoff/save', { ...copy, nativeSavedImages: value })).toThrow();
+    expect(() => receiptResult('thread/queue/handoff/save', { ...copy, sourceCandidateCount: 1 })).toThrow();
+    const wrong = { queuedSubmission: { id: 'elsewhere', clientUserMessageId: 'unrelated' } };
+    expect(() => receiptResult('thread/queue/add', wrong, { clientUserMessageId: 'original' })).toThrow();
+    expect(() => receiptResult('thread/queue/update', wrong, { queuedSubmissionId: 'original' })).toThrow();
+    expect(() => receiptResult('thread/queue/handoff/discard', { discarded: false })).toThrow();
+    expect(receiptResult('thread/queue/handoff/discard', { discarded: true, private: 1 })).toEqual({ discarded: true });
+    expect(receiptResult('thread/queue/handoff/restore', { queuedSubmission: { id: 'q2', clientUserMessageId: 'h', input: ['private'] } }))
+      .toEqual({ queuedSubmission: { id: 'q2', clientUserMessageId: 'h' } });
     expect(receiptResult('thread/goal/set', { goal: { threadId: 't', objective: 'private objective', status: 'active', tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 1 } })).toEqual({ goal: { threadId: 't', status: 'active', tokenBudget: null, tokensUsed: 0, timeUsedSeconds: 0, createdAt: 1, updatedAt: 1 } });
     expect(receiptResult('review/start', { reviewThreadId: 't', turn: { id: 'u', status: 'inProgress', items: [{ text: 'private finding' }] } })).toEqual({ reviewThreadId: 't', turn: { id: 'u', status: 'inProgress' } });
     expect(receiptResult('thread/fork', { thread: { id: 'fork', cwd: '/project', preview: 'private context' } })).toEqual({ thread: { id: 'fork', cwd: '/project' } });

@@ -4,7 +4,7 @@ import { DeliveryError, integer, object, onlyKeys, string, type CallContext, typ
 import type { NativeOptions } from './native.js';
 import type { MetadataMutation } from './organization.js';
 interface Entry { terminalId: string; clientId: string; channel: string | undefined; processHandle?: string; revoked: boolean; dispatched: boolean }
-interface Host { bin: string; native(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue>; start(operation: MetadataMutation, context: CallContext): Promise<JsonValue>; available(): void; cwd(value: JsonValue): string; emit(data: JsonObject, channel?: string): void; changed(): void; settled(): void; failEpoch(): Promise<void> }
+interface Host { switchArgs?(): string[]; bin: string; native(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue>; start(operation: MetadataMutation, context: CallContext): Promise<JsonValue>; available(): void; cwd(value: JsonValue): string; emit(data: JsonObject, channel?: string): void; changed(): void; settled(): void; failEpoch(): Promise<void> }
 /** A fixed native CLI gets its own process-tree controller and a global maintenance lease. */
 export class CliTerminals {
   private entries = new Map<string, Entry>(); private processes: Processes;
@@ -32,9 +32,10 @@ export class CliTerminals {
       this.host.available(); if (this.active) throw new DeliveryError('native_cli_busy', 'A native CLI terminal is already open');
     }
     const cwd = this.host.cwd(params.cwd!), size = { rows: integer(params.rows ?? 24, 'rows', 1, 500), cols: integer(params.cols ?? 80, 'cols', 1, 500) };
+    const args = this.host.switchArgs?.() ?? [];
     const entry: Entry = { terminalId: randomUUID(), clientId: context.clientId, channel: context.eventChannelId, revoked: false, dispatched: false }; this.entries.set(entry.terminalId, entry); this.host.changed();
     try {
-      await this.processes.call('process/spawn', { cwd, command: params.program === 'codex-cloud' ? [this.host.bin, 'cloud'] : [this.host.bin, '--no-alt-screen'], env: { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, tty: true, streamStdin: true, size, timeoutMs: 3600000, outputBytesCap: 1024 * 1024 }, context);
+      await this.processes.call('process/spawn', { cwd, command: [this.host.bin, ...args, params.program === 'codex-cloud' ? 'cloud' : '--no-alt-screen'], env: { TERM: 'xterm-256color', COLORTERM: 'truecolor' }, tty: true, streamStdin: true, size, timeoutMs: 3600000, outputBytesCap: 1024 * 1024 }, context);
       return { terminalId: entry.terminalId, maxLifetimeMs: 3600000, outputHistoryBytes: 1024 * 1024 };
     } catch (error) { if (error instanceof DeliveryError && error.delivery === 'not_sent') { entry.dispatched = false; this.finish(entry); } throw error; }
   }

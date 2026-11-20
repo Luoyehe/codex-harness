@@ -214,3 +214,14 @@ test('the full 256 KiB PCM16 limit is accepted and an oversized frame consumes n
   await expect(service.call('thread/realtime/appendAudio', frame(256 * 1024), context)).resolves.toMatchObject({ sequence: 0, accepted: true, nextSequence: 1 });
   expect(native.calls.filter(call => call.method === 'thread/realtime/appendAudio')).toHaveLength(1);
 });
+
+test('invalid native PCM closes only the voice session and diagnostics redact its private token', async () => {
+  const { service, native, events } = await setup(); await start(service);
+  notification(native, 'error', { message: 'upstream Bearer harmless-fixture-secret' });
+  const received = events.filter(event => event.type === 'realtime').at(-1);
+  expect(JSON.stringify(received)).toContain('[redacted]'); expect(JSON.stringify(received)).not.toContain('harmless-fixture-secret');
+  notification(native, 'outputAudio/delta', { audio: { data: 'YQ==', sampleRate: 24000, numChannels: 1, samplesPerChannel: null, itemId: null } });
+  await expect.poll(() => native.calls.some(call => call.method === 'thread/realtime/stop')).toBe(true);
+  expect(native.connected).toBe(true);
+  await expect(service.call('thread/history', { threadId: 'thread' }, context)).resolves.toMatchObject({ complete: true });
+});

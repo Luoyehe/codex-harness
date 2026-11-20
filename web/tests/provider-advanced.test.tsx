@@ -290,3 +290,18 @@ test('does not apply an old authenticated editor completion to a new login', asy
   expect(screen.queryByText('配置已保存。')).toBeNull();
   expect((screen.getByLabelText('默认模型 ID') as HTMLInputElement).value).toBe('new-session-draft');
 });
+
+test('keeps the unsent provider key during transient disable while clearing it at logout', async () => {
+  const { api } = routed(() => ({ revision:'r', kind:'responses', baseUrl:'https://provider.example/v1', model:'fixture' }));
+  const props = { api, epoch:'first', onChanged:vi.fn() };
+  const view = render(<ProviderSettings {...props} />);
+  const field = () => screen.getByLabelText('API Key');
+  await waitFor(() => expect(field()).toHaveProperty('disabled',false));
+  fireEvent.change(field(), { target:{value:'transient-provider-secret'} });
+  view.rerender(<ProviderSettings {...props} enabled={false} epoch="transport-offline" />);
+  view.rerender(<ProviderSettings {...props} epoch="reconnected" />);
+  await waitFor(() => expect(field()).toHaveProperty('value','transient-provider-secret'));
+  api.csrf = 'next-login';
+  view.rerender(<ProviderSettings {...props} />);
+  await waitFor(() => expect(field()).toHaveProperty('value',''));
+});

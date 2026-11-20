@@ -1,5 +1,5 @@
-import { expect, test } from 'vitest';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { expect, test, vi } from 'vitest';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { request, type ClientRequest } from 'node:http';
 import WebSocket from 'ws';
@@ -56,4 +56,32 @@ test.each(['replaced', 'missing', 'unchanged', 'accepted-replay'] as const)('slo
       expect(fresh.status).toBe(200); expect(forwarded.at(-1)).toBe(owners.at(-1));
     }
   } finally { pending?.destroy(); for (const ws of sockets) ws.terminate(); await gateway.close(); auth.close(); ledger.close(); }
+});
+
+test('the signed loopback health probe has reserved admission and still reports a genuinely unready backend', async () => {
+  const { Budget } = await import('../../src/core/budget.js');
+  const { HarnessError } = await import('../../src/core/errors.js');
+  const token = randomBytes(32).toString('hex'), auth = new Authentication(token, 'http://127.0.0.1:0'), ledger = new Ledger(':memory:');
+  const backend = { connected: true, call: async () => ({}) };
+  const dispatcher = new Dispatcher(ledger, backend, { call: async () => ({}) });
+  const gateway = new GatewayServer(auth, dispatcher, backend as unknown as WorkerClient);
+  auth.origin.port = String(await gateway.listen(0));
+  const reserve = Budget.prototype.reserve;
+  const busy = vi.spyOn(Budget.prototype, 'reserve').mockImplementation(function (this: InstanceType<typeof Budget>) {
+    if (this.maxCount === 8 && this.maxBytes === 0) throw new HarnessError('capacity', 'fixture: public pool busy');
+    return reserve.call(this);
+  });
+  const signature = (route: string) => createHmac('sha256', createHash('sha256').update(token).digest()).update('harness-local-probe-v1\n' + route).digest('hex');
+  const read = (route: string, signed: boolean) => fetch(auth.origin.origin + route, { headers: signed ? { 'x-harness-local-probe': signature(route.split('?')[0]!) } : {} });
+  try {
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+    const ordinary = await read('/health', false);
+    expect((await ordinary.json()).error.code).toBe('capacity');
+    expect(await (await read('/health', true)).json()).toEqual({ ok: true });
+    const nonce = randomBytes(32).toString('hex');
+    expect(await (await read('/api/account/proof?nonce=' + nonce, true)).json()).toEqual(auth.proof(nonce));
+    dispatcher.event({ type: 'state', data: { connected: true, activity: { unknown: true } } });
+    const unready = await read('/health', true);
+    expect(unready.status).toBe(503); expect(await unready.json()).toEqual({ ok: false });
+  } finally { busy.mockRestore(); await gateway.close(); auth.close(); ledger.close(); }
 });

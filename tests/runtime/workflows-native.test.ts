@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
@@ -27,10 +27,20 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
   const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
   expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
+  let queuedFile = '', queuedImage = '', queuedBytesRead = false, queuedImageRead = false;
+  const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAI0lEQVR4nGPsn7+RgRTARJJqhlENxAEmItXBwagGYgDJoQQA62sB/85+iZAAAAAASUVORK5CYII=', 'base64');
+  const queueBytes = 'Queued file survives the worker restart';
   let requests = 0; let hold = false; const held = new Set<ServerResponse>(); const errors: string[] = [];
   const provider = createServer((req, res) => { void (async () => {
     if (req.method !== 'POST' || req.url !== '/v1/responses') throw new Error(`Unexpected fixture route ${req.method} ${req.url}`);
-    let bytes = 0; for await (const chunk of req) { bytes += chunk.length; if (bytes > 4 * 1024 * 1024) throw new Error('Fixture request exceeds budget'); }
+    let bytes = 0; const chunks: Buffer[] = [];
+    for await (const chunk of req) { bytes += chunk.length; if (bytes > 4 * 1024 * 1024) throw new Error('Fixture request exceeds budget'); chunks.push(Buffer.from(chunk)); }
+    if (queuedFile && Buffer.concat(chunks).toString().includes(path.basename(queuedFile))) {
+      expect(readFileSync(queuedFile, 'utf8')).toBe(queueBytes); queuedBytesRead = true;
+      if (queuedImage && Buffer.concat(chunks).toString().includes(path.basename(queuedImage))) {
+        expect(readFileSync(queuedImage)).toEqual(imageBytes); expect(Buffer.concat(chunks).toString()).not.toContain(imageBytes.toString('base64')); queuedImageRead = true;
+      }
+    }
     requests++; if (hold) { held.add(res); res.on('close', () => held.delete(res)); res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.write(`event: response.created\ndata: ${JSON.stringify({ type: 'response.created', sequence_number: 0, response: { id: `held_${requests}`, object: 'response', status: 'in_progress', model: 'harness-loopback-fixture', output: [] } })}\n\n`); } else answer(res, requests);
   })().catch(error => { errors.push(String(error)); res.destroy(); }); });
   let runtime: RuntimeService | undefined; const events: RuntimeEvent[] = []; const context = { clientId: 'native-workflows' }; const natives: RuntimeService['native'][] = [];
@@ -40,7 +50,8 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     defer(() => runtime?.close());
     const port = (provider.address() as AddressInfo).port; const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
     writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = "http://127.0.0.1:${port}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
-    const create = async () => { const service = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true }); natives.push(service.native); service.on('event', event => events.push(event)); return service; };
+    const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'local_fixture', connections: [{ id: 'default', modelProvider: 'local_fixture', enabled: true, kind: 'responses', name: 'Local fixture', model: 'harness-loopback-fixture', models: [{ id: 'harness-loopback-fixture', inputModalities: ['text'], supportsTools: true }] }] };
+    const create = async () => { const service = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true, providerRegistry: registry }); natives.push(service.native); service.on('event', event => events.push(event)); return service; };
     runtime = await create();
     const done = async (id: JsonValue, status = 'completed') => { await expect.poll(() => events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(object(event.data).params).turn).id === id), { timeout: 15000 }).toBeTruthy(); const completed = events.find(event => event.type === 'notification' && object(event.data).method === 'turn/completed' && object(object(object(event.data).params).turn).id === id)!; expect(object(object(object(completed.data).params).turn).status).toBe(status); };
     const created = object(await runtime.call('conversation/start', { cwd: project, text: 'First workflow message.' }, context)); const threadId = object(created.thread).id!; await done(object(created.turn).id!);
@@ -57,8 +68,16 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     await runtime.call('thread/settings/update', { threadId, collaborationMode: { mode: 'plan', settings: { model: 'harness-loopback-fixture', reasoning_effort: 'low', developer_instructions: null } } }, context);
     await expect.poll(async () => object(await runtime!.call('thread/session', { threadId }, context)).collaborationMode).toMatchObject({ mode: 'plan' });
     hold = true; const heldTurn = object(await runtime.call('turn/start', { threadId, text: 'Hold before queued work.' }, context)); const heldTurnId = object(heldTurn.turn).id!; await expect.poll(() => held.size, { timeout: 10000 }).toBeGreaterThan(0);
-    const queued = object(object(await runtime.call('thread/queue/add', { threadId, text: 'Queued workflow message.', clientUserMessageId: randomUUID() }, context)).queuedSubmission);
+    const attachment = object(await runtime.call('attachment/upload', { name: 'queue.txt', mimeType: 'text/plain', base64: Buffer.from(queueBytes).toString('base64') }, context));
+    queuedFile = path.join(home, 'attachments', String(attachment.attachmentId));
+    const image = object(await runtime.call('attachment/upload', { name: 'queue.png', mimeType: 'application/octet-stream', base64: imageBytes.toString('base64') }, context)); queuedImage = path.join(home, 'attachments', String(image.attachmentId) + '.png');
+    const queued = object(object(await runtime.call('thread/queue/add', { threadId, text: 'Queued workflow message.', attachmentIds: [attachment.attachmentId!, image.attachmentId!], clientUserMessageId: randomUUID() }, context)).queuedSubmission);
     await runtime.call('thread/queue/update', { threadId, queuedSubmissionId: queued.id!, text: 'Edited queued message.' }, context);
+    const discard = object(await runtime.call('attachment/upload', { name: 'discard.txt', mimeType: 'text/plain', base64: Buffer.from('cancelled fixture').toString('base64') }, context));
+    const discardFile = path.join(home, 'attachments', String(discard.attachmentId));
+    const cancelled = object(object(await runtime.call('thread/queue/add', { threadId, text: 'cancel this only', attachmentIds: [discard.attachmentId!], clientUserMessageId: randomUUID() }, context)).queuedSubmission);
+    await runtime.call('thread/queue/delete', { threadId, queuedSubmissionId: cancelled.id! }, context);
+
     await expect(runtime.native.call('thread/queue/start', { threadId, queuedSubmissionId: queued.id! })).rejects.toMatchObject({ code: 'native_error' });
     await runtime.call('thread/goal/set', { threadId, objective: 'Paused local workflow goal.', status: 'paused', tokenBudget: 1000 }, context);
     expect(object(object(await runtime.call('thread/goal/get', { threadId }, context)).goal).status).toBe('paused');
@@ -71,6 +90,7 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     // See rust-v0.164.0 app-server/tests/suite/v2/thread_queue.rs:560-691.
     await runtime.call('turn/interrupt', { threadId, turnId: heldTurnId }, context); await done(heldTurnId, 'interrupted');
     await runtime.close(); for (const item of held) item.destroy(); hold = false; runtime = await create();
+    expect(existsSync(discardFile)).toBe(false);
     expect(object(await runtime.call('thread/queue/list', { threadId }, context)).data).toMatchObject([{ id: queued.id, text: 'Edited queued message.' }]);
     expect(await runtime.call('thread/session', { threadId }, context)).toEqual({ requiresResume: true });
     await runtime.call('thread/history', { threadId }, context); const resumeIndex = events.length; await runtime.call('thread/resume', { threadId }, context); expect(await runtime.call('thread/session', { threadId }, context)).toMatchObject({ requiresResume: false });
@@ -79,7 +99,7 @@ test('official CLI persists queues and goals, steers active turns, forks/reverts
     await runtime.call('thread/history', { threadId }, context);
     const queuedTurn = object(await runtime.call('thread/queue/start', { threadId, queuedSubmissionId: queued.id! }, context)), second = object(queuedTurn.turn).id!;
     await expect.poll(() => events.slice(resumeIndex).find(event => event.type === 'notification' && object(event.data).method === 'turn/started' && object(object(event.data).params).threadId === threadId && object(object(object(event.data).params).turn).id === second), { timeout: 15000 }).toBeTruthy();
-    await done(second); expect(object(await runtime.call('thread/queue/list', { threadId }, context)).data).toEqual([]);
+    await done(second); expect(queuedBytesRead).toBe(true); expect(queuedImageRead).toBe(true); expect(object(await runtime.call('thread/queue/list', { threadId }, context)).data).toEqual([]);
     await runtime.call('thread/history', { threadId }, context);
     const fork = object(await runtime.call('thread/fork', { threadId, beforeTurnId: second }, context)); const forkId = object(fork.thread).id!; const forkHistory = JSON.stringify(await runtime.call('thread/history', { threadId: forkId }, context)); expect(forkHistory).toContain('First workflow message.'); expect(forkHistory).not.toContain('Edited queued message.');
     await runtime.call('thread/revert', { threadId, beforeTurnId: second }, context); await expect.poll(() => events.some(event => event.type === 'notification' && object(event.data).method === 'thread/reverted')).toBe(true);
@@ -142,3 +162,79 @@ test('official CLI agent metadata from non-default providers remains visible wit
   expect([...ids(page), ...ids(next)].sort()).toEqual(actual);
   writeFileSync(path.join(home, 'observations.json'), JSON.stringify({ nativeDefault, actual, expected: [first, second].sort(), noModelOrToolCalls: true }, null, 2) + '\n');
 }), 20000);
+
+test('native long-session tail can resume and send after an oversized persisted history', () => withFixtureCleanup(async defer => {
+  const parent = path.resolve('.work/workflows-native'); mkdirSync(parent, { recursive: true });
+  const home = mkdtempSync(path.join(parent, 'long-')), codex = path.join(home, 'codex'), project = path.join(home, 'project'), temporary = path.join(home, 'tmp');
+  for (const dir of [codex, project, temporary]) mkdirSync(dir);
+  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
+  let requests = 0;
+  const provider = createServer((req, res) => { req.resume(); req.on('end', () => answer(res, ++requests)); });
+  await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve));
+  defer(async () => { provider.closeAllConnections(); await new Promise<void>(resolve => provider.close(() => resolve())); });
+  const port = (provider.address() as AddressInfo).port, catalog = path.join(home, 'models.json');
+  writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
+    writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = "http://127.0.0.1:${port}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
+  const config = { bin, home: codex, workerHome: home, cwd: project, env, dev: true }, context = { clientId: 'long-fixture' };
+  let service = await RuntimeService.create(config); defer(() => service.close());
+  const events: string[] = [];
+  const observe = () => service.on('event', (event: RuntimeEvent) => { if (event.type !== 'notification' || object(event.data).method !== 'turn/completed') return; const row = object(object(object(event.data).params).turn); if (row.status === 'completed') events.push(String(row.id)); });
+  observe();
+  const started = object(await service.call('conversation/start', { cwd: project, text: 'Seed a deterministic history.' }, context));
+  const threadId = String(object(started.thread).id), seedTurn = String(object(started.turn).id);
+  await expect.poll(() => events.includes(seedTurn), { timeout: 15000 }).toBe(true);
+  const full = async (references = false) => {
+    let cursor: JsonValue = null;
+    do { const page = object(await service.call('thread/history', { threadId, limit: 50, ...(references ? { timelineFormat: 'references' } : {}), ...(cursor ? { cursor } : {}) }, context)); cursor = page.nextCursor!; } while (cursor);
+  };
+  // Populate the real CLI's rollout and SQLite projections through its normal
+  // public turn protocol. Only the inexpensive local provider is substituted.
+  for (let i = 0; i < 502; i++) {
+    const finished = new Promise<void>(resolve => {
+      const listener = (event: RuntimeEvent) => {
+        if (event.type === 'notification' && object(event.data).method === 'turn/completed') {
+          service.off('event', listener); resolve();
+        }
+      };
+      service.on('event', listener);
+    });
+    const input = { type: 'text', text: 'Synthetic history turn ' + i, text_elements: [] };
+    await service.native.call('turn/start', { threadId, input: [input] }); await finished;
+    if (i === 331) await full();
+    if (i === 332) { await expect(full()).rejects.toMatchObject({ code: 'capacity' }); await full(true); }
+    if (i === 498) {
+      await full(true);
+      const exported = object(await service.call('thread/export', { threadId, format: 'json' }, context));
+      const document = JSON.parse(String(exported.content));
+      expect(document.thread.turns).toHaveLength(500);
+      expect(document.timeline.some((row: { itemReference?: boolean }) => row.itemReference)).toBe(false);
+      expect(document.timeline.some((row: { item?: { content?: { text?: string }[] } }) =>
+        row.item?.content?.some(part => part.text === 'Synthetic history turn 498'))).toBe(true);
+    }
+    if (i === 499) await expect(full(true)).rejects.toMatchObject({ code: 'capacity' });
+  }
+  await service.close();
+  service = await RuntimeService.create(config); observe();
+  const window = async () => {
+    let result: JsonValue | undefined;
+    await expect.poll(async () => {
+      try { result = await service.call('thread/history', { threadId, intent: 'window', timelineFormat: 'references', limit: 10 }, context); return true; }
+      catch (error) { if ((error as { code?: string }).code === 'history_stale') return false; throw error; }
+    }).toBe(true);
+    return object(result);
+  };
+  await expect(full()).rejects.toMatchObject({ code: 'capacity' });
+  expect(await window()).toMatchObject({ complete: false, truncated: true, executionReady: true });
+  await service.call('thread/resume', { threadId }, context);
+  expect(await window()).toMatchObject({ truncated: true, executionReady: true });
+  const sent = object(await service.call('turn/start', { threadId, text: 'Continue the same long thread.' }, context));
+  await expect.poll(() => events.includes(String(object(sent.turn).id)), { timeout: 30000 }).toBe(true);
+  await expect(service.call('thread/export', { threadId, format: 'json' }, context)).rejects.toMatchObject({ code: 'capacity' });
+  await window();
+  const createdFork = object(await service.call('thread/fork', { threadId, beforeTurnId: object(sent.turn).id! }, context));
+  expect(object(createdFork.thread).id).not.toBe(threadId);
+  await window(); await service.call('thread/revert', { threadId, beforeTurnId: object(sent.turn).id! }, context);
+  await window(); await service.call('thread/compact', { threadId }, context);
+  expect(requests).toBeGreaterThanOrEqual(2);
+}), 600000);

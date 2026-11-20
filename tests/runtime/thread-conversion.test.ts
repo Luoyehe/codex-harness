@@ -30,7 +30,7 @@ function fixture(sourceOverrides: JsonObject = {}, targetOverrides: JsonObject =
   return { run, host, calls, helper, release, native, thread, target, snapshot };
 }
 
-test('conversion verifies the new history without aggregating two individually supported images into a native frame', async () => {
+test.each([true, false])('conversion verifies history without large aggregate frames, explicit collaboration snapshot %s', async explicit => {
   const f = fixture(), expected = { sha256: 'a'.repeat(64) }, reads: JsonObject[] = [];
   const image = Buffer.alloc(8 * 1024 * 1024, 17); Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(image);
   const items = ['first', 'second'].map(id => ({ type: 'imageGeneration', id, status: 'completed', result: image.toString('base64'), revisedPrompt: null, failure: null }));
@@ -40,14 +40,18 @@ test('conversion verifies the new history without aggregating two individually s
   f.helper.mockImplementation(async (_config, request) => request.action === 'recovery-copy'
     ? { copied: true, sourcePreserved: true, expected, target: { threadId: 'target', expected } }
     : request.action === 'repair' ? { needsRepair: false } : { expected, sourceMetadata: { serviceTier: null } });
+  const actualSnapshot = structuredClone(f.snapshot);
+  if (!explicit) delete f.snapshot.collaborationMode;
   f.native.call = vi.fn(async (method: string, params: JsonObject) => {
     if (method === 'thread/unsubscribe') { f.native.emit('notification', { method: 'thread/closed', params: { threadId: params.threadId } }); return { status: 'unsubscribed' }; }
-    if (method === 'thread/start') return { ...f.snapshot, modelProvider: 'b', thread: f.target };
+    if (method === 'thread/start') return { ...actualSnapshot, modelProvider: 'b', thread: f.target };
     if (method === 'thread/name/set') return {};
     if (method === 'thread/read') return { thread: f.target };
-    if (method === 'thread/resume') return { ...f.snapshot, modelProvider: 'b', thread: { ...f.target, modelProvider: 'b' } };
+    if (method === 'thread/resume') return params.threadId === 'source'
+      ? { ...actualSnapshot, thread: f.thread }
+      : { ...actualSnapshot, modelProvider: 'b', thread: f.target };
     if (method === 'thread/settings/update') {
-      f.native.emit('notification', { method: 'thread/settings/updated', params: { threadId: 'target', threadSettings: { ...f.snapshot, modelProvider: 'b', sandboxPolicy: f.snapshot.sandbox!, effort: null, summary: null, personality: null } } }); return {};
+      if (explicit) f.native.emit('notification', { method: 'thread/settings/updated', params: { threadId: 'target', threadSettings: { ...f.snapshot, modelProvider: 'b', sandboxPolicy: f.snapshot.sandbox!, effort: null, summary: null, personality: null } } }); return {};
     }
     if (method === 'thread/turns/list') {
       reads.push(params); const page = { data: [{ id: 'turn', rootTurnId: null, itemsView: params.itemsView!, items: params.itemsView === 'notLoaded' ? [] : items, status: 'completed', error: null, startedAt: null, completedAt: null, durationMs: null }], nextCursor: null, backwardsCursor: null };
@@ -102,4 +106,12 @@ test('a reused source ID is never captured or reported as a new partial target',
   const f = fixture({}, { id: 'source' });
   await expect(f.run()).rejects.toMatchObject({ delivery: 'unknown', data: { inputSent: false } });
   expect(f.host.capture).not.toHaveBeenCalled(); expect(f.host.uncertain).toHaveBeenCalledExactlyOnceWith(undefined);
+});
+
+test('source close followed by reinspection failure records that no target was created', async () => {
+  const f = fixture();
+  f.helper.mockResolvedValueOnce({ expected: { sha256: 'a'.repeat(64) }, sourceMetadata: { serviceTier: null } });
+  f.helper.mockRejectedValueOnce(new DeliveryError('fixture_change', 'source changed after unsubscribe'));
+  await expect(f.run()).rejects.toMatchObject({ code: 'conversion_target_not_created', delivery: 'not_sent', data: { sourceThreadId: 'source', phase: 'source_unsubscribed', targetCreated: false, inputSent: false } });
+  expect(f.calls).toEqual(['thread/unsubscribe']); expect(f.host.uncertain).not.toHaveBeenCalled();
 });

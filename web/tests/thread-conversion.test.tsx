@@ -104,3 +104,32 @@ it('retains the receipt but never navigates from a response belonging to the pre
   await waitFor(async () => expect((await listOperations())[0]?.state).toBe('accepted'));
   expect(f.props.onCreated).not.toHaveBeenCalled(); expect(f.calls).toHaveLength(1);
 });
+
+it.each(['moved', 'not_moved', 'unconfirmed'])('selects only named queue copies and retains a usable confirmed target when transfer is %s', async state => {
+  const f = fixture(call => call.method === 'thread/queue/handoff/list' ? { data: [
+    { id: 'chosen', state: 'ready', queuedSubmissionId: 'q1', attachmentCount: 1 },
+    { id: 'other', state: 'ready', queuedSubmissionId: 'q2', attachmentCount: 0 },
+  ] } : { thread: { id: 'new-chat' }, sourceThreadId: 'source', sourceProvider: 'a', targetProvider: 'b', handoffTransfer: state });
+  fireEvent.click(screen.getByRole('button', { name: '选择随转换移交的待办副本' }));
+  const chosen = await screen.findByRole('checkbox', { name: /待办 q1/ });
+  expect((chosen as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(chosen);
+  await next();
+  fireEvent.click(await enabledButton({ name: '创建转换会话（2/2）' }));
+  await screen.findByText(/目标会话 new-chat 已创建/);
+  expect(screen.queryByRole('button', { name: '创建转换会话（2/2）' })).toBeNull();
+  expect(screen.getByText(state === 'moved' ? /选中的待办副本已移交/ : state === 'not_moved' ? /选中的副本未移交/ : /副本移交未获确认/)).toBeTruthy();
+  expect(f.calls.filter(row => row.method === 'thread/convert').map(row => row.params.handoffIds)).toEqual([['chosen']]);
+  fireEvent.click(screen.getByRole('button', { name: '打开已创建的目标会话' }));
+  expect(f.props.onCreated).toHaveBeenCalledWith('new-chat');
+});
+
+it('keeps private client metadata on its original provider when choosing copies to move', async () => {
+  fixture(call => call.method === 'thread/queue/handoff/list' ? {data:[{id:'private',queuedSubmissionId:'q-private',state:'ready',requiresSameProvider:true,attachmentCount:0}]} : {});
+  fireEvent.click(screen.getByRole('button',{name:'选择随转换移交的待办副本'}));
+  const field = await screen.findByRole('checkbox',{name:/q-private/}) as HTMLInputElement;
+  fireEvent.change(screen.getByRole('combobox',{name:'目标模型'}),{target:{value:JSON.stringify(['b','b-model'])}});
+  expect(field.disabled).toBe(true);
+  fireEvent.change(screen.getByRole('combobox',{name:'目标模型'}),{target:{value:JSON.stringify(['a','a-model'])}});
+  expect(field.disabled).toBe(false); expect(field.checked).toBe(false);
+});

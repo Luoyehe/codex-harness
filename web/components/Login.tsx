@@ -76,7 +76,7 @@ export function Login({ api, onLogin, initialError, externalAuthentication = fal
               <input name="bootstrap-token" type="password" autoComplete="off" value={token} maxLength={4096} onChange={(e) => setToken(e.target.value)} required />
             </label>}
             <label className="field">用户名
-              <input name="username" autoComplete="username" value={username} maxLength={64} pattern="[A-Za-z0-9_.\-]+" onChange={(e) => { setUsername(e.target.value); setMfaRequired(false); setOtp(''); }} required autoFocus />
+              <input name="username" autoComplete="username" value={username} maxLength={64} pattern="[A-Za-z0-9_.\-]+" onChange={(e) => { setUsername(e.target.value); setMfaRequired(false); setOtp(''); }} required />
             </label>
             <label className="field">{setup ? '设置密码' : '密码'}
               <input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} value={password} maxLength={512} onChange={(e) => { setPassword(e.target.value); setOtp(''); }} required />
@@ -92,6 +92,7 @@ export function Login({ api, onLogin, initialError, externalAuthentication = fal
                 <input name="otp" autoComplete="one-time-code" value={otp} maxLength={128} onChange={(e) => setOtp(e.target.value)} required autoFocus />
               </label>}
               <label className="check-row"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />在此设备保持登录 30 天</label>
+              <p className="small muted">默认登录有效期为 12 小时，关闭浏览器后仍可能保持登录。公用设备使用完毕请退出。</p>
             </>}
             <button className="button primary" disabled={!ready} type="submit">{busy ? '正在验证…' : setup ? '创建账号并进入工作台' : '进入工作台 →'}</button>
           </fieldset>

@@ -1,3 +1,4 @@
+import { downloadBlob } from '../lib/download';
 import { composing } from '../lib/types';
 import { useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
@@ -532,14 +533,7 @@ export function HistoryTools({
     try {
       const result = checkedExport(await api.call('thread/export', { threadId, format }), format);
       if (!mounted.current) return;
-      const url = URL.createObjectURL(new Blob([result.content], { type: result.mimeType }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = result.filename;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(new Blob([result.content], { type: result.mimeType }), result.filename);
       setNotice('完整历史已读取并生成下载文件。');
     } catch (e) {
       if (mounted.current) setError(`导出未完成，未生成局部历史文件。${message(e)}`);

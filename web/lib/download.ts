@@ -2,7 +2,8 @@ export function downloadBlob(data: Blob, filename: string): void {
   const url = URL.createObjectURL(data),
     link = document.createElement('a');
   link.href = url;
-  link.download = filename;
+  const basename = filename.split(/[\\/]/).pop() ?? '';
+  link.download = basename.replace(/[\x00-\x1f\x7f<>:"|?*]/g, '_').replace(/^\.+|[. ]+$/g, '').slice(0, 200) || 'download';
   document.body.append(link);
   try {
     link.click();

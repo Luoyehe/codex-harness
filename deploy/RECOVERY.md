@@ -9,6 +9,7 @@ Run operator commands from the reviewed deployment checkout. Keep the original i
 | New initialization journal exists, initialization or first installation is incomplete | `install-resume --source /absolute/harness-source.tgz` |
 | Initialization completed; build or first application startup failed | `update --source /absolute/harness-source.tgz` |
 | Application/provider/HTTPS transaction interrupted | Inspect the error, then `repair`; application-only forward recovery supports `repair --target candidate` |
+| Provider configuration layer migration interrupted | In **修复 / 恢复 / 回滚**, choose **恢复中断的配置层迁移**. The default `config-layer-recover --target old` restores the retained original. Use `--target candidate` only to finish that same validated candidate. |
 | Trusted control update interrupted | `control-recover` from the separate reviewed checkout |
 | Execution identity or root-authorization transaction interrupted | `execution-mode-recover --target old` (default) or explicitly `--target candidate`; `repair` routes this same retained transaction |
 | Service proxy transaction interrupted | `proxy-recover --target old` (default) or explicitly `--target candidate`; retain both core/configuration generations |
@@ -320,7 +321,7 @@ The snapshot is a recovery input, not proof that a restore has been rehearsed. R
 
 At eight retained `candidate-*` directories, another build is refused. `provider-prune` manages provider generations only. It does not remove build candidates, releases, control journals or TLS generations.
 
-Use `sh harness.sh` → **修复 / 恢复 / 回滚** → **归档已完成构建**. The menu lists verified candidates, asks which exact candidate to archive, and confirms a brief service interruption. It then performs the recorded maintenance, two-lock checks, same-filesystem move and service restoration below. It never deletes a workspace, release or receipt. If runtime activity is unknown, first use recovery/restart to establish its state. For automation:
+Use `sh harness.sh` → **修复 / 恢复 / 回滚** → **归档已完成构建**. The menu identifies completed candidates, retained failed builds and DNS builds by exact ID. Select a row and confirm its service or build-unit stop requirements. It then performs the recorded maintenance, two-lock checks, same-filesystem move and service restoration below. It never deletes a workspace, release or receipt. If runtime activity is unknown, first use recovery/restart to establish its state. For automation:
 
 ```sh
 python3 -B -m deploy.cli --instance demo candidate-list
@@ -329,7 +330,7 @@ python3 -B -m deploy.cli --instance demo candidate-archive --candidate VERIFIED_
 
 The private archive and progress inventory are under `/var/cache/codex-harness/operator-archives/INSTANCE`. On interruption, keep both paths and all original transaction records. Retry the same candidate to finish an already recorded move or service restoration; the menu also lists unfinished archives. If service removal stopped before the archive could bind its lifecycle record, run `restore-services` first and retry. Do not manually remove the journal or overwrite an existing destination. Moving caches frees an upgrade slot, not disk space.
 
-The following manual procedure describes the same safeguards and remains available for inspection:
+The following manual inspection procedure covers completed, already unmounted release candidates. Use the managed failed-build or DNS archive path below for a retained image or interrupted preparation.
 
 Use the same recorded `uninstall --confirm-stop`, two locks and stopped-instance checks above. Inspect one exact 32-hex candidate ID. Require all of the following before moving it:
 
@@ -364,22 +365,24 @@ A normal `proxy-rollback --confirm-restart` uses the previous completed selectio
   `phase: prepared` metadata. Use `https-read` for its exact revision, then
   `https-reset-prepared --expected-revision REVISION --confirm`. The command requires
   the HTTP origin, absent edge units/Caddyfile, confirmed stopped edge services, and
-  an exact recovered journal binding. It removes only that metadata selection;
+  a recovered journal bound to the exact metadata and original instance. Later committed configuration-layer, execution-identity or service-proxy migrations may establish the chain to the current instance. It removes only that metadata selection;
   certificates, DNS credentials and journals remain. Arbitrary prepared/unknown
   states are not reset. Configure HTTPS again through the normal menu afterwards.
 - `candidate-archive --candidate EXACT_32_HEX --failed --confirm-stop` archives a
   failed build only after complete installed-instance preflight, known stopped
-  units/empty cgroups, no mounts, exact inode and references, and a recorded service
-  maintenance window. Images may be retained as ordinary evidence; mounted images
-  still refuse archival. No recursive deletion occurs. Retry the same candidate if
+  units/empty cgroups, exact inode and references, and a recorded maintenance
+  window. For the expected fetch/build mount it verifies ext4, the loop device,
+  the bound root-owned image and mount flags, unmounts it, and retains the image.
+  An unrelated or nested mount requires manual inspection. Retry the same candidate if
   movement or restoration was interrupted; `restore-services` remains available.
 - `dns-build-archive --build EXACT_32_HEX --confirm-stop` stops only that build's
-  known transient units, confirms empty cgroups and no mounted tree, and moves the
+  known transient units including retries, confirms empty cgroups, verifies and unmounts its work image, and moves the
   complete directory into an operator archive. Selected Caddy binaries and DNS
   credential generations are separate and unchanged. If a mount remains, inspect
   the exact retained build, loop-device backing file and mount table on the server;
   resolve the original unmount failure before retrying. Never recursively remove a
   mounted tree or infer that a failed unit means its cgroup is empty.
+- Retry ordinary HTTPS setup through the same menu after a download interruption. A verified Caddy archive can be reused. The installer retains one copy of each distinct partial archive beside it with an `.interrupted-SHA256` suffix. At four distinct retained partials, archive them privately before retrying. A pre-existing binary is adopted only when its digest matches the verified distribution.
 - `uninstall --dry-run` displays the exact managed service definitions and retained
   data policy. Actual CLI removal requires `--confirm-stop`. `restore-services`
   restores the bound definitions and activity; a dry run does not create a removal

@@ -61,6 +61,51 @@ class RecoveryFilesystemTests(unittest.TestCase):
         changed = self.call("write", {"path": "a", "text": "new", "expectedRevision": first["revision"]})
         return changed, self.call("recovery/read", {"operationId": changed["recoveryOperationId"]})
 
+    def test_large_binary_copy_remove_restore_and_stale_revision(self):
+        data = b"\0large" * 120000
+        (self.path / "asset").write_bytes(data)
+        meta = self.call("metadata", {"path": "asset"})
+        self.assertTrue(meta["copyable"] and meta["removable"])
+        self.assertFalse(meta["editable"])
+        copy = self.call("copy", {"path": "asset", "destination": "clone", "expectedRevision": meta["revision"]})
+        self.assertEqual((self.path / "clone").read_bytes(), data)
+        deleted = self.call("remove", {"path":"clone", "expectedRevision":copy["revision"], "confirm":True, "recursive":False})
+        identity = deleted["recoveryOperationId"]
+        source = self.call("recovery/read", {"operationId": identity})["entries"][0]
+        self.assertFalse(source["editable"])
+        self.assertNotIn("text", source)
+        restored = self.call("recovery/restore", {"path":"clone","expectedRevision":None,"recoveryOperationId":identity,
+                                                    "sourceRevision":source["revision"], "slot":"before"})
+        self.assertEqual(restored["bytes"], len(data))
+        self.assertEqual((self.path / "clone").read_bytes(), data)
+        with self.assertRaises(DeployError):
+            self.call("remove", {"path":"clone", "expectedRevision":copy["revision"], "confirm":True, "recursive":False})
+
+    def test_unpublished_receipt_and_archived_evidence_are_visible_without_overwriting_published(self):
+        import json
+        from deploy.common import canonical
+        for variant in ("complete", "truncated", "conflicting", "missing-prior"):
+            with self.subTest(variant=variant):
+                op = str(uuid.uuid4())
+                self.call("mkdir", {"path": variant}, op)
+                holder = self.records / op
+                saved = json.loads((holder / "state.json").read_text())
+                next_file = holder / ".state-next"
+                data = b"{" if variant in ("truncated", "missing-prior") else canonical({**saved, "requestDigest": "0"*64}) if variant == "conflicting" else canonical(saved)
+                next_file.write_bytes(data)
+                next_file.chmod(0o600)
+                if variant == "missing-prior":
+                    (holder / "state.json").unlink()
+                inspected = self.call("recovery/read", {"operationId": op})
+                self.assertEqual(inspected["unpublishedState"]["bytes"], len(data))
+                result = self.call("operation/read", {"operationId": op})
+                self.assertEqual(result["state"], "unknown" if variant == "missing-prior" else "completed")
+                self.assertFalse(next_file.exists())
+                if variant != "complete":
+                    self.assertEqual((holder / ".state-incomplete").read_bytes(), data)
+                    self.assertEqual(self.call("recovery/read", {"operationId": op})["retainedState"]["bytes"], len(data))
+        self.call("mkdir", {"path":"subsequent"})
+
     def test_failed_store_parent_publication_is_retried_before_workspace_edit(self):
         original = os.fsync
         parent = self.native.stat()

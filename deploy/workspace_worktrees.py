@@ -16,7 +16,7 @@ from .common import DeployError, canonical, require
 from .workspace_git import git, repository_paths
 from .workspace_git_view import directory, read_index
 from .workspace_paths import Root, read_file, relative, rename_absent, revision
-from .workspace_store import Record, operation_id, private_directory, regular, write_new
+from .workspace_store import Record, operation_id, private_directory, regular, write_new, pending_state, read_record
 
 MAX_WORKTREES = 32
 MAX_TREE_ENTRIES = 10000
@@ -114,6 +114,23 @@ def tree(root: Root, metadata: int, head: str) -> str:
             path = prefix + name
             relative(path)
             info = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            if stat.S_ISLNK(info.st_mode):
+                target = os.readlink(name, dir_fd=parent)
+                require(not os.path.isabs(target) and len(os.fsencode(target)) <= 4096,
+                        "Worktree symbolic link is not a bounded relative target", "unsafe_path")
+                location = root.path / path
+                try:
+                    resolved = (location.parent / target).resolve(strict=True)
+                except (OSError, RuntimeError) as error:
+                    raise DeployError("unsafe_path", "Worktree symbolic link target cannot be verified") from error
+                require(resolved.is_relative_to(root.path) and not ({".git", ".harness-workspace"} & set(resolved.relative_to(root.path).parts)),
+                        "Worktree symbolic link leaves the managed files", "unsafe_path")
+                after = os.stat(name, dir_fd=parent, follow_symlinks=False)
+                require(identity(info) == identity(after) and info.st_ctime_ns == after.st_ctime_ns,
+                        "Worktree symbolic link changed during inspection", "conflict")
+                entries.append([path, "symlink", target, revision(after)])
+                require(len(entries) <= MAX_TREE_ENTRIES, "Worktree entry budget reached", "budget")
+                continue
             require(stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
                     "Worktree contains a symlink, hardlink or special file; no files were discarded", "unsafe_path")
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | (os.O_DIRECTORY if stat.S_ISDIR(info.st_mode) else 0), dir_fd=parent)
@@ -139,7 +156,7 @@ def tree(root: Root, metadata: int, head: str) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creating: bool = False, lightweight: bool = False) -> dict:
+def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creating: bool = False, lightweight: bool = False, identity_only: bool = False) -> dict:
     common = repository(workspace)
     common_fd = directory(common)
     root = metadata = None
@@ -147,7 +164,8 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
         common_info = os.fstat(common_fd)
         require(common_info.st_uid == os.geteuid() and not common_info.st_mode & 0o022, "Shared Git metadata cannot authorize managed moves", "worktree_shared")
         active, archived = home / "worktrees" / identity_value, home / "worktree-state" / identity_value / "checkout"
-        exists = [path for path in (active, archived) if path.exists() or path.is_symlink()]
+        retired = home / "worktree-state" / "retired" / identity_value / "checkout"
+        exists = [path for path in ((active,) if creating else (active, archived, retired)) if path.exists() or path.is_symlink()]
         require(len(exists) == 1, "Managed worktree location is missing or ambiguous; both locations were retained", "recovery_required")
         location = exists[0]
         root = Root(str(location), [])
@@ -164,7 +182,7 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
         common_pointer = text_file(metadata, "commondir")
         require((git_dir / common_pointer).resolve(strict=True) == common, "Worktree common-directory pointer differs", "worktree_unbound")
         backlink = text_file(metadata, "gitdir")
-        require(backlink in (str(active / ".git"), str(archived / ".git")), "Worktree metadata points to a shared or unrelated checkout", "worktree_shared")
+        require(backlink in (str(active / ".git"), str(archived / ".git"), str(retired / ".git")), "Worktree metadata points to a shared or unrelated checkout", "worktree_shared")
         actual = {"version": 1, "worktreeId": identity_value, "originRoot": str(workspace.root.path), "commonDir": str(common),
                   "commonDevice": os.fstat(common_fd).st_dev, "commonInode": os.fstat(common_fd).st_ino,
                   "gitDir": str(git_dir), "gitDirDevice": os.fstat(metadata).st_dev, "gitDirInode": os.fstat(metadata).st_ino,
@@ -177,10 +195,15 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
             lock = None
         own_lock = "codex-harness-archive:" + identity_value
         require(lock in (None, own_lock), "A shared or user-locked worktree cannot be moved", "worktree_shared")
-        phase = "active" if location == active and backlink == str(active / ".git") and lock is None else "archived" if location == archived and backlink == str(archived / ".git") and lock == own_lock else "recovery"
+        phase = "active" if location == active and backlink == str(active / ".git") and lock is None else "archived" if location == archived and backlink == str(archived / ".git") and lock == own_lock else "retired" if location == retired and backlink == str(retired / ".git") and lock == own_lock else "recovery"
         head = git(workspace.root, ["rev-parse", "--verify", "HEAD"], environment={"GIT_DIR": str(git_dir), "GIT_WORK_TREE": str(location)}).decode().strip()
         require(re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", head) is not None, "Worktree HEAD is invalid", "git_unavailable")
         result = {"worktreeId": identity_value, "phase": phase, "path": str(location), "head": head, "binding": actual}
+        if location == retired:
+            require(lock == own_lock, "Retired worktree lock changed", "worktree_shared")
+            result["retirementPending"] = phase != "retired"
+        if identity_only:
+            return result
         try:
             result["revision"] = tree(root, metadata, head)
         except DeployError as exc:
@@ -235,8 +258,48 @@ def checkout_data(workspace, head: str) -> tuple[list, bytes]:
     return files, data
 
 
-def materialize(workspace, root: Root, head: str, prepared: tuple[list, bytes]) -> None:
+def check_partial(root, prepared):
     files, data = prepared
+    expected = {}
+    parents = set()
+    offset = 0
+    for path, _, size, mode in files:
+        start = data.index(b"\n", offset) + 1
+        expected[path] = (start, size, mode)
+        offset = start + size + 1
+        parents.update(p.as_posix() for p in Path(path).parents)
+    found = set()
+    def visit(parent, prefix):
+        with os.scandir(parent) as entries:
+            for entry in entries:
+                if not prefix and entry.name == ".git":
+                    continue
+                path = prefix + entry.name
+                info = entry.stat(follow_symlinks=False)
+                if path in parents and stat.S_ISDIR(info.st_mode):
+                    fd = os.open(entry.name, os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+                    try:
+                        visit(fd, path + "/")
+                    finally:
+                        os.close(fd)
+                    continue
+                require(path in expected and stat.S_ISREG(info.st_mode), "Unexpected worktree content preserved", "recovery_required")
+                start, size, mode = expected[path]
+                fd = os.open(entry.name, os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+                try:
+                    content, info = read_file(fd, MAX_BLOB)
+                finally:
+                    os.close(fd)
+                require(content == data[start:start+size] and stat.S_IMODE(info.st_mode) == mode,
+                        "Edited worktree file preserved during recovery", "recovery_required")
+                found.add(path)
+    visit(root.fd, "")
+    return found
+
+
+def materialize(workspace, root: Root, head: str, prepared: tuple[list, bytes], *, resume=False) -> None:
+    files, data = prepared
+    existing = check_partial(root, prepared) if resume else set()
     offset = 0
     for name, object_id, length, mode in files:
         end = data.find(b"\n", offset)
@@ -254,7 +317,8 @@ def materialize(workspace, root: Root, head: str, prepared: tuple[list, bytes]) 
                     pass
                 next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
                 os.close(parent); parent = next_fd
-            write_new(parent, parts[-1], data[offset:offset + length], mode)
+            if name not in existing:
+                write_new(parent, parts[-1], data[offset:offset + length], mode)
         finally:
             os.close(parent)
         offset += length + 1
@@ -262,7 +326,136 @@ def materialize(workspace, root: Root, head: str, prepared: tuple[list, bytes]) 
     git(root, ["read-tree", "--reset", head])
 
 
+def matches_original_move(workspace, request_digest, action, identity_value, revision, binding):
+    from .common import digest
+    body = {"version": 1, "root": str(workspace.root.path), "action": action,
+            "params": {"worktreeId": identity_value, "expectedRevision": revision, "confirm": True}, "binding": binding}
+    if digest(body) == request_digest:
+        return True
+    if not request_digest:
+        return False
+    from .workspace_repository_identity import repository_identity
+    return digest({**body, "repositoryIdentity": repository_identity(workspace)}) == request_digest
+
+
+def finish_phase(holder, identity_value, observed, workspace):
+    pending = pending_state(holder)
+    if pending is None:
+        return
+    _, candidate = pending
+    require(candidate is not None, "Incomplete worktree phase evidence retained", "recovery_required")
+    try:
+        current = read_record(holder)
+    except FileNotFoundError:
+        current = {}
+    op = operation_id(candidate.get("operationId"))
+    phase = candidate.get("phase")
+    allowed = {"creating", "active", "archived", "retired", "retiring", "worktree/archive", "worktree/restore"}
+    require(phase in allowed and not set(candidate) - {"phase", "operationId", "expectedRevision", "head", "binding"},
+            "Unrecognized worktree phase evidence retained", "recovery_required")
+    require(candidate.get("binding", observed["binding"]) == observed["binding"] and candidate.get("head", observed["head"]) == observed["head"],
+            "Worktree phase identity changed", "recovery_required")
+    saved = workspace.store.read(op)
+    if phase in ("creating", "active") and op == identity_value:
+        valid = current.get("operationId", op) == op and current.get("phase", "creating") in (("creating",) if phase == "creating" else ("creating", "active")) and observed["phase"] == "active"
+    elif phase in ("active", "archived", "retired"):
+        valid = current.get("operationId") == op and observed["phase"] == phase
+    else:
+        action = "worktree/retire" if phase == "retiring" else phase
+        expected = candidate.get("expectedRevision")
+        valid = (expected == observed.get("revision") and (current == candidate or saved.get("state") in ("running", "failed")) and
+                 matches_original_move(workspace, saved.get("requestDigest"), action, identity_value, expected, observed["binding"]))
+    require(valid and (current == candidate or saved.get("state") in ("running", "failed", "completed")),
+            "Worktree phase cannot be tied to its original operation", "recovery_required")
+    os.replace(".state-next", "state.json", src_dir_fd=holder, dst_dir_fd=holder)
+    os.fsync(holder)
+
+
+def retire_info(workspace, params):
+    op = params["operationId"]
+    saved = workspace.store.read(op)
+    require(saved.get("requestDigest") == params["requestDigest"], "Original retirement receipt is unavailable", "operation_conflict")
+    candidates = []
+    with storage(workspace) as (_, _, state, active_ids):
+        def inspect_markers(parent, names):
+            for name in names:
+                operation_id(name)
+                fd = private_directory(parent, name)
+                try:
+                    try:
+                        current = read_record(fd)
+                    except FileNotFoundError:
+                        current = {}
+                    pending = pending_state(fd)
+                    for item in (current, pending[1] if pending else None):
+                        if isinstance(item, dict) and item.get("operationId") == op and item.get("phase") in ("retiring", "retired"):
+                            revision = item.get("expectedRevision")
+                            require(isinstance(revision, str) and re.fullmatch(r"[a-f0-9]{64}", revision), "Incomplete retirement revision", "recovery_required")
+                            candidates.append((name, revision))
+                finally:
+                    os.close(fd)
+        inspect_markers(state, active_ids)
+        try:
+            retired = private_directory(state, "retired")
+        except FileNotFoundError:
+            retired = None
+        if retired is not None:
+            try:
+                names = []
+                with os.scandir(retired) as listing:
+                    for entry in listing:
+                        require(len(names) < 256, "Retired worktree inventory exceeds budget", "budget")
+                        names.append(entry.name)
+                inspect_markers(retired, names)
+            finally:
+                os.close(retired)
+    require(len(set(candidates)) == 1, "No unambiguous original retirement was found", "recovery_required")
+    name, revision = candidates[0]
+    return {"worktreeId": name, "expectedRevision": revision, "confirm": True}
+
+
+def reconcile_creation(workspace, params):
+    identity_value, request_digest = params["operationId"], params["requestDigest"]
+    with workspace.store.mutation(identity_value, request_digest, reconcile=True) as (receipt, saved):
+        if saved["state"] == "completed" or saved.get("response", {}).get("error", {}).get("delivery") == "not_sent":
+            return {"operationId": identity_value, **saved}
+        with storage(workspace) as (home, _, state, names):
+            require(identity_value in names, "Original creation journal is unavailable", "recovery_required")
+            holder = private_directory(state, identity_value)
+            try:
+                observed = inspect(workspace, home, identity_value, {}, creating=True, identity_only=True)
+                require(Path(observed["binding"]["gitDir"]).name == identity_value and observed["phase"] == "active",
+                        "Checkout registration does not match the original creation", "worktree_unbound")
+                finish_phase(holder, identity_value, observed, workspace)
+                phase = read_record(holder)
+                require(phase.get("operationId") == identity_value and phase.get("phase") in ("creating", "active") and
+                        phase.get("binding", observed["binding"]) == observed["binding"] and phase.get("head", observed["head"]) == observed["head"],
+                        "Original checkout identity or HEAD changed", "worktree_unbound")
+                if phase["phase"] == "creating":
+                    require(phase.get("head") == observed["head"], "Original checkout HEAD is unavailable", "recovery_required")
+                    prepared = checkout_data(workspace, observed["head"])
+                    created = Root(observed["path"], [])
+                    try:
+                        # Never reset a staged change while resuming the final index publication.
+                        if (Path(observed["binding"]["gitDir"]) / "index").exists():
+                            delta = git(created, ["diff-index", "--cached", "--raw", "-z", observed["head"], "--"])
+                            require(not delta, "Changed worktree index retained", "recovery_required")
+                        materialize(workspace, created, observed["head"], prepared, resume=True)
+                    finally:
+                        created.close()
+                observed = inspect(workspace, home, identity_value, observed["binding"])
+                Record(holder, identity_value).save({"phase": "active", "operationId": identity_value,
+                                                     "binding": observed["binding"], "head": observed["head"]})
+                complete = {"requestDigest": request_digest, "state": "completed", "response": {"ok": True, "result": {**observed, "created": True}}}
+                receipt.save(complete)
+                return {"operationId": identity_value, **complete}
+            finally:
+                os.close(holder)
+
+
 def run(workspace, request: dict, record: Record | None) -> dict:
+    if record is not None:
+        record.side_effects = False
     action, params = request["action"], request["params"]
     creating = action == "worktree/create"
     identity_value = record.identity if creating else params["worktreeId"]
@@ -274,6 +467,8 @@ def run(workspace, request: dict, record: Record | None) -> dict:
         if creating:
             require(identity_value not in names and len(names) < MAX_WORKTREES, "Managed worktree retention budget or identity collision", "budget")
             common = repository(workspace)
+            registration = common / "worktrees" / identity_value
+            require(not registration.exists() and not registration.is_symlink(), "Original worktree id already registered", "conflict")
             common_fd = directory(common)
             try:
                 common_info = os.fstat(common_fd)
@@ -283,6 +478,7 @@ def run(workspace, request: dict, record: Record | None) -> dict:
             head = git(workspace.root, ["rev-parse", "--verify", "--end-of-options", ref(params["ref"]) + "^{commit}"]).decode().strip()
             require(re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", head) is not None, "Selected ref is not a commit", "git_unavailable")
             prepared = checkout_data(workspace, head)
+            record.side_effects = True
             holder = private_directory(state, identity_value, create=True)
             try:
                 journal = Record(holder, identity_value)
@@ -291,6 +487,8 @@ def run(workspace, request: dict, record: Record | None) -> dict:
                 os.fsync(active)
                 target = home / "worktrees" / identity_value
                 git(workspace.root, ["worktree", "add", "--no-checkout", "--detach", "--", str(target), head], seconds=45)
+                observed = inspect(workspace, home, identity_value, {}, creating=True, identity_only=True)
+                journal.save({"phase": "creating", "operationId": record.identity, "head": head, "binding": observed["binding"]})
                 created = Root(str(target), [])
                 try:
                     materialize(workspace, created, head, prepared)
@@ -298,11 +496,45 @@ def run(workspace, request: dict, record: Record | None) -> dict:
                     created.close()
                 result = inspect(workspace, home, identity_value, {}, creating=True)
                 require(result["phase"] == "active", "Created worktree needs recovery inspection", "recovery_required")
-                journal.save({"phase": "active", "operationId": record.identity})
+                journal.save({"phase": "active", "operationId": record.identity, "head": head, "binding": result["binding"]})
                 return {**result, "created": True}
             finally:
                 os.close(holder)
         before = inspect(workspace, home, identity_value, binding, lightweight=action == "worktree/read")
+        retired_path = home / "worktree-state" / "retired" / identity_value / "checkout"
+        is_retired = Path(before["path"]) == retired_path
+        parent = private_directory(state, "retired") if is_retired else os.dup(state)
+        try:
+            phase_holder = private_directory(parent, identity_value)
+            try:
+                finish_phase(phase_holder, identity_value, before, workspace)
+                try:
+                    marker = read_record(phase_holder)
+                except FileNotFoundError:
+                    marker = {}
+                if not is_retired and marker.get("phase") == "retiring" and marker.get("expectedRevision") == before["revision"]:
+                    original = workspace.store.read(operation_id(marker.get("operationId")))
+                    if matches_original_move(workspace, original.get("requestDigest"), "worktree/retire", identity_value, before["revision"], binding):
+                        before["retirementPending"] = True
+                        require(action in ("worktree/read", "worktree/retire"), "Complete the pending retirement first", "recovery_required")
+                if is_retired:
+                    require(marker.get("phase") in ("retiring", "retired") and marker.get("expectedRevision") == before["revision"],
+                            "Retired checkout differs from its journal", "recovery_required")
+                    before["retirementPending"] = marker["phase"] != "retired" or before["phase"] != "retired"
+                    if action == "worktree/retire":
+                        require(params["expectedRevision"] == before["revision"], "Retirement revision differs", "conflict")
+                        record.side_effects = True
+                        if before["retirementPending"]:
+                            git(workspace.root, ["worktree", "repair", str(retired_path)])
+                            before = inspect(workspace, home, identity_value, binding)
+                            require(before["phase"] == "retired", "Incomplete retirement registration", "recovery_required")
+                            Record(phase_holder, identity_value).save({**marker, "phase": "retired"})
+                        return {**before, "retirementPending": False, "retired": True, "retained": True}
+                    require(action == "worktree/read", "Retired checkout only supports retirement reconciliation", "recovery_required")
+            finally:
+                os.close(phase_holder)
+        finally:
+            os.close(parent)
         if action == "worktree/read":
             return before
         require(before["revision"] == params["expectedRevision"], "Worktree changed; inspect the current revision", "conflict")
@@ -310,7 +542,13 @@ def run(workspace, request: dict, record: Record | None) -> dict:
             require(before["phase"] == "active", "Only an active managed worktree can be attached", "recovery_required")
             return {**before, "attached": True}
         if action == "worktree/retire":
-            require(before["phase"] in ("active", "archived"), "Resolve worktree recovery before retirement", "recovery_required")
+            previous_holder = private_directory(state, identity_value)
+            try:
+                prior = read_record(previous_holder)
+            finally:
+                os.close(previous_holder)
+            resuming = prior.get("phase") == "retiring" and prior.get("expectedRevision") == before["revision"]
+            require(before["phase"] in ("active", "archived") or resuming, "Resolve worktree recovery before retirement", "recovery_required")
             checkout = Root(before["path"], [])
             try:
                 from .workspace_git_view import content_view
@@ -325,10 +563,12 @@ def run(workspace, request: dict, record: Record | None) -> dict:
                 with os.scandir(retired) as listing:
                     require(sum(1 for _ in listing) < 256, "Retired worktree retention reached 256; server administrator must inspect retained archives", "budget")
                 journal = Record(holder, identity_value)
+                record.side_effects = True
                 journal.save({"phase": "retiring", "operationId": record.identity, "expectedRevision": before["revision"]})
-                if before["phase"] == "active":
-                    target = home / "worktrees" / identity_value
-                    git(workspace.root, ["worktree", "lock", "--reason", "codex-harness-archive:" + identity_value, str(target)])
+                target = home / "worktrees" / identity_value
+                if before["path"] == str(target):
+                    if before["phase"] == "active":
+                        git(workspace.root, ["worktree", "lock", "--reason", "codex-harness-archive:" + identity_value, str(target)])
                     rename_absent(active, identity_value, holder, "checkout")
                 captured = inspect(workspace, home, identity_value, binding)
                 require(captured["revision"] == before["revision"], "Worktree changed during retirement; all files retained", "conflict")
@@ -343,6 +583,9 @@ def run(workspace, request: dict, record: Record | None) -> dict:
         holder = private_directory(state, identity_value)
         try:
             journal = Record(holder, identity_value)
+            require((action == "worktree/archive" and before["phase"] == "active") or
+                    (action == "worktree/restore" and before["phase"] in ("archived", "recovery")), "Worktree phase does not permit this change", "recovery_required")
+            record.side_effects = True
             journal.save({"phase": action, "operationId": record.identity, "expectedRevision": before["revision"]})
             target, archived = home / "worktrees" / identity_value, home / "worktree-state" / identity_value / "checkout"
             if action == "worktree/archive":

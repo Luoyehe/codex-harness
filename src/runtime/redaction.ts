@@ -5,6 +5,7 @@ const managedProviderKey = /^HARNESS_PROVIDER_KEY_(?:DEFAULT|[0-9A-F]{32})$/;
 /** Applied to diagnostics, not to user attachments or native request payloads. */
 export class DiagnosticRedactor {
   private secrets: string[];
+  private expiry = new Map<string, number>();
   constructor(env: NodeJS.ProcessEnv) {
     this.secrets = [...new Set(Object.entries(env).flatMap(([key, value]) => {
       if (!value) return [];
@@ -15,7 +16,13 @@ export class DiagnosticRedactor {
   }
   text(value: string): string {
     let result = value;
-    for (const secret of this.secrets) result = result.split(secret).join('[redacted]');
+    for (const secret of this.secrets) {
+      if (secret.length >= 8) result = result.split(secret).join('[redacted]');
+      else {
+        const pattern = [...secret].map(char => '\\u{' + char.codePointAt(0)!.toString(16) + '}').join('');
+        result = result.replace(new RegExp('(?<![\\p{L}\\p{N}_])' + pattern + '(?![\\p{L}\\p{N}_])', 'gu'), '[redacted]');
+      }
+    }
     return result.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
       .replace(/(https?:\/\/)[^\s/@]+(?::[^\s/@]*)?@/gi, '$1[redacted]@')
       .replace(/(--(?:api[-_]?key|token|password|secret)(?:=|\s+))[^\s"']+/gi, '$1[redacted]')
@@ -24,9 +31,16 @@ export class DiagnosticRedactor {
       .replace(/([?&](?:access_token|refresh_token|id_token|api_key|apikey|token|key)=)[^&#\s]+/gi, '$1[redacted]')
       .replace(/((?:access_token|refresh_token|id_token|api_key|authorization)\s*["']?\s*[:=]\s*["']?)[^\s"',;}&#]+/gi, '$1[redacted]');
   }
-  addSecret(value: string): void {
-    if (!value || this.secrets.includes(value)) return;
+  addSecret(value: string, expiresAt?: number): void {
+    if (!value) return;
+    for (const [secret, until] of this.expiry) if (until <= Date.now()) { this.expiry.delete(secret); this.secrets = this.secrets.filter(item => item !== secret); }
+    if (this.secrets.includes(value)) {
+      const until = this.expiry.get(value);
+      if (until !== undefined) { if (expiresAt === undefined) this.expiry.delete(value); else this.expiry.set(value, Math.max(until, expiresAt)); }
+      return;
+    }
     if (this.secrets.length >= 256 || this.secrets.reduce((bytes, secret) => bytes + Buffer.byteLength(secret), 0) + Buffer.byteLength(value) > 1024 * 1024) throw new DeliveryError('capacity', '诊断密钥保护容量已满，请先结束当前任务，再通过服务管理重启后台后重试；已有密钥仍受保护。');
+    if (expiresAt !== undefined) this.expiry.set(value, expiresAt);
     this.secrets.push(value); this.secrets.sort((a, b) => b.length - a.length);
   }
   value(value: JsonValue): JsonValue {

@@ -1,3 +1,4 @@
+import { EpochIdentities } from './epoch-identities.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { canonical, DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
@@ -55,10 +56,11 @@ export function guardianEvent(notification: JsonObject): JsonObject {
 }
 /** Captured native denials are epoch-local capabilities, not editable assessments. */
 export class Guardian {
-  private entries = new Map<string, Denial>(); private seen = new Map<string, string>(); private exhausted = false;
+  private entries = new Map<string, Denial>(); private identities = new EpochIdentities();
   private issues = new Map<string, { reviewId: string; reason: string }>();
   constructor(private host: Host) {}
   notification(method: string, params: JsonObject) {
+    if (method === 'thread/deleted' && typeof params.threadId === 'string') { this.identities.forgetThread(params.threadId); this.issues.delete(params.threadId); }
     if (method === 'turn/started') { const turnId = object(params.turn).id; for (const [id, entry] of this.entries) if (entry.threadId === params.threadId && entry.notification.turnId !== turnId) this.entries.delete(id); return; }
     if (['thread/reverted', 'thread/closed', 'thread/deleted', 'thread/archived', 'thread/settings/updated'].includes(method) && typeof params.threadId === 'string') { this.invalidate(params.threadId); return; }
     if (method !== 'item/autoApprovalReview/completed' || object(params.review).status !== 'denied') return;
@@ -70,14 +72,21 @@ export class Guardian {
     try { event = guardianEvent(params); }
     catch (error) {
       if (!(error instanceof DeliveryError) || !['capacity', 'guardian_action_unsupported'].includes(error.code)) throw error;
-      this.invalidate(threadId);
+      for (const [id, row] of this.entries) if (row.threadId === threadId && row.reviewId === reviewId) this.entries.delete(id);
       if (this.issues.size >= 64 && !this.issues.has(threadId)) this.issues.delete(this.issues.keys().next().value!);
       this.issues.set(threadId, { reviewId, reason: error.code }); return;
     }
-    const key = canonical([threadId, reviewId]), fingerprint = createHash('sha256').update(canonical(event)).digest('hex');
-    if (this.seen.has(key)) { if (this.seen.get(key) !== fingerprint) { this.invalidate(threadId); this.exhausted = true; } return; }
-    if (this.seen.size >= 2048 || this.exhausted) { this.exhausted = true; return; }
-    this.seen.set(key, fingerprint); this.prune();
+    const fingerprint = createHash('sha256').update(canonical(event)).digest('hex');
+    const prior = this.identities.read(threadId, reviewId);
+    if (prior !== undefined) {
+      if (prior !== fingerprint) {
+        for (const [id, row] of this.entries) if (row.threadId === threadId && row.reviewId === reviewId) this.entries.delete(id);
+        if (this.issues.size >= 64 && !this.issues.has(threadId)) this.issues.delete(this.issues.keys().next().value!);
+        this.issues.set(threadId, { reviewId, reason: 'guardian_identity_conflict' });
+      }
+      return;
+    }
+    this.identities.add(threadId, reviewId, fingerprint); this.prune();
     const thread = [...this.entries.values()].filter(entry => entry.threadId === threadId); if (thread.length >= 10) this.entries.delete(thread[0]!.approvalId);
     if (this.entries.size >= 64) this.entries.delete(this.entries.keys().next().value!);
     const now = Date.now(), approvalId = randomUUID(); this.entries.set(approvalId, { approvalId, threadId, reviewId, event, notification: structuredClone(params), createdAt: now, expiresAt: now + 600000, state: 'available' });
@@ -85,10 +94,10 @@ export class Guardian {
   invalidate(threadId: string) { for (const [id, entry] of this.entries) if (entry.threadId === threadId) this.entries.delete(id); }
   invalidateAll() { this.entries.clear(); }
   private prune() { const now = Date.now(); for (const [id, entry] of this.entries) if (entry.expiresAt <= now && entry.state !== 'pending') this.entries.delete(id); }
-  reset() { this.entries.clear(); this.seen.clear(); this.issues.clear(); this.exhausted = false; }
+  reset() { this.entries.clear(); this.identities.clear(); this.issues.clear(); }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
     this.prune(); const threadId = string(params.threadId, 'threadId');
-    if (method === 'thread/guardian/list') { onlyKeys(params, ['threadId']); return { data: [...this.entries.values()].filter(entry => entry.threadId === threadId).map(entry => ({ ...entry.notification, approvalId: entry.approvalId, createdAt: entry.createdAt, expiresAt: entry.expiresAt, state: entry.state })), captureExhausted: this.exhausted, captureIssues: this.issues.has(threadId) ? [this.issues.get(threadId)!] : [] }; }
+    if (method === 'thread/guardian/list') { onlyKeys(params, ['threadId']); return { data: [...this.entries.values()].filter(entry => entry.threadId === threadId).map(entry => ({ ...entry.notification, approvalId: entry.approvalId, createdAt: entry.createdAt, expiresAt: entry.expiresAt, state: entry.state })), captureExhausted: false, captureIssues: this.issues.has(threadId) ? [this.issues.get(threadId)!] : [] }; }
     onlyKeys(params, ['threadId', 'approvalId', 'confirm']); if (params.confirm !== true) throw new DeliveryError('confirmation_required', 'Explicitly approve one retry of this exact denied action');
     const entry = this.entries.get(string(params.approvalId, 'approvalId', 36)); if (!entry || entry.threadId !== threadId) throw new DeliveryError('not_found', 'This denial expired, changed context, or belongs to another runtime epoch');
     if (entry.state !== 'available') throw new DeliveryError('guardian_already_used', 'This retry authorization was already dispatched; read its original receipt');

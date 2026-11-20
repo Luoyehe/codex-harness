@@ -1,3 +1,4 @@
+import { recoveryStates, recoveryPhases, statusLabel } from '../lib/status-labels';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { commitState, indexVersions, type CommitState } from '../lib/git-state';
@@ -186,7 +187,7 @@ export function WorkspaceIndexRecovery({
             <option value="">选择原索引操作</option>
             {list.data?.records.map((record) => (
               <option key={record.operationId} value={record.operationId}>
-                {record.operationId} · {record.state}
+                {record.operationId} · {statusLabel(record.state, recoveryStates)}
                 {record.incomplete ? ' · 材料不完整' : ''}
               </option>
             ))}
@@ -196,7 +197,7 @@ export function WorkspaceIndexRecovery({
         {detail.data && (
           <>
             <p className="small">
-              本地状态：{detail.data.state} · 阶段：{detail.data.phase ?? '未提供'}
+              本地状态：{statusLabel(detail.data.state, recoveryStates)} · 阶段：{statusLabel(detail.data.phase, recoveryPhases)}
             </p>
             <label className="field">
               索引备份版本

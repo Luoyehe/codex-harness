@@ -58,6 +58,8 @@ def validate_provider(params: dict, current: dict) -> dict:
     require(kind.startswith("bedrock-") or "region" not in params, "AWS region requires a Bedrock provider")
     require(kind == "responses" or "supportsTools" not in params, "Tool defaults apply to a custom Responses provider")
     result = {"kind": kind, "models": current.get("models", []) if kind == current.get("kind") else []}
+    if kind == "zhipu-coding":
+        result["codingMcpPolicy"] = 2
     if kind.startswith("bedrock-"):
         from .provider_bedrock import validate_bedrock
         result.update(validate_bedrock(params, current))
@@ -215,6 +217,8 @@ def _single_native_config(value: dict, layout: Layout | None = None) -> bytes:
                           ("zread", "https://open.bigmodel.cn/api/mcp/zread/mcp")):
             lines += ["", "[mcp_servers." + quote_toml(name) + "]", "url = " + quote_toml(url),
                       'bearer_token_env_var = "HARNESS_PROVIDER_API_KEY"']
+            if value.get("codingMcpPolicy") == 2:
+                lines.append("enabled = false")
         base = layout.app / "current"
         lines += ["", '[mcp_servers."zai-mcp-server"]', "command = " + quote_toml(str(base / "node/bin/node")),
                   "args = [" + quote_toml(str(base / "app/node_modules/@z_ai/mcp-server/build/index.js")) + "]",
@@ -292,6 +296,8 @@ class ProviderStore:
 
     def prepare(self, settings: dict, *, layered: bool | None = None) -> str:
         from .provider_lifecycle import provider_json
+        from .provider_registry import upgrade_mcp_defaults
+        settings = upgrade_mcp_defaults(settings)
         settings_data = provider_json(settings, "Complete provider settings")
         require(len(canonical(self.public(settings))) <= 1024 * 1024 - 8192,
                 "Provider summaries exceed transport budget; split or reduce the catalog", "catalog_budget")

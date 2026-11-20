@@ -410,3 +410,13 @@ it('requires explicit reset confirmation and keeps unavailable usage distinct fr
   expect(calls.find((call) => call.method === 'memory/reset')?.params).toEqual({ confirm: true });
   expect((await screen.findAllByText('未提供')).length).toBeGreaterThan(0);
 });
+
+it('renders supported, empty and unknown experiment stages without implying a new stage is editable', async () => {
+  const {api} = routed(call => call.method === 'experimentalFeature/list'
+    ? { data:['underDevelopment', '', 'futureStage'].map((stage,i) => ({name:'test'+i, displayName:'Feature '+i,stage,enabled:false,defaultEnabled:false})), nextCursor:null }
+    : configRoute(call));
+  render(<ConfigSettings {...props(api)} project={{...project,id:'stages'}} />);
+  expect(await screen.findByText('开发中 · 已停用')).toBeTruthy();
+  expect(screen.getByText('未提供 · 已停用').closest('article')?.querySelector('button')).toHaveProperty('disabled',true);
+  expect(screen.getByText('未知值（futureStage） · 已停用').closest('article')?.querySelector('button')).toHaveProperty('disabled',true);
+});

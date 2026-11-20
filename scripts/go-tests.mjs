@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { isolatedTestEnvironment } from './test-environment.mjs';
 import { beginTestWorkspace, finishTestWorkspace } from './test-retention.mjs';
@@ -126,15 +126,20 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
     directory = mkdtempSync(path.join(parent, 'run-')); beginTestWorkspace(directory);
     const source = path.join(directory, 'source'); mkdirSync(source);
     for (const name of sourceNames) cpSync(path.join(base, 'deploy/caddy_dns_source', name), path.join(source, name));
-    const cache = path.join(directory, 'modules');
-    let count = 0; let bytes = 0;
-    cpSync(ready.moduleCache, cache, { recursive: true, filter: filename => {
-      const info = lstatSync(filename); count++;
-      if (info.isSymbolicLink() || !info.isDirectory() && (!info.isFile() || info.nlink !== 1)) throw Error('Non-ordinary prepared module cache');
-      if (info.isFile()) bytes += info.size;
-      if (count > 150000 || bytes > 3 * 1024 ** 3 || info.isFile() && info.size > 256 * 1024 ** 2) throw Error('Go module cache copy budget exceeded');
-      return true;
-    } });
+    const cache = ready.moduleCache;
+    let entries = 0, bytes = 0;
+    const remaining = [cache];
+    while (remaining.length) {
+      const filename = remaining.pop(), info = lstatSync(filename);
+      if (info.isSymbolicLink() || !info.isDirectory() && (!info.isFile() || info.nlink !== 1))
+        throw Error('Non-ordinary prepared module cache');
+      if ((process.platform !== 'win32' || info.isFile()) && (info.mode & 0o222))
+        throw Error('Go module cache is not sealed. Re-run prepare-ci-go.py --seal-cache for this checkout.');
+      if (info.isDirectory()) for (const entry of readdirSync(filename)) remaining.push(path.join(filename, entry));
+      else bytes += info.size;
+      if (++entries > 150000 || bytes > 3 * 1024 ** 3 || info.isFile() && info.size > 256 * 1024 ** 2)
+        throw Error('Go module cache inspection budget exceeded');
+    }
     const env = { ...isolatedTestEnvironment(base, inherited), GOTOOLCHAIN: 'local', GOENV: 'off', GOWORK: 'off', GOTELEMETRY: 'off', GOVCS: '*:off', GOAUTH: 'off',
       GOMAXPROCS: '2', GOFLAGS: '-mod=readonly', CGO_ENABLED: '0', GOOS: ready.manifest.platform, GOARCH: 'amd64', GOPROXY: 'off', GOSUMDB: 'off',
       GOPRIVATE: '', GONOPROXY: 'none', GONOSUMDB: 'none', GOPATH: path.join(directory, 'gopath'), GOMODCACHE: cache, GOCACHE: path.join(directory, 'cache') };

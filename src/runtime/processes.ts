@@ -3,11 +3,11 @@ import { DeliveryError, integer, jsonBytes, object, onlyKeys, string, type CallC
 import { validateOfficial } from './validation.js';
 import { windowsProcessJob, type WindowsProcessJob } from './windows-process.js';
 import { windowsPowerShellEnv } from './windows-job.js';
-import { linuxProcessJob } from './linux-process.js';
+import { linuxProcessJob, type LinuxProcessJob } from './linux-process.js';
 import type { MetadataMutation } from './organization.js';
 import type { NativeOptions } from './native.js';
 
-interface Entry { processHandle: string; clientId: string; eventChannelId: string | undefined; cwd: string; tty: boolean; stdin: boolean; status: 'starting' | 'running' | 'exited'; revoked: boolean; dispatched: boolean; stdout: Buffer; stderr: Buffer; stdoutBytes: number; stderrBytes: number; stdoutCapReached: boolean; stderrCapReached: boolean; expiresAt: number; exitCode?: number; job?: WindowsProcessJob; timer?: NodeJS.Timeout; timedOut?: boolean; outputDrainTimedOut?: boolean; started: Promise<void>; startDone(): void; ended: Promise<void>; endDone(): void; stopping?: Promise<void> }
+interface Entry { processHandle: string; clientId: string; eventChannelId: string | undefined; cwd: string; tty: boolean; stdin: boolean; status: 'starting' | 'running' | 'exited'; revoked: boolean; dispatched: boolean; stdout: Buffer; stderr: Buffer; stdoutBytes: number; stderrBytes: number; stdoutCapReached: boolean; stderrCapReached: boolean; expiresAt: number; exitCode?: number; job?: WindowsProcessJob; pipe?: LinuxProcessJob; timer?: NodeJS.Timeout; timedOut?: boolean; outputDrainTimedOut?: boolean; started: Promise<void>; startDone(): void; ended: Promise<void>; endDone(): void; stopping?: Promise<void> }
 interface Host { native(method: string, params: JsonValue, options?: NativeOptions): Promise<JsonValue>; start(operation: MetadataMutation, context: CallContext): Promise<JsonValue>; cwd(value: JsonValue): string; available(): void; emit(data: JsonObject, channel?: string): void; changed(): void; failEpoch(): Promise<void>; rollingOutput?: boolean }
 const owned = (entry: Entry, context: CallContext): boolean => entry.clientId === context.clientId && entry.eventChannelId === context.eventChannelId;
 function base64(value: JsonValue | undefined, max: number): Buffer { const text = string(value, 'deltaBase64', Math.ceil(max / 3) * 4, true); if (text.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(text)) throw new DeliveryError('invalid_params', 'Invalid process byte encoding'); const bytes = Buffer.from(text, 'base64'); if (bytes.length > max || bytes.toString('base64') !== text) throw new DeliveryError('invalid_params', 'Invalid process byte encoding'); return bytes; }
@@ -17,6 +17,7 @@ const delay = (ms: number): Promise<void> => new Promise(resolve => { const time
 export class Processes {
   private entries = new Map<string, Entry>(); private reservedBytes = 0;
   constructor(private host: Host) {}
+  activeRoots(): string[] { return [...new Set([...this.entries.values()].filter(entry => entry.status !== 'exited').map(entry => entry.cwd))]; }
   get active(): number { return [...this.entries.values()].filter(entry => entry.status !== 'exited').length; }
   private remove(entry: Entry): void { if (!this.entries.delete(entry.processHandle)) return; clearTimeout(entry.timer); this.reservedBytes -= entry.stdout.length + entry.stderr.length; entry.job?.dispose(); }
   private collect(): void { for (const entry of this.entries.values()) if (entry.status === 'exited' && entry.expiresAt < Date.now()) this.remove(entry); }
@@ -35,7 +36,18 @@ export class Processes {
     else if (method === 'process/resizePty') { onlyKeys(params, ['processHandle', 'size']); if (!entry.tty) throw new DeliveryError('not_tty', 'This process does not have a terminal'); this.size(params.size); validateOfficial('ProcessResizePtyParams', params); }
     else throw new DeliveryError('method_not_found', 'Unsupported process workflow');
     this.host.available(); let accepted = false;
-    try { const result = await this.host.native(method, params, { beforeWrite: () => { this.owner(entry.processHandle, context); this.host.available(); context.beforeWrite?.(); } }); accepted = true; validateOfficial(method === 'process/writeStdin' ? 'ProcessWriteStdinResponse' : 'ProcessResizePtyResponse', result); if (params.closeStdin === true) entry.stdin = false; return { processHandle: entry.processHandle }; }
+    try {
+      const beforeWrite = () => { this.owner(entry.processHandle, context); this.host.available(); context.beforeWrite?.(); };
+      if (entry.pipe) {
+        if (method === 'process/resizePty') await entry.pipe.control('resize', { size: params.size! }, beforeWrite);
+        else await entry.pipe.control('input', { data: params.deltaBase64 ?? '', close: params.closeStdin === true }, beforeWrite);
+      } else {
+        const result = await this.host.native(method, params, { beforeWrite }); accepted = true;
+        validateOfficial(method === 'process/writeStdin' ? 'ProcessWriteStdinResponse' : 'ProcessResizePtyResponse', result);
+      }
+      if (params.closeStdin === true) entry.stdin = false;
+      return { processHandle: entry.processHandle };
+    }
     catch (error) { if (accepted || !(error instanceof DeliveryError) || error.delivery === 'unknown') { await this.host.failEpoch(); throw new DeliveryError('process_control_unknown', 'Process input/control could not be confirmed; runtime cleanup completed', 'unknown'); } throw error; }
   }
   private size(value: JsonValue | undefined): JsonObject { const size = object(value, 'size'); onlyKeys(size, ['rows', 'cols']); return { rows: integer(size.rows, 'rows', 1, 500), cols: integer(size.cols, 'cols', 1, 500) }; }
@@ -50,7 +62,20 @@ export class Processes {
     let startDone!: () => void, endDone!: () => void; const entry: Entry = { processHandle: randomUUID(), clientId: context.clientId, eventChannelId: context.eventChannelId, cwd, tty, stdin, status: 'starting', revoked: false, dispatched: false, stdout: Buffer.alloc(cap), stderr: Buffer.alloc(cap), stdoutBytes: 0, stderrBytes: 0, stdoutCapReached: false, stderrCapReached: false, expiresAt: Infinity, started: new Promise(resolve => { startDone = resolve; }), startDone: () => startDone(), ended: new Promise(resolve => { endDone = resolve; }), endDone: () => endDone() };
     this.entries.set(entry.processHandle, entry); this.reservedBytes += 2 * cap; this.host.changed();
     try {
-      entry.job = await (process.platform === 'win32' ? windowsProcessJob(command, cwd) : linuxProcessJob(command, cwd)); p.command = entry.job.command;
+      if (process.platform === 'win32') entry.job = await windowsProcessJob(command, cwd);
+      else {
+        const controller = await linuxProcessJob(command, cwd, { tty, stdin, ...(p.size ? { size: object(p.size) } : {}), cap: this.host.rollingOutput ? null : cap },
+          async (bytes, beforeWrite) => {
+            const ack = await this.host.native('process/writeStdin', { processHandle: entry.processHandle, deltaBase64: bytes }, beforeWrite ? { beforeWrite } : {});
+            validateOfficial('ProcessWriteStdinResponse', ack);
+          }, (stream, data, capped) => this.output(entry, stream, data, capped));
+        entry.job = controller;
+        if (controller.transport === 'private-pipe') {
+          entry.pipe = controller;
+          p.tty = false; p.streamStdin = true; p.outputBytesCap = null; delete p.size;
+        }
+      }
+      p.command = entry.job.command;
       const env = { ...(p.env === undefined ? {} : object(p.env)), ...entry.job.env }; p.env = process.platform === 'win32' ? windowsPowerShellEnv(env) : env;
       p.processHandle = entry.processHandle; validateOfficial('ProcessSpawnParams', p);
       await this.host.start({ method: 'process/spawn', params: p, schema: 'ProcessSpawnParams', responseSchema: 'ProcessSpawnResponse', beforeWrite: () => { if (entry.revoked || this.entries.get(entry.processHandle) !== entry) throw new DeliveryError('client_disconnected', 'Process owner disconnected before start'); entry.dispatched = true; } }, context);
@@ -66,7 +91,22 @@ export class Processes {
     if (method !== 'process/outputDelta' && method !== 'process/exited') return false;
     const entry = typeof params.processHandle === 'string' ? this.entries.get(params.processHandle) : undefined; if (!entry) return true;
     if (method === 'process/outputDelta') {
-      validateOfficial('ProcessOutputDeltaNotification', params); const stream = params.stream === 'stdout' ? 'stdout' : 'stderr'; const bytes = base64(params.deltaBase64, 1024 * 1024); const used = stream === 'stdout' ? entry.stdoutBytes : entry.stderrBytes;
+      validateOfficial('ProcessOutputDeltaNotification', params);
+      const stream = params.stream === 'stdout' ? 'stdout' : 'stderr', encoded = string(params.deltaBase64, 'process output', 2 * 1024 * 1024, true);
+      if (entry.pipe) {
+        if (stream === 'stdout') entry.pipe.feed(base64(encoded, 1024 * 1024));
+        // Only the private controller writes stderr. Never publish controller faults as child output.
+      } else this.output(entry, stream, encoded, params.capReached === true);
+    } else {
+      validateOfficial('ProcessExitedNotification', params);
+      if (params.stdout !== '' || params.stderr !== '') throw new Error('Native process duplicated streamed output');
+      entry.pipe?.endNative();
+      void this.finished(entry, params).catch(async () => { try { await this.host.failEpoch(); } catch { /* Runtime.close retains cleanup failure. */ } });
+    }
+    return true;
+  }
+  private output(entry: Entry, stream: 'stdout' | 'stderr', encoded: string, capped: boolean): void {
+      const bytes = base64(encoded, 1024 * 1024), used = stream === 'stdout' ? entry.stdoutBytes : entry.stderrBytes;
       const overflow = used + bytes.length > entry[stream].length;
       if (overflow && !this.host.rollingOutput) throw new Error('Native process exceeded its bounded output cap');
       let retained = used + bytes.length;
@@ -75,14 +115,12 @@ export class Processes {
         entry[stream].copyWithin(0, Math.max(0, used - keep), used);
         bytes.subarray(Math.max(0, bytes.length - entry[stream].length)).copy(entry[stream], Math.min(used, keep)); retained = entry[stream].length;
       } else bytes.copy(entry[stream], used);
-      if (stream === 'stdout') { entry.stdoutBytes = retained; entry.stdoutCapReached ||= overflow || params.capReached === true; } else { entry.stderrBytes = retained; entry.stderrCapReached ||= overflow || params.capReached === true; }
-      if (!entry.revoked) this.host.emit({ clientId: entry.clientId, processHandle: entry.processHandle, type: 'output', stream, deltaBase64: params.deltaBase64!, capReached: params.capReached! }, entry.eventChannelId);
-    } else { validateOfficial('ProcessExitedNotification', params); if (params.stdout !== '' || params.stderr !== '') throw new Error('Native process duplicated streamed output'); void this.finished(entry, params).catch(async () => { try { await this.host.failEpoch(); } catch { /* Runtime.close retains cleanup failure. */ } }); }
-    return true;
+      if (stream === 'stdout') { entry.stdoutBytes = retained; entry.stdoutCapReached ||= overflow || capped; } else { entry.stderrBytes = retained; entry.stderrCapReached ||= overflow || capped; }
+      if (!entry.revoked) this.host.emit({ clientId: entry.clientId, processHandle: entry.processHandle, type: 'output', stream, deltaBase64: encoded, capReached: capped }, entry.eventChannelId);
   }
   private async finished(entry: Entry, params: JsonObject): Promise<void> {
     const exitCode = entry.job ? await entry.job.exited : integer(params.exitCode, 'exitCode', -2147483648, 2147483647); if (entry.job && params.exitCode !== 0) throw new Error('Process controller exited without confirmed cleanup');
-    if (this.entries.get(entry.processHandle) !== entry) return; clearTimeout(entry.timer); entry.exitCode = exitCode; entry.outputDrainTimedOut = params.outputDrainTimedOut === true; entry.status = 'exited'; entry.expiresAt = Date.now() + 600000; entry.timer = setTimeout(() => this.remove(entry), 600000); entry.timer.unref(); entry.stdoutCapReached ||= params.stdoutCapReached === true; entry.stderrCapReached ||= params.stderrCapReached === true; entry.job?.dispose(); entry.endDone(); this.host.changed();
+    if (this.entries.get(entry.processHandle) !== entry) return; clearTimeout(entry.timer); entry.exitCode = exitCode; entry.outputDrainTimedOut = entry.pipe?.drainTimedOut === true || params.outputDrainTimedOut === true; entry.status = 'exited'; entry.expiresAt = Date.now() + 600000; entry.timer = setTimeout(() => this.remove(entry), 600000); entry.timer.unref(); entry.stdoutCapReached ||= params.stdoutCapReached === true; entry.stderrCapReached ||= params.stderrCapReached === true; entry.job?.dispose(); entry.endDone(); this.host.changed();
     if (!entry.revoked) this.host.emit({ ...this.summary(entry), clientId: entry.clientId, type: 'exit' }, entry.eventChannelId); else this.remove(entry);
   }
   private stop(entry: Entry): Promise<void> {

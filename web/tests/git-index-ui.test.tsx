@@ -146,7 +146,7 @@ it('does not infer deletions from metadata failures or use a changed index previ
   const view = render(<WorkspaceIndex {...props(first.api)} />);
   fireEvent.click(screen.getByRole('checkbox', { name: '选择 changed.txt' }));
   fireEvent.click(screen.getByRole('button', { name: '核对并暂存所选文件' }));
-  await screen.findByText('cannot inspect');
+  await screen.findByText('工作区操作失败，请查看原操作记录并核对其送达状态。');
   expect(screen.queryByRole('button', { name: '确认暂存所选版本' })).toBeNull();
   view.unmount();
   let reads = 0;
@@ -281,4 +281,11 @@ it('does not discard failed records or permit index mutations while the runtime 
       .disabled,
   ).toBe(true);
   expect(calls.some((call) => call.operationId)).toBe(false);
+});
+
+it.each([['published','已写入索引'], ['', '未提供'], ['futurePhase','未知值（futurePhase）']])('labels the native index recovery phase %s', async (phase, label) => {
+  const {api}=setup(call=>call.method==='workspace/git/index/recovery/read' ? {...record, state:'running', phase} : undefined);
+  render(<WorkspaceIndexRecovery {...recovery(api)} />);
+  await selectBackup();
+  expect(await screen.findByText('本地状态：正在执行 · 阶段：'+label)).toBeTruthy();
 });

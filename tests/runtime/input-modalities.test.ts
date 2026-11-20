@@ -18,3 +18,13 @@ test('a match on an incomplete or looping catalog page is insufficient evidence'
   await expect(validateInputModalities(async () => ({ data: [row(['text', 'image', 'audio'])], nextCursor: 'same' }), 'catalog-id', input)).rejects.toMatchObject({ code: 'model_capability_unknown' });
   let count = 0; await expect(validateInputModalities(async () => ({ data: count++ ? [] : [row(['text', 'image', 'audio'])], nextCursor: String(count) }), 'catalog-id', input)).rejects.toMatchObject({ code: 'model_capability_unknown' }); expect(count).toBe(32);
 });
+
+test('pre-send errors identify catalog failures and unsupported inputs without suggesting a tool was called', async () => {
+  const validate = (data: JsonValue, media: JsonValue = input) => validateInputModalities(async () => data, 'catalog-id', media);
+  await expect(validateInputModalities(async () => { throw new Error('upstream detail'); }, 'catalog-id', input))
+    .rejects.toMatchObject({ message: expect.stringContaining('媒体尚未发送。当前无法读取供应商的原生模型目录'), delivery: 'not_sent' });
+  await expect(validate({ data: [], nextCursor: null })).rejects.toMatchObject({ message: expect.stringContaining('原生目录中没有本次实际使用的模型') });
+  await expect(validate({ data: [row(['text'])], nextCursor: 'x'.repeat(4097) })).rejects.toMatchObject({ message: expect.stringContaining('无效的分页位置') });
+  await expect(validate({ data: [row(['text'])], nextCursor: null })).rejects.toMatchObject({ message: expect.stringContaining('图片输入'), delivery: 'not_sent' });
+  await expect(validate({ data: [row(['text', 'image'])], nextCursor: null })).rejects.toMatchObject({ message: expect.stringContaining('音频输入'), delivery: 'not_sent' });
+});

@@ -30,7 +30,7 @@ test('share mutations require a fresh existing remote identity and distinct prin
 test('feedback validates conversation scope, explicit logs and fixed unique destination', async () => {
   // Minimal native result is supplied by the fixture schema helper below.
   const { nativeThread } = await import('./fixture-values.js');
-  const feedback = new Feedback(async () => ({ thread: nativeThread({ id: 'thread', cwd: '/project' }) })); const context = { clientId: 'owner', operationId: randomUUID() };
+  const feedback = new Feedback(async () => ({ thread: nativeThread({ id: 'thread', cwd: '/project' }) }), async () => ({ directory: '/project/.harness-feedback' })); const context = { clientId: 'owner', operationId: randomUUID() };
   const params = { cwd: '/project', threadId: 'thread', classification: 'bug', reason: 'Private feedback body', includeLogs: false, confirm: true }; let written: JsonObject | undefined;
   const write = async (_method: string, body: JsonValue) => { written = object(body); return { savedPath: written.savePath!, threadId: 'thread', promptHash: null }; };
   await expect(feedback.submit('feedback/save', { ...params, savePath: '/secret' }, context, write)).rejects.toHaveProperty('delivery', 'not_sent');

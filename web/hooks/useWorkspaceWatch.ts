@@ -24,10 +24,14 @@ export function useWorkspaceWatch(
   callback.current = onChanged;
   const paths = [...new Set([scope.directory, ...(scope.file ? [scope.file] : [])])],
     key = JSON.stringify([scope.projectId, scope.epoch, paths, scope.enabled, scope.connected]);
+  const owner = JSON.stringify([scope.projectId, scope.epoch, paths]);
+  const baseline = useRef<{ api: Api; owner: string; values: Map<string, string> } | undefined>(undefined);
   useEffect(() => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const observed = new Map<string, string>();
+    if (baseline.current?.owner !== owner || baseline.current?.api !== api)
+      baseline.current = { api, owner, values: new Map() };
+    const observed = baseline.current.values;
     if (!scope.enabled || !scope.connected || !visible) return;
     const read = async () => {
       let pending: Promise<readonly [string, string]>[] = [];
@@ -59,7 +63,7 @@ export function useWorkspaceWatch(
           .filter(([path, revision]) => observed.has(path) && observed.get(path) !== revision)
           .map(([path]) => path);
         latest.forEach(([path, revision]) => observed.set(path, revision));
-        setState({ key, error: '', checkedAt: Date.now() });
+        setState(old => old?.key === key && !old.error && !changed.length ? old : { key, error: '', checkedAt: Date.now() });
         if (changed.length) callback.current(changed);
       } catch (e) {
         if (!controller.signal.aborted)
@@ -80,7 +84,7 @@ export function useWorkspaceWatch(
       controller.abort();
       clearTimeout(timer);
     };
-  }, [api, key, visible]);
+  }, [api, key, owner, visible]);
   return {
     active: scope.enabled && scope.connected,
     error: state?.key === key ? state.error : '',

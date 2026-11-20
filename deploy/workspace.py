@@ -1,30 +1,34 @@
 """Versioned native-UID workspace operations; never a shell or root Git bridge."""
 from __future__ import annotations
 
+import hashlib
 import base64
 import json
 import os
+import re
 import signal
 import stat
 import sys
 from pathlib import Path
 
 from .common import DeployError, Layout, canonical, digest, require
-from .workspace_paths import MAX_ENTRIES, MAX_FILE, RESERVED, Root, read_file, relative, rename_absent, revision, valid_revision
+from .workspace_paths import MAX_ENTRIES, MAX_FILE, MAX_TRANSFER, copy_slot, transfer_file, RESERVED, Root, read_file, relative, rename_absent, revision, valid_revision
 from .workspace_store import Record, Store, operation_id, write_new
 from .workspace_index import FIELDS as INDEX_FIELDS
 
 MAX_INPUT = 1024 * 1024
 MAX_OUTPUT = 2 * 1024 * 1024
-MAX_DOWNLOAD = 8 * 1024 * 1024
-READS = {"list", "read", "download", "search", "metadata", "git/status", "git/diff", "git/refs", "operation/read", "recovery/list", "recovery/read", "worktree/read", "resource/skill/read", "resource/directory/resolve", "resource/plugin/preview"}
+MAX_DOWNLOAD = MAX_TRANSFER
+READS = {"worktree/reconcile-retire-info", "worktree/reconcile-retire", "worktree/reconcile-create", "feedback/path", "list", "read", "download", "search", "metadata", "git/status", "git/diff", "git/refs", "operation/read", "recovery/list", "recovery/read", "worktree/read", "resource/skill/read", "resource/directory/resolve", "resource/plugin/preview"}
 WRITES = {"write", "mkdir", "copy", "remove", "git/commit", "recovery/restore", "recovery/discard", "worktree/create", "worktree/attach", "worktree/archive", "worktree/restore", "worktree/retire"}
 READS |= {"git/index/recovery/list", "git/index/recovery/read"}
 # Internal supervisor housekeeping. It is deliberately absent from public RPC
 # methods; an acknowledgement does not return or attest an operation result.
-READS |= {"operation/ack"}
+READS |= {"operation/ack", "repository/identity", "project/trust-roots", "mcp/enabled-read", "mcp/enabled-override"}
 WRITES |= {"git/stage", "git/unstage", "git/index/recovery/restore", "git/index/recovery/discard"}
-FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevision"}, "metadata": {"path"}, "write": {"path", "text", "expectedRevision"},
+FIELDS = {"worktree/reconcile-retire-info": {"operationId", "requestDigest"},
+          "worktree/reconcile-retire": {"operationId", "requestDigest", "worktreeId", "expectedRevision", "confirm"},
+          "worktree/reconcile-create": {"operationId", "requestDigest"}, "feedback/path": set(), "list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevision"}, "metadata": {"path"}, "write": {"path", "text", "expectedRevision"},
           "search": {"path", "query", "mode", "caseSensitive", "limit", "excludeNames"},
           "mkdir": {"path"}, "copy": {"path", "destination", "expectedRevision"},
           "remove": {"path", "expectedRevision", "confirm", "recursive"}, "git/status": set(), "git/diff": {"staged"},
@@ -35,15 +39,22 @@ FIELDS = {"list": {"path"}, "read": {"path"}, "download": {"path", "expectedRevi
           "worktree/attach": {"worktreeId", "expectedRevision"}, "worktree/archive": {"worktreeId", "expectedRevision", "confirm"},
           "worktree/restore": {"worktreeId", "expectedRevision", "confirm"}, "worktree/retire": {"worktreeId", "expectedRevision", "confirm"}, "resource/skill/read": {"path"}, "resource/directory/resolve": {"path"}, "resource/plugin/preview": {"path"}}
 FIELDS.update(INDEX_FIELDS)
+FIELDS["repository/identity"] = set()
+FIELDS["project/trust-roots"] = set()
+FIELDS["mcp/enabled-override"] = {"name", "enabled", "expectedVersion", "expectedFlags"}
+FIELDS["mcp/enabled-read"] = set()
 FIELDS["operation/ack"] = {"operationId", "requestDigest"}
 
 
 def validate(value: object) -> dict:
-    require(isinstance(value, dict) and not set(value) - {"version", "action", "root", "params", "operationId", "binding"} and
+    require(isinstance(value, dict) and not set(value) - {"version", "action", "root", "params", "operationId", "binding", "repositoryIdentity"} and
             type(value.get("version")) is int and value["version"] == 1, "Invalid workspace envelope")
     action, params = value.get("action"), value.get("params", {})
     require(isinstance(action, str) and action in READS | WRITES and isinstance(params, dict), "Unsupported workspace action")
     require(not set(params) - FIELDS[action], "Unsupported workspace field")
+    if "repositoryIdentity" in value:
+        require((action in WRITES and action.startswith(("git/", "worktree/"))) or action == "worktree/reconcile-retire", "Unexpected repository identity")
+        valid_revision(value["repositoryIdentity"])
     if action in WRITES:
         operation_id(value.get("operationId"))
     else:
@@ -68,6 +79,14 @@ def validate(value: object) -> dict:
                 "Removal requires explicit confirmation and recursive:false; only files and empty directories are supported")
     if action == "operation/read":
         operation_id(params.get("operationId"))
+    if action == "mcp/enabled-override":
+        require(set(params) == FIELDS[action] and isinstance(params["name"], str) and
+                0 < len(params["name"].encode()) <= 128 and all(ord(c) >= 32 and ord(c) != 127 for c in params["name"])
+                and isinstance(params["expectedFlags"], str) and re.fullmatch(r"sha256:[a-f0-9]{64}", params["expectedFlags"]), "Invalid MCP enable override")
+        require(params["enabled"] is None or type(params["enabled"]) is bool, "Expected an enable switch or null to inherit")
+        version = params["expectedVersion"]
+        require(version is None or isinstance(version, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", version),
+                "Expected the current native user configuration version")
     if action == "operation/ack":
         require(set(params) == FIELDS[action], "Invalid workspace acknowledgement fields")
         operation_id(params.get("operationId"))
@@ -103,7 +122,17 @@ def validate(value: object) -> dict:
         validate_search(params)
     if action.startswith("worktree/"):
         from .workspace_worktrees import ref, validate_binding
-        if action == "worktree/create":
+        if action == "worktree/reconcile-retire":
+            operation_id(params.get("operationId"))
+            valid_revision(params.get("requestDigest"))
+            valid_revision(params.get("expectedRevision"))
+            validate_binding(value.get("binding"), operation_id(params.get("worktreeId")), value.get("root"))
+            require(params.get("confirm") is True, "Retirement requires prior explicit confirmation")
+        elif action in ("worktree/reconcile-create", "worktree/reconcile-retire-info"):
+            operation_id(params.get("operationId"))
+            valid_revision(params.get("requestDigest"))
+            require("binding" not in value, "Reconciliation uses the original creation record")
+        elif action == "worktree/create":
             ref(params.get("ref"))
             require("binding" not in value, "New worktrees cannot import a caller binding")
         else:
@@ -138,10 +167,15 @@ class Workspace:
             return {"path": path, "kind": "directory", "revision": revision(info)}
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Unsupported workspace file type or hardlink", "unsafe_path")
         if info.st_size > MAX_DOWNLOAD:
-            return {"path": path, "kind": "file", "bytes": info.st_size, "editable": False, "downloadable": False, "copyable": False, "removable": False, "reason": "file_too_large", "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_FILE, "downloadBytes": MAX_DOWNLOAD}}
-        data, info = self.root.file(path, MAX_DOWNLOAD)
-        result = {"path": path, "kind": "file", "bytes": len(data), "revision": revision(info, data), "downloadable": True, "copyable": len(data) <= MAX_FILE, "removable": len(data) <= MAX_FILE, "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_FILE, "downloadBytes": MAX_DOWNLOAD}}
-        return {**result, "editable": False, "reason": "preview_too_large"} if len(data) > MAX_FILE else result
+            return {"path": path, "kind": "file", "bytes": info.st_size, "editable": False, "downloadable": False, "copyable": False, "removable": False, "reason": "file_too_large", "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_TRANSFER, "downloadBytes": MAX_DOWNLOAD}}
+        with self.root.parent(path) as (parent, name):
+            fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+            try:
+                info, sha = transfer_file(fd)
+            finally:
+                os.close(fd)
+        result = {"path": path, "kind": "file", "bytes": info.st_size, "revision": revision(info, sha256=sha), "downloadable": True, "copyable": True, "removable": True, "limits": {"editBytes": MAX_FILE, "copyRemoveBytes": MAX_TRANSFER, "downloadBytes": MAX_DOWNLOAD}}
+        return {**result, "editable": False, "reason": "preview_too_large"} if info.st_size > MAX_FILE else result
 
     def read(self, action: str, params: dict) -> dict:
         if action.startswith("recovery/"):
@@ -196,8 +230,7 @@ class Workspace:
                 require(next(children, None) is None and revision(os.fstat(directory)) == expected,
                         "Directory changed or is not empty", "conflict")
         else:
-            data, info = self.root.file(path)
-            require(revision(info, data) == expected, "Workspace file changed before mutation", "conflict")
+            require(self.metadata(path).get("revision") == expected, "Workspace file changed before mutation", "conflict")
         with self.root.parent(path) as (parent, name):
             record.side_effects = True
             rename_absent(parent, name, record.fd, "before")
@@ -211,8 +244,8 @@ class Workspace:
                         require(next(children, None) is None, "Directory is not empty", "conflict")
                     actual = revision(os.fstat(fd))
                 else:
-                    data, info = read_file(fd)
-                    actual = revision(info, data)
+                    info, sha = transfer_file(fd)
+                    actual = revision(info, sha256=sha)
                 require(actual == expected, "Workspace file changed before mutation", "conflict")
             except Exception:
                 # Restore only if no writer filled the old path in the meantime.
@@ -243,10 +276,13 @@ class Workspace:
             self.capture(record, path, params["expectedRevision"], empty_directory=empty_directory)
             return {"path": path, "removed": True, "recoveryOperationId": record.identity}
         if action == "copy":
-            data, info = self.root.file(path)
-            require(revision(info, data) == params["expectedRevision"], "Copy source changed", "conflict")
             destination = params["destination"]
-            mode = stat.S_IMODE(info.st_mode) & 0o777
+            with self.root.parent(path) as (parent, name):
+                fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+                try:
+                    written, sha = copy_slot(fd, record.fd, stat.S_IMODE(os.fstat(fd).st_mode) & 0o777, params["expectedRevision"])
+                finally:
+                    os.close(fd)
         else:
             data, destination = params["text"].encode(), path
             mode = 0o600
@@ -254,7 +290,8 @@ class Workspace:
                 previous, info = self.root.file(path)
                 require(revision(info, previous) == params["expectedRevision"], "Workspace file changed before mutation", "conflict")
                 mode = stat.S_IMODE(info.st_mode) & 0o777
-        written = write_new(record.fd, "next", data, mode)
+            written = write_new(record.fd, "next", data, mode)
+            sha = hashlib.sha256(data).hexdigest()
         if action == "write" and params["expectedRevision"] is not None:
             self.capture(record, path, params["expectedRevision"])
         with self.root.parent(destination) as (parent, name):
@@ -268,19 +305,52 @@ class Workspace:
                     record.side_effects = True
                 raise
             record.side_effects = True
-        return {"path": destination, "revision": revision(written, data), "bytes": len(data), "recoveryOperationId": record.identity}
+        return {"path": destination, "revision": revision(written, sha256=sha), "bytes": written.st_size, "recoveryOperationId": record.identity}
 
-    def dispatch(self, request: dict) -> dict:
+    def dispatch(self, request: dict, *, existing_only=False) -> dict:
         action, params = request["action"], request["params"]
+        if "repositoryIdentity" in request or action == "repository/identity":
+            from .workspace_repository_identity import repository_identity
+            identity = repository_identity(self)
+            if action == "repository/identity":
+                return {"ok": True, "result": {"identity": identity}}
+            require(identity == request["repositoryIdentity"], "Repository changed after admission", "conflict")
         if action in READS:
+            if action == "project/trust-roots":
+                from .workspace_resources import trust_roots
+                return {"ok": True, "result": trust_roots(self.root, self.forbidden)}
+            if action == "feedback/path":
+                from .workspace_resources import feedback_directory
+                return {"ok": True, "result": feedback_directory(self.root)}
+            if action == "worktree/reconcile-retire-info":
+                from .workspace_worktrees import retire_info
+                return {"ok": True, "result": retire_info(self, params)}
+            if action == "worktree/reconcile-retire":
+                original = {**request, "action": "worktree/retire", "params": {key: params[key] for key in ("worktreeId", "expectedRevision", "confirm")}}
+                require(digest(original) == params["requestDigest"], "Retirement request digest differs", "operation_conflict")
+                response = self.dispatch({**original, "operationId": params["operationId"]}, existing_only=True)
+                return {"ok": True, "result": {**self.store.read(params["operationId"]), "response": response}}
+            if action == "worktree/reconcile-create":
+                from .workspace_worktrees import reconcile_creation
+                return {"ok": True, "result": reconcile_creation(self, params)}
             if action == "worktree/read":
                 from .workspace_worktrees import run
                 return {"ok": True, "result": run(self, request, None)}
             return {"ok": True, "result": self.read(action, params)}
         request_digest = digest({key: value for key, value in request.items() if key != "operationId"})
         reserve_bytes = 16384 if action in ("recovery/discard", "git/index/recovery/discard") else 2 * MAX_FILE + 16384
+        if action in ("copy", "remove"):
+            reserve_bytes = lambda: self.metadata(params["path"]).get("bytes", 0) + 16384
+        if action == "recovery/restore":
+            def restore_budget():
+                from .workspace_recovery import retained, payload
+                with retained(self, params["recoveryOperationId"]) as directory:
+                    entry, _, _ = payload(directory, params["slot"])
+                previous = self.metadata(params["path"]) if params["expectedRevision"] is not None else {}
+                return entry.get("bytes", 0) + previous.get("bytes", 0) + 16384
+            reserve_bytes = restore_budget
         with self.store.mutation(request["operationId"], request_digest, reserve_bytes=reserve_bytes,
-                                 maintenance=action in ("recovery/discard", "git/index/recovery/discard")) as record:
+                                 maintenance=action in ("recovery/discard", "git/index/recovery/discard"), resume_retire=action == "worktree/retire", existing_only=existing_only) as record:
             if isinstance(record, dict):
                 return record
             self.dispatched = True
@@ -302,17 +372,15 @@ class Workspace:
 
 
 def failure(exc: Exception, *, dispatched: bool) -> dict:
-    if isinstance(exc, DeployError):
-        code, message = exc.code, str(exc)
-    elif isinstance(exc, FileNotFoundError):
-        code, message = "not_found", "Workspace resource does not exist"
-    else:
-        code, message = "workspace_error", "Workspace operation failed"
-    return {"ok": False, "error": {"code": code, "message": message, "delivery": getattr(exc, "delivery", "unknown" if dispatched else "not_sent")}}
+    from .workspace_errors import FALLBACK, MESSAGES, error_code
+    code = error_code(exc)
+    return {"ok": False, "error": {"code": code, "message": MESSAGES.get(code, FALLBACK),
+                                   "delivery": getattr(exc, "delivery", "unknown" if dispatched else "not_sent")}}
 
 
 def workspace_main(layout: Layout, settings: dict) -> None:
     root = workspace = None
+    writing_override = False
     output_limit = MAX_OUTPUT
     def interrupted(signum, frame):
         raise DeployError("interrupted", "Workspace helper was interrupted; read the original operation")
@@ -329,7 +397,14 @@ def workspace_main(layout: Layout, settings: dict) -> None:
             signal.alarm(75)
         forbidden = blocked_paths(layout, settings)
         root = Root(request.get("root"), forbidden)
-        if request["action"].startswith("resource/"):
+        if request["action"] == "mcp/enabled-read":
+            from .mcp_enabled_override import read
+            response = {"ok": True, "result": read(Path(settings["home"]))}
+        elif request["action"] == "mcp/enabled-override":
+            from .mcp_enabled_override import apply
+            writing_override = True
+            response = {"ok": True, "result": apply(Path(settings["home"]), request["params"])}
+        elif request["action"].startswith("resource/"):
             from .workspace_resources import run
             response = {"ok": True, "result": run(root, request, layout, settings, forbidden)}
         else:
@@ -337,7 +412,7 @@ def workspace_main(layout: Layout, settings: dict) -> None:
             response = workspace.dispatch(request)
         require(len(canonical(response)) + 1 <= output_limit, "Workspace result exceeds byte budget", "budget")
     except Exception as exc:
-        response = failure(exc, dispatched=workspace is not None and workspace.dispatched)
+        response = failure(exc, dispatched=writing_override or workspace is not None and workspace.dispatched)
     finally:
         signal.alarm(0)
         if root is not None:

@@ -1,3 +1,5 @@
+import { QueueHandoffOriginals } from './QueueHandoffOriginals';
+import { ConfirmAction } from './ConfirmAction';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Api } from '../lib/api';
 import type { Events } from '../lib/events';
@@ -10,6 +12,7 @@ import {
   attachmentLabels,
   queuedText,
   type QueuedSubmission,
+  type QueueHandoff,
   type ThreadGoal,
 } from '../lib/workflows';
 import { Dialog } from './Dialog';
@@ -20,6 +23,7 @@ type Props = {
   epoch: string;
   enabled: boolean;
   active: boolean;
+  queueManagementEnabled?: boolean;
   events: Events;
   onOpenThread: (id: string) => void;
   onChanged: () => void;
@@ -56,6 +60,9 @@ function QueueEntry({
   onCancel,
   onEdit,
   onDelete,
+  manageDisabled,
+  onSaveCopy,
+  onReroute,
   onMove,
   onStart,
 }: {
@@ -70,6 +77,9 @@ function QueueEntry({
   onDraft: (text: string) => void;
   onCancel: () => void;
   onEdit: () => void;
+  manageDisabled: boolean;
+  onSaveCopy: () => void;
+  onReroute: () => void;
   onDelete: () => void;
   onMove: (offset: number) => void;
   onStart: () => void;
@@ -112,7 +122,7 @@ function QueueEntry({
               <button
                 className="button primary small"
                 disabled={
-                  disabled || (!draft.text.trim() && !attachments.length && !retainedContext)
+                  disabled || (!draft.text.trim() && !attachments.length && !retainedContext && !entry.containsMedia)
                 }
               >
                 保存修改
@@ -128,11 +138,13 @@ function QueueEntry({
           <p className="queue-text">
             {queuedText(entry) || (retainedContext ? '仅引用或补充上下文' : '仅附件消息')}
           </p>
+          {entry.metadataOnly && <p className="small muted">队列较大，仅显示摘要 · 编号 {entry.id} · {((entry.bytes ?? 0) / 1048576).toFixed(2)} MiB。
+            {entry.incomplete ? '此项内容无法完整核对，可按编号确认删除。' : '编辑前会单独读取此待办。'}</p>}
           {attachments.length > 0 && <p className="small muted">附件：{attachments.join('、')}</p>}
           <div className="inline wrap">
             <button
               className="button small"
-              disabled={disabled}
+              disabled={disabled || entry.incomplete}
               onClick={() => onDraft(queuedText(entry))}
             >
               编辑
@@ -153,12 +165,18 @@ function QueueEntry({
             >
               ↓ 下移
             </button>
-            <button className="button small" disabled={disabled || active} onClick={onStart}>
+            <button className="button small" disabled={disabled || active || entry.incomplete} onClick={onStart}>
               立即执行此条
             </button>
-            <button className="button danger small" disabled={disabled} title={`删除待办 ${index + 1}，不撤销已执行的任务或文件修改`} onClick={onDelete}>
-              删除
-            </button>
+            {(attachments.length > 0 || entry.metadataOnly && !entry.incomplete) && <>
+              {(entry.metadataOnly || entry.input.some(item => item.type === 'image')) && <p className="small muted">若旧待办缺少原上传的对应记录，保存副本或重存时只能使用原生队列保留的图片，尺寸可能与原图不同。</p>}
+              <button className="button small" disabled={manageDisabled} onClick={onSaveCopy}>保存用于换模型的副本</button>
+              <ConfirmAction className="button small" label="按当前模型重存媒体" disabled={disabled}
+                confirmation="确认重存此待办（空闲时可能立即执行）" onConfirm={onReroute} />
+            </>}
+            <ConfirmAction key={JSON.stringify([entry.id, entry.clientUserMessageId, queuedText(entry), attachments, index])}
+              className="button danger small" label="删除" disabled={manageDisabled} onConfirm={onDelete}
+              confirmation={`确认删除待办 ${index + 1}：${queuedText(entry).slice(0, 32) || '附件消息'}`} />
           </div>
         </>
       )}
@@ -169,14 +187,20 @@ function QueuePanel(props: PanelProps) {
   const queue = usePaged<QueuedSubmission>(
     props.api,
     'thread/queue/list',
-    { threadId: props.threadId },
+    { threadId: props.threadId, view: 'summary' },
     props.resourceKey,
     props.visible,
   );
-  const action = useWorkflow(props.api, props.threadId, props.enabled && props.visible, () => {
-    queue.refresh();
+  const [showHandoffs, setShowHandoffs] = useState(false);
+  const handoffs = useResource(props.resourceKey, signal => props.api.call<{ data: QueueHandoff[]; movedSources?: { id: string; queuedSubmissionId: string; count: number }[] }>(
+    'thread/queue/handoff/list', { threadId: props.threadId }, signal), props.visible && showHandoffs);
+  const action = useWorkflow(props.api, props.threadId, (props.queueManagementEnabled ?? props.enabled) && props.visible, () => {
+    queue.refresh(); handoffs.refresh();
     props.onChanged();
   });
+  const currentOwner = useRef(props.resourceKey);
+  currentOwner.current = props.resourceKey;
+  useEffect(() => { currentOwner.current = props.resourceKey; return () => { currentOwner.current = ''; }; }, [props.resourceKey]);
   const drafts = useRef(new Map<string, QueueDraft>()),
     pending = useRef('');
   const [, renderDrafts] = useState(0),
@@ -202,6 +226,19 @@ function QueuePanel(props: PanelProps) {
     setDraftError('');
     renderDrafts((value) => value + 1);
   };
+  const loadDraft = async (entry: QueuedSubmission) => {
+    if (!entry.metadataOnly) { changeDraft(entry.id, queuedText(entry)); return; }
+    const owner = props.resourceKey;
+    try {
+      const page = await props.api.call<{ data: QueuedSubmission[] }>('thread/queue/list', { threadId: props.threadId, queuedSubmissionId: entry.id, view: 'summary' });
+      if (currentOwner.current !== owner) return;
+      const detail = page.data.find(row => row.id === entry.id && !row.metadataOnly);
+      if (!detail) throw new Error('无法核对所选待办。');
+      if (!drafts.current.has(entry.id)) changeDraft(entry.id, queuedText(detail));
+    } catch (error) {
+      if (currentOwner.current === owner) setDraftError(error instanceof Error ? error.message : '完整待办读取失败。');
+    }
+  };
   const discard = (id: string) => {
     if (pending.current === id) return;
     drafts.current.delete(id);
@@ -209,11 +246,12 @@ function QueuePanel(props: PanelProps) {
     renderDrafts((value) => value + 1);
   };
   const mutate = (method: string, params: Record<string, unknown>) =>
-    ready && !pending.current
+    ready && !pending.current && (props.enabled || ['handoff/save', 'handoff/discard', 'delete'].includes(method))
       ? action.run(
           `thread/queue/${method}`,
           { threadId: props.threadId, ...params },
-          method === 'start' ? '执行请求已受理，请在会话中查看实际进展。' : '队列修改已受理。',
+          method === 'start' ? '执行请求已受理，请在会话中查看实际进展。' : method === 'handoff/save' ? '副本已保存，请核对原待办后再决定是否删除。' :
+            method === 'handoff/restore' ? '恢复已受理，可在队列或会话中查看进度。' : '操作回执已收到，正在刷新队列。',
         )
       : Promise.resolve(undefined);
   const saveDraft = async (entry: QueuedSubmission) => {
@@ -225,6 +263,7 @@ function QueuePanel(props: PanelProps) {
       !submitted ||
       (!submitted.text.trim() &&
         !entry.attachments?.length &&
+        !entry.containsMedia &&
         !attachmentLabels(entry.input).length &&
         entry.hasOpaqueInput !== true)
     )
@@ -259,7 +298,7 @@ function QueuePanel(props: PanelProps) {
     <section className="stack">
       <div className="section-heading">
         <h3>持久消息队列</h3>
-        <button className="button small" disabled={queue.loading} onClick={queue.refresh}>
+        <button className="button small" disabled={queue.loading} onClick={() => { queue.refresh(); handoffs.refresh(); }}>
           刷新队列
         </button>
       </div>
@@ -293,9 +332,12 @@ function QueuePanel(props: PanelProps) {
             index={index}
             length={queue.items.length}
             active={props.active}
-            disabled={!ready || action.disabled || Boolean(savingId)}
+            disabled={!props.enabled || !ready || action.disabled || Boolean(savingId)}
+            manageDisabled={!ready || action.disabled || Boolean(savingId)}
+            onSaveCopy={() => { setShowHandoffs(true); void mutate('handoff/save', { queuedSubmissionId: entry.id }); }}
+            onReroute={() => void mutate('update', { queuedSubmissionId: entry.id })}
             canReorder={!queue.hasMore && queue.items.length <= 100}
-            onDraft={(text) => changeDraft(entry.id, text)}
+            onDraft={(text) => drafts.current.has(entry.id) ? changeDraft(entry.id, text) : void loadDraft(entry)}
             onCancel={() => discard(entry.id)}
             onEdit={() => void saveDraft(entry)}
             onDelete={() => void mutate('delete', { queuedSubmissionId: entry.id })}
@@ -304,6 +346,29 @@ function QueuePanel(props: PanelProps) {
           />
         ))}
       </ol>
+      <button className="button small" aria-expanded={showHandoffs} onClick={() => setShowHandoffs(!showHandoffs)}>{showHandoffs ? '收起待办副本' : '查看待办副本'}</button>
+      {showHandoffs && !handoffs.loading && !handoffs.error && !(handoffs.data?.data ?? []).length && !handoffs.data?.movedSources?.length && <p className="small muted">此会话没有待办副本。</p>}
+      {handoffs.error && <p className="error" role="alert">待办副本读取失败：{handoffs.error}</p>}
+      {(handoffs.data?.movedSources ?? []).map(source => <section className="info-card stack" key={source.id}>
+        <strong>已转移待办 {source.queuedSubmissionId} 的候选原件</strong>
+        <QueueHandoffOriginals key={props.resourceKey + source.id} api={props.api} threadId={props.threadId} handoffId={source.id} count={source.count} scope={props.resourceKey} />
+      </section>)}
+      {(handoffs.data?.data ?? []).map(copy => <section className="info-card stack" key={copy.id}>
+        <strong>待办 {copy.queuedSubmissionId} 的副本（{copy.attachmentCount} 个受管附件）</strong>
+        <p>{copy.state === 'saved' ? '副本已保存。只有原待办的删除获得肯定回执，才能恢复；原待办也可能已自行执行。' :
+          copy.state === 'ready' ? '原待办已确认删除。可切换模型后从此副本重新加入队列；空闲时可能立即执行。' :
+          copy.state === 'restoring' ? '恢复结果待核对。请在操作记录中查询原回执。' : '这份副本的恢复已受理。'}</p>
+        {Boolean(copy.nativeSavedImages) && <p className="small muted">其中 {copy.nativeSavedImages} 张使用原生队列实际保留的图片。原上传的尺寸和编码无法核实。</p>}
+        {!!copy.sourceCandidateCount && <QueueHandoffOriginals key={props.resourceKey + copy.id} api={props.api} threadId={props.threadId} handoffId={copy.id} count={copy.sourceCandidateCount} scope={props.resourceKey} />}
+        {copy.requiresSameProvider && <p className="small muted">含原客户端的私有元数据，仅可在同一供应商恢复。</p>}
+        {copy.operationId && <span className="small muted">恢复操作 {copy.operationId}</span>}
+        <div className="inline wrap">
+          {copy.state === 'ready' && <ConfirmAction label="按当前模型恢复待办" confirmation="确认加入队列（空闲时可能立即执行）"
+            className="button primary small" disabled={!props.enabled || !ready || action.disabled} onConfirm={() => void mutate('handoff/restore', { handoffId: copy.id })} />}
+          {copy.state !== 'restoring' && <ConfirmAction label="移除副本" confirmation="确认移除此副本"
+            disabled={!ready || action.disabled} onConfirm={() => void mutate('handoff/discard', { handoffId: copy.id })} />}
+        </div>
+      </section>)}
       {missingDrafts.map(([id, draft]) => (
         <section className="info-card stack" key={id}>
           <p className="workspace-warning">
@@ -477,19 +542,11 @@ function GoalPanel(props: PanelProps) {
             <button className="button" disabled={action.disabled} onClick={begin}>
               修改目标与预算
             </button>
-            <button
-              className="button danger"
-              disabled={action.disabled}
-              onClick={() =>
-                void action.run(
-                  'thread/goal/clear',
-                  { threadId: props.threadId, origin: 'user' },
-                  '清除目标已受理，不会撤销已有文件变更。',
-                )
-              }
-            >
-              清除目标（保留会话与已发生的修改）
-            </button>
+            <ConfirmAction key={JSON.stringify([props.threadId, props.visible, goal.updatedAt, goal.objective])}
+              disabled={action.disabled} label="清除目标（保留会话与已发生的修改）"
+              confirmation={`确认清除目标：${goal.objective.slice(0, 40)}`}
+              onConfirm={() => void action.run('thread/goal/clear', { threadId: props.threadId, origin: 'user' },
+                '清除目标已受理，不会撤销已有文件变更。')} />
           </div>
         </div>
       )}

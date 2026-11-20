@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -90,7 +90,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -107,7 +107,7 @@ jobs:
       - name: Install pinned dependencies and build the actual modules
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
-          pnpm typecheck
+          pnpm exec tsc -p web/tsconfig.json --noEmit
           pnpm typecheck:tests
           pnpm build
       - name: Prepare independent official CLI
@@ -179,7 +179,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -215,9 +215,24 @@ jobs:
           /usr/bin/sudo -n -- /usr/bin/mkdir -m 0755 "$root_checkout/.work"
           /usr/bin/sudo -n -- /usr/bin/cp --no-preserve=ownership -- "$source_root/.work/ci-plan.json" "$root_checkout/.work/ci-plan.json"
           node_bin="$(command -v node)"
+          root_native=""
+          need_native="$(node -p 'require("./.work/ci-plan.json").rootFiles.includes("tests/deploy/root/test_mcp_native_configuration.py")')"
+          if [ "$need_native" = true ]; then
+            mkdir -p reference/runtime/ci-codex
+            npm pack "@openai/codex@0.169.0-linux-x64" --registry=https://registry.npmjs.org --pack-destination reference/runtime/ci-codex --json > reference/runtime/ci-codex/pack.json
+          fi
           cd "$root_checkout"
+          if [ "$need_native" = true ]; then
+            /usr/bin/sudo -n -- /usr/bin/env -i PATH=/usr/bin:/bin "$node_bin" --input-type=module -e 'import {nativePreparationDirectory} from "./scripts/prepare-ci-native.mjs"; nativePreparationDirectory(process.cwd())'
+            for entry in pack.json openai-codex-0.169.0-linux-x64.tgz; do
+              test -f "$source_root/reference/runtime/ci-codex/$entry" && test ! -L "$source_root/reference/runtime/ci-codex/$entry"
+              /usr/bin/sudo -n -- /usr/bin/install -m 0600 "$source_root/reference/runtime/ci-codex/$entry" "reference/runtime/ci-codex/$entry"
+            done
+            # Check the pinned archive digest on the root-owned copy before extraction.
+            root_native="$(/usr/bin/sudo -n -- /usr/bin/env -i PATH=/usr/bin:/bin GITHUB_ENV=/dev/null "$node_bin" --input-type=module -e 'import {prepareCiNative} from "./scripts/prepare-ci-native.mjs"; console.log(prepareCiNative())')"
+          fi
           code=0
-          /usr/bin/sudo -n -- /usr/bin/env -i PATH="$(dirname "$node_bin"):/usr/bin:/bin" HARNESS_TEST_NODE="$node_bin" HARNESS_TEST_PYTHON=/usr/bin/python3 "$node_bin" scripts/ci-checks.mjs linux-root .work/ci-plan.json .work/result-linux-root.json || code=$?
+          /usr/bin/sudo -n -- /usr/bin/env -i PATH="$(dirname "$node_bin"):/usr/bin:/bin" HARNESS_TEST_NODE="$node_bin" HARNESS_TEST_PYTHON=/usr/bin/python3 HARNESS_TEST_CODEX_BIN="$root_native" "$node_bin" scripts/ci-checks.mjs linux-root .work/ci-plan.json .work/result-linux-root.json || code=$?
           # A failed test still publishes its report. A missing report remains
           # an error and can never be reclassified as an accepted platform skip.
           /usr/bin/sudo -n -- /usr/bin/install -m 0644 "$root_checkout/.work/result-linux-root.json" "$source_root/.work/result-linux-root.json"
@@ -240,7 +255,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

@@ -1023,3 +1023,53 @@ it('gives steer and queue additions stable message identities and retains unknow
   ).rejects.toThrow(/待确认/);
   expect(requests).toHaveLength(1);
 });
+
+it('keeps a cold queue manageable without activating pending media; reopens after model change and restores only on explicit confirmation', async () => {
+  const media = { ...queued('old', 'Keep notes'), attachments: [{ name: 'photo.png', mimeType: 'image/png', attachmentId: 'media', size: 24 }] };
+  let exists = true, saved = '';
+  const call = vi.fn(async (method: string) => method === 'thread/queue/handoff/list' ? {
+    data: saved ? [{ id: 'copy', queuedSubmissionId: 'old', state: saved, attachmentCount: 1, nativeSavedImages: 1 }] : [],
+  } : { data: exists ? [media] : [], nextCursor: null });
+  const mutate = vi.fn(async (method: string) => {
+    if (method === 'thread/queue/handoff/save') saved = 'saved';
+    if (method === 'thread/queue/delete') { exists = false; saved = 'ready'; }
+    if (method === 'thread/queue/handoff/restore') saved = 'restored';
+    return {};
+  });
+  const props = { ...taskProps({ call, mutate } as unknown as Api), enabled: false, queueManagementEnabled: true };
+  const cold = render(<TaskPanel {...props} />);
+  expect((await screen.findByRole('button', { name: '立即执行此条' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: '保存用于换模型的副本' }));
+  await screen.findByText(/只有原待办的删除/);
+  expect(screen.getByText(/1 张使用原生队列实际保留的图片/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '删除' }));
+  expect(mutate).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: /确认删除待办/ }));
+  await screen.findByText(/原待办已确认删除/);
+  expect((screen.getByRole('button', { name: '按当前模型恢复待办' }) as HTMLButtonElement).disabled).toBe(true);
+  cold.unmount();
+  render(<TaskPanel {...props} enabled />);
+  fireEvent.click(await screen.findByRole('button', { name: '查看待办副本' }));
+  fireEvent.click(await screen.findByRole('button', { name: '按当前模型恢复待办' }));
+  expect(mutate).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole('button', { name: /确认加入队列/ }));
+  await screen.findByText('这份副本的恢复已受理。');
+  expect(mutate.mock.calls.map(args => args[0])).toEqual(['thread/queue/handoff/save','thread/queue/delete','thread/queue/handoff/restore']);
+  expect(screen.queryByRole('button', { name: '按当前模型恢复待办' })).toBeNull();
+});
+
+it('shows an oversized queue item by ID, protects incomplete input, and reads full text before editing a neighbouring summary', async () => {
+  const summary = [{ ...queued('huge', ''), text: '', bytes: 40 * 1048576, metadataOnly: true, oversized: true, incomplete: true }, { ...queued('short', 'summary'), metadataOnly: true, bytes: 900 }];
+  const call = vi.fn(async (_method:string, params: Record<string, unknown>) => ({ data: params.queuedSubmissionId ? [queued('short', 'complete text including the edit boundary')] : summary, nextCursor:null }));
+  const mutate = vi.fn(async () => ({}));
+  render(<TaskPanel {...taskProps({ call, mutate } as unknown as Api)} />);
+  const huge = (await screen.findByText(/编号 huge/)).closest('li')!;
+  expect((within(huge).getByRole('button', {name:'立即执行此条'}) as HTMLButtonElement).disabled).toBe(true);
+  const small = (await screen.findByText(/编号 short/)).closest('li')!;
+  fireEvent.click(within(small).getByRole('button', {name:'编辑'}));
+  expect((await within(small).findByRole('textbox') as HTMLTextAreaElement).value).toBe('complete text including the edit boundary');
+  fireEvent.click(within(huge).getByRole('button', {name:'删除'}));
+  expect(mutate).not.toHaveBeenCalled();
+  fireEvent.click(within(huge).getByRole('button', {name:/确认删除待办/}));
+  await waitFor(() => expect(mutate).toHaveBeenCalledWith('thread/queue/delete', {threadId:'t',queuedSubmissionId:'huge'}));
+});

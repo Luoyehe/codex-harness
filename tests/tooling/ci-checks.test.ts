@@ -121,9 +121,7 @@ test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects
   const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
   const env = { GITHUB_SHA: currentHead };
   // Merely committing an approval into a PR never makes it trusted.
-  const unapproved = buildCiPlan(base, env, event);
-  expect(unapproved).toMatchObject({ mode: kind === 'narrow' ? 'selected' : 'no-behavior-change', files: kind === 'narrow' ? [changed] : [] });
-  expect(unapproved).not.toHaveProperty('authorization');
+  expect(() => buildCiPlan(base, env, event)).toThrow(/trusted checksum/);
   const plans = [
     buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main', HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, { before: baseCommit }),
     buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'workflow_dispatch', HARNESS_CI_BASE: baseCommit, HARNESS_AUTHORIZATION_SHA: approval.sha256 }, {}),
@@ -132,7 +130,7 @@ test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects
   for (const plan of plans) {
     expect(plan).toMatchObject({ mode: 'authorized-full', baseCommit, sourceDigest: approval.value.sourceDigest, authorization: { sha256: approval.sha256 } });
     expect(plan.files).toEqual(available); expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
-    expect(plan.selection.status).toBe(unapproved.mode);
+    expect(plan.selection.status).toBe(kind === 'narrow' ? 'selected' : 'no-behavior-change');
   }
   expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, event)).toThrow(/checksum/);
   writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// Source changed after closeout approval.\n');
@@ -148,7 +146,7 @@ test('a committed PR authorization cannot approve itself and external PR approva
   const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
   const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
   const env = { GITHUB_SHA: currentHead, GITHUB_EVENT_NAME: 'pull_request' };
-  expect(() => buildCiPlan(base, env, event)).toThrow(/complete review/);
+  expect(() => buildCiPlan(base, env, event)).toThrow(/trusted checksum/);
   expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, event)).toThrow(/checksum/);
   expect(buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event)).toMatchObject({ mode: 'authorized-full', authorization: { sha256: approval.sha256 } });
   writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Unreviewed bytes' }));
@@ -195,6 +193,14 @@ test('a PR uses the shared ancestor when its target branch advanced independentl
   expect(plan.baseCommit).toBe(baseCommit); expect(plan.requestedBaseCommit).toBe(targetHead);
   expect(plan.selection.changed).toEqual(['tests/core/example.test.ts']);
   expect(plan.mode).toBe('selected');
+  expect(() => buildCiPlan(base, { ...env, GITHUB_ACTIONS: 'true' })).toThrow(/reviewed merge/);
+  git('switch', 'advanced-main');
+  git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'merge', '--no-ff', '-qm', 'tested combination', 'topic');
+  const merged = git('rev-parse', 'HEAD');
+  expect(buildCiPlan(base, { ...env, GITHUB_ACTIONS: 'true', GITHUB_SHA: merged })).toMatchObject({
+    head: merged, baseCommit: targetHead, selection: { changed: ['tests/core/example.test.ts'] },
+  });
+  git('switch', 'topic');
   // An explicitly chosen base retains the strict ancestor requirement.
   expect(() => buildCiPlan(base, { ...env, HARNESS_CI_BASE: targetHead })).toThrow();
   expect(() => buildCiPlan(base, { ...env, HARNESS_CI_BASE: 'HEAD~1' })).toThrow(/valid nonzero/);
@@ -304,4 +310,18 @@ test('hosted root work is scoped and every matrix result is reconciled before th
   writeFileSync(result, '{"exitCode":1}'); expect(check().status).toBe(0);
   rmSync(raw); expect(check().status).toBe(0);
   expect(workflow).not.toContain('pull_request_target:');
+});
+
+test('an old unchanged closeout permits a narrow new change while malformed history fails validation', () => {
+  const { base, baseCommit } = fixture();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const commitAll = () => { git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
+  const approval = approve(base, baseCommit);
+  const reviewed = commitAll();
+  writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// New narrow change after release.');
+  const next = commitAll(), event = { pull_request: { base: { sha: reviewed }, head: { sha: next } } };
+  expect(buildCiPlan(base, { GITHUB_SHA: next, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event)).toMatchObject({ mode: 'selected', files: ['tests/core/example.test.ts'] });
+  expect(() => buildCiPlan(base, { GITHUB_SHA: next, HARNESS_AUTHORIZATION_SHA: approval.sha256 }, event)).toThrow(/source/);
+  writeFileSync(path.join(base, approval.name), JSON.stringify({ ...approval.value, approvedAt: 'invalid' }));
+  expect(() => buildCiPlan(base, { GITHUB_SHA: next }, event)).toThrow();
 });

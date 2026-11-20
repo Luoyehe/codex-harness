@@ -46,7 +46,7 @@ export function Settings({
   draftMode = 'native',
   navigationError = '',
 }: {
-  initialTab?: 'general' | 'admin' | 'provider';
+  initialTab?: 'general' | 'admin' | 'provider' | 'projects';
   onOpenNativeTerminal?: (projectId: string) => void;
   runtimeEpoch?: string;
   connectionId?: string;
@@ -83,7 +83,7 @@ export function Settings({
   const [loggingOut, setLoggingOut] = useState(false);
   const [tab, setTab] = useState<string>(initialTab),
     [error, setError] = useState('');
-  const tabs = [
+  const tabs: ReadonlyArray<readonly [string, string]> = [
     ['general', '通用'],
     ['provider', '模型供应商'],
     ['projects', '项目目录'],
@@ -197,6 +197,7 @@ export function Settings({
           {visited.includes('mcp') && (
             <div hidden={tab !== 'mcp'} inert={tab !== 'mcp'}>
               <McpPanel
+                onServiceSettings={() => navigation.request(() => setTab('admin'), '切换到服务管理')}
                 visible={tab === 'mcp'}
                 runtimeEpoch={runtimeEpoch}
                 projectId={projectId ?? ''}
@@ -234,7 +235,7 @@ export function Settings({
                 epoch={runtimeEpoch}
                 connectionId={connectionId}
                 connected={connected}
-                enabled={configurationReady}
+                enabled={connected}
               />
             </div>
           )}

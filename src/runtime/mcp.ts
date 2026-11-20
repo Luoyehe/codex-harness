@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { MANUAL_MCP_DEFAULT_SECONDS, MANUAL_MCP_MAX_SECONDS, MANUAL_MCP_REPLY_GRACE_MS } from '../shared/mcp-timeouts.js';
 import { DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { validateOfficial } from './validation.js';
 import { validateMcpArguments } from './mcp-schema.js';
@@ -36,6 +37,7 @@ export class Mcp {
   private resultBytes = 0;
   private origins = new Map<string, { threadId: string; server: string }>();
   constructor(private host: McpHost) {}
+  subscriptionThreads(): string[] { return [...new Set([...this.streams.values()].map(stream => stream.threadId))]; }
   get subscriptions(): number { return this.streams.size; }
   private removeResult(entry: Result): void { if (this.results.delete(entry.resultId)) { clearTimeout(entry.timer); this.resultBytes -= entry.bytes; } }
   private collect(): void { const now = Date.now(); for (const entry of this.results.values()) if (!entry.pending && entry.expiresAt < now) this.removeResult(entry); }
@@ -49,9 +51,9 @@ export class Mcp {
     if (result.nextCursor !== null) { string(result.nextCursor, 'nextCursor', LIMITS.cursorBytes, true); if (result.nextCursor === p.cursor) throw new DeliveryError('cursor_loop', 'MCP catalog cursor did not advance'); }
     return result;
   }
-  private async server(threadId: string, name: string): Promise<JsonObject> {
+  private async server(threadId: string, name: string, detail: 'full' | 'toolsAndAuthOnly' = 'full'): Promise<JsonObject> {
     this.host.requireLoaded(threadId);
-    const page = await this.list({ threadId, serverName: name, detail: 'full', limit: 100 });
+    const page = await this.list({ threadId, serverName: name, detail, limit: 100 });
     if ((page.data as JsonValue[]).length !== 1 || object((page.data as JsonValue[])[0]).name !== name) throw new DeliveryError('mcp_unavailable', 'The selected MCP server was not discovered');
     const server = object((page.data as JsonValue[])[0]);
     if (server.runtimeStatus !== 'connected') throw new DeliveryError('mcp_unavailable', 'The MCP server is not connected; inspect its native connection/authentication status');
@@ -75,6 +77,23 @@ export class Mcp {
     if (method === 'mcp/resource/read') return this.resource(params, context, threadId, server);
     throw new DeliveryError('method_not_found', 'Unsupported MCP workflow');
   }
+  private async toolDeadline(thread: JsonObject, server: string): Promise<{ timeoutMs: number }> {
+    // Resolve the same trusted project layers as the loaded thread. Keep credentials
+    // inside the worker and use the exact server key, including literal dots.
+    const cwd = string(thread.cwd, 'thread cwd', 8192);
+    const response = object(await this.host.native('config/read', { cwd, includeLayers: false }).catch(() => {
+      throw new DeliveryError('mcp_config_unavailable', '未能读取当前会话的 MCP 工具时限。工具尚未调用。');
+    }));
+    const effective = object(response.config, 'effective MCP configuration');
+    const servers = object(effective.mcp_servers ?? {});
+    const configured = Object.hasOwn(servers, server) ? object(servers[server]).tool_timeout_sec : undefined;
+    const seconds = configured ?? MANUAL_MCP_DEFAULT_SECONDS;
+    if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0)
+      throw new DeliveryError('invalid_native_response', '原生 MCP 工具时限无效，请核对所选服务的 tool_timeout_sec。');
+    if (seconds > MANUAL_MCP_MAX_SECONDS)
+      throw new DeliveryError('mcp_timeout_limit', `所选服务的工具时限超过手动调用上限 ${MANUAL_MCP_MAX_SECONDS} 秒，请调整该服务的 tool_timeout_sec 后重试。工具尚未调用。`);
+    return { timeoutMs: Math.ceil(seconds * 1000) + MANUAL_MCP_REPLY_GRACE_MS };
+  }
   private async tool(params: JsonObject, context: CallContext, threadId: string, server: string): Promise<JsonValue> {
     onlyKeys(params, ['threadId', 'server', 'tool', 'arguments', '_meta']); const tool = string(params.tool, 'tool', 256); const p = { ...params, arguments: params.arguments ?? {} }; validateOfficial('McpServerToolCallParams', p);
     const reserve = LIMITS.historyBytes; if (this.results.size >= 64 || this.resultBytes + reserve > 32 * 1024 * 1024) throw new DeliveryError('capacity', 'MCP result retention is full; remove previous results before calling another tool');
@@ -82,7 +101,14 @@ export class Mcp {
     this.results.set(entry.resultId, entry); this.resultBytes += reserve;
     try {
       return await this.host.mutate({ method: 'mcpServer/tool/call', params: p, schema: 'McpServerToolCallParams', responseSchema: 'McpServerToolCallResponse', threadId, mode: 'idle', history: true,
-        preflight: async () => { const found = await this.server(threadId, server); if (found.toolsError !== null) throw new DeliveryError('mcp_unavailable', 'Fresh tool discovery failed'); const descriptor = object(object(found.tools)[tool], 'discovered tool'); if (descriptor.name !== tool) throw new DeliveryError('mcp_unavailable', 'Tool descriptor identity mismatch'); await validateMcpArguments(descriptor.inputSchema!, p.arguments); },
+        preflight: async thread => {
+          const found = await this.server(threadId, server, 'toolsAndAuthOnly');
+          if (found.toolsError !== null) throw new DeliveryError('mcp_unavailable', 'Fresh tool discovery failed');
+          const descriptor = object(object(found.tools)[tool], 'discovered tool');
+          if (descriptor.name !== tool) throw new DeliveryError('mcp_unavailable', 'Tool descriptor identity mismatch');
+          await validateMcpArguments(descriptor.inputSchema!, p.arguments);
+          return this.toolDeadline(thread, server);
+        },
         beforeWrite: () => { this.host.requireLoaded(threadId); if (entry.revoked) throw new DeliveryError('client_disconnected', 'MCP caller disconnected before dispatch'); },
         project: result => { const value = checked('McpServerToolCallResponse', result); const bytes = Buffer.byteLength(jsonBytes(value, LIMITS.historyBytes)); if (!entry.revoked && this.results.get(entry.resultId) === entry) { this.resultBytes += bytes - entry.bytes; entry.bytes = bytes; entry.pending = false; entry.result = value; entry.expiresAt = Date.now() + 600000; entry.timer = setTimeout(() => this.removeResult(entry), 600000); entry.timer.unref(); } else this.removeResult(entry); return { resultId: entry.resultId, threadId, server, tool, isError: value.isError === true }; },
       }, context);

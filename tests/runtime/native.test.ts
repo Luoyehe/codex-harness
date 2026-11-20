@@ -1,6 +1,9 @@
+import { NativeMediaEvent } from '../../src/runtime/native-media-event.js';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mkdtempSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { QueueReplyIdentity } from '../../src/runtime/queue-reply-identity.js';
+import { createHash } from 'node:crypto';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError } from '../../src/runtime/types.js';
 import { validateOfficial } from '../../src/runtime/validation.js';
@@ -33,6 +36,15 @@ describe('bounded native delivery', () => {
     expect(writes).toBe(1); expect(rpc.connected).toBe(false);
     await expect(rpc.call('echo', {})).rejects.toMatchObject({ delivery: 'not_sent' });
     await rpc.close(); expect(rpc.budget.retainedBytes).toBe(0);
+  });
+  test.each(['mcpServer/tool/call', 'plugin/install'])('sent %s times out in isolation and ignores its late reply', async method => {
+    const rpc = await native(); let writes = 0;
+    await expect(rpc.call(method, { delayReply: true }, { timeoutMs: 15, beforeWrite: () => writes++ }))
+      .rejects.toMatchObject({ code: 'timeout', delivery: 'unknown' });
+    expect(await rpc.call('echo', { otherThread: true })).toEqual({ otherThread: true });
+    await new Promise(resolve => setTimeout(resolve, 75));
+    expect(await rpc.call('echo', { afterLateReply: true })).toEqual({ afterLateReply: true });
+    expect(rpc.budget.pending).toBe(0); expect(writes).toBe(1);
   });
   test('queued timeout under actual pipe backpressure is not_sent and retains sent work budget', async () => {
     const rpc = await native(); await rpc.call('pause', {});
@@ -96,6 +108,56 @@ describe('bounded native delivery', () => {
     await expect(rpc.call('fixture/error/reflect', { code: -32000, message: `Rejected ${defaultValue} and ${namedValue}`, data: { [key]: 'unregistered-value', reason: `error for ${namedValue}`, kind: 'fixture' } })).rejects.toMatchObject({ code: 'native_error', delivery: 'not_sent', message: 'Rejected [redacted] and [redacted]', data: { code: -32000, data: { [key]: '[redacted]', reason: 'error for [redacted]', kind: 'fixture' } } });
     await expect(rpc.call('echo', { usable: true })).resolves.toEqual({ usable: true });
   });
+  test('drops an oversized identified queue read at its own boundary and serves subsequent calls', async () => {
+    const rpc = await native();
+    await expect(rpc.call('thread/queue/list', { threadId: 'large' })).rejects.toMatchObject({ code: 'queue_frame_capacity', delivery: 'not_sent' });
+    expect(rpc.connected).toBe(true);
+    expect(await rpc.call('echo', { stillConnected: true })).toEqual({ stillConnected: true });
+  });
+  test('proves only outer queue identities and ordered URL digests across split native output', () => {
+    const url = 'data:image/png;base64,YWJj', frame = Buffer.from(JSON.stringify({id:77,result:{queuedSubmission:{
+      input:[{type:'text',text:'nested example {"id":"wrong"}',text_elements:[]},{type:'image',url}],clientUserMessageId:'chosen',id:'actual'}}}));
+    for (const expectedId of [77, 78]) {
+      const reader = new QueueReplyIdentity(expectedId);
+      for (let i=0; i<frame.length; i+=3) reader.update(frame.subarray(i,i+3));
+      expect(reader.proof()).toEqual(expectedId===77 ? {queuedSubmissionId:'actual',clientUserMessageId:'chosen',inputCount:2,
+        urlBySlot:[{ordinal:1,sha256:createHash('sha256').update(url).digest('hex')}] } : undefined);
+    }
+  });
+  test.each(['thread/queue/add', 'thread/queue/update'])('%s leaves only its own oversized mutation reply unconfirmed while the runtime remains usable', async method => {
+    const rpc = await native();
+    await expect(rpc.call(method, { threadId: 'large' })).rejects.toMatchObject({ code: 'queue_frame_unconfirmed', delivery: 'unknown' });
+    expect(rpc.connected).toBe(true);
+    expect(await rpc.call('echo', { otherThread: true })).toEqual({ otherThread: true });
+  });
+  test('bounded media events keep real identifiers and adjacent text across fragmented native records', () => {
+    const method = 'item/started';
+    const params = { threadId: 'thread', turnId: 'turn', item: { type: 'userMessage', id: 'item', content: [
+      { type: 'text', text: '中文、引号“原文”和换行\n' }, { type: 'image', url: 'data:image/png;base64,' + 'YWJj'.repeat(1000) }
+    ] } };
+    const project = (value: unknown) => {
+      const frame = Buffer.from(JSON.stringify(value));
+      const reader = new NativeMediaEvent();
+      for (let offset = 0; offset < frame.length; offset += 17) reader.update(frame.subarray(offset, offset + 17));
+      return reader.projection();
+    };
+    expect(project({ method, params })).toMatchObject({ method, params: { threadId: 'thread', turnId: 'turn',
+      item: { id: 'item', content: [params.item.content[0], { type: 'text', text: expect.stringContaining('图片') }] } } });
+    const literal = 'data:image/jpeg;base64,' + 'YWJj'.repeat(4000);
+    const extra = { type: 'text', text: literal }, oldMarker = { type: 'text', text: 'harness:oversized-native-event/image' };
+    const mixed = { ...params, item: { ...params.item, content: [extra, oldMarker, ...params.item.content] } };
+    expect(project({ method, params: mixed })).toMatchObject({ params: { item: { content: [
+      extra, oldMarker, params.item.content[0], { type: 'text', text: expect.stringContaining('图片') }
+    ] } } });
+    const toolItem = { ...params.item, type: 'mcpToolCall', arguments: { url: literal } };
+    expect(project({ method, params: { ...params, item: toolItem } })).toEqual({
+      method: 'harness/historyPreviewOmitted', params: { threadId: params.threadId }
+    });
+    expect(project({ method, params, id: 1 })).toBeUndefined();
+    expect(project({ method, params: { ...params, turnId: null } })).toBeUndefined();
+    expect(project({ method: 'thread/queue/changed', params })).toBeUndefined();
+  });
+
   test('malformed native responses reject all waiters instead of hanging or claiming not_sent', async () => {
     const rpc = await native(); await expect(rpc.call('malformed', {})).rejects.toMatchObject({ delivery: 'unknown' }); expect(rpc.connected).toBe(false);
   });

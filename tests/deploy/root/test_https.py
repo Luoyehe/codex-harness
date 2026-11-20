@@ -172,7 +172,10 @@ class HttpsTransactionTests(unittest.TestCase):
         self.validation_failure = False
         self.stack = ExitStack()
         self.stack.enter_context(patch("deploy.https.edge_binary", side_effect=lambda layout, kind, **kwargs: self.root / kind))
-        self.stack.enter_context(patch("deploy.https.ensure_account", return_value=(0, 0)))
+        self.stack.enter_context(patch("deploy.https.ensure_account", return_value=(60001, 60001)))
+        from types import SimpleNamespace
+        self.edge_uid = 60001
+        self.stack.enter_context(patch("pwd.getpwnam", return_value=SimpleNamespace(pw_uid=self.edge_uid, pw_gid=self.edge_uid)))
         self.stack.enter_context(patch("deploy.https.render_caddy", side_effect=self.render))
         self.stack.enter_context(patch("deploy.https.run", side_effect=self.command))
         self.ports = self.stack.enter_context(patch("deploy.ports.require_edge_ports_available"))
@@ -205,6 +208,7 @@ class HttpsTransactionTests(unittest.TestCase):
         if argv[1] == "disable":
             self.system.enabled.difference_update(self.system.role(unit) for unit in argv[2:])
         elif "validate" in argv and "--adapter" in argv:
+            self.last_validation_argv = list(argv)
             self.validated_config.append(Path(argv[argv.index("--config") + 1]).read_text())
             if self.validation_failure:
                 raise DeployError("invalid_pair", "Injected Caddy pair validation failure")
@@ -525,6 +529,24 @@ class HttpsTransactionTests(unittest.TestCase):
         self.assertEqual(list((self.layout.config / "https-recovery").iterdir()), [])
         self.assert_builtin_data_preserved()
 
+    def test_edge_network_order_refresh_retries_reload_after_both_unit_files_are_published(self):
+        from deploy.https import refresh_client_identity
+        from deploy.units import edge_unit_variants
+        for unit, text in render_edge_units(self.layout).items():
+            previous = next(data for data in edge_unit_variants(text.encode()) if b"Wants=network-online.target" not in data)
+            atomic_write(self.layout.units / unit, previous, 0o644)
+        marker = self.layout.config / "edge-network-order.pending"
+        with patch.object(self.manager, "verify_https"), patch.object(self.system, "reload", side_effect=[OSError("fixture interrupted reload"), None]) as reload:
+            with self.assertRaises(OSError):
+                refresh_client_identity(self.manager)
+            self.assertTrue(marker.is_file())
+            for unit, text in render_edge_units(self.layout).items():
+                self.assertEqual((self.layout.units / unit).read_text(), text)
+            self.assertTrue(refresh_client_identity(self.manager)["changed"])
+            self.assertFalse(marker.exists())
+            self.assertFalse(refresh_client_identity(self.manager)["changed"])
+            self.assertEqual(reload.call_count, 2)
+
     def test_client_identity_upgrade_preserves_stopped_edge_and_persisted_state(self):
         from deploy.https import refresh_client_identity
         self.builtin()
@@ -534,6 +556,8 @@ class HttpsTransactionTests(unittest.TestCase):
             result = refresh_client_identity(self.manager)
         self.assertTrue(result["changed"])
         self.assertEqual(read_https_metadata(self.layout)["clientIdentity"], 1)
+        self.assertIn("--no-new-privs", self.last_validation_argv)
+        self.assertEqual(self.last_validation_argv[self.last_validation_argv.index("--reuid") + 1], str(self.edge_uid))
         self.assertEqual(self.system.active, {"worker", "gateway"})
         self.assertEqual(self.system.enabled, before_enabled)
         self.assertEqual(verify.call_args.kwargs, {"https_probe": False})
@@ -572,6 +596,48 @@ class HttpsTransactionTests(unittest.TestCase):
         self.assertFalse((self.layout.config / "https.json").exists())
         self.assertEqual((self.layout.config / "tls/certificate.pem").read_bytes(), self.old_cert)
         self.assertTrue(journal.is_file())
+
+    def test_prepared_reset_accepts_only_an_attested_committed_instance_migration(self):
+        from deploy.https import reset_prepared, snapshot_configuration
+        from deploy.provider_layers import LAYER_MODE
+        self.system.active = {"worker", "gateway"}
+        for name in ("caddyConfig", "caddy", "authelia"):
+            transaction_paths(self.layout)[name].unlink()
+        self.metadata["phase"] = "prepared"
+        write_json(self.layout.config / "https.json", self.metadata)
+        self.manager.config["origin"] = "http://127.0.0.1:3300"
+        write_json(self.layout.config / "instance.json", self.manager.config)
+        revision = https_revision(self.metadata)
+        before = snapshot_configuration(self.layout)
+        txs = self.layout.state / "transactions"
+        first = txs / ("a"*32) / "state.json"
+        mkdir(first.parent)
+        write_json(first, {"kind":"https","phase":"recovered","before":before})
+        migrated = {**self.manager.config, "providerConfigLayer": LAYER_MODE}
+        self.manager.config = migrated
+        write_json(self.layout.config / "instance.json", migrated)
+        with self.assertRaises(DeployError):
+            reset_prepared(self.manager, expected_revision=revision, confirm=True)
+        second = txs / ("b"*32) / "state.json"
+        mkdir(second.parent)
+        change = {"kind":"config-layer","phase":"committed","targetMode":LAYER_MODE,"before":before,"candidateConfig":migrated}
+        for invalid in ({**change,"phase":"prepared"}, {**change,"candidateConfig":{**migrated,"port":17001}}):
+            write_json(second, invalid)
+            with self.assertRaises(DeployError):
+                reset_prepared(self.manager, expected_revision=revision, confirm=True)
+        write_json(second, change)
+        # Later proxy configuration is a separate committed transition. Its
+        # before-image must connect all the way back to the recovered setup.
+        third = txs / ("c" * 32) / "state.json"
+        mkdir(third.parent)
+        prior_proxy = snapshot_configuration(self.layout)
+        now = {**migrated, "serviceProxy": {"enabled": True, "port": 4022, "core": "d" * 64, "configuration": "e" * 64}}
+        self.manager.config = now
+        write_json(self.layout.config / "instance.json", now)
+        with self.assertRaises(DeployError):
+            reset_prepared(self.manager, expected_revision=revision, confirm=True)
+        write_json(third, {"kind": "service-proxy", "phase": "committed", "before": prior_proxy, "candidateConfig": now})
+        self.assertTrue(reset_prepared(self.manager, expected_revision=revision, confirm=True)["reset"])
 
     def test_builtin_internal_to_public_acme_changes_only_origin_and_edge_selection(self):
         args = self.builtin()

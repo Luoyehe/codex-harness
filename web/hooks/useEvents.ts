@@ -120,7 +120,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
             );
           }
           if (parsed.type === 'resync' && typeof data.reason === 'string')
-            setError('部分实时事件无法显示，请重新读取当前会话以核对完整结果。');
+            setError('部分实时事件未能显示，已请求重新核对会话与待审批事项。');
           try { callback.current({ type: parsed.type, data }); }
           catch { setError('部分页面状态未能更新，请重新读取当前会话；连接仍保持。'); }
         } catch {

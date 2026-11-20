@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Api, RpcError } from '../lib/api';
-import { acknowledgeOperation, listOperations, reconcileOperation, isArchivedReceipt } from '../lib/operations';
+import { acknowledgeOperation, listOperations, readRecoveryAdmission, reconcileOperation, isArchivedReceipt, stopUnknownRecovery, subscribeOperations } from '../lib/operations';
 import { closeEmergencyOperations } from '../lib/emergency-recovery';
 import { message, object } from '../lib/types';
 import { Dialog } from './Dialog';
@@ -9,26 +9,32 @@ import { Dialog } from './Dialog';
 export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [operationId, setOperationId] = useState(''), [completed, setCompleted] = useState(false);
+  const [reasons, setReasons] = useState<{ id: string; reason: string }[]>([]);
+  const [archived, setArchived] = useState<Record<string, unknown>>();
   const [locallyNotSent, setLocallyNotSent] = useState(false);
   const mounted = useRef(true), running = useRef(false), selectedId = useRef('');
   const closure = useRef<AbortController | undefined>(undefined);
   const owner = useRef(api); owner.current = api;
   const expectedCsrf = api.csrf;
   const current = () => mounted.current && owner.current === api && Boolean(expectedCsrf) && api.csrf === expectedCsrf && !api.externalAuthenticationRequired;
-  const select = (id: string, notSent = false) => { selectedId.current = id; setOperationId(id); setLocallyNotSent(notSent); };
+  const select = (id: string, notSent = false) => { if (id !== selectedId.current) { setArchived(undefined); setReasons([]); } selectedId.current = id; setOperationId(id); setLocallyNotSent(notSent); };
   useLayoutEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; closure.current?.abort(); };
   }, [api]);
   useEffect(() => {
     let disposed = false;
-    void listOperations().then(rows => {
-      if (!disposed && current() && !running.current && !selectedId.current) {
+    let revision = 0;
+    const sync = () => { const request = ++revision; void listOperations().then(rows => {
+      if (!disposed && request === revision && current() && !running.current) {
         const prior = rows.find(row => row.method === 'system/recover');
+        if (prior && prior.id !== selectedId.current) setCompleted(false);
         select(prior?.id ?? '', prior?.state === 'not_sent');
       }
     }).catch(e => { if (!disposed && current()) setError(message(e)); });
-    return () => { disposed = true; };
+    };
+    const unsubscribe = subscribeOperations(sync); sync();
+    return () => { disposed = true; unsubscribe(); };
   }, [api]);
   const accepted = async (id: string, value: unknown) => {
     const result = object(value);
@@ -44,6 +50,10 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
         { operationId: id, method: 'system/recover', state: 'accepted', result }, controller.signal);
       if (!current()) return;
       retained = closed.retainedIds.length > 0;
+      if (retained) {
+        setReasons(closed.errors); setNotice(`后台已恢复。还有 ${closed.retainedIds.length} 项请继续核对，重开窗口可接着处理。`);
+        return;
+      }
     }
     if (!current()) return;
     await acknowledgeOperation(id);
@@ -57,12 +67,12 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
     if (!current() || running.current || selectedId.current || completed) return;
     running.current = true; setBusy(true); setError('');
     try {
-      const prior = (await listOperations()).find(row => row.method === 'system/recover');
+      const { prior, lastId } = await readRecoveryAdmission();
       if (!current()) return;
       if (prior) { select(prior.id, prior.state === 'not_sent'); setNotice('已有恢复记录，请先核对并关闭原记录。'); return; }
       const request = api.beginMutation('system/recover', { confirmStop: true }, () => {
         if (!current()) throw new Error('恢复确认窗口已关闭或登录已变化，尚未发送请求。');
-      });
+      }, 'native', lastId);
       select(request.operationId);
       const result = await request.result;
       if (current()) await accepted(request.operationId, result);
@@ -71,8 +81,16 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
         setError(message(e));
         if (e instanceof RpcError && e.delivery === 'not_sent') {
           try {
-            if (selectedId.current) await acknowledgeOperation(selectedId.current);
-            if (current()) select('');
+            if (e.code === 'recovery_admission_changed') {
+              const { prior } = await readRecoveryAdmission();
+              if (current()) {
+                select(prior?.id ?? '', prior?.state === 'not_sent');
+                setNotice(prior ? '请继续核对另一窗口登记的原恢复回执。' : '另一窗口已关闭上次恢复记录。需要再次恢复时，请重新确认。');
+              }
+            } else {
+              if (selectedId.current) await acknowledgeOperation(selectedId.current);
+              if (current()) select('');
+            }
           } catch (storageError) {
             if (current()) setError(`请求确认未发送，但本地记录尚未关闭：${message(storageError)}。请查询原恢复回执。`);
           }
@@ -107,6 +125,11 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
         if (current()) { select(''); setNotice('此前恢复已受理，服务已归档其结果。已保留历史并关闭旧交接；其他旧操作仍需各自核对，必要时可重新确认一次新的强制停止。'); }
         return;
       }
+      if (receipt.operationId === operationId && isArchivedReceipt(receipt) && local && ['pending', 'unknown'].includes(local.state)) {
+        await reconcileOperation(operationId, receipt);
+        if (current()) { setArchived(receipt); setNotice('服务已归档原回执，恢复结果未知。可根据已导出的回执人工核对后关闭本地提醒。'); }
+        return;
+      }
       if (receipt.operationId !== operationId || receipt.state !== 'not_received' && receipt.method !== 'system/recover' &&
           !(receipt.method === 'operation/retire' && receipt.state === 'not_sent'))
         throw new Error('恢复回执身份不匹配，请在操作记录中核对。');
@@ -126,6 +149,14 @@ export function EmergencyRecovery({ api, onClose }: { api: Api; onClose: () => v
       <p>终止本实例所有正在运行或状态未知的 Agent 任务、终端和 MCP 操作，然后重新启动后台，解除旧执行状态造成的阻塞。</p>
       <p>已写入的文件和外部服务中的操作不会撤销；草稿、项目和未知回执会保留。不会重新发送消息或重复授权。正在进行的服务器配置事务仍需先完成或通过运维脚本恢复。</p>
       {error && <p role="alert" className="error">{error}</p>}
+      {reasons.length > 0 && <ul>{reasons.map(row => <li key={row.id}><code>{row.id}</code> {row.reason}</li>)}</ul>}
+      {archived && <button className="button" disabled={busy || !current()} onClick={() => {
+        if (!current() || archived.operationId !== selectedId.current || running.current) return;
+        running.current = true; setBusy(true);
+        void stopUnknownRecovery(operationId, archived).then(() => {
+          if (current()) { select(''); setNotice('已按你的选择关闭本地提醒，恢复结果仍为未知。'); }
+        }).catch(e => { if (current()) setError(message(e)); }).finally(() => { running.current = false; if (current()) setBusy(false); });
+      }}>已人工核对，关闭这条未知提醒</button>}
       {notice && <p role="status">{notice}</p>}
       <div className="inline wrap">
         <button className="button" onClick={onClose}>{completed ? '关闭' : '取消'}</button>

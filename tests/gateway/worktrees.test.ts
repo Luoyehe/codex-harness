@@ -81,3 +81,49 @@ test('retired worktrees free project registration without allowing a late older 
     expect(() => f.ledger.project(f.id)).toThrow(); expect(() => f.ledger.removeProject(f.origin.id)).not.toThrow();
   } finally { f.ledger.close(); }
 });
+test('allows the scoped worker to admit two independent repositories without releasing global configuration fences', async () => {
+  const f=setup(), second=f.ledger.addProject('/independent','Independent');
+  let release!:()=>void; const gate=new Promise<void>(done=>{release=done;});
+  const starts:string[]=[];
+  f.set(async (method, params, context) => {
+    if(method!=='workspace/worktree/create')return {};
+    context.beforeWrite?.(); starts.push(String(params.cwd)); await gate;
+    return {...f.result,worktreeId:context.operationId!,path:'/native/worktrees/'+context.operationId};
+  });
+  f.dispatcher.event({type:'state',data:{repositoryScopes:1,connected:true,activity:{activeThreads:['elsewhere'],pendingStarts:0,terminals:0,unknown:false}}});
+  const a=f.dispatcher.call(f.create,{clientId:'a'});
+  const b=f.dispatcher.call({...f.create,params:{...f.create.params,projectId:second.id},operationId:randomUUID()},{clientId:'b'});
+  try {
+    await expect.poll(()=>starts.sort()).toEqual(['/independent','/origin']);
+    await expect(f.dispatcher.call({...f.create,operationId:randomUUID()},{clientId:'a'})).rejects.toMatchObject({code:'thread_busy',delivery:'not_sent'});
+    await expect(f.dispatcher.call({method:'mcp/reload',params:{},operationId:randomUUID()},{clientId:'a'})).rejects.toMatchObject({code:'activity_busy',delivery:'not_sent'});
+  } finally {release();await Promise.allSettled([a,b]);f.ledger.close();}
+});
+
+test('custom names survive existing databases, archive, restart and binding replay without renaming siblings', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { DatabaseSync } = await import('node:sqlite');
+  const dir = mkdtempSync(join(tmpdir(), 'worktree-names-')), filename = join(dir, 'ledger.sqlite');
+  let ledger = new Ledger(filename);
+  try {
+    const origin = ledger.addProject('/origin', 'Origin'), a = randomUUID(), b = randomUUID();
+    const active = (id: string, version = 1) => ({ worktreeId: id, worktreeVersion: version, phase: 'active', path: '/native/worktrees/' + id, head: 'a'.repeat(40), revision: 'b'.repeat(64), created: true });
+    for (const id of [a, b]) ledger.transaction(() => ledger.worktrees.apply('workspace/worktree/create', origin.id, id, active(id)));
+    const sibling = ledger.project(b).name;
+    ledger.renameProject(a, '自定义名称');
+    const names = () => (ledger.worktrees.list(origin.id) as {data: {worktreeId:string;name:string}[]}).data;
+    expect(names()).toContainEqual(expect.objectContaining({ worktreeId: a, name: '自定义名称' }));
+    ledger.close();
+    const old = new DatabaseSync(filename);
+    old.prepare('UPDATE worktree_projects SET name=? WHERE id=?').run('旧快照名', a); old.close();
+    ledger = new Ledger(filename);
+    expect(names()).toContainEqual(expect.objectContaining({ worktreeId: a, name: '自定义名称' }));
+    ledger.transaction(() => ledger.worktrees.apply('workspace/worktree/archive', origin.id, randomUUID(), { ...active(a, 2), phase: 'archived', path: '/native/worktree-state/' + a + '/checkout' }));
+    ledger.close(); ledger = new Ledger(filename);
+    ledger.transaction(() => ledger.worktrees.apply('workspace/worktree/restore', origin.id, randomUUID(), active(a, 3)));
+    ledger.transaction(() => ledger.worktrees.apply('workspace/worktree/create', origin.id, a, active(a)));
+    expect(ledger.project(a).name).toBe('自定义名称'); expect(ledger.project(b).name).toBe(sibling);
+  } finally { ledger.close(); rmSync(dir, { recursive: true, force: true }); }
+});

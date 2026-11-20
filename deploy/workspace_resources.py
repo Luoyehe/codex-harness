@@ -6,7 +6,7 @@ import os
 import stat
 from pathlib import Path, PurePosixPath
 
-from .common import Layout, digest, require
+from .common import DeployError, Layout, digest, require
 from .workspace_paths import Root, read_file, relative, revision
 
 ACTIONS = {"resource/skill/read", "resource/directory/resolve", "resource/plugin/preview"}
@@ -37,6 +37,39 @@ def location(fd: int, expected: Path) -> None:
             "Resource directory moved during validation", "conflict")
 
 
+def trust_roots(root: Root, forbidden: list[Path]) -> dict:
+    """Return only the verified checkout and, for linked worktrees, its primary checkout."""
+    from .workspace_git import repository_paths
+    for path in (root.path, *root.path.parents[:64]):
+        try:
+            marker = (path / ".git").lstat()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            break
+        if not (stat.S_ISDIR(marker.st_mode) or stat.S_ISREG(marker.st_mode)):
+            break
+        candidate = None
+        try:
+            candidate = Root(str(path), forbidden)
+            _, common = repository_paths(candidate, forbidden)
+            roots = [str(path)]
+            if common.name == ".git" and common.parent != path:
+                primary = Root(str(common.parent), forbidden)
+                try:
+                    if repository_paths(primary, forbidden) == [common, common]:
+                        roots.append(str(primary.path))
+                finally:
+                    primary.close()
+            return {"roots": roots}
+        except (DeployError, OSError, UnicodeError):
+            break
+        finally:
+            if candidate is not None:
+                candidate.close()
+    return {"roots": []}
+
+
 def read_skill(root: Root, params: dict, layout: Layout, settings: dict, forbidden: list[Path]) -> dict:
     path = absolute_skill(params["path"])
     bases = [root.path, Path(settings["cwd"]) / ".agents/skills", Path(settings["home"]) / "skills",
@@ -45,13 +78,26 @@ def read_skill(root: Root, params: dict, layout: Layout, settings: dict, forbidd
     # working tree. Add those precise read-only roots, never the parent tree or
     # the whole home, and keep descriptor/no-follow checks below.
     ancestors = []; current = root.path
-    for _ in range(64):
+    for _ in range(0 if any(base in path.parents for base in bases) else 64):
         ancestors.append(current / ".agents/skills")
         try:
             marker = (current / ".git").lstat()
             if stat.S_ISLNK(marker.st_mode): break
             if stat.S_ISDIR(marker.st_mode) or stat.S_ISREG(marker.st_mode):
-                bases.extend(ancestors); break
+                # Use the same repository ownership and linked-worktree checks
+                # as other Git features. Never infer authority from a marker alone.
+                from .workspace_git import repository_paths
+                candidate = None
+                try:
+                    candidate = Root(str(current), forbidden)
+                    repository_paths(candidate, forbidden)
+                    bases.extend(ancestors)
+                except (DeployError, OSError, UnicodeError):
+                    pass
+                finally:
+                    if candidate is not None:
+                        candidate.close()
+                break
         except FileNotFoundError: pass
         except PermissionError: break
         if current.parent == current: break
@@ -152,3 +198,31 @@ def run(root: Root, request: dict, layout: Layout, settings: dict, forbidden: li
     if action == "resource/skill/read":
         return read_skill(root, params, layout, settings, forbidden)
     return preview_plugin(root, params) if action == "resource/plugin/preview" else resolve_directory(root, params)
+
+
+def feedback_directory(root: Root) -> dict:
+    """Return the fixed project-local feedback destination for the native user."""
+    from .workspace_store import private_directory, write_new
+    folder = private_directory(root.fd, ".harness-feedback", create=True)
+    try:
+        try:
+            write_new(folder, ".gitignore", b"*\n")
+        except FileExistsError:
+            fd = os.open(".gitignore", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=folder)
+            try:
+                data, info = read_file(fd, 64)
+                require(data == b"*\n" and info.st_uid == os.geteuid() and not info.st_mode & 0o022,
+                        "Existing feedback exclusion differs", "conflict")
+            finally:
+                os.close(fd)
+        with os.scandir(folder) as entries:
+            for index, entry in enumerate(entries):
+                require(index < 4096, "Feedback directory entry budget reached", "budget")
+                info = entry.stat(follow_symlinks=False)
+                require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.geteuid()
+                        and not info.st_mode & 0o022, "Existing feedback file is unsafe", "unsafe_path")
+        path = root.path / ".harness-feedback"
+        location(folder, path)
+        return {"directory": str(path)}
+    finally:
+        os.close(folder)

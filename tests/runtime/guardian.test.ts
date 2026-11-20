@@ -37,7 +37,9 @@ test('expiry, per-thread retention and changed duplicate event identities fail c
   for (let index = 0; index < 12; index++) await capture(guardian, { ...event, reviewId: `review-${index}` });
   expect(object(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).data).toHaveLength(10);
   guardian.notification('item/autoApprovalReview/completed', { ...event, reviewId: 'review-11', action: { ...object(event.action), command: 'changed' } });
-  expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toEqual({ data: [], captureExhausted: true, captureIssues: [] });
+  const remaining = object(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner));
+  expect(remaining.captureExhausted).toBe(false); expect(remaining.captureIssues).toMatchObject([{ reason: 'guardian_identity_conflict' }]);
+  expect((remaining.data as JsonObject[]).some(row => row.reviewId === event.reviewId)).toBe(false);
 });
 test('fixed action adapter rejects mixed identity keys and receipt contains no command or assessment', () => {
   expect(() => guardianEvent({ ...event, review_id: 'injected' })).toThrow(); expect(() => guardianEvent({ ...event, action: { ...object(event.action), additionalAuthorization: true } })).toThrow();
@@ -58,4 +60,16 @@ test('optional and null permission fields remain valid while oversized auxiliary
   expect(() => guardian.notification('item/autoApprovalReview/completed', oversized)).not.toThrow();
   expect(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner)).toMatchObject({ data: [], captureIssues: [{ reason: 'capacity' }] });
   expect(await capture(guardian, { ...event, threadId: 'another', reviewId: 'another' })).toMatchObject({ state: 'available' });
+});
+
+test('an epoch with over 2048 closed reviews still captures newer reviews without reopening an old denial', async () => {
+  const { guardian } = setup();
+  try {
+    for (let n = 0; n < 2050; n++) guardian.notification('item/autoApprovalReview/completed', { ...event, reviewId: 'review-' + n });
+    guardian.notification('item/autoApprovalReview/completed', { ...event, reviewId: 'review-0' });
+    const view = object(await guardian.call('thread/guardian/list', { threadId: 'thread' }, owner));
+    const rows = view.data as JsonObject[]; expect(rows.length).toBeLessThanOrEqual(10);
+    expect(rows.some(row => row.reviewId === 'review-2049')).toBe(true);
+    expect(rows.some(row => row.reviewId === 'review-0')).toBe(false);
+  } finally { guardian.reset(); }
 });
