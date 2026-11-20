@@ -277,6 +277,55 @@ test('review new thread exposes partial identity on owner loss and rejects depre
   await expect(service.call('review/startNew', { cwd, target }, { ...context, beforeWrite: () => { if (++count === 2) throw new DeliveryError('client_disconnected', 'revoked'); } })).rejects.toMatchObject({ code: 'review_start_incomplete', delivery: 'unknown', data: { threadId: 'new', causeDelivery: 'not_sent' } });
   expect(native.calls.some(item => item.method === 'review/start')).toBe(false);
 });
+test.each(['small window', 'oversized neighbours', 'oversized target'] as const)(
+  'reads a search occurrence at its inclusive cursor within the original history limits (%s)', async scenario => {
+    const { service, native } = setup();
+    const original = native.call.bind(native);
+    const metadata = Array.from({ length: 10 }, (_, index) => ({ ...turn(String(index)), itemsView: 'notLoaded' }));
+    const item = (id: string): JsonObject => ({ id, type: 'userMessage', clientId: null,
+      content: [{ type: 'text', text: id === '0-0' ? 'Original instruction' : 'Work step', text_elements: [] }] });
+    const limits: number[] = [];
+    vi.spyOn(native, 'call').mockImplementation(async (method, params, options) => {
+      const p = object(params);
+      if (method === 'thread/turns/list') {
+        expect(p).toMatchObject({ threadId: 't', cursor: 'inclusive', sortDirection: 'desc', itemsView: 'notLoaded' });
+        const count = Number(p.limit);
+        limits.push(count);
+        return { data: metadata.slice(0, count), nextCursor: count === 1 ? 'older' : null, backwardsCursor: 'newer' };
+      }
+      if (method !== 'thread/items/list') return original(method, params, options);
+      const id = String(p.turnId), offset = Number(p.cursor ?? 0);
+      const length = scenario === 'oversized target' && id === '0' ? 2001 : scenario === 'oversized neighbours' && id !== '0' ? 230 : 1;
+      const data = Array.from({ length: Math.min(length - offset, Number(p.limit)) }, (_, index) => ({
+        turnId: id, item: item(id + '-' + (offset + index)), outputDeferred: false,
+      }));
+      return { data, nextCursor: offset + data.length < length ? String(offset + data.length) : null, backwardsCursor: null };
+    });
+    const search = (limit: number) => service.call('thread/history/window', { threadId: 't', turnCursor: 'inclusive', limit }, context);
+    if (scenario === 'oversized target') {
+      await expect(search(10)).rejects.toMatchObject({ code: 'capacity' });
+      expect(limits).toEqual([10, 1]);
+      limits.length = 0;
+      await expect(search(1)).rejects.toMatchObject({ code: 'capacity' });
+      expect(limits).toEqual([1]);
+    } else {
+      const result = object(await search(10));
+      const fullWindow = scenario === 'small window';
+      expect(limits).toEqual(fullWindow ? [10] : [10, 1]);
+      expect(result).toMatchObject({ complete: false, partial: true, nextCursor: fullWindow ? null : 'older', backwardsCursor: 'newer' });
+      expect(result.turns).toHaveLength(fullWindow ? 10 : 1);
+      expect((result.turns as JsonValue[]).at(-1)).toMatchObject({ id: '0', items: [item('0-0')] });
+    }
+    await expect(service.call('thread/queue/start', { threadId: 't' }, context)).rejects.toMatchObject({code:'history_incomplete'});
+  },
+);
+test('propagates a changed search cursor without retrying at a different size', async () => {
+  const { service, native } = setup();
+  native.error = new DeliveryError('invalid_cursor', 'Search occurrence expired');
+  await expect(service.call('thread/history/window', { threadId: 't', turnCursor: 'old', limit: 10 }, context))
+    .rejects.toMatchObject({ code: 'invalid_cursor', message: 'Search occurrence expired' });
+  expect(native.calls.filter(call => call.method === 'thread/turns/list')).toHaveLength(1);
+});
 test('search windows never create full-history proof; exports preserve every structured item', async () => {
   const { service, native } = setup();
   expect(await service.call('thread/history/window', { threadId: 't', turnCursor: 'opaque' }, context)).toMatchObject({ complete: false, partial: true });

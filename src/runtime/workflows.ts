@@ -259,9 +259,24 @@ export class Workflows {
         return pageResult('ThreadSearchOccurrencesResponse', await this.host.native(method, p), params.cursor);
       }
       case 'thread/history/window': {
-        onlyKeys(params, ['threadId', 'turnCursor', 'limit']); const cursor = string(params.turnCursor, 'turnCursor', LIMITS.cursorBytes, true); const p = pageParams({ threadId, cursor, ...(params.limit !== undefined ? { limit: params.limit } : {}), sortDirection: 'desc', itemsView: 'full' });
-        const result = pageResult('ThreadTurnsListResponse', await this.host.native('thread/turns/list', p, { historyImageDisplayChars: 1_000_000 }), cursor); this.host.checkHistory(result.data as JsonValue[]);
-        return { turns: [...result.data as JsonValue[]].reverse(), nextCursor: result.nextCursor!, backwardsCursor: result.backwardsCursor ?? null, complete: false, partial: true };
+        onlyKeys(params, ['threadId', 'turnCursor', 'limit']);
+        const cursor = string(params.turnCursor, 'turnCursor', LIMITS.cursorBytes, true);
+        const request = pageParams({ threadId, cursor, sortDirection: 'desc', itemsView: 'full',
+          ...(params.limit !== undefined ? { limit: params.limit } : {}) });
+        const readWindow = async (p: JsonObject) => {
+          const page = await this.host.native('thread/turns/list', p, { historyImageDisplayChars: 1_000_000 });
+          const result = pageResult('ThreadTurnsListResponse', page, cursor);
+          const turns = result.data as JsonValue[];
+          this.host.checkHistory(turns);
+          return { turns: [...turns].reverse(), nextCursor: result.nextCursor!, backwardsCursor: result.backwardsCursor ?? null, complete: false, partial: true };
+        };
+        try { return await readWindow(request); }
+        catch (error) {
+          // The native occurrence cursor is inclusive. Neighbours may exhaust a
+          // page budget even when the matched turn can be read on its own.
+          if (request.limit === 1 || !(error instanceof DeliveryError) || !['capacity', 'history_frame_capacity'].includes(error.code)) throw error;
+          return readWindow({ ...request, limit: 1 });
+        }
       }
       case 'thread/export': return this.export(params, context);
       default: throw new DeliveryError('method_not_found', 'Unsupported task workflow');
