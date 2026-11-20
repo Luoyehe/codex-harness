@@ -8046,6 +8046,93 @@
         "path": "verification/audit-evidence/v250-round3/builtin-mcp.json",
         "sha256": "d7060c2f26bfb85c0d81ddff71ab84e8617173050c4c61ad9fc269666b3631cd"
       }
+    },
+    {
+      "id": "v250-round4",
+      "sequence": 85,
+      "digest": "4833001d347e5f91a584117b88ddc7d44d3355ca8626a18fb43c806c3161b65a",
+      "complete": true,
+      "startedAt": "2026-11-20T08:01:57Z",
+      "completedAt": "2026-11-20T08:11:28Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "final-review-delta",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round4/independent.json",
+          "sha256": "090d779b5f0be412c0638c6846780fd41f6f363bcf907157a98e5401713f2cf4"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round4/builtin-mcp.json",
+        "sha256": "59c362220559be64109a0eb62c96ffe79b0c28367720bc4b08518f0922d85d58"
+      }
+    },
+    {
+      "id": "v250-round5",
+      "sequence": 86,
+      "digest": "4833001d347e5f91a584117b88ddc7d44d3355ca8626a18fb43c806c3161b65a",
+      "complete": true,
+      "startedAt": "2026-11-20T08:11:48Z",
+      "completedAt": "2026-11-20T08:18:22.067Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R5-01",
+          "severity": "P2",
+          "scope": "web-ux",
+          "title": "“最近活动”将较早的未索引会话排在更新的已索引会话前面",
+          "location": "web/hooks/usePaged.ts:42",
+          "related": [
+            "web/hooks/usePaged.ts:101",
+            "web/hooks/usePaged.ts:131",
+            "web/Workspace.tsx:365",
+            "web/components/Sidebar.tsx:148",
+            "src/runtime/live-thread-list.ts:56"
+          ],
+          "evidence": ".work/v250/round5/activity-order.json",
+          "observed": "冻结版 LiveThreadList.page 和由真实 React 渲染的 usePaged 接收同一项目、最近活动降序及两个不同 recencyAt 值。返回的持久记录时间为 20，未索引记录为 10，前端呈现顺序为 10、20。侧栏直接按数组顺序绘制。",
+          "cause": "页面先插入所有 liveData，再插入持久数据。Map 对重复项只替换内容，保留第一次插入位置。后续页继续用相同插入策略。",
+          "impact": "新建空会话仍可长期留在补充列表。已有会话后来出现新回合时，“最近活动”仍可能将空会话置于其前。可见项排序与用户选择不一致。",
+          "correction": "在时间排序模式下，按实际的排序字段和方向合并来自原生分页与补充缓存的可见行；后续持久行取代同一标识的临时行时同步更新其位置，保留游标。按分组排序应保留原生提供的分组位置。",
+          "testBoundary": "该排序重现来自冻结版浏览器 hook 和运行时列表类，时戳为有意控制的测试值。不是实机手机或端到端画面验收。"
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "final-review-epsilon",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round5/independent.json",
+          "sha256": "29564362cde0097fc6c1dd40d1ea8f80a8b84ca8b8813e0d9a5a93242c211680"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round5/builtin-mcp.json",
+        "sha256": "ff22f32f0833c26f1e364117885b7638d1f56cb2cd332005b2f8873d235d6f4a"
+      }
     }
   ],
   "fullTests": {
