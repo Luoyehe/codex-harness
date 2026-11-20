@@ -30,7 +30,7 @@ from deploy.native_launcher import project_from_input
 from deploy.provider import native_config, redacted, validate_catalog, validate_provider, provider_url
 from deploy.safe_fs import extract_tar, inspect_tree, safe_link, snapshot
 from deploy.system import parse_unit_state
-from deploy.units import render_units, sudo_rule
+from deploy.units import main_unit_templates, render_units, sudo_rule
 
 
 def state(load="loaded", active="inactive", sub="dead", pid="0", control="0"):
@@ -535,7 +535,7 @@ class TransactionTests(unittest.TestCase):
         self.system = FakeSystem()
         self.manager = Manager(self.layout, self.system, worker_gid=1)
         self.manager.require_service_ownership = lambda **kwargs: None  # Separate ownership fixtures exercise real units.
-        self.manager.refresh_worker_unit = lambda: None
+        self.manager.refresh_main_units = lambda: None
         self.current = "a" * 64
         # Application compatibility now also checks the declared fixed helper
         # contract; this transaction fixture retains legacy, marker-free apps.
@@ -702,6 +702,21 @@ class TransactionTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_original_tagged_main_units_are_recognized_and_migrate_without_accepting_modified_content(self):
+        layout = Layout("fixture")
+        config = {"origin": "http://127.0.0.1:3000", "port": 3000, "workerGid": 1002, "codexRelative": "vendor/fixture/bin/codex"}
+        old = render_units(layout, config, config["codexRelative"], legacy_sudo_filters=True)
+        new = render_units(layout, config, config["codexRelative"])
+        mappings = main_unit_templates(layout, config)
+        tagged = {"worker": "3d6c2883f0cd008bb6a31e6cc4d8613f059e7d1b5a2faef5f19de7f159267634",
+                  "gateway": "561995608d4e39c50a1499e57f8193385d8b944d964d36629c6bf8c44041c24a"}
+        for role, digest_at_v240 in tagged.items():
+            unit = layout.unit(role)
+            self.assertEqual(hashlib.sha256(old[unit].replace(os.sep, "/").encode()).hexdigest(), digest_at_v240)
+            self.assertEqual(mappings[role][old[unit].encode()], new[unit].encode())
+            self.assertEqual(mappings[role][new[unit].encode()], new[unit].encode())
+            self.assertNotIn(old[unit].replace("TasksMax=256", "TasksMax=512").encode(), mappings[role])
+
     def test_actual_dependency_command_disables_ancestor_workspace_and_hooks(self):
         project = Path.cwd() / ".work/isolated-dependency-fixture"
         command = pnpm_command(Path("/trusted/tools"), Path("/isolated/store"), project, project.parent / "metadata")
@@ -725,6 +740,14 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn("SupplementaryGroups=ch-fixture-ipc", gateway)
         self.assertNotIn("HARNESS_TOKEN_FILE=", worker)
         self.assertIn("NoNewPrivileges=no", worker)
+        for service in (worker, gateway):
+            for implied_filter in ("ProtectKernelTunables=yes", "ProtectKernelModules=yes", "RestrictRealtime=yes", "LockPersonality=yes"):
+                self.assertNotIn(implied_filter, service)
+            for protection in ("NoNewPrivileges=no", "ReadOnlyPaths=/sys /proc/sys", "-/proc/kcore",
+                               "-/usr/lib/modules", "ProtectControlGroups=yes", "PrivateTmp=yes", "LimitRTPRIO=0"):
+                self.assertIn(protection, service)
+        self.assertIn("CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE", worker)
+        self.assertIn("CapabilityBoundingSet=~CAP_SYS_MODULE CAP_SYS_RAWIO CAP_SYS_NICE", gateway)
         self.assertIn("--disable-sigusr1", worker)
         self.assertIn("HARNESS_NATIVE_USER=ch-fixture-worker", worker)
         rule = sudo_rule(layout)

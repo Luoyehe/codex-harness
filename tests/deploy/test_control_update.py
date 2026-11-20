@@ -87,6 +87,27 @@ class SudoCompatibilityTests(unittest.TestCase):
             write_json(layout.control / "capabilities.json", {"threadHistoryRepair": 2})
             require_application(layout, release, {"executionMode": "native"})
 
+    def test_application_requires_control_that_can_recover_its_automation_journal(self):
+        from deploy.execution_identity import require_application, require_history_control
+        with tempfile.TemporaryDirectory() as folder:
+            layout = Layout("fixture", Path(folder))
+            release = "a" * 64
+            app = layout.app / "releases" / release / "app"
+            app.mkdir(parents=True)
+            layout.control.mkdir(parents=True)
+            write_json(app / "package.json", {"codexHarnessJournalRecovery": 2})
+            (layout.app / "current").symlink_to("releases/" + release)
+            for previous in ({}, {"journalRecovery": True}, {"journalRecovery": 1}):
+                write_json(layout.control / "capabilities.json", previous)
+                with self.assertRaises(DeployError) as error:
+                    require_application(layout, release, {})
+                self.assertEqual(error.exception.code, "journal_unsupported")
+                with self.assertRaises(DeployError):
+                    require_history_control(layout, previous)
+            write_json(layout.control / "capabilities.json", {"journalRecovery": 2})
+            require_application(layout, release, {})
+            require_history_control(layout, {"journalRecovery": 2})
+
     def test_only_exact_previous_or_current_policies_are_recognized(self):
         from deploy.ownership import require_owned
         from deploy.units import sudo_rule

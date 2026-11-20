@@ -20,7 +20,7 @@ from .common import DeployError, Layout, atomic_write, canonical, fsync_director
 from .install import ensure_account
 from .safe_fs import durable_tree, stable_identity
 from .system import run
-from .units import render_units, render_edge_units, validate_origin
+from .units import main_unit_templates, render_units, render_edge_units, validate_origin
 from .ownership import require_owned, regular, present
 from .accounts import verify_account_login
 
@@ -365,7 +365,13 @@ def recover_https_transaction(manager, journal_path: Path, journal: dict) -> Non
                                                               candidate_https.get("publicOrigin")),
                 "Invalid HTTPS candidate metadata", "corrupt_state")
     candidate_dns = candidate_https if candidate_https is not None and candidate_https.get("dnsProvider") is not None else None
-    require_owned(manager.layout, candidate_config, prior_units={role: decoded[role] for role in EDGE_ROLES}, candidate_dns=candidate_dns)
+    prior_units = {role: decoded[role] for role in EDGE_ROLES}
+    for role, templates in main_unit_templates(manager.layout, old_config).items():
+        data = decoded[role]
+        require(data in templates, "Retained HTTPS service unit is not a generated definition", "corrupt_state")
+        decoded[role] = templates[data]
+        prior_units[role] = {data, decoded[role]}
+    require_owned(manager.layout, candidate_config, prior_units=prior_units, candidate_dns=candidate_dns)
     barriers = recovery_barriers(manager)
     manager.system.stop([manager.layout.unit(role) for role in EDGE_ROLES])
     manager.recover_control()

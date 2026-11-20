@@ -64,7 +64,7 @@ class JournalManagementRecoveryTests(unittest.TestCase):
         self.system = Services(self.layout, self.journal)
         self.manager = Manager(self.layout, self.system, worker_gid=65533)
         self.manager.require_service_ownership = Mock()
-        self.manager.refresh_worker_unit = Mock()
+        self.manager.refresh_main_units = Mock()
         self.manager.verify_release = Mock()
         self.manager.healthy = Mock()
         self.old, self.candidate = "a" * 64, "b" * 64

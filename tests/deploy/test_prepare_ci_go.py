@@ -39,13 +39,16 @@ class PrepareCiGoTests(unittest.TestCase):
                 action(arguments, source)
             return "go version go1.26.10 windows/amd64\n" if arguments == ["version"] else "verified\n"
 
-        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), patch.object(helper, "run_go", side_effect=run):
+        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), \
+             patch.dict(helper.ARCHIVE_BYTES, windows=archive.stat().st_size), patch.object(helper, "run_go", side_effect=run):
             result = helper.prepare(self.base, archive=archive, seed_cache=seed_cache, system="Windows", machine="AMD64")
         return result, calls
 
     def test_official_pins_and_unsupported_platforms(self):
         self.assertEqual(helper.pin("Linux", "x86_64")["archiveSha256"], helper.GO_HASHES["amd64"])
         self.assertEqual(helper.pin("Windows", "AMD64")["archiveSha256"], "7ecd2d7260e82c59bcbd7f1077a07cee2dea607295b858df67195a1e4e09629b")
+        self.assertEqual(helper.pin("Linux", "x86_64")["archiveBytes"], 66_936_659)
+        self.assertEqual(helper.pin("Windows", "AMD64")["archiveBytes"], 75_004_774)
         for system, machine in (("Darwin", "x86_64"), ("Linux", "aarch64"), ("Windows", "arm64")):
             with self.subTest(system=system, machine=machine), self.assertRaises(ValueError):
                 helper.pin(system, machine)
@@ -151,6 +154,119 @@ class PrepareCiGoTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "redirect"):
             redirect.redirect_request(None, None, 302, "found", {}, "https://untrusted.invalid/go.zip")
 
+    def transfer(self, responses, *, data=b"abcdef", action=None):
+        selected = {**helper.pin("Windows", "AMD64"), "archiveBytes": len(data),
+                    "archiveSha256": hashlib.sha256(data).hexdigest()}
+        target = self.base / ".work/distribution.zip"
+        opener = Mock()
+        opener.open.side_effect = responses
+        with patch.object(helper.urllib.request, "build_opener", return_value=opener), patch.object(helper.time, "sleep"):
+            if action:
+                action(selected, target)
+            else:
+                helper.download(selected, target)
+        self.assertEqual(list(target.parent.glob(".go-download-*")), [])
+        return opener.open.call_args_list, target
+
+    @staticmethod
+    def response(data, *, status=200, headers=None, chunks=None):
+        incoming = io.BytesIO(data)
+        incoming.url = "https://dl.google.com/go/go1.26.10.windows-amd64.zip"
+        incoming.status = status
+        incoming.headers = headers or {}
+        if chunks is not None:
+            incoming.read1 = Mock(side_effect=chunks)
+        return incoming
+
+    def test_slow_progress_past_five_minutes_and_verified_publish(self):
+        # The actual Windows failure occurred 301 seconds after the step started.
+        now = [0]
+        def progress(size):
+            now[0] += 105
+            return next(chunks)
+        chunks = iter((b"ab", b"cd", b"ef"))
+        response = self.response(b"", headers={"Content-Length": "6"})
+        response.read1 = progress
+        with patch.object(helper.time, "monotonic", side_effect=lambda: now[0]):
+            requests, target = self.transfer([response])
+        self.assertEqual(now[0], 315)
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(target.read_bytes(), b"abcdef")
+
+    def test_interrupted_download_resumes_or_restarts_if_origin_ignores_range(self):
+        for resumes in (True, False):
+            with self.subTest(resumes=resumes):
+                first = self.response(b"", headers={"Content-Length": "6"}, chunks=[b"abc", TimeoutError()])
+                again = (self.response(b"def", status=206, headers={"Content-Range": "bytes 3-5/6", "Content-Length": "3"})
+                         if resumes else self.response(b"abcdef", headers={"Content-Length": "6"}))
+                requests, target = self.transfer([first, again])
+                self.assertIsNone(requests[0].args[0].get_header("Range"))
+                self.assertEqual(requests[1].args[0].get_header("Range"), "bytes=3-")
+                self.assertEqual(target.read_bytes(), b"abcdef")
+                target.unlink()
+
+    def test_disconnect_after_last_byte_still_checks_complete_digest(self):
+        response = self.response(b"", chunks=[b"abcdef", ConnectionResetError()])
+        requests, target = self.transfer([response])
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(target.read_bytes(), b"abcdef")
+
+    def test_download_fails_closed_for_length_range_checksum_and_permanent_http(self):
+        first = lambda: self.response(b"abc", headers={"Content-Length": "6"})
+        forbidden = helper.urllib.error.HTTPError("https://go.dev/dl/", 403, "forbidden", {}, None)
+        examples = (
+            ([self.response(b"", headers={"Content-Length": "7"})], ValueError, "declared length"),
+            ([self.response(b"abcdefg")], ValueError, "archive byte count"),
+            ([self.response(b"abcdeX")], ValueError, "checksum"),
+            ([first(), self.response(b"abc", status=206, headers={"Content-Range": "bytes 0-2/6"})],
+             ValueError, "range differs"),
+            ([forbidden], helper.urllib.error.HTTPError, "403"),
+        )
+        for responses, error, message in examples:
+            def reject(selected, target):
+                with self.assertRaisesRegex(error, message):
+                    helper.download(selected, target)
+                self.assertFalse(target.exists())
+            with self.subTest(message=message):
+                requests, _ = self.transfer(responses, action=reject)
+                self.assertEqual(len(requests), len(responses))
+
+    def test_transient_network_retries_share_a_single_deadline_and_attempt_limit(self):
+        def exhausted(selected, target):
+            with self.assertRaisesRegex(ValueError, r"HTTP 503, attempt 3/3, 0/6 bytes"):
+                helper.download(selected, target)
+            self.assertFalse(target.exists())
+        def deadline(selected, target):
+            clock = iter((0, 0, 0, 300, 300, 481))
+            with patch.object(helper.time, "monotonic", side_effect=clock):
+                with self.assertRaisesRegex(ValueError, "time limit exceeded"):
+                    helper.download(selected, target)
+            self.assertFalse(target.exists())
+        busy = lambda: helper.urllib.error.HTTPError("https://go.dev/dl/", 503, "busy", {}, None)
+        requests, _ = self.transfer([busy(), busy(), busy()], action=exhausted)
+        self.assertEqual(len(requests), 3)
+        requests, _ = self.transfer([self.response(b"", chunks=[b"abc", b"def"])], action=deadline)
+        self.assertEqual(len(requests), 1)
+
+    def test_download_failure_allows_prepare_to_retry_in_same_checkout(self):
+        archive = self.archive()
+        response = self.response(b"bad", headers={"Content-Length": "3"})
+        with patch.object(helper.urllib.request, "build_opener", return_value=SimpleNamespace(open=lambda *a, **kw: response)):
+            with self.assertRaisesRegex(ValueError, "declared length"):
+                helper.prepare(self.base, system="Windows", machine="AMD64")
+        self.assertFalse((self.base / "reference/runtime/ci-go").exists())
+        self.assertFalse((self.base / ".work/ci-go").exists())
+        result, _ = self.prepare(archive)
+        self.assertTrue(result.is_file())
+
+    def test_atomic_download_does_not_clobber_a_previous_verified_target(self):
+        def preserve(selected, target):
+            target.write_bytes(b"existing")
+            with self.assertRaises(FileExistsError):
+                helper.download(selected, target)
+            self.assertEqual(target.read_bytes(), b"existing")
+        self.transfer([self.response(b"abcdef")], action=preserve)
+
     def test_existing_preparation_is_never_overwritten(self):
         archive = self.archive()
         self.prepare(archive)
@@ -183,7 +299,9 @@ class PrepareCiGoTests(unittest.TestCase):
 
     def test_failed_or_wrong_version_runtime_cannot_publish_success(self):
         archive = self.archive()
-        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), patch.object(helper, "run_go", return_value="go version go1.27.0 windows/amd64\n"):
+        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), \
+             patch.dict(helper.ARCHIVE_BYTES, windows=archive.stat().st_size), \
+             patch.object(helper, "run_go", return_value="go version go1.27.0 windows/amd64\n"):
             with self.assertRaisesRegex(ValueError, "version mismatch"):
                 helper.prepare(self.base, archive=archive, system="Windows", machine="AMD64")
         self.assertFalse((self.base / ".work/ci-go/prepared.json").exists())

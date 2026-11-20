@@ -193,14 +193,19 @@ class ManagementBoundaryTests(unittest.TestCase):
 
     def test_recognized_runtime_group_unit_migrates_only_after_stop_and_reloads_on_retry(self):
         path = self.layout.units / self.layout.unit("worker")
-        old = render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=True)[path.name]
-        atomic_write(path, old.encode(), 0o644)
+        gateway = self.layout.units / self.layout.unit("gateway")
+        old = render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=True, legacy_sudo_filters=True)
+        for unit in (path, gateway):
+            atomic_write(unit, old[unit.name].encode(), 0o644)
         self.system.reload_failure = True
         with self.assertRaises(DeployError):
             self.manager.restart()
         self.assertEqual(self.system.events, ["stop", "reload"])
         self.assertIn("\nGroup=ch-fixture-ipc\n", path.read_text())
         self.assertNotIn("ExecStartPre=", path.read_text())
+        for unit in (path, gateway):
+            self.assertNotIn("ProtectKernelTunables=yes", unit.read_text())
+            self.assertIn("ReadOnlyPaths=/sys /proc/sys", unit.read_text())
         self.manager.restart()
         self.assertEqual(self.system.events, ["stop", "reload", "stop", "reload", "start"])
 

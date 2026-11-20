@@ -13,6 +13,7 @@ from .ownership import ROLES, present, regular
 from .safe_fs import inspect_tree
 from .service_proxy import PROXY_ROLES, active as service_active, roles as service_roles, selection as proxy_selection
 from .system import run
+from .units import main_unit_templates
 
 DROPIN = "93-codex-harness-service-lifecycle.conf"
 TERMINAL = ("committed", "recovered")
@@ -187,17 +188,22 @@ def verify_retained(manager, value):
     manager.require_service_ownership(allow_absent=True)
     paths = service_paths(manager.layout, manager.config)
     require(set(value["before"]) == set(paths), "Retained service roles changed", "integrity")
+    main = main_unit_templates(manager.layout, manager.config)
     for name, path in paths.items():
         saved = value["before"][name]
         if present(path):
             require(saved is not None, "A previously absent service definition appeared", "ownership_conflict")
-            regular(path, {base64.b64decode(saved["data"], validate=True)})
+            data = base64.b64decode(saved["data"], validate=True)
+            allowed = {data}
+            if value["phase"] in ("restoring", "recovered") and name in main and data in main[name]:
+                target = main[name][data]
+                allowed = {target} if value["phase"] == "recovered" else {data, target}
+            regular(path, allowed)
 
 
 def verify_retained_definition(manager, journal, role):
     """Recognize supported old definitions only while restoring their bound snapshot."""
-    from .units import render_units, sudo_rule
-    require(role in ("worker", "sudo"), "Unsupported retained service compatibility", "integrity")
+    require(role in ("worker", "gateway", "sudo"), "Unsupported retained service compatibility", "integrity")
     path, value = read_record(manager.layout)
     require(path == journal and value["phase"] == "restoring",
             "Legacy verification requires the active restoration record", "recovery_required")
@@ -210,11 +216,11 @@ def verify_retained_definition(manager, journal, role):
     if role == "sudo":
         from .units import sudo_variants
         allowed = set(sudo_variants(manager.layout, manager.config))
+        require(data in allowed, "Retained service is not an exact supported definition", "integrity")
     else:
-        allowed = {render_units(manager.layout, manager.config, manager.config["codexRelative"],
-                                legacy_runtime_directory=runtime, legacy_native_home=home)[manager.layout.unit("worker")].encode()
-                   for runtime in (False, True) for home in (False, True)}
-    require(data in allowed, "Retained service is not an exact supported definition", "integrity")
+        supported = main_unit_templates(manager.layout, manager.config)[role]
+        require(data in supported, "Retained service is not an exact supported definition", "integrity")
+        data = supported[data]
     target = service_paths(manager.layout, manager.config)[role]
     regular(target, {data})
     require(type(saved["mode"]) is int and stat.S_IMODE(target.lstat().st_mode) == saved["mode"],
@@ -296,12 +302,19 @@ def restore_services(manager):
     value["phase"] = "restoring"
     write_json(journal, value)
     paths = service_paths(layout, manager.config)
+    main = main_unit_templates(layout, manager.config)
     for name, saved in value["before"].items():
         if saved is None: continue
         data = base64.b64decode(saved["data"], validate=True)
         require(type(saved["mode"]) is int and not saved["mode"] & 0o022 and len(data) <= 1024 * 1024,
                 "Unsafe retained service definition", "corrupt_state")
-        if present(paths[name]): regular(paths[name], {data})
+        if name in main:
+            require(data in main[name], "Retained service is not an exact supported definition", "integrity")
+            target = main[name][data]
+            if present(paths[name]): regular(paths[name], {data, target})
+            if not present(paths[name]) or paths[name].read_bytes() != target:
+                atomic_write(paths[name], target, saved["mode"])
+        elif present(paths[name]): regular(paths[name], {data})
         elif name == "sudo":
             from .sudo_publish import publish
             publish(paths[name], data, saved["mode"])

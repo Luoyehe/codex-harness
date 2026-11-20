@@ -291,6 +291,28 @@ test('agent listing and global search exclude other projects and preserve contin
   native.responseOverride = { method: 'thread/search', value: { data: [{ thread: thread('foreign', path.join(cwd, 'other')), snippet: 'private' }], nextCursor: 'next', backwardsCursor: null } };
   expect(await service.call('thread/search', { cwd, searchTerm: 'needle' }, context)).toMatchObject({ data: [], nextCursor: 'next' });
 });
+test('forwards native search order and cursor without reordering the project matches', async () => {
+  const { service, native, cwd } = setup();
+  native.responseOverride = { method: 'thread/search', value: {
+    data: [
+      { thread: thread('second', cwd), snippet: 'two' },
+      { thread: thread('elsewhere', path.join(cwd, 'elsewhere')), snippet: 'foreign' },
+      { thread: thread('first', cwd), snippet: 'one' },
+    ],
+    nextCursor: 'next', backwardsCursor: null,
+  } };
+  for (const sortKey of ['created_at', 'updated_at', 'recency_at']) {
+    const params = { searchTerm: 'needle', archived: true, sortKey, sortDirection: 'desc', cursor: 'page', limit: 3 };
+    const result = object(await service.call('thread/search', { ...params, cwd }, context));
+    expect(native.calls.at(-1)).toMatchObject({ method: 'thread/search', params });
+    expect(native.calls.at(-1)!.params).toEqual(params);
+    expect((result.data as JsonObject[]).map(hit => object(hit.thread).id)).toEqual(['second', 'first']);
+    expect(result.nextCursor).toBe('next');
+  }
+  const before = native.calls.length;
+  await expect(service.call('thread/search', { cwd, searchTerm: 'needle', sortKey: 'section_position' }, context)).rejects.toThrow();
+  expect(native.calls).toHaveLength(before);
+});
 test('subagents refusing direct input cannot receive turns or queued input', async () => {
   const { service, native } = setup(); native.directInput = false; await hydrate(service);
   await expect(service.call('turn/start', { threadId: 't', text: 'no' }, context)).rejects.toMatchObject({ code: 'direct_input_unavailable' });

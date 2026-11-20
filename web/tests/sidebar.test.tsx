@@ -45,7 +45,8 @@ test('nests the supplied page and its search/sort/pagination controls only under
   fireEvent.click(within(a).getByRole('button', { name: '加载更多' }));
   fireEvent.click(within(a).getByRole('button', { name: '刷新会话列表' }));
   fireEvent.change(within(a).getByRole('combobox', { name: '会话排序' }), { target: { value: 'section_position' } });
-  fireEvent.click(screen.getByRole('button', { name: '搜索会话' }));
+  expect(screen.getByRole('button', { name: '搜索会话' }).getAttribute('aria-expanded')).toBe('true');
+  expect(document.activeElement).not.toBe(screen.getByRole('textbox', { name: '搜索会话' }));
   fireEvent.change(screen.getByRole('textbox', { name: '搜索会话' }), { target: { value: 'next search' } });
   fireEvent.click(screen.getByRole('button', { name: '已归档' }));
   expect(handlers.onMore).toHaveBeenCalledOnce();

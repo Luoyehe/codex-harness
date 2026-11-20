@@ -45,7 +45,7 @@ def native_settings(layout, config: dict) -> dict:
 def require_application(layout, release: str | None, config: dict, *, enabling: bool = False) -> None:
     if release is not None:
         package = read_json(layout.app / "releases" / release / "app/package.json")
-        if package.get("codexHarnessThreadHistory") is not None:
+        if "codexHarnessThreadHistory" in package or "codexHarnessJournalRecovery" in package:
             capability = read_json(layout.control / "capabilities.json", 4096)
             require_history_control(layout, capability, release=release)
     if not enabling and config.get("executionMode", "native") != "root":
@@ -79,6 +79,10 @@ def require_history_control(layout, capabilities: dict, *, release: str | None =
         require(re.fullmatch(r"releases/[0-9a-f]{64}", target) is not None, "Invalid release pointer", "corrupt_state")
         release = target.split("/")[1]
     package = read_json(layout.app / "releases" / release / "app/package.json")
+    if "codexHarnessJournalRecovery" in package:
+        require(type(package["codexHarnessJournalRecovery"]) is int and package["codexHarnessJournalRecovery"] == 2 and
+                type(capabilities.get("journalRecovery")) is int and capabilities["journalRecovery"] == 2,
+                "This application requires updated journal recovery tools. Update the control tools first.", "journal_unsupported")
     if package.get("codexHarnessThreadHistory") is not None:
         version = package["codexHarnessThreadHistory"]
         require(type(version) is int and version in (1, 2),

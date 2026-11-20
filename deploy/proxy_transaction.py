@@ -93,25 +93,25 @@ def validate_journal(manager, path, journal):
         require(isinstance(value, list) and len(value) == len(set(value)) and set(value) <= allowed,
                 "Invalid retained proxy activity", "corrupt_state")
     require(selection(old) is not None or not journal["proxyActive"], "Absent proxy had saved activity", "corrupt_state")
-    generated_old = render_units(manager.layout, old, old["codexRelative"])
-    generated_new = render_units(manager.layout, candidate, candidate["codexRelative"])
+    def definitions(config):
+        return [render_units(manager.layout, config, config["codexRelative"], legacy_sudo_filters=legacy)
+                for legacy in (False, True)]
+    generated_old, generated_new = definitions(old), definitions(candidate)
+    def role_bytes(units, role):
+        return {values[manager.layout.unit(role)].encode() if manager.layout.unit(role) in values else None
+                for values in units}
     for role in ("worker", "gateway", *PROXY_ROLES):
-        name = manager.layout.unit(role)
-        expected = generated_old.get(name)
-        require(before[role] == (expected.encode() if expected is not None else None), "Proxy snapshot is not a generated service definition", "corrupt_state")
-    alternate = candidate if manager.config == old else old
-    rendered = render_units(manager.layout, alternate, alternate["codexRelative"])
+        require(before[role] in role_bytes(generated_old, role), "Proxy snapshot is not a generated service definition", "corrupt_state")
+    alternate = generated_new if manager.config == old else generated_old
     require_owned(manager.layout, manager.config, allow_absent=True,
-                  prior_units={role: rendered.get(manager.layout.unit(role), "").encode() or None for role in ("worker", "gateway", *PROXY_ROLES)})
+                  prior_units={role: role_bytes(alternate, role) - {None} for role in ("worker", "gateway", *PROXY_ROLES)})
     for name, current_path in paths(manager.layout).items():
-        new = canonical(candidate) + b"\n" if name == "instance" else generated_new.get(manager.layout.unit(name))
-        if isinstance(new, str):
-            new = new.encode()
-        allowed = {data for data in (before[name], new) if data is not None}
+        allowed = {before[name], canonical(candidate) + b"\n"} if name == "instance" else (
+            role_bytes(generated_old, name) | role_bytes(generated_new, name))
         if present(current_path):
-            regular(current_path, allowed)
+            regular(current_path, allowed - {None})
         else:
-            require(before[name] is None or new is None, "Managed proxy transaction file disappeared", "integrity")
+            require(None in allowed, "Managed proxy transaction file disappeared", "integrity")
     return old, candidate, before
 
 
@@ -143,7 +143,7 @@ def publish(manager, target, previous, *, retained=None, snapshot_record=None):
                 atomic_write(path, retained[name], snapshot_record[name]["mode"])
     fsync_directory(layout.units)
     manager.config = target
-    manager.system.reload()
+    manager.refresh_main_units(preserve_layout=True)
     current, old = selection(target), selection(previous)
     if current is not None and current["enabled"]:
         apply_routes(layout, current, prior=old)

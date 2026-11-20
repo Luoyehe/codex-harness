@@ -136,7 +136,8 @@ class ControlUpdateTests(unittest.TestCase):
             atomic_write(destination / name, ("new " + name).encode(), 0o755 if "/" not in name else 0o644)
         write_json(destination / "capabilities.json", {"format": 1, "providerConfigLayer": "system-v1", "nativeWorkspace": 1,
                                                       "authenticationGuard": "account-v1", "dnsChallenge": "caddy-dns-v1", "serviceProxy": 1,
-                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 2}, mode=0o644)
+                                                      "serviceProxyDirectDomains": 1, "sharedChatgptAuth": 1, "threadHistoryRepair": 2,
+                                                      "fixedHelperUnits": 1, "journalRecovery": 2}, mode=0o644)
 
     def configure_proxy(self, direct_domains=None, enabled=True):
         document = configuration({"protocol": "vless", "settings": {}}, 18793, direct_domains)
@@ -158,6 +159,39 @@ class ControlUpdateTests(unittest.TestCase):
         # This fixture checks lifecycle/real file snapshots. Proxy-specific root
         # tests independently exercise executable and configuration ownership.
         self.stack.enter_context(patch("deploy.service_proxy.verify_selection"))
+
+    def legacy_main_units(self):
+        old = render_units(self.layout, self.updater.config, self.updater.config["codexRelative"],
+                           legacy_sudo_filters=True, legacy_runtime_directory=True, legacy_native_home=True)
+        now = render_units(self.layout, self.updater.config, self.updater.config["codexRelative"],
+                           legacy_runtime_directory=True, legacy_native_home=True)
+        return [(self.layout.units / name, old[name].encode(), now[name].encode())
+                for name in (self.layout.unit("worker"), self.layout.unit("gateway"))]
+
+    def test_control_migrates_both_sudo_units_and_rollback_restores_exact_old_bytes(self):
+        units = self.legacy_main_units()
+        for path, previous, current in units:
+            self.assertNotEqual(previous, current)
+            atomic_write(path, previous, 0o644)
+        result = self.updater.update()
+        self.assertEqual([path.read_bytes() for path, _, _ in units], [current for _, _, current in units])
+        self.updater.update(result["transaction"])
+        self.assertEqual([path.read_bytes() for path, _, _ in units], [previous for _, previous, _ in units])
+
+    def test_interrupted_partial_unit_publication_recovers_either_generation(self):
+        units = self.legacy_main_units()
+        for path, previous, _ in units:
+            atomic_write(path, previous, 0o644)
+        def publish(path, data, *args, **kwargs):
+            if path == units[1][0] and data == units[1][2]:
+                raise PowerLoss()
+            return atomic_write(path, data, *args, **kwargs)
+        with patch("deploy.control_update.atomic_write", side_effect=publish), self.assertRaises(PowerLoss):
+            self.updater.update()
+        self.assertEqual([path.read_bytes() for path, _, _ in units], [units[0][2], units[1][1]])
+        self.updater.recover(target="candidate")
+        self.assertEqual([path.read_bytes() for path, _, _ in units], [current for _, _, current in units])
+        self.assertEqual(self.system.active, {"worker", "caddy"})
 
     def test_proxy_services_and_oneshot_routes_restore_exactly_across_update_and_rollback(self):
         self.configure_proxy()

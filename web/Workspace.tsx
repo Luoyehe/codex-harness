@@ -47,6 +47,7 @@ import { useModelCatalogRefresh } from './hooks/useModelCatalogRefresh';
 import { useSidebarRefresh } from './hooks/useSidebarRefresh';
 import { ModelDirectoryContext } from './hooks/useModelDirectory';
 import { Sidebar } from './components/Sidebar';
+import type { ThreadSearchSortKey } from '../protocol/ts/v2/ThreadSearchSortKey';
 import { Recovery, useOperations } from './components/Recovery';
 import { ProjectDialog } from './components/ProjectDialog';
 import { SidebarManagementDialog, type SidebarAction } from './components/SidebarManagementDialog';
@@ -111,6 +112,7 @@ export function Workspace({
     draft = draftState.text,
     options = draftState.options;
   const [threadOrder, setThreadOrder] = useState<'recency_at' | 'section_position'>('recency_at');
+  const [searchOrder, setSearchOrder] = useState<ThreadSearchSortKey>('recency_at');
   const [archived, setArchived] = useState(false),
     [query, setQuery] = useState(''),
     [search, setSearch] = useState('');
@@ -348,7 +350,7 @@ export function Workspace({
   const projects = useMemo(() => array<Project & { path?: string }>(
     projectsResource.data?.projects ?? projectsResource.data?.data,
   ).map((p) => ({ ...p, cwd: p.cwd ?? p.path ?? '' })), [projectsResource.data]);
-  const threadListKey = `${resourceEpoch}:${projectId}:${archived}:${search}:${threadOrder}`;
+  const threadListKey = JSON.stringify([resourceEpoch, projectId, archived, search, search ? searchOrder : threadOrder]);
   const threads = usePaged<Thread>(
     api,
     'thread/list',
@@ -357,7 +359,6 @@ export function Workspace({
       archived,
       sortKey: threadOrder,
       sortDirection: threadOrder === 'section_position' ? 'asc' : 'desc',
-      ...(search ? { searchTerm: search } : {}),
     },
     threadListKey,
     Boolean(projectId) && !search,
@@ -365,7 +366,7 @@ export function Workspace({
   const searchThreads = usePaged<{ thread: Thread; snippet: string }>(
     api,
     'thread/search',
-    { projectId, archived, searchTerm: search },
+    { projectId, archived, searchTerm: search, sortKey: searchOrder, sortDirection: 'desc' },
     threadListKey,
     Boolean(projectId && search),
   );
@@ -545,7 +546,9 @@ export function Workspace({
   }, [restoreBranch, threadId, conversation.loadedThreadId, conversation.ready, conversation.turns]);
   const visiblePrompts = executionBlocked ? [] : prompts.prompts.filter((p) => !p.threadId || p.threadId === threadId);
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(query), 250);
+    const term = query.trim();
+    if (!term) return;
+    const timer = setTimeout(() => setSearch(term), 250);
     return () => clearTimeout(timer);
   }, [query]);
   useEffect(() => {
@@ -886,6 +889,7 @@ export function Workspace({
       }}
       threadOrder={threadOrder}
       onThreadOrder={setThreadOrder}
+      searchSort={search ? { value: searchOrder, change: setSearchOrder } : undefined}
       onOrganize={() => {
         setMobile(false);
         setModal('organize');
@@ -917,7 +921,10 @@ export function Workspace({
           setArchived(false); setQuery(''); setSearch(''); refreshSidebar();
         } });
       }}
-      onQuery={setQuery}
+      onQuery={next => {
+        setQuery(next);
+        if (!next.trim()) setSearch('');
+      }}
       onArchived={() => setArchived((v) => !v)}
       onAddProject={() => {
         setMobile(false);

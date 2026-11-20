@@ -35,6 +35,9 @@ CREATE TABLE worktree_projects(
 """
 
 
+ATTENTION_MIGRATION = "ALTER TABLE automation_runs ADD COLUMN attention_before_stop INTEGER NOT NULL DEFAULT 0;"
+
+
 def schema_objects(db: sqlite3.Connection) -> dict:
     # LIKE 'sqlite_%' treats '_' as a wildcard and would hide sqlitex... tables.
     values = db.execute("SELECT type,name,sql FROM sqlite_schema WHERE substr(name,1,7) != 'sqlite_'").fetchall()
@@ -59,11 +62,15 @@ def schema_layout(db: sqlite3.Connection, objects: dict) -> dict:
     return layout
 
 
-def validate_schema(db: sqlite3.Connection) -> bool:
+def validate_schema(db: sqlite3.Connection, *, allow_attention: bool = True) -> bool:
     require(db.execute("PRAGMA user_version").fetchone()[0] == 0,
             "Unknown journal schema version", "corrupt_state")
     actual = schema_objects(db)
-    for ddl in (BASE, BASE + RETIREMENTS, BASE + RETIREMENTS + FEATURES):
+    featured = BASE + RETIREMENTS + FEATURES
+    schemas = [BASE, BASE + RETIREMENTS, featured]
+    if allow_attention:
+        schemas.append(featured + ATTENTION_MIGRATION)
+    for ddl in schemas:
         reference = sqlite3.connect(":memory:")
         try:
             reference.executescript(ddl)

@@ -133,15 +133,27 @@ export function useDraft(key: string) {
     window.addEventListener('harness-drafts', changed);
     return () => window.removeEventListener('harness-drafts', changed);
   }, [key, load, removeCurrentAttachment, visit]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const leaving = (event: BeforeUnloadEvent) => {
       if (!mounted.current || flush()) return;
       event.preventDefault();
       event.returnValue = '';
     };
+    const savePending = () => {
+      if (mounted.current && unsaved.current) persist(current.current);
+    };
+    const visibilityChanged = () => {
+      if (document.visibilityState === 'hidden') savePending();
+    };
+    document.addEventListener('visibilitychange', visibilityChanged);
+    window.addEventListener('pagehide', savePending);
     window.addEventListener('beforeunload', leaving);
-    return () => window.removeEventListener('beforeunload', leaving);
-  }, [flush]);
+    return () => {
+      document.removeEventListener('visibilitychange', visibilityChanged);
+      window.removeEventListener('pagehide', savePending);
+      window.removeEventListener('beforeunload', leaving);
+    };
+  }, [flush, persist]);
   const update = (patch: Partial<Draft>) => {
     if (!visit.active || current.current.key !== key) return false;
     const previous = current.current;
@@ -149,15 +161,14 @@ export function useDraft(key: string) {
     if (Object.keys(patch).length === 1 && patch.text !== undefined) {
       if (timer.current === undefined) {
         if (!persist(next)) return true;
+        timer.current = setTimeout(() => { timer.current = undefined; flush(); }, 120);
       } else {
         current.current = next;
         unsaved.current = true;
         queued.current = true;
         acceptedClear.current = undefined;
         setDraft(next);
-        clearTimeout(timer.current);
       }
-      timer.current = setTimeout(() => { timer.current = undefined; flush(); }, 120);
     } else persist(next);
     return true;
   };

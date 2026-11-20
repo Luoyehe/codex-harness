@@ -11,6 +11,7 @@
   "harnessAuthentication": "account-v1",
   "codexHarnessExecutionMode": 1,
   "codexHarnessThreadHistory": 2,
+  "codexHarnessJournalRecovery": 2,
   "scripts": {
     "release:preflight": "node scripts/release-preflight.mjs",
     "build:server": "node scripts/build-server.mjs",

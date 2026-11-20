@@ -21,9 +21,9 @@ from .journal import recover_as_owner
 from .safe_fs import inspect_tree, snapshot
 from .system import System, run
 from .transactions import require_recovered
-from .ownership import require_owned
+from .ownership import regular, require_owned
 from .service_proxy import PROXY_ROLES, active as service_active, roles as service_roles, selection as proxy_selection
-from .units import sudo_rule, sudo_variants
+from .units import main_unit_templates, sudo_rule, sudo_variants
 
 ROLES = ("worker", "gateway", "authelia", "caddy")
 TERMINAL = ("committed", "recovered")
@@ -339,6 +339,51 @@ class ControlUpdater:
                               legacy_thread_history=not supports_history_control(capabilities)).encode()
         return {"old": base64.b64encode(old).decode(), "candidate": base64.b64encode(candidate).decode()}
 
+    def main_unit_plan(self, capabilities: dict, *, rollback: bool = False) -> dict:
+        version = capabilities.get("fixedHelperUnits")
+        require(version is None or type(version) is int and version == 1,
+                "Unsupported fixed-helper unit contract", "integrity")
+        plan = {}
+        for role, templates in main_unit_templates(self.layout, self.config).items():
+            path = self.layout.units / self.layout.unit(role)
+            regular(path, set(templates))
+            previous = path.read_bytes()
+            target = previous
+            if version == 1:
+                target = templates[previous]
+            elif rollback:
+                # Historical control only recognises its own unit grammar. Match
+                # the same worker groups, home and execution identity.
+                prior = {old for old, new in templates.items() if old != new and new == previous}
+                require(len(prior) <= 1, "Ambiguous old service definition", "integrity")
+                if prior:
+                    target = prior.pop()
+            plan[role] = {"old": hashlib.sha256(previous).hexdigest(),
+                          "candidate": hashlib.sha256(target).hexdigest()}
+        return plan
+
+    def restore_main_units(self, state: dict, kind: str) -> None:
+        if "mainUnits" not in state:
+            return
+        changes = []
+        for role, templates in main_unit_templates(self.layout, self.config).items():
+            values = state["mainUnits"][role]
+            catalog = {hashlib.sha256(data).hexdigest(): data for data in templates}
+            require(all(checksum in catalog for checksum in values.values()),
+                    "Recorded system service definition belongs to a different configuration", "integrity")
+            old, candidate = catalog[values["old"]], catalog[values["candidate"]]
+            require(templates[old] == templates[candidate], "Control update changed unrelated service settings", "integrity")
+            path = self.layout.units / self.layout.unit(role)
+            regular(path, {old, candidate})
+            if path.read_bytes() != catalog[values[kind]]:
+                changes.append((path, catalog[values[kind]]))
+        for path, data in changes:
+            atomic_write(path, data, 0o644)
+        # An interrupted earlier attempt may already have written the files
+        # without reloading systemd. Reload even when the bytes now match.
+        if any(pair["old"] != pair["candidate"] for pair in state["mainUnits"].values()):
+            self.system.reload()
+
     def sudo_identity(self) -> dict:
         return {key: self.config[key] for key in SUDO_IDENTITY_FIELDS if key in self.config}
 
@@ -369,6 +414,12 @@ class ControlUpdater:
                 data = base64.b64decode(value, validate=True)
                 require(hashlib.sha256(data).hexdigest() == state[kind][name]["sha256"],
                         "Control launcher record differs from manifest", "corrupt_state")
+        if "mainUnits" in state:
+            units = state["mainUnits"]
+            require(isinstance(units, dict) and set(units) == {"worker", "gateway"} and
+                    all(isinstance(pair, dict) and set(pair) == {"old", "candidate"} and
+                        all(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) for value in pair.values())
+                        for pair in units.values()), "Invalid retained service unit records", "corrupt_state")
         if "sudoPolicies" in state:
             policies = state["sudoPolicies"]
             require(isinstance(policies, dict) and set(policies) == {"old", "candidate"} and
@@ -408,12 +459,13 @@ class ControlUpdater:
             self.require_account_guard(capabilities)
             self.require_dns_guard(capabilities)
         except DeployError as error:
-            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported", "shared_auth_unsupported", "history_unsupported"):
+            if error.code not in ("authentication_downgrade", "dns_downgrade", "execution_unsupported", "proxy_unsupported", "shared_auth_unsupported", "history_unsupported", "journal_unsupported"):
                 raise
             feature = {"authentication_downgrade": "account guard", "dns_downgrade": "selected DNS challenge support",
                        "execution_unsupported": "root execution support", "proxy_unsupported": "service proxy support",
                        "shared_auth_unsupported": "shared ChatGPT authentication support",
-                       "history_unsupported": "history repair support required by the selected application"}[error.code]
+                       "history_unsupported": "history repair support required by the selected application",
+                       "journal_unsupported": "recovery support for the retained journal"}[error.code]
             raise DeployError(error.code,
                               "Previous control tools lack " + feature + "; recovery has not changed services or selected code. "
                               "Correct any runtime prerequisite, then run control-recover --target candidate to validate and resume the original candidate.") from error
@@ -434,6 +486,7 @@ class ControlUpdater:
             self.restore_launchers(self.layout.control, state, "old")
         durable_tree(self.layout.control)
         self.restore_sudo(state, "old")
+        self.restore_main_units(state, "old")
         self.save(path, state, "restoring_old_services")
         try:
             self.restore_services(state)
@@ -491,6 +544,7 @@ class ControlUpdater:
             self.restore_launchers(self.layout.control, state, "candidate")
             durable_tree(self.layout.control)
             self.restore_sudo(state, "candidate")
+            self.restore_main_units(state, "candidate")
             self.save(path, state, "installed")
             self.restore_services(state)
         except Exception:
@@ -554,6 +608,9 @@ class ControlUpdater:
         require_control(capabilities, self.config)
         from .execution_identity import require_history_control
         require_history_control(self.layout, capabilities)
+        journal = self.layout.state / "gateway/journal.sqlite"
+        if capabilities.get("journalRecovery") != 2 and journal.exists():
+            recover_as_owner(journal, self.config["gatewayUid"], self.config["gatewayGid"], check_legacy_only=True)
         from .shared_auth import require_control as require_shared_auth_control
         require_shared_auth_control(self.layout, capabilities)
         selected_proxy = proxy_selection(self.config)
@@ -641,7 +698,8 @@ class ControlUpdater:
             if code == expected:
                 capabilities = json.loads(material["capabilities.json"][0])
                 policies = self.sudo_policies(capabilities)
-                if policies["old"] == policies["candidate"]:
+                if policies["old"] == policies["candidate"] and all(pair["old"] == pair["candidate"]
+                                                                      for pair in self.main_unit_plan(capabilities).values()):
                     from .manager import Manager
                     Manager(self.layout, self.system).verify(https_probe=False)
                     return {"controlUpdated": False, "changed": False, "servicesRestored": True}
@@ -692,6 +750,7 @@ class ControlUpdater:
                  "candidate": candidate_manifest, "services": services, "rollbackOf": rollback,
                  "sudoPolicies": self.sudo_policies(capabilities),
                  "sudoIdentity": self.sudo_identity(),
+                 "mainUnits": self.main_unit_plan(capabilities, rollback=rollback is not None),
                  "launchers": {"old": self.launcher_record(self.layout.control), "candidate": self.launcher_record(candidate)}}
         # A predictable collision must not create a pending transaction that
         # would block the otherwise healthy gateway's fixed management launcher.
@@ -710,6 +769,7 @@ class ControlUpdater:
             self.save(path, state, "old_moved")
             self.rename(candidate, self.layout.control)
             self.restore_sudo(state, "candidate")
+            self.restore_main_units(state, "candidate")
             self.save(path, state, "installed")
             self.restore_services(state)
         except Exception as exc:

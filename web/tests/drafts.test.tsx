@@ -450,3 +450,56 @@ it('coalesces consecutive keystrokes and flushes the exact last edit before leav
     expect(write.mock.calls.filter(([key]) => key.startsWith('harness.draft.v1.'))).toHaveLength(2);
   } finally { write.mockRestore(); }
 });
+it.each(['visibilitychange', 'pagehide'])('saves the exact pending mobile edit synchronously on %s', event => {
+  vi.useFakeTimers();
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  const write = vi.spyOn(Storage.prototype, 'setItem');
+  try {
+    const view = renderHook(() => useDraft('background'));
+    act(() => view.result.current.setText('首'));
+    act(() => view.result.current.setText('手机最后输入'));
+    const revision = view.result.current.revision;
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(readDraft('background').text).toBe('首');
+    act(() => {
+      if (event === 'pagehide') window.dispatchEvent(new Event('pagehide'));
+      else {
+        visibility.mockReturnValue('hidden');
+        document.dispatchEvent(new Event('visibilitychange'));
+      }
+    });
+    expect(readDraft('background')).toMatchObject({ revision, text: '手机最后输入' });
+    act(() => { window.dispatchEvent(new Event('pagehide')); vi.advanceTimersByTime(500); });
+    expect(write.mock.calls.filter(([key]) => key.startsWith('harness.draft.v1.'))).toHaveLength(2);
+    view.unmount();
+    const reopened = renderHook(() => useDraft('background'));
+    expect(reopened.result.current.text).toBe('手机最后输入');
+  } finally { visibility.mockRestore(); write.mockRestore(); vi.useRealTimers(); }
+});
+it('keeps a failed background save recoverable and retries it before the page is suspended', () => {
+  const view = renderHook(() => useDraft('background')), failure = rejectDraftWrites();
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  try {
+    act(() => view.result.current.setText('仍在页面上'));
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(view.result.current.hasUnsaved).toBe(true);
+    expect(readDraft('background').text).toBe('');
+    failure.mockRestore();
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    expect(view.result.current.hasUnsaved).toBe(false);
+    expect(readDraft('background').text).toBe('仍在页面上');
+  } finally { visibility.mockRestore(); failure.mockRestore(); }
+});
+it('saves during continuous typing even when the page stays visible', () => {
+  vi.useFakeTimers();
+  try {
+    const view = renderHook(() => useDraft('continuous'));
+    act(() => view.result.current.setText('a'));
+    for (const value of ['ab', 'abc']) {
+      act(() => { vi.advanceTimersByTime(50); view.result.current.setText(value); });
+    }
+    expect(readDraft('continuous').text).toBe('a');
+    act(() => vi.advanceTimersByTime(20));
+    expect(readDraft('continuous').text).toBe('abc');
+  } finally { vi.useRealTimers(); }
+});

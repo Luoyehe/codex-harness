@@ -824,6 +824,48 @@ it('updates the sidebar when a newly created thread becomes indexed and is later
   await waitFor(() => expect(list().queryByRole('button', { name: 'Renamed elsewhere' })).toBeNull());
   expect(f.count('turn/start')).toBe(0);
 });
+it('sends the visible native search order on every page and restores grouped browsing when search clears', async () => {
+  const row = (id: string) => ({ id, name: id, cwd: '/p' });
+  const f = await fixture(false, false, undefined, true, ({ method, params }) => {
+    if (method === 'thread/list') return { data: [row(params.sortKey === 'section_position' ? 'By group' : 'By activity')], nextCursor: null };
+    if (method !== 'thread/search') return;
+    const order = String(params.sortKey);
+    return { data: [{ thread: row(order + (params.cursor ? ' page two' : ' page one')), snippet: 'match' }],
+      nextCursor: params.cursor ? null : order + '-cursor' };
+  });
+  const select = () => screen.getByRole('combobox', { name: '会话排序' }) as HTMLSelectElement;
+  const search = () => screen.getByRole('textbox', { name: '搜索会话' });
+  fireEvent.change(select(), { target: { value: 'section_position' } });
+  await screen.findByText('By group');
+  fireEvent.click(screen.getByRole('button', { name: '搜索会话' }));
+  fireEvent.change(search(), { target: { value: 'needle' } });
+  await screen.findByText('recency_at page one');
+  expect(select().value).toBe('recency_at');
+  expect(Array.from(select().options, o => o.value)).toEqual(['recency_at', 'updated_at', 'created_at']);
+  fireEvent.change(select(), { target: { value: 'created_at' } });
+  await screen.findByText('created_at page one');
+  expect(screen.queryByText('recency_at page one')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '加载更多' }));
+  await screen.findByText('created_at page two');
+  expect(f.calls.filter(call => call.method === 'thread/search').at(-1)?.params).toMatchObject({
+    sortKey: 'created_at', sortDirection: 'desc', cursor: 'created_at-cursor', searchTerm: 'needle', projectId: 'p',
+  });
+  fireEvent.change(select(), { target: { value: 'updated_at' } });
+  await screen.findByText('updated_at page one');
+  expect(f.calls.filter(call => call.method === 'thread/search').at(-1)?.params).not.toHaveProperty('cursor');
+  expect(screen.queryByText('created_at page two')).toBeNull();
+  fireEvent.change(search(), { target: { value: '' } });
+  expect(select().value).toBe('section_position');
+  await screen.findByText('By group');
+  expect(f.calls.filter(call => call.method === 'thread/list').at(-1)?.params).toMatchObject({ sortKey: 'section_position', sortDirection: 'asc' });
+  fireEvent.change(search(), { target: { value: 'needle again' } });
+  await screen.findByText('updated_at page one');
+  expect(select().value).toBe('updated_at');
+  fireEvent.click(screen.getByRole('button', { name: '搜索会话' }));
+  expect(screen.queryByRole('textbox', { name: '搜索会话' })).toBeNull();
+  expect(select().value).toBe('section_position');
+  await screen.findByText('By group');
+});
 it('leaves archived and search filters when creating a new conversation so the new row stays discoverable', async () => {
   let created = false;
   const newThread = { id: 'new-visible', name: 'Created conversation', cwd: '/p', status: { type: 'idle' } };

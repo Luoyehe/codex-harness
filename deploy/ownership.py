@@ -8,7 +8,7 @@ import os
 import stat
 
 from .common import Layout, require
-from .units import edge_unit_variants, render_config_check, render_edge_units, render_units, sudo_rule
+from .units import edge_unit_variants, main_unit_variants, render_config_check, render_edge_units, render_units, sudo_rule
 
 ROLES = ("worker", "gateway", "authelia", "caddy", "config-check")
 SYSTEMD_PATHS = ("etc/systemd/system", "run/systemd/system", "usr/local/lib/systemd/system",
@@ -29,11 +29,10 @@ def regular(path, expected: set[bytes]) -> None:
 
 
 def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
-                  prior_units: dict[str, bytes | None] | None = None, candidate_dns: dict | None = None,
+                  prior_units: dict[str, bytes | set[bytes] | None] | None = None, candidate_dns: dict | None = None,
                   prior_sudo: bytes | None = None) -> None:
     expected = {**render_units(layout, config, config["codexRelative"]), **render_edge_units(layout), layout.unit("config-check"): render_config_check(layout)}
-    worker_variants = {render_units(layout, config, config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[layout.unit("worker")].encode()
-                       for runtime in (False, True) for home in (False, True)}
+    main_variants = main_unit_variants(layout, config)
     from .service_proxy import PROXY_ROLES
     for role in (*ROLES, *PROXY_ROLES):
         unit = layout.unit(role)
@@ -51,10 +50,10 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
                     allowed.add(render_edge_units(layout, builtin=True, dns_metadata=metadata, client_identity=metadata.get("clientIdentity") == 1)[unit].encode())
         if role in ("caddy", "authelia"):
             allowed = set().union(*(edge_unit_variants(unit_bytes) for unit_bytes in allowed))
-        if role == "worker":
-            allowed.update(worker_variants)
-        if prior_units and prior_units.get(role) is not None:
-            allowed.add(prior_units[role])
+        allowed.update(main_variants.get(role, ()))
+        prior = prior_units.get(role) if prior_units else None
+        if prior is not None:
+            allowed.update(prior if isinstance(prior, set) else {prior})
         if present(path):
             regular(path, allowed)
         else:

@@ -315,6 +315,25 @@ class ServiceLifecycleTests(unittest.TestCase):
         self.assertEqual(restore_services(self.manager)["unitPolicy"], "retained-legacy")
         self.assertNotIn("start", self.system.events)
 
+    def test_restore_migrates_only_exact_sudo_filter_templates_and_preserves_original_activity(self):
+        self.enable_real_verification()
+        original_active = set(self.system.active)
+        original_enabled = set(self.system.enabled)
+        previous = render_units(self.layout, self.config, self.config["codexRelative"], legacy_sudo_filters=True)
+        wanted = render_units(self.layout, self.config, self.config["codexRelative"])
+        for role in ("worker", "gateway"):
+            unit = self.layout.unit(role)
+            atomic_write(self.layout.units / unit, previous[unit].encode(), 0o644)
+        uninstall_services(self.manager)
+        result = restore_services(self.manager)
+        self.assertEqual(result["unitPolicy"], "current")
+        self.assertEqual(self.system.active, original_active)
+        self.assertEqual(self.system.enabled, original_enabled)
+        for role in ("worker", "gateway"):
+            unit = self.layout.unit(role)
+            self.assertEqual((self.layout.units / unit).read_bytes(), wanted[unit].encode())
+        self.assertTrue(restore_services(self.manager)["alreadyRestored"])
+
     def test_matching_snapshot_cannot_authorize_extra_worker_commands(self):
         self.enable_real_verification()
         self.system.active.clear()

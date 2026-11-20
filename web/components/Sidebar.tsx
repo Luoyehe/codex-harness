@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { composing, type Project, type Thread } from '../lib/types';
 import { Icon } from './Icon';
+import type { ThreadSearchSortKey } from '../../protocol/ts/v2/ThreadSearchSortKey';
 
 type RowAction = { label: string; run: () => void; destructive?: boolean };
 function RowActions({ label, open, setOpen, actions }: {
@@ -69,13 +70,14 @@ export function Sidebar({
   projects, projectId, threads, threadsProjectId, snippets, threadId, archived, query,
   loading, error, warning, more, onProject, onThread, onNew, onQuery, onArchived, onAddProject,
   onSettings, onMore, onRefresh, onOrganize, onAutomations, onLoaded,
-  threadOrder = 'recency_at', onThreadOrder, onProjectAction, onThreadAction,
+  threadOrder = 'recency_at', onThreadOrder, searchSort, onProjectAction, onThreadAction,
 }: {
   onLoaded?: () => void;
   onAutomations?: () => void;
   onOrganize?: () => void;
   threadOrder?: 'recency_at' | 'section_position';
   onThreadOrder?: (order: 'recency_at' | 'section_position') => void;
+  searchSort?: { value: ThreadSearchSortKey; change: (order: ThreadSearchSortKey) => void };
   onProjectAction?: (project: Project, action: 'rename' | 'remove') => void;
   onThreadAction?: (thread: Thread, action: 'rename' | 'archive' | 'unarchive' | 'delete') => void;
   projects: Project[];
@@ -101,7 +103,8 @@ export function Sidebar({
   onMore: () => void;
   onRefresh: () => void;
 }) {
-  const [searchOpen, setSearchOpen] = useState(false), [menu, setMenu] = useState('');
+  const [openedSearch, setSearchOpen] = useState(false), [menu, setMenu] = useState('');
+  const searchOpen = openedSearch || Boolean(query);
   const currentProject = projects.find(project => project.id === projectId);
   useEffect(() => setMenu(''), [projectId, threadsProjectId, archived, query]);
   // Snapshot ownership wins over the selected row. For legacy callers without it,
@@ -136,10 +139,15 @@ export function Sidebar({
   });
   const list = <div className="project-conversations">
     <div className="sidebar-list-tools">
-      {onThreadOrder && <label className="sidebar-sort"><span className="sr-only">会话排序</span>
-        <select aria-label="会话排序" value={threadOrder}
-          onChange={event => onThreadOrder(event.target.value as 'recency_at' | 'section_position')}>
-          <option value="recency_at">最近活动</option><option value="section_position">按分组排序</option>
+      {(searchSort || onThreadOrder) && <label className="sidebar-sort"><span className="sr-only">会话排序</span>
+        <select aria-label="会话排序" value={searchSort?.value ?? threadOrder} onChange={event => {
+          if (searchSort) searchSort.change(event.target.value as ThreadSearchSortKey);
+          else onThreadOrder?.(event.target.value as 'recency_at' | 'section_position');
+        }}>
+          <option value="recency_at">最近活动</option>
+          {searchSort
+            ? <><option value="updated_at">最近更新</option><option value="created_at">最近创建</option></>
+            : <option value="section_position">按分组排序</option>}
         </select>
       </label>}
       <button type="button" className="icon-button" aria-label="刷新会话列表" onClick={onRefresh}>
@@ -162,14 +170,14 @@ export function Sidebar({
     <button type="button" className="new-chat" onClick={onNew}><Icon name="plus" />新会话</button>
     <div className="nav-tools">
       <button type="button" className={'nav-item ' + (searchOpen ? 'selected' : '')} aria-expanded={searchOpen}
-        onClick={() => { if (searchOpen) onQuery(''); setSearchOpen(value => !value); }}><Icon name="search" />搜索会话</button>
+        onClick={() => { if (searchOpen) onQuery(''); setSearchOpen(!searchOpen); }}><Icon name="search" />搜索会话</button>
       <button type="button" className={'nav-item ' + (archived ? 'selected' : '')} onClick={onArchived}><Icon name="archive" />已归档</button>
       {onLoaded && <button type="button" className="nav-item" onClick={onLoaded}><Icon name="play" />已加载会话</button>}
       {onAutomations && <button type="button" className="nav-item" onClick={onAutomations}><Icon name="refresh" />自动化</button>}
       {onOrganize && <button type="button" className="nav-item" onClick={onOrganize}><Icon name="folder" />会话分组</button>}
     </div>
     {searchOpen && <label className="sr-only-wrap"><span className="sr-only">搜索会话</span>
-      <input className="search-input" autoFocus placeholder="当前项目的标题或内容…" value={query}
+      <input className="search-input" autoFocus={openedSearch} placeholder="当前项目的标题或内容…" value={query}
         onChange={event => onQuery(event.target.value)} />
     </label>}
     <div className="sidebar-section"><span>项目</span>

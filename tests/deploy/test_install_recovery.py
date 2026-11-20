@@ -57,7 +57,7 @@ class InstallationRecoveryTests(unittest.TestCase):
         self.system = FixtureSystem()
         self.manager = Manager(self.layout, self.system, worker_gid=1)
         self.manager.require_service_ownership = lambda **kwargs: None  # This fixture isolates release/installation journals.
-        self.manager.refresh_worker_unit = lambda: None
+        self.manager.refresh_main_units = lambda: None
         self.manager.verify_release = lambda release: {"release": release}
         # Root-only account metadata ownership is covered by root fixtures;
         # this ordinary-UID fixture uses token-only legacy releases.

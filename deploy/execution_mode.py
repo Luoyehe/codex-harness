@@ -13,7 +13,7 @@ import uuid
 from .common import atomic_write, canonical, fsync_directory, mkdir, read_json, require, write_json
 from .execution_identity import FIELDS, managed, native_settings, require_application, require_control, state
 from .ownership import regular, require_owned
-from .units import render_units, sudo_rule
+from .units import main_unit_templates, render_units, sudo_rule
 from .system import run
 
 
@@ -87,14 +87,14 @@ def validate_journal(manager, journal):
     state(before); state(candidate)
     require(managed(candidate), "Missing execution candidate generation", "corrupt_state")
     require(json.loads(old["native"]) == native_settings(manager.layout, before), "Retained native identity changed", "corrupt_state")
-    generated = {render_units(manager.layout, before, before["codexRelative"], legacy_runtime_directory=r, legacy_native_home=h)[manager.layout.unit("worker")].encode()
-                 for r in (False, True) for h in (False, True)}
+    generated = main_unit_templates(manager.layout, before)["worker"]
     from .units import sudo_variants
     require(old["worker"] in generated and old["sudo"] in sudo_variants(manager.layout, before),
             "Retained execution definitions are not generated policies", "corrupt_state")
     require(manager.config in (before, candidate), "Execution transaction no longer binds this instance", "integrity")
     other = candidate if manager.config == before else before
-    alternate_unit = render_units(manager.layout, other, other["codexRelative"])[manager.layout.unit("worker")].encode() if other is candidate else old["worker"]
+    alternate_unit = ({render_units(manager.layout, other, other["codexRelative"], legacy_sudo_filters=filters)[manager.layout.unit("worker")].encode()
+                       for filters in (False, True)} if other is candidate else {old["worker"], generated[old["worker"]]})
     alternate_sudo = sudo_rule(manager.layout, config=other).encode() if other is candidate else old["sudo"]
     require_owned(manager.layout, manager.config, prior_units={"worker": alternate_unit}, prior_sudo=alternate_sudo)
     actual_native = manager.layout.config / "native.json"
@@ -116,7 +116,7 @@ def apply_candidate(manager, config):
     publish(paths(layout)["sudo"], sudo_rule(layout, config=config).encode(), 0o440)
     fsync_directory(layout.units)
     manager.config = config
-    manager.system.reload()
+    manager.refresh_main_units(preserve_layout=True)
 
 
 def recover(manager, journal_path, journal, *, candidate=False):
@@ -161,7 +161,7 @@ def recover(manager, journal_path, journal, *, candidate=False):
                 atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = before
-        manager.system.reload()
+        manager.refresh_main_units(preserve_layout=True)
     try:
         restore_activity(manager, journal["active"])
         manager.verify(https_probe=({"gateway", "worker"} <= set(journal["active"])) and edge_running(manager))

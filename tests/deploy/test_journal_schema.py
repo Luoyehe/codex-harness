@@ -9,8 +9,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from deploy.common import DeployError
-from deploy.journal import MAX_RECEIPT_BYTES, recover_journal
-from deploy.journal_schema import BASE, RETIREMENTS
+from deploy.journal import MAX_RECEIPT_BYTES, check_legacy_journal, recover_journal
+from deploy.journal_schema import BASE, FEATURES, RETIREMENTS
 
 
 class CurrentJournalCompatibilityTests(unittest.TestCase):
@@ -25,7 +25,9 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
         db.execute("INSERT INTO metadata(key,value) VALUES('activityUncertain','true')")
         db.execute("INSERT INTO projects VALUES('project','/project','Retained project')")
         db.execute("INSERT INTO automations VALUES('automation',1,'paused','{}',NULL,1,1)")
-        db.execute("INSERT INTO automation_runs VALUES('run','automation',1,1,0,'operation','client','completed',NULL,NULL,1,2,0,0,NULL,'{}')")
+        db.execute("""INSERT INTO automation_runs(id,automation_id,revision,scheduled_at,manual,operation_id,client_id,
+                       state,started_at,finished_at,spec,attention_before_stop)
+                       VALUES('run','automation',1,1,0,'operation','client','completed',1,2,'{}',1)""")
         db.execute("INSERT INTO worktree_projects VALUES('worktree','project','/worktree','Retained worktree','active','head','revision',1,1)")
         db.commit()
         return db
@@ -50,7 +52,7 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
                 self.assertEqual(db.execute("SELECT value FROM metadata WHERE key='activityUncertain'").fetchone()[0], 'false')
                 self.assertEqual(db.execute('SELECT name FROM projects').fetchall(), [('Retained project',)])
                 self.assertEqual(db.execute('SELECT state FROM automations').fetchall(), [('paused',)])
-                self.assertEqual(db.execute('SELECT state FROM automation_runs').fetchall(), [('completed',)])
+                self.assertEqual(db.execute('SELECT state,attention_before_stop FROM automation_runs').fetchall(), [('completed', 1)])
                 self.assertEqual(db.execute('SELECT name FROM worktree_projects').fetchall(), [('Retained worktree',)])
                 for result, error, stored_bytes in db.execute('SELECT result,error,bytes FROM receipts'):
                     self.assertEqual(stored_bytes, len((result or '').encode('utf-8')) + len((error or '').encode('utf-8')))
@@ -69,13 +71,31 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
             db.close()
 
     def test_explicit_legacy_schemas_remain_recoverable(self):
-        for ddl in (BASE, BASE + RETIREMENTS):
-            with self.subTest(retirements=RETIREMENTS in ddl), tempfile.TemporaryDirectory() as folder:
+        for ddl in (BASE, BASE + RETIREMENTS, BASE + RETIREMENTS + FEATURES):
+            with self.subTest(retirements=RETIREMENTS in ddl, features=FEATURES in ddl), tempfile.TemporaryDirectory() as folder:
                 path = Path(folder) / 'journal.sqlite'
                 with sqlite3.connect(path) as db:
                     db.executescript(ddl)
                 db.close()
                 self.assertEqual(recover_journal(path, services_stopped=True), {'notSent': 0, 'unknown': 0})
+
+    def test_legacy_feature_rows_survive_gateway_migration_and_offline_recovery(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'journal.sqlite'
+            with sqlite3.connect(path) as db:
+                db.executescript(BASE + RETIREMENTS + FEATURES)
+                db.execute("""INSERT INTO automation_runs(id,automation_id,revision,scheduled_at,manual,
+                              operation_id,client_id,state,spec) VALUES('run','a',1,1,0,'op','client','completed','{}')""")
+            db.close()
+            check_legacy_journal(path)
+            self.open_real_ledger(path)
+            with self.assertRaises(DeployError):
+                check_legacy_journal(path)
+            self.assertEqual(recover_journal(path, services_stopped=True), {'notSent': 0, 'unknown': 0})
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute('SELECT state,attention_before_stop FROM automation_runs').fetchall(),
+                                 [('completed', 0)])
+            db.close()
 
     def test_recovery_corrects_utf8_accounting_without_changing_accepted_evidence(self):
         self.assertEqual(MAX_RECEIPT_BYTES, 64 * 1024 * 1024)
@@ -147,6 +167,8 @@ class CurrentJournalCompatibilityTests(unittest.TestCase):
             'DROP INDEX automation_occurrence; CREATE UNIQUE INDEX automation_occurrence ON automation_runs(automation_id,revision,scheduled_at)',
             'CREATE VIEW unexpected AS SELECT * FROM receipts',
             'ALTER TABLE worktree_projects ADD COLUMN unexpected TEXT',
+            'ALTER TABLE automation_runs DROP COLUMN attention_before_stop; '
+            'ALTER TABLE automation_runs ADD COLUMN attention_before_stop INTEGER NOT NULL DEFAULT 1',
             'CREATE TABLE sqlitex_hidden(value TEXT)',
             'PRAGMA user_version=99',
         ):

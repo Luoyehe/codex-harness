@@ -2,15 +2,21 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
+import http.client
 import json
 import os
 import platform
+import socket
+import ssl
 import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -21,6 +27,9 @@ from deploy.common import DeployError
 from deploy.dns_caddy_build import GO_HASHES, GO_VERSION, source_material, validate_download_proxy
 
 WINDOWS_SHA256 = "7ecd2d7260e82c59bcbd7f1077a07cee2dea607295b858df67195a1e4e09629b"
+ARCHIVE_BYTES = {"linux": 66_936_659, "windows": 75_004_774}
+DOWNLOAD_SECONDS = 480
+DOWNLOAD_ATTEMPTS = 3
 MAX_ARCHIVE = 256 * 1024**2
 MAX_TREE = 3 * 1024**3
 MAX_FILES = 150_000
@@ -39,7 +48,7 @@ def pin(system: str, machine: str) -> dict:
     suffix = "zip" if target == "windows" else "tar.gz"
     return {"goVersion": GO_VERSION, "platform": target, "architecture": "amd64",
             "archiveSha256": WINDOWS_SHA256 if target == "windows" else GO_HASHES["amd64"],
-            "filename": f"go{GO_VERSION}.{target}-amd64.{suffix}"}
+            "archiveBytes": ARCHIVE_BYTES[target], "filename": f"go{GO_VERSION}.{target}-amd64.{suffix}"}
 
 
 def ordinary(path: Path, base: Path, *, directory: bool = False) -> Path:
@@ -125,13 +134,90 @@ def download(selected: dict, target: Path, download_proxy: str | None = None) ->
 
     proxy = validate_download_proxy(download_proxy)
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}), Redirect())
-    started, size = time.monotonic(), 0
-    with opener.open("https://go.dev/dl/" + filename, timeout=60) as response, target.open("xb") as output:
-        require(response.url in allowed, "Unexpected Go distribution origin")
-        while data := response.read(1024**2):
-            size += len(data)
-            require(size <= MAX_ARCHIVE and time.monotonic() - started < 300, "Go download budget exceeded")
-            output.write(data)
+    expected = selected["archiveBytes"]
+    require(0 < expected <= MAX_ARCHIVE, "Go download exceeds archive byte limit")
+    deadline = time.monotonic() + DOWNLOAD_SECONDS
+
+    def remaining() -> float:
+        seconds = deadline - time.monotonic()
+        require(seconds > 0, f"Go distribution download time limit exceeded ({DOWNLOAD_SECONDS}s)")
+        return seconds
+
+    def receive(output) -> None:
+        offset = output.tell()
+        headers = {"Accept-Encoding": "identity"}
+        if offset:
+            headers["Range"] = f"bytes={offset}-"
+        request = urllib.request.Request("https://go.dev/dl/" + filename, headers=headers)
+        with opener.open(request, timeout=min(30, remaining())) as response:
+            require(response.url in allowed, "Unexpected Go distribution origin")
+            if response.status == 206 and offset:
+                require(response.headers.get("Content-Range") == f"bytes {offset}-{expected - 1}/{expected}",
+                        "Go download range differs from requested archive bytes")
+            else:
+                require(response.status == 200, "Unexpected Go distribution response status")
+                # An official origin may ignore Range. Its full response starts at zero.
+                output.seek(0)
+                output.truncate()
+                offset = 0
+            length = response.headers.get("Content-Length")
+            require(length is None or length == str(expected - offset),
+                    "Go download declared length differs from pinned archive bytes")
+            while True:
+                remaining()
+                # read1 yields after one underlying read, even on a trickling connection.
+                data = response.read1(128 * 1024)
+                remaining()
+                if not data:
+                    break
+                require(output.tell() + len(data) <= expected, "Go download exceeds pinned archive byte count")
+                output.write(data)
+                if output.tell() == expected and length is not None:
+                    break
+            if output.tell() != expected:
+                raise http.client.IncompleteRead(b"", expected - output.tell())
+
+    def temporary_network_failure(error: BaseException) -> str | None:
+        if isinstance(error, urllib.error.HTTPError):
+            error.close()
+            return f"HTTP {error.code}" if error.code in (408, 429, 500, 502, 503, 504) else None
+        reason = error.reason if isinstance(error, urllib.error.URLError) else error
+        if isinstance(reason, http.client.IncompleteRead):
+            return "response ended before the pinned length"
+        if isinstance(reason, TimeoutError):
+            return "network read or connection timeout"
+        if (isinstance(reason, (ConnectionError, ssl.SSLEOFError)) or isinstance(reason, OSError) and
+                reason.errno in (socket.EAI_AGAIN, errno.EHOSTUNREACH, errno.ENETUNREACH)):
+            return "network connection interrupted"
+        return None
+
+    temporary = tempfile.NamedTemporaryFile(dir=target.parent, prefix=".go-download-", delete=False)
+    partial = Path(temporary.name)
+    try:
+        with temporary as output:
+            for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+                try:
+                    receive(output)
+                    break
+                except (OSError, http.client.HTTPException) as error:
+                    remaining()
+                    reason = temporary_network_failure(error)
+                    if not reason:
+                        raise
+                    if output.tell() == expected:
+                        # A server without Content-Length can close uncleanly after its final byte.
+                        # The exact size and the pinned digest still authenticate the complete body.
+                        break
+                    details = f"{reason}, attempt {attempt}/{DOWNLOAD_ATTEMPTS}, {output.tell()}/{expected} bytes"
+                    if attempt == DOWNLOAD_ATTEMPTS:
+                        raise ValueError(f"Go distribution transfer interrupted ({details})") from error
+                    print(f"Retrying interrupted Go distribution transfer ({details})", file=sys.stderr)
+                    time.sleep(min(attempt, remaining()))
+        require(sha256(partial) == selected["archiveSha256"], "Official Go distribution checksum mismatch")
+        # Both paths share a directory. Publish verified bytes atomically without replacing an existing file.
+        os.link(partial, target)
+    finally:
+        partial.unlink(missing_ok=True)
 
 
 def extract(archive: Path, destination: Path, windows: bool) -> None:
@@ -269,17 +355,25 @@ def prepare(base: Path = ROOT, *, archive: Path | None = None, seed_cache: Path 
         seed_cache = ordinary(seed_cache.absolute(), base / ".work", directory=True)
         require(not work.is_relative_to(seed_cache), "Module cache cannot contain its preparation destination")
     runtime.mkdir()
+    verified = runtime / selected["filename"]
+    try:
+        if archive is None:
+            download(selected, verified, proxy)
+        else:
+            copied = copy_file(archive, verified, MAX_ARCHIVE)
+            require(sha256(verified) == selected["archiveSha256"], "Official Go distribution checksum mismatch")
+            require(copied == selected["archiveBytes"], "Supplied Go distribution differs from pinned archive bytes")
+    except (OSError, ValueError, http.client.HTTPException):
+        # Network downloads clean their own unique temporary files.
+        if archive is not None:
+            verified.unlink(missing_ok=True)
+        runtime.rmdir()
+        raise
     work.mkdir()
     for folder in ("home", "home/appdata", "home/localappdata", "tmp", "gopath", "modules", "cache", "source"):
         (work / folder).mkdir(parents=True, exist_ok=True)
     for name, data in sources.items():
         (work / "source" / name).write_bytes(data)
-    verified = runtime / selected["filename"]
-    if archive is None:
-        download(selected, verified, proxy)
-    else:
-        copy_file(archive, verified, MAX_ARCHIVE)
-    require(sha256(verified) == selected["archiveSha256"], "Official Go distribution checksum mismatch")
     extract(verified, runtime, selected["platform"] == "windows")
     binary = ordinary(runtime / "go/bin" / ("go.exe" if selected["platform"] == "windows" else "go"), runtime)
     if seed_cache is not None:
@@ -322,6 +416,6 @@ if __name__ == "__main__":
             with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as output:
                 output.write("HARNESS_TEST_GO_MANIFEST=" + str(result) + "\n")
         print(json.dumps({"status": "prepared", "manifest": str(result)}))
-    except (OSError, ValueError, DeployError, tarfile.TarError, zipfile.BadZipFile) as error:
+    except (OSError, ValueError, DeployError, http.client.HTTPException, tarfile.TarError, zipfile.BadZipFile) as error:
         print("Go preparation refused: " + str(error), file=sys.stderr)
         sys.exit(1)

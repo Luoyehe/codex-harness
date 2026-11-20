@@ -68,8 +68,11 @@ export class Workflows {
     if (method === 'thread/loaded/list') { onlyKeys(params, ['cursor', 'limit']); const p = pageParams(params); validateOfficial('ThreadLoadedListParams', p); return pageResult('ThreadLoadedListResponse', await this.host.native(method, p), params.cursor); }
     if (method === 'permissionProfile/list') { onlyKeys(params, ['cwd', 'cursor', 'limit']); const p = pageParams({ ...params, cwd: this.host.cwd(params.cwd) }); validateOfficial('PermissionProfileListParams', p); return pageResult('PermissionProfileListResponse', await this.host.native(method, p), params.cursor); }
     if (method === 'thread/search') {
-      onlyKeys(params, ['projectId', 'cwd', 'archived', 'searchTerm', 'cursor', 'limit']); const cwd = this.host.cwd(params.cwd); string(params.searchTerm, 'searchTerm', 4096);
-      const p = pageParams({ searchTerm: params.searchTerm!, ...(params.archived !== undefined ? { archived: params.archived } : {}), ...(params.cursor !== undefined ? { cursor: params.cursor } : {}), ...(params.limit !== undefined ? { limit: params.limit } : {}) });
+      onlyKeys(params, ['projectId', 'cwd', 'archived', 'searchTerm', 'cursor', 'limit', 'sortKey', 'sortDirection']);
+      const { cwd: requestedCwd, projectId: _projectId, ...searchParams } = params;
+      const cwd = this.host.cwd(requestedCwd);
+      string(searchParams.searchTerm, 'searchTerm', 4096);
+      const p = pageParams(searchParams);
       validateOfficial('ThreadSearchParams', p); const result = pageResult('ThreadSearchResponse', await this.host.native(method, p), params.cursor);
       return { ...result, data: (result.data as JsonValue[]).filter(entry => object(object(entry).thread).cwd === cwd) };
     }

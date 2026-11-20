@@ -43,7 +43,8 @@ def validate_origin(origin: str) -> str:
     return parsed.scheme + "://" + host + suffix
 
 
-def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_runtime_directory: bool = False, legacy_native_home: bool = False) -> dict[str, str]:
+def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_runtime_directory: bool = False,
+                 legacy_native_home: bool = False, legacy_sudo_filters: bool = False) -> dict[str, str]:
     from .execution_identity import managed, state
     from .service_proxy import render_proxy_units, worker_unit_fields
     proxy_unit, proxy_service = worker_unit_fields(layout, config)
@@ -76,6 +77,16 @@ def render_units(layout: Layout, config: dict, codex_relative: str, *, legacy_ru
     # every Exec command, so the old chgrp/chmod sequence never established IPC.
     legacy_prestart = (f"ExecStartPre=+/usr/bin/chgrp {layout.prefix}-ipc {layout.run}\n"
                        f"ExecStartPre=+/usr/bin/chmod 2750 {layout.run}\n") if legacy_runtime_directory else ""
+    # These two non-root services call fixed sudoers helpers. systemd seccomp
+    # switches silently set PR_SET_NO_NEW_PRIVS for User= services even with
+    # NoNewPrivileges=no. Use mount/capability/resource limits before sudo.
+    old_kernel_limits = ("ProtectKernelTunables=yes\nProtectKernelModules=yes\n"
+                         "ProtectControlGroups=yes\nRestrictRealtime=yes\nLockPersonality=yes\n")
+    kernel_limits = ("ReadOnlyPaths=/sys /proc/sys -/proc/sysrq-trigger -/proc/acpi -/proc/apm -/proc/asound "
+                     "-/proc/bus -/proc/fs -/proc/irq -/proc/latency_stats -/proc/mtrr -/proc/scsi -/proc/timer_stats\n"
+                     "InaccessiblePaths=-/proc/kallsyms -/proc/kcore -/usr/lib/modules -/lib/modules\n"
+                     "ProtectControlGroups=yes\nLimitRTPRIO=0\n")
+    namespace_limits = "PrivateTmp=yes\n" + (old_kernel_limits if legacy_sudo_filters else kernel_limits)
     common = """Restart=on-failure
 RestartSec=3
 TimeoutStopSec=25
@@ -86,16 +97,8 @@ LimitNOFILE=8192
 TasksMax=256
 MemoryMax=3G
 MemorySwapMax=0
-PrivateTmp=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectControlGroups=yes
-RestrictRealtime=yes
-LockPersonality=yes
-
-[Install]
-WantedBy=multi-user.target
 """
+    install = "\n[Install]\nWantedBy=multi-user.target\n"
     worker_unit = f"""[Unit]
 Description=Codex Harness {layout.instance} worker
 After=network-online.target
@@ -125,18 +128,17 @@ InaccessiblePaths={layout.state}/gateway {layout.state}/transactions {layout.con
 ProtectProc=invisible
 NoNewPrivileges=no
 CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
-{common}"""
+{common}{'' if root_execution else namespace_limits}{install}"""
     if root_execution:
         # Opt-in host administration is not a sandbox. Keep resource/lifecycle
         # limits, but do not advertise root while silently stripping host DAC,
         # namespace or system-administration capabilities from its sudo child.
         for directive in (f"InaccessiblePaths={layout.state}/gateway {layout.state}/transactions {layout.config}/gateway-token\n",
-                          "ProtectProc=invisible\n", "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE\n",
-                          "PrivateTmp=yes\n", "ProtectKernelTunables=yes\n", "ProtectKernelModules=yes\n",
-                          "ProtectControlGroups=yes\n", "RestrictRealtime=yes\n", "LockPersonality=yes\n"):
+                          "ProtectProc=invisible\n", "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE\n"):
             worker_unit = worker_unit.replace(directive, "")
     # The sole sudo RPC must retain host write namespaces. DAC ownership, rather
     # than ProtectSystem, separates gateway from root-managed configuration/code.
+    gateway_caps = "" if legacy_sudo_filters else "CapabilityBoundingSet=~CAP_SYS_MODULE CAP_SYS_RAWIO CAP_SYS_NICE\n"
     gateway_unit = f"""[Unit]
 Description=Codex Harness {layout.instance} gateway
 After={layout.unit('worker')}
@@ -159,12 +161,30 @@ Environment=HARNESS_ORIGIN={origin}
 Environment=HARNESS_LISTEN_HOST=127.0.0.1
 Environment=HARNESS_LISTEN_PORT={port}
 NoNewPrivileges=no
-{common}"""
+{gateway_caps}{common}{namespace_limits}{install}"""
     result = {layout.unit("worker"): worker_unit, layout.unit("gateway"): gateway_unit}
     if layered:
         result[layout.unit("config-check")] = render_config_check(layout)
     result.update(render_proxy_units(layout, config))
     return result
+
+
+def main_unit_templates(layout: Layout, config: dict) -> dict[str, dict[bytes, bytes]]:
+    """Map whole templates to the same layout with sudo-compatible restrictions."""
+    variants: dict[str, dict[bytes, bytes]] = {"worker": {}, "gateway": {}}
+    for runtime in (False, True):
+        for home in (False, True):
+            args = {"legacy_runtime_directory": runtime, "legacy_native_home": home}
+            current = render_units(layout, config, config["codexRelative"], **args)
+            old = render_units(layout, config, config["codexRelative"], legacy_sudo_filters=True, **args)
+            for role, mapping in variants.items():
+                target = current[layout.unit(role)].encode()
+                mapping[target] = mapping[old[layout.unit(role)].encode()] = target
+    return variants
+
+
+def main_unit_variants(layout: Layout, config: dict) -> dict[str, set[bytes]]:
+    return {role: set(mapping) for role, mapping in main_unit_templates(layout, config).items()}
 
 
 def sudo_rule(layout: Layout, *, workspace: bool = True, legacy_catalog_server: bool = False,

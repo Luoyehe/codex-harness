@@ -17,7 +17,7 @@ from .provider import ProviderStore, redacted, validate_catalog, validate_provid
 from .journal import recover_as_owner
 from .safe_fs import inspect_tree
 from .system import System, run
-from .units import render_units, sudo_rule
+from .units import main_unit_templates, main_unit_variants, render_units, sudo_rule
 from .transactions import require_recovered
 from .ownership import require_owned
 
@@ -192,18 +192,23 @@ class Manager:
             write_json(self.layout.config / "installation.json", installation)
         return installation
 
-    def refresh_worker_unit(self) -> None:
-        """Only migrate the exact recognized runtime-directory group defect."""
-        path = self.layout.units / self.layout.unit("worker")
-        expected = render_units(self.layout, self.config, self.config["codexRelative"])[path.name].encode()
-        recognized = {render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[path.name].encode()
-                      for runtime in (False, True) for home in (False, True)}
-        actual = path.read_bytes()
-        require(actual in recognized, "Worker service definition changed", "ownership_conflict")
-        if actual != expected:
-            atomic_write(path, expected, 0o644)
+    def refresh_main_units(self, *, preserve_layout: bool = False) -> None:
+        """Migrate recognized units after both services have been confirmed stopped."""
+        expected = render_units(self.layout, self.config, self.config["codexRelative"])
+        changed = []
+        from .ownership import regular
+        for role, recognized in main_unit_templates(self.layout, self.config).items():
+            path = self.layout.units / self.layout.unit(role)
+            regular(path, set(recognized))
+            actual = path.read_bytes()
+            require(actual in recognized, "Service definition changed: " + role, "ownership_conflict")
+            target = recognized[actual] if preserve_layout else expected[path.name].encode()
+            if actual != target:
+                changed.append((path, target))
+        for path, target in changed:
+            atomic_write(path, target, 0o644)
         # Reload even on a retry after atomic publication succeeded but reload
-        # failed. Callers have confirmed the worker stopped before this method.
+        # failed. A partial file publication can also be retried safely.
         self.system.reload()
 
     def restore_previous(self, journal: dict) -> None:
@@ -385,17 +390,18 @@ class Manager:
                     stat.S_IMODE(details.st_mode) == (0o700 if role == "gateway" else 0o750), "Service state permissions changed", "integrity")
         inspect_tree(self.layout.control, root_owned=True)
         unit_policy = "current"
+        main_roles = {self.layout.unit(role): role for role in ("worker", "gateway")}
         for name, value in render_units(self.layout, self.config, self.config["codexRelative"]).items():
             if (self.layout.units / name).read_bytes() != value.encode():
-                if maintenance_legacy and name == self.layout.unit("worker"):
-                    variants = {render_units(self.layout, self.config, self.config["codexRelative"], legacy_runtime_directory=runtime, legacy_native_home=home)[name].encode() for runtime in (False, True) for home in (False, True)}
-                    require((self.layout.units / name).read_bytes() in variants, "Unrecognized legacy worker definition", "integrity")
+                if maintenance_legacy and name in main_roles:
+                    variants = main_unit_variants(self.layout, self.config)[main_roles[name]]
+                    require((self.layout.units / name).read_bytes() in variants, "Unrecognized legacy service definition", "integrity")
                     unit_policy = "retained-legacy"
                     continue
-                require(service_recovery is not None and name == self.layout.unit("worker"),
+                require(service_recovery is not None and name in main_roles,
                         "Service unit differs from managed configuration", "integrity")
                 from .service_lifecycle import verify_retained_definition
-                verify_retained_definition(self, service_recovery, "worker")
+                verify_retained_definition(self, service_recovery, main_roles[name])
                 unit_policy = "retained-legacy"
         sudo_path = self.layout.root / "etc/sudoers.d" / ("codex-harness-" + self.layout.instance)
         sudo_policies = {sudo_rule(self.layout, config=self.config).encode()}
@@ -463,7 +469,7 @@ class Manager:
         write_json(tx / "state.json", journal)
         self.system.stop(self.service_units)
         self.recover_control()
-        self.refresh_worker_unit()
+        self.refresh_main_units()
         if old is None:
             self.retire_initial_attempts(tx / "state.json")
         journal["phase"] = "stopped"
@@ -539,7 +545,7 @@ class Manager:
         # Only worker needs to stop; gateway remains available to return the receipt.
         unit = [self.layout.unit("worker")]
         self.system.stop(unit)
-        self.refresh_worker_unit()
+        self.refresh_main_units()
         require(self.providers.read()["revision"] == old["revision"], "Provider changed during preparation", "revision_conflict")
         try:
             self.providers.select(generation)
@@ -614,7 +620,7 @@ class Manager:
         installation = self.require_update_ready()
         self.system.stop(self.service_units)
         self.recover_control()
-        self.refresh_worker_unit()
+        self.refresh_main_units()
         if installation is not None and installation["phase"] == "pending":
             self.retire_initial_attempts()
         current = self.selected()
@@ -640,7 +646,7 @@ class Manager:
         self.require_account_compatibility(candidate)
         self.system.stop(self.service_units)
         self.recover_control()
-        self.refresh_worker_unit()
+        self.refresh_main_units()
         self.verify_release(candidate)
         try:
             if self.selected() != candidate:
@@ -690,7 +696,7 @@ class Manager:
             self.require_service_ownership()
             self.system.stop(self.service_units)
             self.recover_control()
-            self.refresh_worker_unit()
+            self.refresh_main_units()
             if state["kind"] == "release":
                 require(state.get("old"), "First install failed; retained candidate needs explicit update", "recovery_required")
                 self.require_account_recovery(state["old"])

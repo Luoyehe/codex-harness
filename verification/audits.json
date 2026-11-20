@@ -7848,6 +7848,83 @@
         }
       ],
       "method": "Final full inventory and impact review: four changed fixture/selection/document files independently read and validated. All other files rehashed against the prior complete audit. Shared fixture imports, direct setup composition, instance method restoration and reverse consumers explicitly traced. Runtime/deploy/web application bytes remain unchanged. This is not a claim that every unchanged line was reread."
+    },
+    {
+      "id": "v250-round1",
+      "sequence": 82,
+      "digest": "dcc2ac9747add6128a1c7afbe47d2c8e2d7f6cc78e7c6054a569c82cb8f06557",
+      "complete": true,
+      "startedAt": "2026-11-20T06:54:19Z",
+      "completedAt": "2026-11-20T07:01:25.129Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R1-01",
+          "priority": "P1",
+          "title": "Offline control recovery rejects the journal created by the current gateway",
+          "where": [
+            "src/core/automations.ts:36",
+            "deploy/journal_schema.py:28",
+            "deploy/journal_schema.py:63",
+            "deploy/manager.py:280",
+            "deploy/control_update.py:310",
+            "tests/deploy/test_journal_schema.py:28"
+          ],
+          "evidence": "Opened and closed a real, empty compiled Ledger in the isolated round directory. SQLite recorded attention_before_stop at ordinal 16 with INTEGER NOT NULL DEFAULT 0. Calling the shipped Python recover_journal with stopped services returned corrupt_state: Unexpected journal schema objects or definitions. The existing normal integration suite logged eight errors before assertion because its positional insert supplies 16 values to the 17-column table. New and migrated v2.5.0 journals are affected.",
+          "correction": "Approve the exact modern as well as the old known schema, retain strict unknown-schema rejection, use an explicit fixture column list, and verify clean/current, migrated historical and negative controls through the normal recovery caller."
+        },
+        {
+          "id": "V250-R1-02",
+          "priority": "P2",
+          "title": "Composer does not flush the newest draft when a mobile tab moves to the background",
+          "where": [
+            "web/hooks/useDraft.ts:136",
+            "web/hooks/useDraft.ts:149",
+            "web/lib/file-drafts.ts:61"
+          ],
+          "evidence": "The text-only debounce resets on every further change; the hook listens only for beforeunload. In a jsdom normal-lifecycle probe after a, ab and abc, visibilitychange(hidden) plus window.pagehide left the stored value a while the in-page draft read abc. A subsequent normal React unmount persisted abc. Device OS eviction itself was not exercised.",
+          "correction": "Bound the maximum time before persistence and flush queued composer text on pagehide and hidden visibility; retain per-visit ownership and failure reporting."
+        },
+        {
+          "id": "V250-R1-03",
+          "priority": "P3",
+          "title": "Search sidebar offers sort orders not applied to its search requests",
+          "where": [
+            "web/components/Sidebar.tsx:139",
+            "web/Workspace.tsx:351",
+            "web/Workspace.tsx:365",
+            "src/runtime/workflows.ts:70",
+            "protocol/ts/v2/ThreadSearchParams.ts:25"
+          ],
+          "evidence": "Changing the visible sort changes the query key and rerequests results, but neither browser nor worker sends the chosen sort. Official default is created_at; ThreadSearchSortKey supports recency_at and excludes section_position. Both labels currently expose misleading ordering during search.",
+          "correction": "Represent only supported search sorting, propagate recency_at if presented, and retain group sorting for the list view."
+        }
+      ],
+      "skipped": [
+        "Runtime native.test.ts has two explicitly Linux-only launcher shutdown examples. The macOS targeted runner reports these as skipped. This is a failed audit round independently of that platform limit."
+      ],
+      "reviewers": [
+        {
+          "id": "independent-one",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round1/independent.json",
+          "sha256": "64cf7edd19b6c1149df7aaf67be3e7ee96953766177a39b810bc34d9244c8346"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round1/builtin-mcp.json",
+        "sha256": "f2d1077f2605f11bc75ea64a4997126f40bc264392b70cd193e3b6b19f6dd98a"
+      }
     }
   ],
   "fullTests": {

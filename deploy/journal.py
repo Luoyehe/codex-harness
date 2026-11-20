@@ -64,7 +64,23 @@ def recover_journal(path: Path, *, services_stopped: bool) -> dict:
         db.close()
 
 
-def recover_as_owner(path: Path, uid: int, gid: int) -> None:
+def check_legacy_journal(path: Path) -> None:
+    if not path.exists():
+        return
+    require(path.is_file() and not path.is_symlink() and path.stat().st_size <= 1024**3,
+            "Unexpected journal file", "corrupt_state")
+    for suffix in ("-wal", "-shm", "-journal"):
+        require(not Path(str(path) + suffix).is_symlink(), "Unsafe SQLite sidecar", "corrupt_state")
+    db = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        db.enable_load_extension(False)
+        db.execute("PRAGMA trusted_schema=OFF")
+        validate_schema(db, allow_attention=False)
+    finally:
+        db.close()
+
+
+def recover_as_owner(path: Path, uid: int, gid: int, *, check_legacy_only: bool = False) -> None:
     """SQLite and all its sidecars are opened with the gateway's existing DAC rights."""
     if not path.exists():
         return
@@ -74,9 +90,15 @@ def recover_as_owner(path: Path, uid: int, gid: int) -> None:
             os.setgroups([])
             os.setgid(gid)
             os.setuid(uid)
-            recover_journal(path, services_stopped=True)
+            if check_legacy_only:
+                check_legacy_journal(path)
+            else:
+                recover_journal(path, services_stopped=True)
             os._exit(0)
         except BaseException:
             os._exit(1)
     _, result = os.waitpid(pid, 0)
+    if check_legacy_only:
+        require(os.waitstatus_to_exitcode(result) == 0, "Selected control cannot recover the retained journal; keep a compatible control generation", "journal_unsupported")
+        return
     require(os.waitstatus_to_exitcode(result) == 0, "Control journal recovery failed; services remain stopped", "recovery_required")

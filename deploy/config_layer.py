@@ -14,7 +14,7 @@ from .ownership import present, regular, require_owned
 from .provider import native_config, require_provider_layer
 from .provider_layers import LAYER_MODE, prepare_host_targets, verify_system_layers
 from .system import run
-from .units import render_units, sudo_rule
+from .units import main_unit_templates, render_units, sudo_rule
 
 ROLES = ("worker", "gateway")
 
@@ -183,7 +183,10 @@ def validate_journal(manager, journal: dict) -> tuple[dict, dict, dict[str, byte
             "Invalid configuration-layer candidate", "corrupt_state")
     for key in ("oldProvider", "candidateProvider"):
         require(isinstance(journal.get(key), str) and re.fullmatch("[0-9a-f]{32}", journal[key]) is not None, "Invalid provider identity in recovery", "corrupt_state")
-    require_owned(manager.layout, candidate, prior_units={"worker": old["worker"], "config-check": old["check"]})
+    templates = main_unit_templates(manager.layout, old_config)["worker"]
+    require(old["worker"] in templates, "Retained worker is not a generated service unit", "corrupt_state")
+    require_owned(manager.layout, candidate, prior_units={"worker": {old["worker"], templates[old["worker"]]},
+                                                          "config-check": old["check"]})
     return old_config, candidate, old
 
 
@@ -218,7 +221,7 @@ def apply_candidate(manager, journal: dict) -> None:
     publish(paths(layout)["sudo"], sudo_rule(layout, config=config, workspace=journal["targetMode"] == LAYER_MODE).encode(), 0o440)
     fsync_directory(layout.units)
     manager.config = config
-    manager.system.reload()
+    manager.refresh_main_units(preserve_layout=True)
 
 
 def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidate: bool = False) -> dict:
@@ -249,7 +252,7 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
                     atomic_write(path, data, journal["before"][name]["mode"])
         fsync_directory(manager.layout.units)
         manager.config = old_config
-        manager.system.reload()
+        manager.refresh_main_units(preserve_layout=True)
     restore_activity(manager, journal["active"])
     # No compensation may follow terminal publication: atomic_write can replace
     # state.json and then fail its parent-directory fsync. Earlier failures keep

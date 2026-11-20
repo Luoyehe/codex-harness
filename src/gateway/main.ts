@@ -16,6 +16,15 @@ function required(name: string): string { const value = process.env[name]; if (!
 async function main(): Promise<void> {
   const dev = process.env.HARNESS_DEV === '1';
   if (!dev && (process.platform !== 'linux' || process.getuid?.() === 0)) throw new Error('Installed gateway must run as its dedicated non-root Linux identity');
+  if (!dev) {
+    // An older controller cannot check the new package declaration. Refuse
+    // before opening either database so its rollback path remains usable.
+    startupStage = 'control update required for journal recovery';
+    const control = path.dirname(required('HARNESS_MANAGE_COMMAND'));
+    const capabilities = JSON.parse(readFileSync(path.join(control, 'capabilities.json'), 'utf8'));
+    if (capabilities?.journalRecovery !== 2) throw new Error('Update the control tools before the application');
+  }
+  startupStage = 'configuration';
   const tokenFile = required('HARNESS_TOKEN_FILE'); const tokenInfo = lstatSync(tokenFile);
   if (!tokenInfo.isFile() || tokenInfo.isSymbolicLink() || tokenInfo.size > 4096 || (!dev && (tokenInfo.mode & 0o007) !== 0)) throw new Error('Invalid gateway token file');
   const token = readFileSync(tokenFile, 'utf8').trim();
