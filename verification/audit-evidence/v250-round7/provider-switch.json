@@ -1,0 +1,11 @@
+{
+  "before_second_provider_flags": {
+    "web-reader-dd7bf8550e5902e4eedadc87dd2a5aaa": true,
+    "zai-mcp-server-dd7bf8550e5902e4eedadc87dd2a5aaa": false
+  },
+  "after_disabling_first_provider_flags": {},
+  "after_reader_default_enabled": false,
+  "after_vision_default_enabled": true,
+  "same_surviving_vision_owner": true,
+  "after_startup_overrides": []
+}

@@ -8133,6 +8133,104 @@
         "path": "verification/audit-evidence/v250-round5/builtin-mcp.json",
         "sha256": "ff22f32f0833c26f1e364117885b7638d1f56cb2cd332005b2f8873d235d6f4a"
       }
+    },
+    {
+      "id": "v250-round6",
+      "sequence": 87,
+      "digest": "279a7aff403543819676474e247be33fb5c30e279cce99103260e443013f3bc0",
+      "complete": true,
+      "startedAt": "2026-11-20T08:26:16.174Z",
+      "completedAt": "2026-11-20T08:34:29.426Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "final-review-zeta",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round6/independent.json",
+          "sha256": "891944ba8322208e2d4e38a9122ac5a2e2e5bef7236cfaf61895e443fcb088f8"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round6/builtin-mcp.json",
+        "sha256": "1bf233f2f76f59f525e9cc95a22b91c7399be8b41c05cac69d205659ec18cac4"
+      }
+    },
+    {
+      "id": "v250-round7",
+      "sequence": 88,
+      "digest": "279a7aff403543819676474e247be33fb5c30e279cce99103260e443013f3bc0",
+      "complete": true,
+      "startedAt": "2026-11-20T08:35:48.608Z",
+      "completedAt": "2026-11-20T08:43:09.953Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R7-01",
+          "severity": "P2",
+          "scope": "deployment-release",
+          "title": "Disabling the first GLM connection reverses explicit MCP choices on a surviving connection",
+          "paths": [
+            "deploy/provider_registry.py:198",
+            "deploy/mcp_enabled_override.py:125",
+            "deploy/mcp_enabled_override.py:140"
+          ],
+          "evidence": ".work/v250/round7/eta-provider-switch.json",
+          "details": "With two enabled GLM Coding Plans A and B, enabled web-reader and disabled zai-mcp-server on B using the real switch store. Disabled only A via provider_registry.change and regenerated the native TOML using native_config. B then gained the bare display names while keeping its original immutable connection ID. read returned no flags and launch_arguments returned no overrides; web-reader reverted to disabled and vision to enabled. _binding stores the mutable display name plus the connection ID. The existing reassignment regression checks that settings do not leak from another provider; it misses preservation of the surviving provider’s own settings.",
+          "fix": "Key managed builtins by stable logical tool plus immutable connection ID, preserve currently persisted suffixed and unsuffixed formats, isolate user-defined names and different providers, and verify both directions of the A/B transition."
+        },
+        {
+          "id": "V250-R7-02",
+          "severity": "P2",
+          "scope": "deployment-release",
+          "title": "Permanently removed Coding Plans can exhaust switch capacity for all later connections",
+          "paths": [
+            "deploy/mcp_enabled_override.py:116",
+            "deploy/mcp_enabled_override.py:140",
+            "deploy/mcp_enabled_override.py:181",
+            "deploy/provider_registry.py:85"
+          ],
+          "evidence": ".work/v250/round7/eta-removed-provider-capacity.json",
+          "details": "Repeated the ordinary add/change/remove lifecycle with fresh synthetic provider IDs and actual renderer, apply/read and launch_arguments. Configuring all four switches then permanently removing one plan, 32 times, leaves 128 persisted switches. One new enabled plan reports zero current flags; its first web-reader toggle fails with DeployError(capacity). Only current system servers are visible/editable and former IDs cannot be re-created, so there is no ordinary user recovery. This does not rely on more than one Coding Plan existing at a time.",
+          "fix": "Reclaim preferences belonging to permanently removed connections while retaining disabled but saved connections and unrelated custom switches. Verify recovery from an already full store and retention across mode/profile changes."
+        }
+      ],
+      "skipped": [
+        "The Windows extended-drive-prefix-only Python case was skipped on macOS. Did not run the complete suite, release CI, live paid providers, authenticated commercial MCP calls, or a live production upgrade in this review."
+      ],
+      "reviewers": [
+        {
+          "id": "final-review-eta",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round7/independent.json",
+          "sha256": "85726bc9564bc2bde0f98b700dcc059eca2967e36b0c3b1da7027df35c160e12"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round7/builtin-mcp.json",
+        "sha256": "af95171a9b84b9f9254b95e6ff2520b80a39838288eaca27c1d79ed53612a734"
+      }
     }
   ],
   "fullTests": {

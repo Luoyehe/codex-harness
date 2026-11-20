@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "commit": "historical-commit-068",
+  "browser": "152.0.4191.53",
+  "platform": "macOS Edge / headless / mobile touch emulation",
+  "physicalHandset": false,
+  "result": {
+    "browser": "152.0.4191.53",
+    "commit": "historical-commit-068",
+    "viewport": {
+      "width": 390,
+      "height": 740,
+      "touch": 1,
+      "platform": "MacIntel"
+    },
+    "loadFocus": {
+      "tag": "BODY",
+      "cls": "",
+      "editable": false
+    },
+    "delete": {
+      "scrollGestures": 4,
+      "before": {
+        "x": 348,
+        "y": 2174,
+        "inViewport": false,
+        "hit": false
+      },
+      "after": {
+        "x": 348,
+        "y": 602,
+        "inViewport": true,
+        "hit": true
+      },
+      "action": {
+        "x": 205.5,
+        "y": 626,
+        "inViewport": true,
+        "hit": true
+      },
+      "sent": "one t43",
+      "remaining": 43
+    },
+    "closeNavigationFocus": {
+      "tag": "BUTTON",
+      "cls": "icon-button mobile-menu",
+      "editable": false
+    },
+    "openProcessFocus": {
+      "tag": "H3",
+      "cls": "",
+      "editable": false
+    },
+    "returnChatFocus": {
+      "tag": "DIV",
+      "cls": "workspace-body",
+      "editable": false
+    },
+    "locateFocus": {
+      "tag": "DIV",
+      "cls": "message-anchor search-selected",
+      "editable": false
+    },
+    "locate": {
+      "x": 195,
+      "y": 292.5859375,
+      "inViewport": true,
+      "hit": true,
+      "focusedTarget": true,
+      "windowRequests": 0
+    },
+    "lifecycleCases": {
+      "normal": {
+        "before": "离开 normal",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal"
+          },
+          {
+            "type": "beforeunload",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "pagehide",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "after",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          }
+        ],
+        "restored": "离开 normal · 最后输入"
+      },
+      "visibilitychange": {
+        "before": "离开 visibilitychange",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "after",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 visibilitychange · 最后输入"
+          }
+        ],
+        "restored": "离开 visibilitychange · 最后输入"
+      },
+      "pagehide": {
+        "before": "离开 pagehide",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide"
+          },
+          {
+            "type": "pagehide",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 pagehide · 最后输入"
+          }
+        ],
+        "restored": "离开 pagehide · 最后输入"
+      }
+    },
+    "closeSettingsFocus": {
+      "tag": "BUTTON",
+      "cls": "icon-button mobile-menu",
+      "editable": false
+    },
+    "newConversationFocus": {
+      "tag": "DIV",
+      "cls": "workspace-body",
+      "editable": false
+    },
+    "pageErrors": [],
+    "status": "passed",
+    "calledMethods": [
+      "project/list",
+      "thread/list",
+      "collaborationMode/list",
+      "prompt/list",
+      "model/list",
+      "thread/session",
+      "thread/read",
+      "thread/history",
+      "thread/delete",
+      "process/list",
+      "thread/searchOccurrences",
+      "defaults/read"
+    ]
+  },
+  "evidenceDigests": {
+    "confirm.png": "977280c48fdfb8f39f6bd20278e210ef509805ac63511b851728cbd3992882f6",
+    "dist/assets/Settings-B5ZOt4xE.js": "a4a4f2784c90f51b90cfda69c460d5c7ce7fd14c77ba044a46b72ddc24288593",
+    "dist/assets/TerminalPanel-DwCwpqql.js": "e8e075c9a9f7a4f6f62e4ef5b22ddbc25a97af5bf4e5fa8637afab553eb4450e",
+    "dist/assets/index-Z8acSORw.js": "f42077d14955b7ad6bfdeacfa0b0d1e50aaf955af7cc7d566bcf0f8e45ca96b9",
+    "dist/index.html": "fa70fafa5ae891ab2af97fbe2f3e7910182598ab96e445911ece53c4d5150eed",
+    "dist/theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba",
+    "drawer.png": "b0d3f651856fba3511b45a936cbe2781bd5cca05f653ca3bc36df20d3431bf87",
+    "locate.png": "03a17284b0e190ef3e801ca0e716e0f85d917f9ef492d04635e5c8f47397ab71",
+    "observations.json": "77baaedfc26d473f279dd65629974caa7ab51e754d63c18fcfefdaf0594623ab"
+  }
+}
