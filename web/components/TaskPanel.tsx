@@ -24,6 +24,7 @@ type Props = {
   enabled: boolean;
   active: boolean;
   queueManagementEnabled?: boolean;
+  historyComplete: boolean;
   events: Events;
   onOpenThread: (id: string) => void;
   onChanged: () => void;
@@ -54,6 +55,7 @@ function QueueEntry({
   index,
   length,
   canReorder,
+  historyComplete,
   disabled,
   active,
   onDraft,
@@ -72,6 +74,7 @@ function QueueEntry({
   index: number;
   length: number;
   canReorder: boolean;
+  historyComplete: boolean;
   disabled: boolean;
   active: boolean;
   onDraft: (text: string) => void;
@@ -122,7 +125,7 @@ function QueueEntry({
               <button
                 className="button primary small"
                 disabled={
-                  disabled || (!draft.text.trim() && !attachments.length && !retainedContext && !entry.containsMedia)
+                  disabled || !historyComplete || (!draft.text.trim() && !attachments.length && !retainedContext && !entry.containsMedia)
                 }
               >
                 保存修改
@@ -165,13 +168,13 @@ function QueueEntry({
             >
               ↓ 下移
             </button>
-            <button className="button small" disabled={disabled || active || entry.incomplete} onClick={onStart}>
+            <button className="button small" disabled={disabled || !historyComplete || active || entry.incomplete} onClick={onStart}>
               立即执行此条
             </button>
             {(attachments.length > 0 || entry.metadataOnly && !entry.incomplete) && <>
               {(entry.metadataOnly || entry.input.some(item => item.type === 'image')) && <p className="small muted">若旧待办缺少原上传的对应记录，保存副本或重存时只能使用原生队列保留的图片，尺寸可能与原图不同。</p>}
               <button className="button small" disabled={manageDisabled} onClick={onSaveCopy}>保存用于换模型的副本</button>
-              <ConfirmAction className="button small" label="按当前模型重存媒体" disabled={disabled}
+              <ConfirmAction className="button small" label="按当前模型重存媒体" disabled={disabled || !historyComplete}
                 confirmation="确认重存此待办（空闲时可能立即执行）" onConfirm={onReroute} />
             </>}
             <ConfirmAction key={JSON.stringify([entry.id, entry.clientUserMessageId, queuedText(entry), attachments, index])}
@@ -246,7 +249,8 @@ function QueuePanel(props: PanelProps) {
     renderDrafts((value) => value + 1);
   };
   const mutate = (method: string, params: Record<string, unknown>) =>
-    ready && !pending.current && (props.enabled || ['handoff/save', 'handoff/discard', 'delete'].includes(method))
+    ready && !pending.current && (props.enabled || ['handoff/save', 'handoff/discard', 'delete'].includes(method)) &&
+    (props.historyComplete || !['update', 'start', 'handoff/restore'].includes(method))
       ? action.run(
           `thread/queue/${method}`,
           { threadId: props.threadId, ...params },
@@ -257,7 +261,7 @@ function QueuePanel(props: PanelProps) {
   const saveDraft = async (entry: QueuedSubmission) => {
     const submitted = drafts.current.get(entry.id);
     if (
-      !ready ||
+      !ready || !props.enabled || !props.historyComplete ||
       action.disabled ||
       pending.current ||
       !submitted ||
@@ -305,6 +309,7 @@ function QueuePanel(props: PanelProps) {
       <p className="muted small">
         在输入框选择“加入队列”保存下一步指令。消息与附件保存在运行时，重连后可继续管理。空闲时加入队列会立即执行，运行中则由原生队列调度。
       </p>
+      {!props.historyComplete && <p className="connection-banner">提交或执行待办、按模型重存及从副本恢复均需要完整会话历史。仍可查看、调整顺序、保留副本或删除待办。</p>}
       {props.active && (
         <p className="connection-banner">
           当前回合仍在运行。可以管理尚未执行的消息；队列由运行时调度。
@@ -336,6 +341,7 @@ function QueuePanel(props: PanelProps) {
             manageDisabled={!ready || action.disabled || Boolean(savingId)}
             onSaveCopy={() => { setShowHandoffs(true); void mutate('handoff/save', { queuedSubmissionId: entry.id }); }}
             onReroute={() => void mutate('update', { queuedSubmissionId: entry.id })}
+            historyComplete={props.historyComplete}
             canReorder={!queue.hasMore && queue.items.length <= 100}
             onDraft={(text) => drafts.current.has(entry.id) ? changeDraft(entry.id, text) : void loadDraft(entry)}
             onCancel={() => discard(entry.id)}
@@ -364,7 +370,7 @@ function QueuePanel(props: PanelProps) {
         {copy.operationId && <span className="small muted">恢复操作 {copy.operationId}</span>}
         <div className="inline wrap">
           {copy.state === 'ready' && <ConfirmAction label="按当前模型恢复待办" confirmation="确认加入队列（空闲时可能立即执行）"
-            className="button primary small" disabled={!props.enabled || !ready || action.disabled} onConfirm={() => void mutate('handoff/restore', { handoffId: copy.id })} />}
+            className="button primary small" disabled={!props.enabled || !props.historyComplete || !ready || action.disabled} onConfirm={() => void mutate('handoff/restore', { handoffId: copy.id })} />}
           {copy.state !== 'restoring' && <ConfirmAction label="移除副本" confirmation="确认移除此副本"
             disabled={!ready || action.disabled} onConfirm={() => void mutate('handoff/discard', { handoffId: copy.id })} />}
         </div>
@@ -452,7 +458,7 @@ function GoalPanel(props: PanelProps) {
     setEditing(true);
   };
   const save = async () => {
-    if (submitting.current || action.disabled || !objective.trim() || !validBudget) return;
+    if (submitting.current || action.disabled || !props.historyComplete || !objective.trim() || !validBudget) return;
     submitting.current = true;
     try {
       if (
@@ -484,6 +490,7 @@ function GoalPanel(props: PanelProps) {
       <p className="muted small">
         目标由运行时持续执行。设置或继续目标可能启动任务；暂停目标不等于停止已经运行的回合。
       </p>
+      {!props.historyComplete && <p className="connection-banner">提交目标修改或继续执行需要完整会话历史。仍可查看、暂停或清除目标。</p>}
       {resource.loading && <p role="status">读取目标…</p>}
       {resource.error && (
         <p className="error" role="alert">
@@ -527,7 +534,7 @@ function GoalPanel(props: PanelProps) {
             ) : (
               <button
                 className="button primary"
-                disabled={action.disabled}
+                disabled={action.disabled || !props.historyComplete}
                 onClick={() =>
                   void action.run(
                     'thread/goal/set',
@@ -604,7 +611,7 @@ function GoalPanel(props: PanelProps) {
             <div className="inline">
               <button
                 className="button primary"
-                disabled={action.disabled || !objective.trim() || !validBudget}
+                disabled={action.disabled || !props.historyComplete || !objective.trim() || !validBudget}
               >
                 保存目标{!goal ? '并开始' : ''}
               </button>

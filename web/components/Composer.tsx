@@ -50,6 +50,7 @@ export function Composer({
   modes = [],
   modesLoading = false,
   canSteer = false,
+  historyComplete = false,
   projectId = '',
   threadId = '',
   epoch = '',
@@ -102,6 +103,7 @@ export function Composer({
   modes?: CollaborationModeMask[];
   modesLoading?: boolean;
   canSteer?: boolean;
+  historyComplete?: boolean;
 }) {
   const enterBehavior = useEnterBehavior();
   const [environmentIssue, setEnvironmentIssue] =
@@ -179,6 +181,7 @@ export function Composer({
     options,
     modes,
   });
+  if (selectedIntent === 'queue' && !historyComplete) contextIssue = '加入队列需要完整会话历史，草稿已保留。';
   if (!contextIssue) contextIssue = media.issue;
   if (!contextIssue && selectedIntent === 'send') contextIssue = modelSettingsIssue({
     options, defaults, defaultsLoading, models, modelsLoading: Boolean(modelsLoading), modes,
@@ -422,7 +425,7 @@ export function Composer({
           {active && existingThread && <label className="composer-send-mode">
             <span className="sr-only">当前发送方式</span>
             <select value={selectedIntent} onChange={(e) => setIntent(e.target.value as SendIntent)}>
-              <option value="queue">排队</option><option value="steer" disabled={!canSteer}>追加指令</option>
+              <option value="queue" disabled={!historyComplete}>排队</option><option value="steer" disabled={!canSteer}>追加指令</option>
             </select>
           </label>}
           {active && (
@@ -508,7 +511,7 @@ export function Composer({
                     追加到当前回合
                   </option>
                 )}
-                <option value="queue">加入队列（空闲时立即执行）</option>
+                <option value="queue" disabled={!historyComplete}>{historyComplete ? '加入队列（空闲时立即执行）' : '加入队列（需要完整历史）'}</option>
               </select>
             </label>
             <span className="small muted">

@@ -30,7 +30,7 @@ function setup(route = fallback) {
   return { api, events, calls };
 }
 const extensionProps = (api: Api) => ({ api, projects: [project], initialProjectId: project.id, epoch: 'one', enabled: true, onChanged: vi.fn() });
-const mcpProps = (api: Api, events: Events) => ({ api, events, projectId: project.id, epoch: 'one', runtimeEpoch: 'runtime-one', lease: 'lease-one', connected: true, threadId: 'thread-one', threadReady: true, threadIdle: true, configurationReady: true });
+const mcpProps = (api: Api, events: Events) => ({ api, events, projectId: project.id, epoch: 'one', runtimeEpoch: 'runtime-one', lease: 'lease-one', connected: true, threadId: 'thread-one', threadReady: true, historyComplete: true, threadIdle: true, configurationReady: true });
 beforeEach(() => { localStorage.clear(); sessionStorage.clear();
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   HTMLDialogElement.prototype.close = function () { this.open = false; };

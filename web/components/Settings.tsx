@@ -38,6 +38,7 @@ export function Settings({
   projectId,
   threadId = '',
   threadReady = false,
+  historyComplete = false,
   threadIdle = false,
   lease = epoch,
   connected = true,
@@ -52,6 +53,7 @@ export function Settings({
   connectionId?: string;
   threadId?: string;
   threadReady?: boolean;
+  historyComplete?: boolean;
   threadIdle?: boolean;
   lease?: string;
   connected?: boolean;
@@ -208,6 +210,7 @@ export function Settings({
                 connected={connected}
                 threadId={threadId}
                 threadReady={threadReady}
+                historyComplete={historyComplete}
                 threadIdle={threadIdle}
                 configurationReady={configurationReady}
               />

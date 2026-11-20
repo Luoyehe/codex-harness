@@ -418,6 +418,7 @@ export function ThreadOrganization({
                 </button>
               </div>
               <h4>会话记忆</h4>
+              {!ready && <p className="small muted">更改会话记忆需要先加载会话并读取完整历史。</p>}
               <p className="small muted">
                 这里只设置此会话是否参与记忆。运行时没有返回当前模式；重新打开时不会猜测其状态。
               </p>

@@ -187,7 +187,7 @@ it('validates reasoning against the exact provider and permits legacy provider a
 });
 it('does not apply unused model overrides to queue admission', () => {
   const send = vi.fn(async () => false);
-  render(<Composer api={{} as Api} value="queue draft" onChange={vi.fn()} onSend={send} onStop={vi.fn()}
+  render(<Composer historyComplete api={{} as Api} value="queue draft" onChange={vi.fn()} onSend={send} onStop={vi.fn()}
     busy={false} disabled={false} active existingThread options={{ effort: 'high' }} onOptions={vi.fn()}
     models={[]} defaults={{ model: 'removed-model' }} defaultsLoading={false} notice="" contextKey="queue-thread" />);
   fireEvent.click(screen.getByRole('button', { name: '加入队列' }));

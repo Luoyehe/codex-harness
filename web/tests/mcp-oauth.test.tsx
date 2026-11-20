@@ -21,7 +21,7 @@ function setup(handler: (call: Call) => unknown = () => undefined) {
   }));
   return { api, events, calls };
 }
-const props = (s: ReturnType<typeof setup>) => ({ api: s.api, events: s.events, epoch: 'resources-1', runtimeEpoch: 'runtime', lease: 'lease', connected: true, threadId: 'thread', threadReady: true, threadIdle: true, configurationReady: true, projectId: 'project' });
+const props = (s: ReturnType<typeof setup>) => ({ api: s.api, events: s.events, epoch: 'resources-1', runtimeEpoch: 'runtime', lease: 'lease', connected: true, threadId: 'thread', threadReady: true, historyComplete: true, threadIdle: true, configurationReady: true, projectId: 'project' });
 async function select() {
   await screen.findByRole('option', { name: /server · 已连接/ });
   fireEvent.change(screen.getByRole('combobox', { name: '选择 MCP 服务' }), { target: { value: 'server' } });

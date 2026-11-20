@@ -65,6 +65,7 @@ const panelProps = (api: Api, events: Events) => ({
   connected: true,
   threadId: 'thread-one',
   threadReady: true,
+  historyComplete: true,
   threadIdle: true,
   configurationReady: true,
   projectId: 'project',
@@ -563,6 +564,35 @@ async function streamDraft() {
   });
   fireEvent.click(screen.getByRole('checkbox', { name: /确认启动此服务的事件订阅/ }));
 }
+it('retains scoped resource access and stream cleanup in a partial conversation without starting tools or streams', async () => {
+  const { api, events, calls } = setup(call => {
+    if (call.method === 'mcp/stream/list') return { data: [{ subscriptionId: 'sub', threadId: 'thread-one', server: 'local', name: 'updates' }] };
+    if (call.method === 'mcp/stream/stop') return { subscriptionId: 'sub', stopped: true };
+    if (call.method === 'mcp/resource/read') return { contents: [{ uri: 'file:///discovered', text: 'retained resource' }], originCallId: null };
+    return fallback(call);
+  });
+  const props = panelProps(api, events);
+  const view = render(<McpPanel {...props} />);
+  await selectTool();
+  fireEvent.click(screen.getByRole('checkbox', { name: /提供 Text/ }));
+  fireEvent.change(screen.getByRole('textbox', { name: /Text/ }), { target: { value: 'desired input' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: '确认向此服务调用所选工具与上述参数' }));
+  await enabledButton({ name: '调用 Echo' });
+  view.rerender(<McpPanel {...props} historyComplete={false} />);
+  expect(screen.getByText(/手动调用工具或新建事件订阅需要完整会话历史/)).toBeTruthy();
+  expect(screen.getByDisplayValue('desired input')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '调用 Echo' })).toHaveProperty('disabled', true);
+  await streamDraft();
+  expect(screen.getByRole('button', { name: '启动事件订阅' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '资源' }));
+  fireEvent.click(await enabledButton({ name: '读取此资源' }));
+  await screen.findByText('retained resource');
+  fireEvent.click(await enabledButton({ name: '停止此订阅' }));
+  await waitFor(() => expect(calls.some(call => call.method === 'mcp/stream/stop')).toBe(true));
+  expect(calls.some(call => ['mcp/stream/start', 'mcp/tool/call'].includes(call.method))).toBe(false);
+  expect(calls.filter(call => call.method === 'mcp/list').every(call => call.params.threadId === 'thread-one')).toBe(true);
+});
+
 it('requires fresh stream consent after switching services and changing parameters away and back', async () => {
   const { api, events, calls } = setup((call) =>
     call.method === 'mcp/list'

@@ -23,6 +23,7 @@ type Props = {
   threadId: string;
   sourceTurnId: string;
   connected: boolean;
+  historyComplete: boolean;
   enabled: boolean;
   draftEmpty: boolean;
   onInsert: (text: string, sourceTurnId: string) => boolean;
@@ -30,7 +31,7 @@ type Props = {
   onServiceSettings?: () => void;
 };
 export function PredictionPanel(props: Props) {
-  const { api, events, epoch, threadId, sourceTurnId, connected, enabled, draftEmpty } = props;
+  const { api, events, epoch, threadId, sourceTurnId, connected, historyComplete, enabled, draftEmpty } = props;
   const records = useRef(new Map<string, Prediction>()),
     [, render] = useState(0),
     [busy, setBusy] = useState(false),
@@ -114,6 +115,7 @@ export function PredictionPanel(props: Props) {
       running.current ||
       !valid() ||
       !p.enabled ||
+      !p.historyComplete ||
       !p.threadId ||
       !p.sourceTurnId ||
       unresolved ||
@@ -260,9 +262,9 @@ export function PredictionPanel(props: Props) {
     [events],
   );
   const record = connected ? records.current.get(threadId) : undefined,
-    stale = Boolean(record && record.sourceTurnId !== sourceTurnId),
+    stale = Boolean(historyComplete && record && record.sourceTurnId !== sourceTurnId),
     blocked =
-      !connected || !enabled || !sourceTurnId || busy || unresolved || Boolean(operations.error);
+      !connected || !enabled || !historyComplete || !sourceTurnId || busy || unresolved || Boolean(operations.error);
   return (
     <section className="stack">
       <div className="section-heading">
@@ -283,7 +285,8 @@ export function PredictionPanel(props: Props) {
           查看官方建议功能说明 ↗
         </a>
       </p>
-      {!sourceTurnId && <p className="muted">需要最新回合已完成、会话已加载且空闲后才能生成。</p>}
+      {!historyComplete ? <p className="muted">生成建议或将建议放入编辑框，需要先完整读取当前会话历史。</p>
+        : !sourceTurnId && <p className="muted">需要最新回合已完成、会话已加载且空闲后才能生成。</p>}
       <button
         className="button"
         disabled={
@@ -380,10 +383,12 @@ export function PredictionPanel(props: Props) {
                       p.threadId !== record.threadId ||
                       p.sourceTurnId !== record.sourceTurnId ||
                       !p.enabled ||
+                      !p.historyComplete ||
                       !p.draftEmpty ||
                       !p.onInsert(record.text, record.sourceTurnId)
                     )
-                      setNotice('未写入编辑框：建议已过期或当前已有草稿。原有输入保持不变。');
+                      setNotice(p.historyComplete ? '未写入编辑框：建议已过期或当前已有草稿。原有输入保持不变。'
+                        : '当前会话历史尚未完整读取，建议未写入编辑框。');
                     else setNotice('建议已放入编辑框，请审阅后明确发送。');
                   } catch (e) {
                     update(record, { error: message(e) });

@@ -1,5 +1,5 @@
 import type { ThreadTimelineEntry } from '../../protocol/ts/v2/ThreadTimelineEntry';
-import { object, type Item, type Turn } from './types';
+import { array, object, type Item, type Turn } from './types';
 type OrdinaryItem = Extract<ThreadTimelineEntry, { type: 'item' }>;
 type ItemReference = Omit<OrdinaryItem, 'item'> & { itemReference: true; item: Pick<OrdinaryItem['item'], 'id' | 'type'> };
 export type TimelineEntry = (ThreadTimelineEntry & { itemReference?: undefined }) | ItemReference;
@@ -68,8 +68,12 @@ export function mergeTimeline(
   // Pages walk newest to oldest, while entries within a page are chronological.
   // Different canonical kinds may share a position; stable prepend order matters.
   const entries = new Map<string, TimelineEntry>();
-  for (const entry of [...incoming, ...current])
-    entries.set(`${entry.position}:${timelineIdentity(entry)}`, entry);
+  for (const entry of [...incoming, ...current]) {
+    const key = `${entry.position}:${timelineIdentity(entry)}`;
+    const prior = entries.get(key);
+    if (entry.itemReference && prior?.type === 'item' && !prior.itemReference && prior.item.type === entry.item.type) continue;
+    entries.set(key, entry);
+  }
   return [...entries.values()].sort((a, b) => a.position - b.position);
 }
 export function activeRealtime(timeline: TimelineEntry[], opening: string | null): string | null {
@@ -87,7 +91,7 @@ export function activeRealtime(timeline: TimelineEntry[], opening: string | null
 }
 export type TimelineRow =
   | { type: 'item'; key: string; turnId: string; item: Item }
-  | { type: 'turn'; key: string; turn: Turn }
+  | { type: 'turn'; key: string; turn: Turn; timelineOnly?: true }
   | { type: 'realtime'; key: string; item: RealtimeItem };
 const turnItemIndexes = new WeakMap<Turn, Map<string, { item: Item; index: number }>>();
 function timelineItem(turn: Turn | undefined, id: string): { item: Item; index: number } | undefined {
@@ -110,31 +114,62 @@ export function compactTimelineEntries(turns: Turn[], entries: TimelineEntry[]):
     return { ...entry, itemReference: true, item: { id, type } };
   });
 }
+const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
+export function publicAnswerText(item: Item): string {
+  if (typeof item.text === 'string') return item.text;
+  return array<unknown>(item.content).map(object)
+    .filter(part => part.type === 'text' && typeof part.text === 'string')
+    .map(part => part.text).join('\n');
+}
+
 /** Canonical entries locate messages; the turn stream remains authoritative for live item text. */
-export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): TimelineRow[] {
+export function timelineView(turns: Turn[], timeline: TimelineEntry[]) {
   const byId = new Map(turns.map((turn) => [turn.id, turn])),
     rows: TimelineRow[] = [],
-    shown = new Set<string>(),
+    itemPositions = new Map<string, number>(),
+    commandTurns = new Map<string, string | null>(),
+    reasoningFinished = new Set<string>(),
+    visibleItems = new Map<string, Item[]>(),
     finished = new Set<string>();
   const add = (turnId: string, item: Item) => {
     const key = JSON.stringify([turnId, item.id]);
-    if (!shown.has(key)) {
-      shown.add(key);
+    if (!itemPositions.has(key)) {
+      itemPositions.set(key, rows.length);
+      if (item.type === 'commandExecution') {
+        const previous = commandTurns.get(item.id);
+        commandTurns.set(item.id, previous === undefined || previous === turnId ? turnId : null);
+      }
+      const visible = visibleItems.get(turnId);
+      if (visible) visible.push(item); else visibleItems.set(turnId, [item]);
+      if (item.type === 'agentMessage' && item.phase === 'final_answer' && publicAnswerText(item).trim())
+        reasoningFinished.add(turnId);
       rows.push({ type: 'item', key, turnId, item });
     }
   };
-  const finish = (turn: Turn) => {
+  const finish = (turn: Turn, timelineOnly = false) => {
     turn.items.forEach((item) => add(turn.id, item));
     if (!finished.has(turn.id)) {
       finished.add(turn.id);
-      rows.push({ type: 'turn', key: `turn:${turn.id}`, turn });
+      if (terminalStatuses.has(turn.status)) reasoningFinished.add(turn.id);
+      const items = visibleItems.get(turn.id) ?? [];
+      // An independent timeline page can supply a public body absent from an
+      // otherwise known turn. Copy only what this view actually contains.
+      const visible = items.length > turn.items.length ? { ...turn, items, itemsView: 'summary' } : turn;
+      rows.push({ type: 'turn', key: `turn:${turn.id}`, turn: visible, ...(timelineOnly ? { timelineOnly: true } : {}) });
     }
   };
   // Turn and timeline pages can begin at different positions. Before a
   // canonical anchor, emit only earlier bodies without their own position.
-  const positions = new Set(timeline.flatMap(entry => entry.type === 'item'
-    ? [JSON.stringify([entry.turnId, entry.item.id])] : []));
-  const turnAnchors = new Set(timeline.flatMap(entry => entry.type !== 'realtime' ? [entry.turnId] : []));
+  const positions = new Set<string>(), turnAnchors = new Set<string>();
+  const lastBoundary = new Map<string, Extract<TimelineEntry, { type: 'turnStarted' | 'turnCompleted' }>>();
+  const lastTurnEntry = new Map<string, TimelineEntry>();
+  for (const entry of timeline) {
+    if (entry.type === 'realtime') continue;
+    turnAnchors.add(entry.turnId);
+    if (entry.type !== 'item' || !entry.itemReference) lastTurnEntry.set(entry.turnId, entry);
+    if (entry.type === 'item') positions.add(JSON.stringify([entry.turnId, entry.item.id]));
+    else lastBoundary.set(entry.turnId, entry);
+  }
   const turnOrder = new Map(turns.map((turn, index) => [turn.id, index]));
   const nextItem = new Map<string, number>();
   let nextTurn = 0;
@@ -158,15 +193,31 @@ export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): Timeline
       rows.push({ type: 'realtime', key: timelineIdentity(entry), item: entry.item });
     else if (entry.type === 'item') {
       const turn = byId.get(entry.turnId), body = timelineItem(turn, entry.item.id);
-      if (turn && body) { beforeAnchor(turn, body.index); add(entry.turnId, body.item); }
-      else if (!entry.itemReference) add(entry.turnId, entry.item as Item);
+      if (turn && body && body.item.type === entry.item.type) { beforeAnchor(turn, body.index); add(entry.turnId, body.item); }
+      else if (!body && !entry.itemReference) add(entry.turnId, entry.item as Item);
     }
     else if (entry.type === 'turnCompleted') {
       const turn = byId.get(entry.turnId);
       if (turn) finish(turn);
     }
+    if (entry.type !== 'realtime' && !byId.has(entry.turnId) && lastTurnEntry.get(entry.turnId) === entry) {
+      const marker = lastBoundary.get(entry.turnId);
+      if (marker?.type === 'turnCompleted' && terminalStatuses.has(marker.status)) {
+        // The marker proves the outcome even when only independent public bodies fit.
+        finish({ id: marker.turnId, status: marker.status, error: marker.error, itemsView: 'summary', items: [] }, true);
+      }
+    }
   }
   // Live items without canonical positions stay visible, once, until the final history arrives.
-  turns.forEach(finish);
-  return rows;
+  turns.forEach(turn => finish(turn));
+  const getItem = (turnId: string, itemId: string) => {
+    const index = itemPositions.get(JSON.stringify([turnId, itemId]));
+    const row = index === undefined ? undefined : rows[index];
+    return row?.type === 'item' ? row.item : undefined;
+  };
+  return { rows, itemPositions, commandTurns, getItem, reasoningFinished };
+}
+export type TimelineView = ReturnType<typeof timelineView>;
+export function timelineRows(turns: Turn[], timeline: TimelineEntry[]): TimelineRow[] {
+  return timelineView(turns, timeline).rows;
 }

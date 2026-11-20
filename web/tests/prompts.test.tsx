@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { checkedTimeline, timelineView } from '../lib/timeline';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -311,7 +312,7 @@ describe('approval and structured answers', () => {
         prompts={[prompt]}
         onAnswer={onAnswer}
         contextThreadId="other"
-        contextTurns={[turn]}
+        getContextItem={timelineView([turn], []).getItem}
       />,
     );
     expect((screen.getByRole('button', { name: '允许这一次' }) as HTMLButtonElement).disabled).toBe(
@@ -322,14 +323,14 @@ describe('approval and structured answers', () => {
         prompts={[prompt]}
         onAnswer={onAnswer}
         contextThreadId="t"
-        contextTurns={[{ ...turn, id: 'old-turn' }]}
+        getContextItem={timelineView([{ ...turn, id: 'old-turn' }], []).getItem}
       />,
     );
     expect((screen.getByRole('button', { name: '允许这一次' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
     view.rerender(
-      <Prompts prompts={[prompt]} onAnswer={onAnswer} contextThreadId="t" contextTurns={[turn]} />,
+      <Prompts prompts={[prompt]} onAnswer={onAnswer} contextThreadId="t" getContextItem={timelineView([turn], []).getItem} />,
     );
     expect(screen.getByText(/-before\s+\+after/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '允许这一次' }));
@@ -345,7 +346,7 @@ describe('approval and structured answers', () => {
     const view = render(
       <Prompts
         {...props}
-        contextTurns={[
+        getContextItem={timelineView([
           {
             id: 'u',
             status: 'inProgress',
@@ -353,7 +354,7 @@ describe('approval and structured answers', () => {
               { id: 'i', type: 'fileChange', changes: [{ path: '/empty', kind: { type: 'add' } }] },
             ],
           },
-        ]}
+        ], []).getItem}
       />,
     );
     expect((screen.getByRole('button', { name: '允许这一次' }) as HTMLButtonElement).disabled).toBe(
@@ -362,7 +363,7 @@ describe('approval and structured answers', () => {
     view.rerender(
       <Prompts
         {...props}
-        contextTurns={[
+        getContextItem={timelineView([
           {
             id: 'u',
             status: 'inProgress',
@@ -374,7 +375,7 @@ describe('approval and structured answers', () => {
               },
             ],
           },
-        ]}
+        ], []).getItem}
       />,
     );
     expect((screen.getByRole('button', { name: '允许这一次' }) as HTMLButtonElement).disabled).toBe(
@@ -605,4 +606,28 @@ it('invalidates revoked approvals immediately and only accepts the authoritative
   expect(view.result.current.prompts).toEqual([next]);
   await act(async()=>view.result.current.answer('new',{}));
   expect(api.mutate).toHaveBeenCalledTimes(1);
+});
+
+it('requires the actual matching full file change from a timeline-only window before file approval', async () => {
+  const prompt = { promptId: 'approval', method: 'item/fileChange/requestApproval',
+    params: { threadId: 'thread', turnId: 'turn', itemId: 'file' } };
+  const file = { type: 'fileChange', id: 'file', status: 'inProgress',
+    changes: [{ path: '/workspace/file', kind: { type: 'update' }, diff: '-original\n+replacement' }] };
+  const row = { position: 0, type: 'item', turnId: 'turn', item: file };
+  const onAnswer = vi.fn().mockResolvedValue(undefined);
+  const card = (entry: object, thread = 'thread') => <Prompts prompts={[prompt]} onAnswer={onAnswer} contextThreadId={thread}
+    getContextItem={timelineView([], checkedTimeline([entry])).getItem} />;
+  const view = render(card(row, 'other-thread'));
+  const allow = () => screen.getByRole('button', { name: '允许这一次' }) as HTMLButtonElement;
+  expect(allow().disabled).toBe(true);
+  for (const entry of [{ ...row, turnId: 'other-turn' }, { ...row, item: { ...file, id: 'other-item' } },
+    { ...row, itemReference: true, item: { id: 'file', type: 'fileChange' } },
+    { ...row, item: { ...file, changes: [{ path: '/workspace/file', kind: { type: 'update' } }] } }]) {
+    view.rerender(card(entry)); expect(allow().disabled).toBe(true);
+  }
+  expect(onAnswer).not.toHaveBeenCalled();
+  view.rerender(card(row));
+  expect(screen.getByText(/-original\s+\+replacement/)).toBeTruthy();
+  fireEvent.click(allow());
+  await waitFor(() => expect(onAnswer).toHaveBeenCalledExactlyOnceWith('approval', { decision: 'accept' }));
 });

@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import type { ComponentProps, ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Workspace } from '../Workspace';
+import { checkedTimeline, type TimelineEntry } from '../lib/timeline';
+import type { ThreadTerminals } from '../components/ThreadTerminals';
 import type { Composer } from '../components/Composer';
 import type { Sidebar } from '../components/Sidebar';
 import type { BranchDialog, ReviewDialog } from '../components/HistoryTools';
@@ -11,13 +13,16 @@ import type { Settings } from '../components/Settings';
 import type { Recovery } from '../components/Recovery';
 import type { WorkspacePanel } from '../components/WorkspacePanel';
 import { Api } from '../lib/api';
-import { emptyDraft, readDraft, writeDraft, type Draft } from '../lib/drafts';
+import { branchDraftKey, emptyDraft, readDraft, writeDraft, type Draft } from '../lib/drafts';
 import { listOperations, reconcileOperation } from '../lib/operations';
 
 const controls = vi.hoisted(() => ({
   composer: undefined as ComponentProps<typeof Composer> | undefined,
   refresh: vi.fn(),
   activeTurn: false,
+  historyComplete: true,
+  timeline: [] as TimelineEntry[],
+  terminals: undefined as ComponentProps<typeof ThreadTerminals> | undefined,
   review: undefined as ComponentProps<typeof ReviewDialog> | undefined,
   branch: undefined as ComponentProps<typeof BranchDialog> | undefined,
   messages: undefined as ComponentProps<typeof Messages> | undefined,
@@ -37,8 +42,8 @@ vi.mock('../hooks/useResource', () => ({ useResource: () => ({
 vi.mock('../hooks/usePaged', () => ({ usePaged: (_api: unknown, _method: unknown, _params: unknown, key: string) => ({
   items: controls.empty, snapshotKey: key, refresh: controls.refresh, loading: false, hasMore: false,
 }) }));
-vi.mock('../hooks/useConversation', () => ({ useConversation: () => ({
-  ready: true, turns: controls.empty, active: controls.activeTurn, thread: { id: 'thread', cwd: '/project' },
+vi.mock('../hooks/useConversation', () => ({ useConversation: (_api: unknown, _events: unknown, threadId: string) => ({
+  ready: true, turns: controls.empty, timeline: controls.timeline, loadedThreadId: threadId, complete: controls.historyComplete, truncated: !controls.historyComplete, active: controls.activeTurn, thread: { id: 'thread', cwd: '/project' },
   activeTurn: controls.activeTurn ? { id: 'active-turn' } : undefined,
   refresh: controls.refresh,
 }) }));
@@ -57,6 +62,9 @@ vi.mock('../components/Recovery', async () => ({
   ...await vi.importActual<typeof import('../components/Recovery')>('../components/Recovery'),
   Recovery: (props: ComponentProps<typeof Recovery>) => { controls.recovery = props; return null; },
 }));
+vi.mock('../components/ThreadTerminals', () => ({ ThreadTerminals: (props: ComponentProps<typeof ThreadTerminals>) => {
+  controls.terminals = props; return null;
+} }));
 vi.mock('../components/WorkspacePanel', () => ({ WorkspacePanel: (props: ComponentProps<typeof WorkspacePanel>) => {
   controls.workspace = props; return null;
 } }));
@@ -88,6 +96,9 @@ beforeEach(() => {
   sessionStorage.setItem('harness.project', 'p');
   history.replaceState({}, '', '/');
   controls.activeTurn = false;
+  controls.historyComplete = true;
+  controls.timeline = [];
+  controls.terminals = undefined;
   controls.composer = undefined;
   controls.review = undefined;
   controls.branch = undefined;
@@ -337,4 +348,69 @@ it.each(['review', 'branch'] as const)('preserves volatile composer input on the
   expect(screen.getByRole('alert').textContent).toContain('草稿保存失败');
   expect(screen.getByRole('button', { name: '打开已创建的会话' })).toBeTruthy();
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+
+it('locates a timeline-only command from background terminals and rejects missing or ambiguous targets', async () => {
+  history.replaceState({}, '', '/?thread=existing');
+  const command = (turnId: string, id: string, position: number, reference = false) => ({
+    type: 'item', turnId, position, item: { id, type: 'commandExecution', ...(reference ? {} : { command: id }) },
+    ...(reference ? { itemReference: true } : {}),
+  });
+  controls.historyComplete = false;
+  controls.timeline = checkedTimeline([command('a', 'actual', 0), command('a', 'duplicate', 1),
+    command('b', 'duplicate', 2), command('b', 'missing', 3, true),
+    { type: 'item', turnId: 'b', position: 4, item: { type: 'agentMessage', id: 'actual', text: 'Another item kind' } },
+    { type: 'item', turnId: 'c', position: 5, item: { type: 'agentMessage', id: 'missing', text: 'Not a command' } }]);
+  render(<Workspace api={new Api()} logout={async () => {}} active />);
+  fireEvent.click(screen.getByRole('button', { name: '打开会话命令与后台终端' }));
+  await waitFor(() => expect(controls.terminals).toBeTruthy());
+  act(() => controls.terminals!.onLocate('actual'));
+  expect(controls.messages?.focusTarget).toEqual({ turnId: 'a', itemId: 'actual' });
+  act(() => controls.terminals!.onLocate('duplicate'));
+  expect(controls.messages?.focusTarget).toBeUndefined();
+  expect(screen.getByText(/多个回合含有相同的历史条目标识/)).toBeTruthy();
+  act(() => controls.terminals!.onLocate('missing'));
+  expect(controls.messages?.focusTarget).toBeUndefined();
+  expect(screen.getByText(/后台进程的历史条目尚未加载/)).toBeTruthy();
+});
+it.each(['saved edit', ''])('restores only explicitly saved branch text for a timeline-only turn (%s)', async text => {
+  const key = branchDraftKey('existing', 'turn');
+  writeDraft({ ...emptyDraft(key), text });
+  controls.historyComplete = false;
+  controls.timeline = checkedTimeline([
+    { type: 'item', position: 1, turnId: 'turn', item: { id: 'original', type: 'userMessage', content: [{ type: 'text', text: 'partial original' }] } },
+    { type: 'turnCompleted', position: 2, turnId: 'turn', status: 'completed', error: null },
+  ]);
+  render(<Workspace api={new Api()} logout={async () => {}} active />);
+  fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+  await screen.findByTestId('settings-open');
+  act(() => controls.settings!.onOpenDraft(key));
+  if (text) {
+    await waitFor(() => expect(controls.branch?.memoryDraft).toBe(text));
+    expect(controls.branch?.turn).toMatchObject({ id: 'turn', itemsView: 'summary' });
+  } else {
+    await screen.findByText(/当前窗口只包含部分回合/);
+    expect(controls.branch).toBeUndefined();
+  }
+  expect(readDraft(key).text).toBe(text);
+});
+
+it('wires a certified history window to scoped reads, submission and cleanup separately', async () => {
+  history.replaceState({}, '', '/?thread=existing');
+  controls.historyComplete = false;
+  render(<Workspace api={new Api()} logout={async () => {}} active />);
+  expect(controls.composer?.disabled).toBe(false);
+  expect(controls.composer?.historyComplete).toBe(false);
+  fireEvent.click(screen.getByRole('button', {name:'打开会话命令与后台终端'}));
+  expect(controls.terminals?.enabled).toBe(true);
+  expect(controls.terminals?.shellEnabled).toBe(false);
+  fireEvent.click(screen.getByText('启动代码审查'));
+  expect(controls.review?.enabled).toBe(true);
+  expect(controls.review?.inlineEnabled).toBe(false);
+  act(() => controls.review!.onClose());
+  fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+  await act(async () => { await import('../components/Settings'); });
+  await waitFor(() => expect(controls.settings?.threadReady).toBe(true));
+  expect(controls.settings?.historyComplete).toBe(false);
 });

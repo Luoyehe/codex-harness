@@ -39,6 +39,7 @@ import {
 import { useEvents } from './hooks/useEvents';
 import { useResource } from './hooks/useResource';
 import { usePaged } from './hooks/usePaged';
+import { timelineView } from './lib/timeline';
 import { useConversation } from './hooks/useConversation';
 import { usePrompts } from './hooks/usePrompts';
 import { useDraft } from './hooks/useDraft';
@@ -79,6 +80,8 @@ import { McpEventBridge } from './components/McpPanel';
 import { OrganizationPanel } from './components/OrganizationPanel';
 import { AutomationsPanel } from './components/AutomationsPanel';
 
+const terminalHistoryMissing = '后台进程的历史条目尚未加载，请重新读取完整会话。';
+const terminalHistoryAmbiguous = '多个回合含有相同的历史条目标识，请在会话中搜索该命令。';
 export function Workspace({
   api,
   logout,
@@ -208,6 +211,7 @@ export function Workspace({
   const [branchAction, setBranchAction] = useState<{
     turn: Turn;
     action: 'fork' | 'edit' | 'revert';
+    restoredText?: string;
   }>();
   const branchMemory = useRef(new Map<string, string>());
   const [restoreBranch, setRestoreBranch] = useState<{ threadId: string; turnId: string }>();
@@ -434,6 +438,7 @@ export function Workspace({
   }, [defaults.loading]);
   const conversation = useConversation(api, events, network.runtimeConnected ? threadId : '', resourceEpoch),
     prompts = usePrompts(api, events, resourceEpoch);
+  const displayedHistory = useMemo(() => timelineView(conversation.turns, conversation.timeline), [conversation.turns, conversation.timeline]);
   // A historical thread owns its cwd. A remembered sidebar selection must never
   // authorize file or terminal actions in another project while history loads.
   const project = threadId ? projects.find(p => p.cwd === conversation.thread?.cwd) : projects.find(p => p.id === projectId);
@@ -535,15 +540,25 @@ export function Workspace({
     !pending &&
     !operations.error &&
     directInputAllowed;
+  const fullHistoryWorkflowEnabled = workflowEnabled && conversation.complete;
   useEffect(() => {
     if (restoreBranch && threadId === restoreBranch.threadId && conversation.loadedThreadId === threadId && conversation.ready) {
-      const turn = conversation.turns.find((item) => item.id === restoreBranch.turnId);
-      if (turn) setBranchAction({ turn, action: 'edit' });
+      const row = displayedHistory.rows.find(row => row.type === 'turn' && row.turn.id === restoreBranch.turnId);
+      if (row?.type === 'turn' && row.turn.itemsView === 'summary') {
+        const key = branchDraftKey(threadId, row.turn.id, draftMode);
+        try {
+          const text = branchMemory.current.get(key) ?? readDraft(key).text;
+          if (!['completed', 'failed', 'interrupted'].includes(row.turn.status))
+            setError('原回合尚未确认结束，请稍后恢复分支草稿。');
+          else if (text) setBranchAction({ turn: row.turn, action: 'edit', restoredText: text });
+          else setError('当前窗口只包含部分回合，无法从中恢复原始消息。请在设置中查看分支草稿。');
+        } catch (error) { setError(message(error)); }
+      } else if (row?.type === 'turn') setBranchAction({ turn: row.turn, action: 'edit' });
       else setError(conversation.truncated ? '最近的会话窗口没有显示原回合。分支草稿仍保留，可在设置中查看和复制，或在会话中搜索原消息。' :
         '原回合已不在会话历史中。分支草稿仍保留，可在设置中查看和复制。');
       setRestoreBranch(undefined);
     }
-  }, [restoreBranch, threadId, conversation.loadedThreadId, conversation.ready, conversation.turns]);
+  }, [restoreBranch, threadId, conversation.loadedThreadId, conversation.ready, displayedHistory, draftMode]);
   const visiblePrompts = executionBlocked ? [] : prompts.prompts.filter((p) => !p.threadId || p.threadId === threadId);
   useEffect(() => {
     const term = query.trim();
@@ -686,6 +701,7 @@ export function Workspace({
       isBusy ||
       draftState.error ||
       !directInputAllowed ||
+      (intent === 'queue' && !conversation.complete) ||
       (intent === 'steer' && !conversation.activeTurn) ||
       (intent === 'send' && conversation.active)
     )
@@ -1304,6 +1320,7 @@ export function Workspace({
                   events={events}
                   epoch={resourceEpoch}
                   threadId={threadId}
+                  historyComplete={conversation.complete}
                   sourceTurnId={
                     conversation.turns.at(-1)?.status === 'completed'
                       ? conversation.turns.at(-1)!.id
@@ -1347,16 +1364,19 @@ export function Workspace({
                   }
                   enabled={active && network.connection === 'connected' && network.runtimeConnected &&
                     network.activityReady && !pending && !operations.error && !conversation.realtimeActive}
-                  shellEnabled={workflowEnabled}
+                  shellEnabled={fullHistoryWorkflowEnabled}
                   idle={!conversation.active && !conversation.realtimeActive}
                   onChanged={workflowChanged}
                   onLocate={(itemId) => {
-                    const turn = conversation.turns.find((row) =>
-                      row.items.some((item) => item.id === itemId),
-                    );
+                    const turnId = displayedHistory.commandTurns.get(itemId);
                     setPanel('chat', false);
-                    if (turn) { setError(previous => previous === '后台进程的历史条目尚未加载，请重新读取完整会话。' ? '' : previous); setFocusTarget({ turnId: turn.id, itemId }); }
-                    else setError('后台进程的历史条目尚未加载，请重新读取完整会话。');
+                    if (turnId) {
+                      setError(previous => [terminalHistoryMissing, terminalHistoryAmbiguous].includes(previous) ? '' : previous);
+                      setFocusTarget({ turnId, itemId });
+                    } else {
+                      setFocusTarget(undefined);
+                      setError(turnId === null ? terminalHistoryAmbiguous : terminalHistoryMissing);
+                    }
                   }}
                 />
               </div>
@@ -1375,7 +1395,7 @@ export function Workspace({
                     active && network.connection === 'connected' && network.runtimeConnected
                   }
                   threadId={threadId}
-                  threadReady={workflowEnabled}
+                  threadReady={fullHistoryWorkflowEnabled}
                   threadIdle={!conversation.active && !conversation.realtimeActive}
                   onStarted={conversation.voiceStarted}
                   onClosed={conversation.voiceClosed}
@@ -1499,6 +1519,7 @@ export function Workspace({
                     project={project}
                     turns={conversation.turns}
                     timeline={conversation.timeline}
+                    view={displayedHistory}
                     loading={conversation.loading}
                     complete={conversation.complete}
                     truncated={conversation.truncated}
@@ -1523,8 +1544,8 @@ export function Workspace({
                 onOpen={() => setPanel('chat')}
                 prompts={visiblePrompts}
                 onAnswer={prompts.answer}
-                contextTurns={conversation.turns}
-                contextThreadId={threadId}
+                getContextItem={displayedHistory.getItem}
+                contextThreadId={conversation.loadedThreadId}
                 onRefresh={conversation.refresh}
               />
             )}
@@ -1566,6 +1587,7 @@ export function Workspace({
               busy={isBusy}
               active={conversation.active}
               canSteer={Boolean(conversation.activeTurn)}
+              historyComplete={conversation.complete}
               modes={modes.data?.data ?? []}
               modesLoading={modes.loading}
               disabled={
@@ -1696,7 +1718,7 @@ export function Workspace({
                   network.runtimeConnected &&
                   network.activityReady
                 }
-                threadReady={workflowEnabled}
+                threadReady={fullHistoryWorkflowEnabled}
                 threadIdle={!conversation.active}
                 globalIdle={network.configurationReady}
                 onChanged={workflowChanged}
@@ -1794,6 +1816,7 @@ export function Workspace({
                 runtimeEpoch={network.epoch}
                 connectionId={network.connectionId}
                 threadId={threadId}
+                historyComplete={conversation.complete}
                 threadReady={
                   active &&
                   network.connection === 'connected' &&
@@ -1842,7 +1865,7 @@ export function Workspace({
                 events={events}
                 epoch={resourceEpoch}
                 threadId={threadId}
-                enabled={workflowEnabled}
+                enabled={fullHistoryWorkflowEnabled}
                 idle={!conversation.active && !conversation.realtimeActive}
                 onChanged={workflowChanged}
                 onLocate={(turnId, itemId) => {
@@ -1878,6 +1901,7 @@ export function Workspace({
                 threadId={threadId}
                 epoch={resourceEpoch}
                 enabled={workflowEnabled}
+                historyComplete={conversation.complete}
                 queueManagementEnabled={active && network.connection === 'connected' && network.runtimeConnected && network.activityReady && !pending && !operations.error && directInputAllowed}
                 active={conversation.active}
                 events={events}
@@ -1892,7 +1916,7 @@ export function Workspace({
                 api={api}
                 threadId={threadId}
                 epoch={resourceEpoch}
-                turns={conversation.turns}
+                getItem={displayedHistory.getItem}
                 onClose={() => setModal('')}
                 onLocate={(turnId, itemId) => {
                   setPanel('chat', false);
@@ -1932,7 +1956,7 @@ export function Workspace({
                   network.runtimeConnected &&
                   network.activityReady
                 }
-                inlineEnabled={workflowEnabled && !conversation.active}
+                inlineEnabled={fullHistoryWorkflowEnabled && !conversation.active}
                 onClose={() => setModal('')}
                 onChanged={workflowChanged}
                 onOpenThread={workflowOpenThread}
@@ -1952,7 +1976,7 @@ export function Workspace({
                 draftMode={draftMode}
                 onChanged={workflowChanged}
                 onClose={() => setBranchAction(undefined)}
-                memoryDraft={branchMemory.current.get(
+                memoryDraft={branchAction.restoredText ?? branchMemory.current.get(
                   branchDraftKey(threadId, branchAction.turn.id, draftMode),
                 )}
                 onDraft={(text) => {

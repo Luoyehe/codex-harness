@@ -1,14 +1,14 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
-import { timelineRows, type RealtimeItem, type TimelineEntry } from '../lib/timeline';
+import { timelineView, type RealtimeItem, type TimelineEntry, type TimelineView } from '../lib/timeline';
 import { object, type Turn, type Project } from '../lib/types';
 import { MessageItem } from './MessageItem';
 import { TurnFooter } from './TurnFooter';
-import { textContent } from '../lib/history';
 import { PlainText } from './SafeMarkdown';
 export { Diff } from './SafeMarkdown';
 
 const WINDOW_ROWS = 150;
+const emptyTimeline: TimelineEntry[] = [];
 function VoiceItem({
   item,
   onLocate,
@@ -55,6 +55,7 @@ type Props = {
   project?: Project;
   turns: Turn[];
   timeline?: TimelineEntry[];
+  view?: TimelineView;
   loading: boolean;
   complete: boolean;
   truncated?: boolean;
@@ -71,7 +72,8 @@ export const Messages = memo(function Messages({
   threadId,
   project,
   turns,
-  timeline = [],
+  timeline = emptyTimeline,
+  view,
   loading,
   complete,
   truncated = false,
@@ -90,18 +92,14 @@ export const Messages = memo(function Messages({
   const [highlight, setHighlight] = useState<string | null>(null);
   const [locateError, setLocateError] = useState(''),
     [locating, setLocating] = useState<string | null>(null);
-  const rows = useMemo(() => timelineRows(turns, timeline), [turns, timeline]);
-  const reasoningFinished = useMemo(() => new Set(turns.filter(turn =>
-    turn.status === 'completed' || turn.items.some(item => item.type === 'agentMessage' &&
-      item.phase === 'final_answer' && textContent(item).trim().length > 0),
-  ).map(turn => turn.id)), [turns]);
+  const { rows, reasoningFinished, itemPositions } = useMemo(() => view ?? timelineView(turns, timeline), [view, turns, timeline]);
   const savedEnd = endKey === null ? -1 : rows.findIndex((row) => row.key === endKey);
   const end = savedEnd < 0 ? rows.length : savedEnd + 1,
     start = Math.max(0, end - WINDOW_ROWS);
   const locate = (turnId: string, itemId: string) => {
     const key = JSON.stringify([turnId, itemId]),
-      index = rows.findIndex((row) => row.key === key);
-    if (index < 0) {
+      index = itemPositions.get(key);
+    if (index === undefined) {
       setLocateError('引用的消息尚未加载。请完成历史读取后再次定位。');
       return;
     }
@@ -230,13 +228,14 @@ export const Messages = memo(function Messages({
                   正在工作
                 </div>
               )}
+              {turn.status === 'failed' && <p className="error">此回合失败</p>}
               {turn.error ? (
                 <p className="error">
                   {String(object(turn.error).message ?? JSON.stringify(turn.error))}
                 </p>
               ) : null}
               {turn.status === 'interrupted' && <p className="muted small">此回合已停止</p>}
-              <TurnFooter turn={turn} onAction={onAction} actionsDisabled={actionsDisabled} active={active} />
+              <TurnFooter turn={turn} onAction={row.timelineOnly ? undefined : onAction} actionsDisabled={actionsDisabled} active={active} />
             </section>
           );
         })}

@@ -228,6 +228,20 @@ it('cancel while microphone permission is unresolved stops the late stream befor
   expect(calls.some((call) => call.method === 'thread/realtime/start')).toBe(false);
   expect(Peer.all[0]!.close).toHaveBeenCalledTimes(1);
 });
+it('closes the local microphone without dispatch when history readiness changes during device setup', async () => {
+  let resolve!: (stream: MediaStream) => void;
+  microphone.mockImplementation(() => new Promise(done => { resolve = done; }));
+  const { props, calls } = setup();
+  const view = render(<RealtimePanel {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '启动一次语音' }));
+  await waitFor(() => expect(microphone).toHaveBeenCalled());
+  view.rerender(<RealtimePanel {...props} threadReady={false} />);
+  await act(async () => resolve(stream));
+  expect(track.stop).toHaveBeenCalledOnce();
+  expect(calls.some(call => call.method === 'thread/realtime/start')).toBe(false);
+  expect(screen.getByRole('button', { name: '启动一次语音' })).toHaveProperty('disabled', true);
+});
+
 it('unmount during accepted startup cleans local media immediately and stops a late native session exactly once', async () => {
   let resolve!: (value: unknown) => void;
   const { props, calls } = setup((call) =>

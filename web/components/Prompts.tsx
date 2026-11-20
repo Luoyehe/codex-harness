@@ -7,7 +7,6 @@ import {
   safeUrl,
   type Item,
   type PromptRecord,
-  type Turn,
 } from '../lib/types';
 import { schemaSupported, validateValue } from '../lib/prompt-validation';
 import { SchemaField } from './PromptFields';
@@ -184,7 +183,7 @@ function Prompt({
   const fileApproval = method === 'item/fileChange/requestApproval',
     changes = array<unknown>(previewItem?.changes).map(object);
   const filePreviewReady =
-    previewItem?.type === 'fileChange' &&
+    previewItem?.type === 'fileChange' && !previewItem.historySync &&
     changes.length > 0 &&
     changes.every(
       (c) =>
@@ -439,7 +438,7 @@ function Prompt({
 export function Prompts({
   prompts,
   onAnswer,
-  contextTurns = [],
+  getContextItem,
   contextThreadId,
   onRefresh,
   compact = false,
@@ -447,7 +446,7 @@ export function Prompts({
 }: {
   prompts: PromptRecord[];
   onAnswer: (id: string, response: unknown) => Promise<void>;
-  contextTurns?: Turn[];
+  getContextItem?: (turnId: string, itemId: string) => Item | undefined;
   contextThreadId?: string;
   onRefresh?: () => void;
   compact?: boolean;
@@ -480,10 +479,9 @@ export function Prompts({
             onAnswer={onAnswer}
             onRefresh={onRefresh}
             previewItem={
-              contextThreadId && contextThreadId === prompt.params.threadId
-                ? contextTurns
-                    .find((turn) => turn.id === prompt.params.turnId)
-                    ?.items.find((item) => item.id === prompt.params.itemId)
+              contextThreadId && contextThreadId === prompt.params.threadId &&
+              typeof prompt.params.turnId === 'string' && typeof prompt.params.itemId === 'string'
+                ? getContextItem?.(prompt.params.turnId, prompt.params.itemId)
                 : undefined
             }
           />

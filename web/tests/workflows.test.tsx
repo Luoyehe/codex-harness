@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { checkedTimeline, timelineView } from '../lib/timeline';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
@@ -45,6 +46,7 @@ const queued = (id: string, text: string) => ({
 });
 const taskProps = (api: Api) => ({
   api,
+  historyComplete: true,
   threadId: 't',
   epoch: 'one',
   enabled: true,
@@ -111,6 +113,7 @@ it('offers explicit steering and queue intent while a turn runs and keeps stop s
       disabled={false}
       active
       canSteer
+      historyComplete
       options={{}}
       onOptions={vi.fn()}
       models={[]}
@@ -129,6 +132,73 @@ it('offers explicit steering and queue intent while a turn runs and keeps stop s
   fireEvent.click(screen.getByRole('button', { name: '停止当前回合' }));
   expect(stop).toHaveBeenCalledOnce();
 });
+it('keeps ordinary send and stop available when the history window cannot support queue submission', async () => {
+  const send = vi.fn().mockResolvedValue(true), stop = vi.fn();
+  const props = {
+    api: {} as Api, contextKey: 'window', existingThread: true, value: 'draft',
+    onChange: vi.fn(), onSend: send, onStop: stop, busy: false, disabled: false,
+    options: {}, onOptions: vi.fn(), models: [], defaults: {}, defaultsLoading: false, notice: '',
+  };
+  const view = render(<Composer {...props} active={false} historyComplete={false} />);
+  fireEvent.click(screen.getByRole('button', { name: '对话设置' }));
+  expect(screen.getByRole('option', { name: /加入队列/ })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '发送消息' }));
+  await waitFor(() => expect(send).toHaveBeenCalledWith([], 'send'));
+  view.rerender(<Composer {...props} active historyComplete={false} />);
+  fireEvent.keyDown(screen.getByRole('textbox', { name: '给 Codex 的消息' }), { key: 'Enter' });
+  expect(screen.getByRole('button', { name: '加入队列' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '停止当前回合' }));
+  expect(stop).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(screen.getByDisplayValue('draft')).toBeTruthy();
+});
+
+it('preserves queue drafts, reordering and removal when full-history proof is lost', async () => {
+  const queuedItems = [queued('a', 'First'), queued('b', 'Second')];
+  const call = vi.fn(async (method: string) => method === 'thread/queue/handoff/list'
+    ? { data: [{ id: 'copy', queuedSubmissionId: 'a', state: 'ready', attachmentCount: 1 }] }
+    : { data: queuedItems, nextCursor: null });
+  const mutate = vi.fn().mockResolvedValue({});
+  const props = taskProps({ call, mutate } as unknown as Api);
+  const view = render(<TaskPanel {...props} />);
+  await screen.findByText('First');
+  fireEvent.click(screen.getAllByRole('button', { name: '编辑' })[0]!);
+  fireEvent.change(screen.getByRole('textbox', { name: '修改队列消息' }), { target: { value: 'retained edit' } });
+  view.rerender(<TaskPanel {...props} historyComplete={false} />);
+  expect(screen.getByDisplayValue('retained edit')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '保存修改' })).toHaveProperty('disabled', true);
+  fireEvent.submit(screen.getByRole('textbox', { name: '修改队列消息' }).closest('form')!);
+  expect(screen.getByRole('button', { name: '立即执行此条' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '查看待办副本' }));
+  expect(await screen.findByRole('button', { name: '按当前模型恢复待办' })).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: '移除副本' })).toHaveProperty('disabled', false);
+  expect(mutate).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '上移待办 2' }));
+  await waitFor(() => expect(mutate).toHaveBeenCalledWith('thread/queue/reorder', { threadId: 't', queuedSubmissionIds: ['b', 'a'] }));
+  await waitFor(() => expect(screen.getByRole('button', { name: '删除' })).toHaveProperty('disabled', false));
+});
+
+it.each(['active', 'paused'])('gates goal submissions with partial history and keeps %s goal controls distinct', async status => {
+  const call = vi.fn(async (method: string) => method === 'thread/goal/get'
+    ? { goal: { ...goal, status } } : { data: [], nextCursor: null });
+  const mutate = vi.fn().mockResolvedValue({});
+  render(<TaskPanel {...taskProps({ call, mutate } as unknown as Api)} historyComplete={false} />);
+  fireEvent.click(screen.getByRole('button', { name: '目标与预算' }));
+  await screen.findByText(goal.objective);
+  fireEvent.click(screen.getByRole('button', { name: '修改目标与预算' }));
+  fireEvent.change(screen.getByRole('textbox', { name: '目标' }), { target: { value: 'next objective' } });
+  expect(screen.getByRole('button', { name: '保存目标' })).toHaveProperty('disabled', true);
+  fireEvent.submit(screen.getByRole('textbox', { name: '目标' }).closest('form')!);
+  expect(screen.getByRole('button', { name: /清除目标/ })).toHaveProperty('disabled', false);
+  if (status === 'paused') {
+    expect(screen.getByRole('button', { name: /继续目标/ })).toHaveProperty('disabled', true);
+    expect(mutate).not.toHaveBeenCalled();
+  } else {
+    fireEvent.click(screen.getByRole('button', { name: '暂停目标' }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith('thread/goal/set', {threadId:'t', origin:'user', status:'paused'}));
+  }
+});
+
 it('edits queued text while preserving omitted attachment identities and sends a complete reorder', async () => {
   const entries = [
     {
@@ -867,6 +937,7 @@ it('submits an explicit review target and uses an independent review thread only
       threadId="t"
       projectId="project"
       enabled
+      inlineEnabled={false}
       onClose={vi.fn()}
       onChanged={vi.fn()}
       onOpenThread={open}
@@ -878,6 +949,8 @@ it('submits an explicit review target and uses an independent review thread only
   fireEvent.change(screen.getByRole('textbox', { name: '基准分支' }), {
     target: { value: 'release' },
   });
+  expect(screen.getByRole('button', { name: '开始审查' })).toHaveProperty('disabled', true);
+  expect(screen.getByText(/当前会话内审查需要空闲且已读取完整历史/)).toBeTruthy();
   fireEvent.click(screen.getByRole('checkbox', { name: '在项目的新会话中审查' }));
   fireEvent.click(screen.getByRole('button', { name: '开始审查' }));
   await waitFor(() =>
@@ -932,7 +1005,7 @@ it('locates a search hit in an isolated partial window without issuing continuat
       api={{ call } as unknown as Api}
       threadId="t"
       epoch="one"
-      turns={[]}
+      getItem={timelineView([], []).getItem}
       onClose={vi.fn()}
       onLocate={vi.fn()}
     />,
@@ -950,6 +1023,27 @@ it('locates a search hit in an isolated partial window without issuing continuat
   expect(call.mock.calls.some((args) => args[0] === 'thread/history')).toBe(false);
   expect(document.activeElement?.classList.contains('search-selected')).toBe(true);
 });
+it.each(['visible', 'reference', 'excerpt'])('locates the visible hit or retrieves its missing original (%s)', async source => {
+  const hit = { turnId: turn.id, itemId: 'target', snippet: 'Original match', snippetMatchRange: { start: 0, end: 8 }, turnCursor: 'nearby' };
+  const reference = source === 'reference';
+  const item = reference ? { id: 'target', type: 'agentMessage' } : { id: 'target', type: 'agentMessage', text: source === 'visible' ? 'Original match' : 'Beginning…end' };
+  const timeline = checkedTimeline([{ type: 'item', position: 1, turnId: turn.id, item, ...(reference ? { itemReference: true } : {}) }]);
+  const onLocate = vi.fn(), onClose = vi.fn();
+  const call = vi.fn(async (method: string) => method === 'thread/searchOccurrences'
+    ? { data: [hit], nextCursor: null } : { partial: true, complete: false, turns: [] });
+  render(<HistoryTools api={{ call } as unknown as Api} threadId="t" epoch="one"
+    getItem={timelineView([], timeline).getItem} onClose={onClose} onLocate={onLocate} />);
+  fireEvent.change(screen.getByRole('searchbox', { name: '搜索当前会话' }), { target: { value: 'Original' } });
+  fireEvent.click(await screen.findByRole('button', { name: /Original match/ }));
+  if (source !== 'visible') {
+    await screen.findByText('定位窗口未包含目标条目，请刷新搜索后重试。');
+    expect(onLocate).not.toHaveBeenCalled();
+  } else {
+    expect(onLocate).toHaveBeenCalledExactlyOnceWith(turn.id, 'target');
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(call).toHaveBeenCalledTimes(1);
+  }
+});
 it('does not export the rendered window when a complete server export fails', async () => {
   const call = vi.fn().mockRejectedValue(new Error('history too large')),
     create = vi.fn();
@@ -959,7 +1053,7 @@ it('does not export the rendered window when a complete server export fails', as
       api={{ call } as unknown as Api}
       threadId="t"
       epoch="one"
-      turns={[turn]}
+      getItem={timelineView([turn], []).getItem}
       onClose={vi.fn()}
       onLocate={vi.fn()}
     />,

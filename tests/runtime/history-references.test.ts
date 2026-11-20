@@ -6,7 +6,7 @@ import { readMediaHistory } from '../../src/runtime/media-history.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
 import type { Activity } from '../../src/runtime/thread-activity.js';
 import { boundedCombined, checkedPage } from '../../web/lib/history.js';
-import { compactTimelineEntries, mergeTimeline, timelineRows } from '../../web/lib/timeline.js';
+import { compactTimelineEntries, mergeTimeline, timelineRows, timelineView } from '../../web/lib/timeline.js';
 
 const owner = { clientId: 'owner', eventChannelId: 'tab' };
 const message = (id: string, text: string) => ({ id, type: 'agentMessage', text, phase: 'final_answer', memoryCitation: null });
@@ -113,10 +113,30 @@ test.each(['opaque', 'long answer'])('recovers the timeline-only %s behind the f
   const page = checkedPage(raw, new Set());
   expect(page).toMatchObject({ turns: [], truncated: true, complete: false, executionReady: false });
   expect(page.timeline.at(-1)?.type).toBe('turnCompleted');
-  const answer = timelineRows(page.turns, page.timeline).find(row => row.type === 'item' && row.item.id === 'answer');
+  const rows = timelineRows(page.turns, page.timeline);
+  const answer = rows.find(row => row.type === 'item' && row.item.id === 'answer');
+  expect(rows.filter(row => row.type === 'turn')).toEqual([
+    expect.objectContaining({ timelineOnly: true, turn: expect.objectContaining({
+      id: 't', status: 'completed', itemsView: 'summary', items: [expect.objectContaining({ id: 'answer' })],
+    }) }),
+  ]);
   if (kind === 'opaque') expect(answer).toMatchObject({ item: { text } });
   else {
     expect(answer).toMatchObject({ item: { text: expect.stringMatching(/^answer begins[\s\S]*最近历史窗口[\s\S]*answer ends$/) } });
     expect(JSON.stringify(answer).isWellFormed()).toBe(true);
   }
+});
+
+test('a bounded timeline presents a complete file-approval diff or omits the entire change', async () => {
+  const change = (id: string, diff: string) => ({ type: 'fileChange', id, status: 'inProgress',
+    changes: [{ path: '/project/file.txt', kind: { type: 'update', move_path: null }, diff }] });
+  const small = change('small', '-old\n+new');
+  const large = change('large', '+'.repeat(1_100_000));
+  const history = fixture([[]], [[small, large].map((item, position) => ({ type: 'item', turnId: 't', position, item }))]);
+  const raw = await history.read({ threadId: 'thread', intent: 'window', limit: 20, timelineFormat: 'references' }, owner);
+  const page = checkedPage(raw, new Set());
+  expect(page).toMatchObject({ truncated: true, turns: [] });
+  const view = timelineView(page.turns, page.timeline);
+  expect(view.getItem('t', 'small')).toEqual(small);
+  expect(view.getItem('t', 'large')).toBeUndefined();
 });

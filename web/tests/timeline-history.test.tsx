@@ -14,7 +14,7 @@ import { Events } from '../lib/events';
 import { useConversation } from '../hooks/useConversation';
 import { Messages } from '../components/Messages';
 import { checkedPage } from '../lib/history';
-import { mergeTimeline, timelineRows, type TimelineEntry } from '../lib/timeline';
+import { checkedTimeline, mergeTimeline, timelineRows, timelineView, type TimelineEntry } from '../lib/timeline';
 afterEach(cleanup);
 const page = (extra: Record<string, unknown> = {}) => ({
   turns: [],
@@ -289,4 +289,84 @@ it('handles confirmed component lifecycle callbacks without relying on notificat
   const reads = h.call.mock.calls.length;
   act(() => result.current.voiceClosed('thread'));
   expect(h.call.mock.calls).toHaveLength(reads);
+});
+
+
+function terminal(status: string, position = 4) {
+  return { type: 'turnCompleted', turnId: 't', position, status,
+    error: status === 'failed' ? { message: 'Explanation from the service' } : null,
+    startedAt: null, completedAt: null, durationMs: null };
+}
+const thought = { type: 'item', position: 1, turnId: 't', item: {
+  type: 'reasoning', id: 'thought', summary: ['Public thought'], content: [] } };
+const answer = { type: 'item', position: 2, turnId: 't', item: {
+  type: 'agentMessage', id: 'answer', phase: 'final_answer', text: 'Visible final' } };
+const missing = { type: 'item', position: 3, turnId: 't', itemReference: true,
+  item: { type: 'agentMessage', id: 'absent' } };
+const windowProps = { turns: [], truncated: true, loading: false, complete: false, onMore: vi.fn(), onAction: vi.fn() };
+
+it.each(['completed', 'failed', 'interrupted'])('renders the native %s outcome beside independently loaded public bodies', async status => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  const entries = checkedPage(page({ timeline: [thought, answer, missing, terminal(status)] }), new Set()).timeline;
+  const merged = mergeTimeline(entries.slice(1), entries);
+  const { container } = render(<Messages {...windowProps} timeline={merged} />);
+  const footer = screen.getByRole('region', { name: '回合 t' });
+  expect(screen.getByText('Visible final').compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(container.querySelector('details.reasoning-card')).toHaveProperty('open', false);
+  expect(screen.queryByRole('button', { name: '回合操作' })).toBeNull();
+  if (status === 'completed') {
+    expect(screen.getAllByText('已完成')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '复制可见回答' }));
+    await screen.findByText('已复制可见回答');
+    expect(writeText).toHaveBeenCalledExactlyOnceWith('Visible final');
+  } else {
+    expect(screen.queryByText('已完成')).toBeNull();
+    expect(screen.queryByRole('button', { name: /复制.*回答/ })).toBeNull();
+    expect(screen.getByText(status === 'failed' ? 'Explanation from the service' : '此回合已停止')).toBeTruthy();
+    if (status === 'failed') expect(screen.getByText('此回合失败')).toBeTruthy();
+  }
+});
+
+it('requires a native terminal outcome and a visible final body before offering a summary copy', () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  const start = { type: 'turnStarted', turnId: 't', startedAt: null, position: 5 };
+  const view = render(<Messages {...windowProps} timeline={checkedTimeline([thought, start])} />);
+  expect(view.container.querySelector('details.reasoning-card')).toHaveProperty('open', true);
+  for (const entries of [[answer], [answer, terminal('inProgress')], [answer, terminal('completed'), start]]) {
+    view.rerender(<Messages {...windowProps} timeline={checkedTimeline(entries)} />);
+    expect(screen.queryByRole('region', { name: '回合 t' })).toBeNull();
+  }
+  const unphased = { ...answer, item: { ...answer.item, phase: null } };
+  for (const entries of [[missing, terminal('completed')], [unphased, terminal('completed')]]) {
+    view.rerender(<Messages {...windowProps} timeline={checkedTimeline(entries)} />);
+    expect(screen.getByText('当前窗口未包含可复制的最终回答。')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /复制.*回答/ })).toBeNull();
+  }
+  const timeline = checkedTimeline([answer, terminal('completed')]);
+  view.rerender(<Messages {...windowProps} timeline={timeline} turns={[{ id: 't', items: [answer.item], status: 'inProgress' }]} />);
+  expect(screen.queryByText('已完成')).toBeNull();
+  expect(screen.getByText('正在工作')).toBeTruthy();
+  view.rerender(<Messages {...windowProps} timeline={timeline} turns={[{ id: 't', items: [answer.item], status: 'completed' }]} />);
+  expect(screen.getAllByRole('region', { name: '回合 t' })).toHaveLength(1);
+  expect(screen.getByRole('button', { name: '复制最终回答' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: '回合操作' })).toBeTruthy();
+});
+
+it('resolves visible bodies within their own turn and excludes unresolved references', () => {
+  const second = { ...answer, turnId: 'another' };
+  const view = timelineView([], checkedTimeline([thought, answer, missing, second]));
+
+  expect(view.getItem('t', 'answer')).toEqual(answer.item);
+  expect(view.getItem('another', 'answer')).toEqual(second.item);
+  expect(view.getItem('another', 'thought')).toBeUndefined();
+  expect(view.getItem('t', 'absent')).toBeUndefined();
+});
+
+it('retains an original item across overlapping pages even when one supplies just a reference', () => {
+  const entry = checkedTimeline([answer]);
+  const reference = checkedTimeline([{ ...answer, itemReference: true, item: { id: answer.item.id, type: answer.item.type } }]);
+  for (const merged of [mergeTimeline(entry, reference), mergeTimeline(reference, entry)])
+    expect(timelineView([], merged).getItem('t', 'answer')).toEqual(answer.item);
 });

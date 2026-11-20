@@ -123,7 +123,7 @@ it('keeps text and attachments intact after selecting an unsupported model, with
 });
 it('allows supported queued audio but blocks steering until a current-turn model can be proved', () => {
   const p = props();
-  render(<Composer {...p} existingThread active canSteer options={{ model: 'text' }} />);
+  render(<Composer {...p} existingThread active canSteer historyComplete options={{ model: 'text' }} />);
   expect((screen.getByRole('button', { name: '加入队列' }) as HTMLButtonElement).disabled).toBe(
     false,
   );

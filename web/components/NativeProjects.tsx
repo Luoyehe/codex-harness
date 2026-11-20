@@ -87,7 +87,7 @@ export function NativeProjects({
     });
   };
   const save = async () => {
-    if (!draft) return;
+    if (!draft || (draft.importCurrent && (!threadId || !threadEnabled || !idle))) return;
     setError('');
     try {
       if (draft.replaceRoots && !draft.projectIds.length)
@@ -312,7 +312,7 @@ export function NativeProjects({
                 <input
                   type="checkbox"
                   checked={draft.importCurrent}
-                  disabled={!threadId || !threadEnabled || !idle}
+                  disabled={!draft.importCurrent && (!threadId || !threadEnabled || !idle)}
                   onChange={(event) => setDraft({ ...draft, importCurrent: event.target.checked })}
                 />
                 将当前已加载会话导入此项目（需要全局空闲与已读完整历史）

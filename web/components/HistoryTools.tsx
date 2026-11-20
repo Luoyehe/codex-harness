@@ -6,7 +6,7 @@ import { usePaged } from '../hooks/usePaged';
 import { useWorkflow } from '../hooks/useWorkflow';
 import { textContent } from '../lib/history';
 import { checkedExport, type ReviewTarget, type ThreadSearchOccurrence } from '../lib/workflows';
-import { array, message, object, type Turn } from '../lib/types';
+import { array, message, object, type Item, type Turn } from '../lib/types';
 import { Dialog } from './Dialog';
 import { Messages } from './Messages';
 import {
@@ -418,6 +418,7 @@ export function ReviewDialog({
             在项目的新会话中审查
           </label>
         </fieldset>
+        {!separate && !inlineEnabled && <p className="connection-banner">当前会话内审查需要空闲且已读取完整历史。也可勾选在项目的新会话中审查。</p>}
         <p className="small muted">提交会启动模型审查。操作受理后仍需等待实际审查结果。</p>
         {action.error && (
           <p className="error" role="alert">
@@ -439,18 +440,25 @@ export function ReviewDialog({
     </Dialog>
   );
 }
+function containsSearchHit(item: Item | undefined, hit: ThreadSearchOccurrence) {
+  if (!item) return false;
+  if (item.type !== 'userMessage' && item.type !== 'agentMessage') return true;
+  const match = hit.snippet.slice(hit.snippetMatchRange.start, hit.snippetMatchRange.end);
+  return !item.historySync && Boolean(match) && textContent(item).includes(match);
+}
+
 export function HistoryTools({
   api,
   threadId,
   epoch,
-  turns,
+  getItem,
   onClose,
   onLocate,
 }: {
   api: Api;
   threadId: string;
   epoch: string;
-  turns: Turn[];
+  getItem: (turnId: string, itemId: string) => Item | undefined;
   onClose: () => void;
   onLocate: (turnId: string, itemId: string) => void;
 }) {
@@ -489,11 +497,7 @@ export function HistoryTools({
     Boolean(search),
   );
   const locate = async (hit: ThreadSearchOccurrence) => {
-    if (
-      turns.some(
-        (turn) => turn.id === hit.turnId && turn.items.some((item) => item.id === hit.itemId),
-      )
-    ) {
+    if (containsSearchHit(getItem(hit.turnId, hit.itemId), hit)) {
       onLocate(hit.turnId, hit.itemId);
       onClose();
       return;
@@ -513,7 +517,7 @@ export function HistoryTools({
         value.partial !== true ||
         value.complete !== false ||
         !view.some(
-          (turn) => turn.id === hit.turnId && turn.items.some((item) => item.id === hit.itemId),
+          (turn) => turn.id === hit.turnId && containsSearchHit(turn.items.find(item => item.id === hit.itemId), hit),
         )
       )
         throw new Error('定位窗口未包含目标条目，请刷新搜索后重试。');

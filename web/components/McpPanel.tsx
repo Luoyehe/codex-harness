@@ -79,6 +79,7 @@ function McpPanelContent({
   connected,
   threadId,
   threadReady,
+  historyComplete,
   threadIdle,
   configurationReady,
   catalogRevision,
@@ -99,6 +100,7 @@ function McpPanelContent({
   connected: boolean;
   threadId: string;
   threadReady: boolean;
+  historyComplete: boolean;
   threadIdle: boolean;
   configurationReady: boolean;
 }) {
@@ -165,7 +167,7 @@ function McpPanelContent({
   const allowed =
     visible &&
     connected &&
-    threadReady &&
+    threadReady && historyComplete &&
     Boolean(threadId) &&
     !pending &&
     !busy &&
@@ -427,6 +429,7 @@ function McpPanelContent({
             ? `当前已加载会话：${threadId}`
             : '当前没有可执行的已加载会话。可查看服务；请返回会话明确加载并完成历史读取后调用工具。'}
         </p>
+        {threadReady && threadId && !historyComplete && <p className="connection-banner">手动调用工具或新建事件订阅需要完整会话历史。仍可查看服务、读取资源和结束已有订阅。</p>}
         <ReadState {...servers} />
         {(error || flow.error || operations.error) && (
           <p className="error" role="alert">

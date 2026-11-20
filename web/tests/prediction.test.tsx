@@ -46,6 +46,7 @@ function setup(handler: (call: Call) => unknown = () => undefined) {
     threadId: 'thread',
     sourceTurnId: 'turn',
     connected: true,
+    historyComplete: true,
     enabled: true,
     draftEmpty: true,
     onInsert: insert,
@@ -77,6 +78,38 @@ it('generates only on an explicit action and inserts only after a fresh read wit
   expect(
     (screen.getByRole('button', { name: '生成下一步建议' }) as HTMLButtonElement).disabled,
   ).toBe(true);
+});
+it.each(['turn', ''])('requires complete history even when a partial window provides source %j', async sourceTurnId => {
+  const s = setup();
+  s.view.rerender(<PredictionPanel {...s.props} sourceTurnId={sourceTurnId} historyComplete={false} />);
+  expect(screen.getByText(/需要先完整读取当前会话历史/)).toBeTruthy();
+  expect(screen.queryByText(/需要最新回合已完成/)).toBeNull();
+  expect(screen.getByRole('button', { name: '生成下一步建议' })).toHaveProperty('disabled', true);
+  generate();
+  expect(s.calls).toHaveLength(0);
+  s.view.rerender(<PredictionPanel {...s.props} />);
+  generate();
+  await screen.findByText('Suggested next step');
+  expect(s.calls.filter(c => c.method === 'thread/prediction/request')).toHaveLength(1);
+});
+it('keeps an accepted suggestion readable but does not insert after history becomes partial during readback', async () => {
+  let reads = 0, finish!: (value: unknown) => void;
+  const s = setup(call => call.method === 'thread/prediction/read' && ++reads === 2
+    ? new Promise(resolve => { finish = resolve; }) : undefined);
+  generate();
+  await screen.findByText('Suggested next step');
+  fireEvent.click(screen.getByRole('button', { name: '放入空白编辑框' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  s.view.rerender(<PredictionPanel {...s.props} sourceTurnId="" historyComplete={false} />);
+  await act(async () => finish(completed));
+  expect(s.insert).not.toHaveBeenCalled();
+  expect(screen.getByRole('status').textContent).toContain('建议未写入编辑框');
+  expect(screen.getByText('Suggested next step')).toBeTruthy();
+  expect(screen.queryByText(/此建议已过期/)).toBeNull();
+  expect(screen.getByRole('button', { name: '放入空白编辑框' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '读取原建议状态' }));
+  await waitFor(() => expect(reads).toBe(3));
+  expect(s.calls.filter(c => c.method === 'thread/prediction/request')).toHaveLength(1);
 });
 it('queries the original request after a lost response without regenerating', async () => {
   let id = '';

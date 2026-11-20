@@ -150,6 +150,26 @@ it('disables import of current thread without global idle and full history readi
     (screen.getByRole('checkbox', { name: /将当前已加载会话导入/ }) as HTMLInputElement).disabled,
   ).toBe(true);
 });
+it('keeps an import draft after full history is lost and allows creating the project without importing', async () => {
+  const { api, calls } = setup();
+  const props = projectProps(api);
+  const view = render(<NativeProjects {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '新建项目归类' }));
+  const name = screen.getByRole('textbox', { name: '项目名称' });
+  fireEvent.change(name, {target: {value: 'Saved project draft'}});
+  fireEvent.click(screen.getByRole('checkbox', { name: /Work directory/ }));
+  const check = screen.getByRole('checkbox', { name: /将当前已加载会话导入/ });
+  fireEvent.click(check);
+  view.rerender(<NativeProjects {...props} threadEnabled={false} />);
+  expect(screen.getByRole('button', { name: '创建项目并导入当前会话' })).toHaveProperty('disabled', true);
+  fireEvent.submit(name.closest('form')!);
+  expect(calls.some(call => call.method === 'nativeProject/import')).toBe(false);
+  fireEvent.click(check);
+  expect(check).toHaveProperty('disabled', true);
+  expect(name).toHaveProperty('value', 'Saved project draft');
+  fireEvent.click(await enabledButton({name:'创建项目归类'}));
+  await waitFor(() => expect(calls.some(call => call.method === 'nativeProject/create')).toBe(true));
+});
 it('requires explicit project and section deletion intents and sends only native identity', async () => {
   const { api, calls } = setup();
   const view = render(<NativeProjects {...projectProps(api)} />);
@@ -332,6 +352,7 @@ it('permits deleting an idle conversation with explicit confirmation without req
     props = threadProps(api);
   render(<ThreadOrganization {...props} ready={false} />);
   await screen.findByRole('button', { name: '停止订阅此会话' });
+  expect(screen.getByRole('button', { name: '启用此会话记忆' })).toHaveProperty('disabled', true);
   fireEvent.click(screen.getByRole('button', { name: '停止订阅此会话' }));
   await waitFor(() =>
     expect(calls.some((call) => call.method === 'thread/unsubscribe')).toBe(true),

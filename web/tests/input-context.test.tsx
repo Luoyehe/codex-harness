@@ -223,6 +223,7 @@ it('allows reference-only messages but blocks wrong-project references and schem
       models: [],
       defaults: undefined,
       defaultsLoading: false,
+      historyComplete: true,
       notice: '',
       contextKey: 'thread',
       projectId: 'p',
@@ -327,6 +328,7 @@ it('edits reference-only queued messages without sending clear-reference fields'
   );
   render(
     <TaskPanel
+      historyComplete
       api={api}
       threadId="thread"
       epoch="one"

@@ -374,7 +374,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
         media.current = active;
         transport = { type: 'webrtc', sdp: await active.offer() };
       }
-      if (!current() || !wanted.current) {
+      if (!current() || !wanted.current || !latest.current.threadReady || !latest.current.threadIdle) {
         release();
         return;
       }
@@ -531,6 +531,7 @@ function OwnedRealtimePanel(props: RealtimePanelProps) {
       <p className="small muted">
         启动后语音服务可使用当前会话上下文和已授权工具。语音期间暂停普通输入；结束并完整重读历史后恢复。关闭页面或切换会话会关闭麦克风并请求结束，不会自动重连。
       </p>
+      {!active && !threadReady && <p className="connection-banner">启动实时会话需要已加载会话并读完完整历史。</p>}
       <audio ref={audio} autoPlay controls={playbackAvailable} hidden={!playbackAvailable} aria-label="语音播放" />
       {!active && (
         <>

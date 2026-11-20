@@ -1,5 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { array, object, type Item, type Turn } from '../lib/types';
+import type { Turn } from '../lib/types';
+import { publicAnswerText } from '../lib/timeline';
 import { Icon } from './Icon';
 
 /** Only public assistant answers qualify. Never copy a mixed synchronization buffer. */
@@ -8,11 +9,9 @@ function finalAnswer(turn: Turn): string {
   const messages = turn.items.filter(item => item.type === 'agentMessage');
   const finals = messages.filter(item => item.phase === 'final_answer');
   const last = messages.at(-1);
-  const candidates = finals.length ? finals : last && last.phase == null ? [last] : [];
+  const candidates = finals.length ? finals : turn.itemsView !== 'summary' && last && last.phase == null ? [last] : [];
   if (candidates.some(item => item.historySync)) return '';
-  const text = (item: Item) => typeof item.text === 'string' ? item.text : array<unknown>(item.content)
-    .map(object).filter(part => part.type === 'text' && typeof part.text === 'string').map(part => part.text).join('\n');
-  return candidates.map(text).filter(value => value.trim()).join('\n\n');
+  return candidates.map(publicAnswerText).filter(value => value.trim()).join('\n\n');
 }
 
 export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisabled = false, active = false }: {
@@ -75,6 +74,7 @@ export const TurnFooter = memo(function TurnFooter({ turn, onAction, actionsDisa
     }
   }}>
     {completed && <span className="turn-completed"><Icon name="check" size={15} />已完成</span>}
+    {completed && partial && !answer && <span className="muted small">当前窗口未包含可复制的最终回答。</span>}
     {answer && <button className="button subtle small turn-copy" aria-label={copyLabel} title={copyLabel}
       disabled={copying} onClick={() => void copy()}><Icon name="copy" size={15} /><span>{copying ? '复制中…' : '复制'}</span></button>}
     {onAction && turn.status !== 'inProgress' && <button className="icon-button turn-actions" ref={menuButton}

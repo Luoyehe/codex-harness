@@ -114,7 +114,7 @@ it('renders generated media inside a read-only search window with the same ident
     return (method === 'thread/searchOccurrences' ? { data: [hit], nextCursor: null }
       : { partial: true, complete: false, turns: [{ id: identity.turnId, status: 'completed', items: [item()] }] }) as unknown as ReturnType<typeof f.chunk>;
   });
-  render(<HistoryTools api={f.api} threadId={identity.threadId} epoch="fixture" turns={[]} onClose={vi.fn()} onLocate={vi.fn()} />);
+  render(<HistoryTools api={f.api} threadId={identity.threadId} epoch="fixture" getItem={() => undefined} onClose={vi.fn()} onLocate={vi.fn()} />);
   fireEvent.change(screen.getByRole('searchbox', { name: '搜索当前会话' }), { target: { value: 'generated' } });
   fireEvent.click(await screen.findByRole('button', { name: /generated/ }));
   fireEvent.click(await screen.findByRole('button', { name: '预览图片' }));
