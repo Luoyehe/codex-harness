@@ -7977,6 +7977,75 @@
         "path": "verification/audit-evidence/v250-round2/builtin-mcp.json",
         "sha256": "c8a60546f76541cb7ff004392bca6d0d6c80391afcad840a2d2de92c2beb7914"
       }
+    },
+    {
+      "id": "v250-round3",
+      "sequence": 84,
+      "digest": "ad38eefdcc11e66ae087e05fec30a8009460176ed76bf3f4c2209b3b8d74640b",
+      "complete": true,
+      "startedAt": "2026-11-20T07:36:29Z",
+      "completedAt": "2026-11-20T07:43:05.013Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R3-01",
+          "priority": "P2",
+          "title": "Timeline-only history displays the answer while hiding its terminal outcome and treating visible items as unloaded",
+          "where": [
+            "src/runtime/history.ts:99",
+            "web/lib/timeline.ts:164",
+            "web/components/Messages.tsx:93",
+            "web/components/Messages.tsx:233",
+            "web/components/HistoryTools.tsx:493",
+            "web/Workspace.tsx:1354"
+          ],
+          "details": "A single turn larger than the 8 MiB aggregate budget is intentionally served with turns=[] and native timeline bodies plus a validated turnCompleted marker. timelineRows drops the marker if there is no corresponding full turn. The user consequently loses the completion label and copy affordance, a native failure message, or the stopped label. Messages also leaves public reasoning summaries expanded after a visible final. Search checks only turns when deciding whether an already visible hit can be located locally, unnecessarily requesting another turn window. The background-process locate handler similarly searches only turns and reports a retained command item as unloaded. The last two behaviors follow from direct source inspection, with the empty turns and present item measured at the shared interface.",
+          "reproduction": "In an isolated offline reader, pass ten 880,000-character assistant commentary items plus a visible final and a real-shaped completed, failed or interrupted marker through the frozen compiled readMediaHistory, GeneratedMedia, UnifiedHistory, and the web checkedPage and Messages renderer. The original fixture occupies 8,801,012 bytes. All three responses retain the terminal marker and reply, have zero turn rows and render none of the appropriate terminal UI. Identical small controls show the correct UI. A second six-case fixture includes a public reasoning summary and all nullable agent-message fields, and confirms it stays expanded only in the window case.",
+          "recommendation": "Use the canonical visible timeline and its verified terminal data wherever visible turn/outcome or navigation information is needed. Prefer full authoritative turn metadata when present. Expose partial-copy wording for retained public text, respect operation and edit limits, preserve failed/interrupted truth, and keep unpositioned or genuinely unloaded targets on the existing recovery path. Test all three terminal states and actual search/process navigation with timeline-only rows.",
+          "evidence": [
+            {
+              "path": ".work/v250/round3/terminal-render.mjs",
+              "sha256": "431a926366b790f8b2e5e794893574120e403d1a85676e17dc2c865580531f3f"
+            },
+            {
+              "path": ".work/v250/round3/terminal-render.json",
+              "sha256": "2c332b8bc719a32aea9abe8359b8400745a6096a083fe9e072660c35d2cea321"
+            },
+            {
+              "path": ".work/v250/round3/summary-render.mjs",
+              "sha256": "e8f93819d8890f89065ffcb4cd89e53e82abffd4ce15348e9229a426ae77c9cf"
+            },
+            {
+              "path": ".work/v250/round3/summary-render.json",
+              "sha256": "13bec92a5674d6fb5e79aa91de49910f6e59ef7c2a2e65793c2b790124670531"
+            }
+          ],
+          "effect": "UI fidelity and locating visible work are affected on large conversations. The backend retains the original history and the native outcome. The reader-state permission was not exercised as a mutation."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "stable-audit-c",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round3/independent.json",
+          "sha256": "545f8dcf58e53fa529cae5ca23dbf2ed2ec6b62d71c1685338e7486cb65014ab"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round3/builtin-mcp.json",
+        "sha256": "d7060c2f26bfb85c0d81ddff71ab84e8617173050c4c61ad9fc269666b3631cd"
+      }
     }
   ],
   "fullTests": {
