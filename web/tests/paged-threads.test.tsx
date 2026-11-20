@@ -61,3 +61,23 @@ it('keeps all previously confirmed pages on failed refresh and retries the same 
   await waitFor(() => expect(v.result.current.items.map(row => row.round)).toEqual([2,2,2]));
   expect(visits).toEqual(['0/0','0/1','0/2','1/0','1/1','2/0','2/1','2/2']);
 });
+
+it.each([
+  { sortKey: undefined, sortDirection: undefined, expected: ['later-created', 'native-one', 'native-two', 'earlier-created', 'unknown'] },
+  { sortKey: 'updated_at', sortDirection: 'asc', expected: ['later-created', 'native-one', 'native-two', 'earlier-created', 'unknown'] },
+  { sortKey: 'recency_at', sortDirection: 'desc', expected: ['earlier-created', 'native-one', 'native-two', 'later-created', 'unknown'] },
+  { sortKey: 'section_position', sortDirection: 'asc', expected: ['earlier-created', 'later-created', 'unknown', 'native-one', 'native-two'] },
+])('merges $sortKey/$sortDirection without disturbing native order within one second', async ({ sortKey, sortDirection, expected }) => {
+  const second = 1_790_000_000;
+  const native = { createdAt: second, updatedAt: second, recencyAt: null };
+  const api = { call: vi.fn().mockResolvedValue({
+    data: [{ ...native, id: 'native-one' }, { ...native, id: 'native-two' }],
+    liveData: [
+      { id: 'earlier-created', createdAt: (second - 5) * 1000, updatedAt: (second + 3) * 1000, recencyAt: null },
+      { id: 'later-created', createdAt: second + 5, updatedAt: second - 1, recencyAt: second - 4 },
+      { id: 'unknown' },
+    ], nextCursor: null,
+  }) } as unknown as Api;
+  const view = renderHook(() => usePaged<{ id: string }>(api, 'thread/list', { sortKey, sortDirection }, 'project'));
+  await waitFor(() => expect(view.result.current.items.map(row => row.id)).toEqual(expected));
+});

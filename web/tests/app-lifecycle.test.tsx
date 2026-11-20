@@ -6,6 +6,7 @@ import { enabledButton } from './enabled-button';
 import { Api, RpcError } from '../lib/api';
 import * as operationStorage from '../lib/operations';
 import { App } from '../App';
+import { LiveThreadList } from '../../src/runtime/live-thread-list';
 import { createOperation, listOperations, updateOperation } from '../lib/operations';
 import { emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 const terminalLifecycle = vi.hoisted(() => ({ opens: 0, disposals: 0 }));
@@ -824,13 +825,38 @@ it('updates the sidebar when a newly created thread becomes indexed and is later
   await waitFor(() => expect(list().queryByRole('button', { name: 'Renamed elsewhere' })).toBeNull());
   expect(f.count('turn/start')).toBe(0);
 });
+it('orders unindexed and indexed project activity across pages and live refreshes in the sidebar', async () => {
+  const cache = new LiveThreadList();
+  const row = (id: string, recencyAt: number) => ({ id, name: id, cwd: '/p', recencyAt });
+  cache.capture(row('older-unindexed', 10), '/p');
+  const f = await fixture(false, false, undefined, true, ({ method, params }) => {
+    if (method !== 'thread/list') return;
+    const cursor = params.cursor as string | undefined;
+    return cache.page({ cwd: '/p', sortKey: String(params.sortKey), sortDirection: String(params.sortDirection),
+      ...(cursor ? { cursor } : {}) }, cursor
+      ? { data: [row('middle-indexed', 8), { ...row('older-unindexed', 5), name: 'now-indexed' }], nextCursor: null }
+      : { data: [row('newer-indexed', 20)], nextCursor: 'native-continuation' });
+  });
+  const titles = () => [...screen.getByRole('navigation', { name: 'Project的会话' })
+    .querySelectorAll('.thread-link > span')].map(el => el.textContent);
+  await waitFor(() => expect(titles()).toEqual(['newer-indexed', 'older-unindexed']));
+  fireEvent.click(screen.getByRole('button', { name: '加载更多' }));
+  await waitFor(() => expect(titles()).toEqual(['newer-indexed', 'middle-indexed', 'now-indexed']));
+  expect(f.calls.filter(call => call.method === 'thread/list').at(-1)?.params.cursor).toBe('native-continuation');
+  cache.capture(row('latest-live', 30), '/p');
+  await act(async () => f.sockets.at(-1)!.onmessage({ data: JSON.stringify({
+    type: 'notification', data: { method: 'thread/started', params: { threadId: 'latest-live' } },
+  }) }));
+  await waitFor(() => expect(titles()).toEqual(['latest-live', 'newer-indexed', 'middle-indexed', 'now-indexed']));
+});
 it('sends the visible native search order on every page and restores grouped browsing when search clears', async () => {
   const row = (id: string) => ({ id, name: id, cwd: '/p' });
   const f = await fixture(false, false, undefined, true, ({ method, params }) => {
     if (method === 'thread/list') return { data: [row(params.sortKey === 'section_position' ? 'By group' : 'By activity')], nextCursor: null };
     if (method !== 'thread/search') return;
     const order = String(params.sortKey);
-    return { data: [{ thread: row(order + (params.cursor ? ' page two' : ' page one')), snippet: 'match' }],
+    const first = { thread: row(order + ' page one'), snippet: params.cursor ? 'refreshed match' : 'first match' };
+    return { data: params.cursor ? [first, { thread: row(order + ' page two'), snippet: 'next match' }] : [first],
       nextCursor: params.cursor ? null : order + '-cursor' };
   });
   const select = () => screen.getByRole('combobox', { name: '会话排序' }) as HTMLSelectElement;
@@ -847,6 +873,9 @@ it('sends the visible native search order on every page and restores grouped bro
   expect(screen.queryByText('recency_at page one')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '加载更多' }));
   await screen.findByText('created_at page two');
+  expect(screen.getAllByText('created_at page one')).toHaveLength(1);
+  expect(screen.getByText('refreshed match')).toBeTruthy();
+  expect(screen.queryByText('first match')).toBeNull();
   expect(f.calls.filter(call => call.method === 'thread/search').at(-1)?.params).toMatchObject({
     sortKey: 'created_at', sortDirection: 'desc', cursor: 'created_at-cursor', searchTerm: 'needle', projectId: 'p',
   });

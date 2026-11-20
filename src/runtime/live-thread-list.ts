@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { threadListTime } from '../shared/thread-list-time.js';
 import { DeliveryError, jsonBytes, object, string, type JsonObject, type JsonValue } from './types.js';
 
 const text = (value: JsonValue | undefined, maximum: number): string => typeof value === 'string' ? Array.from(value).slice(0, maximum).join('') : '';
@@ -20,13 +21,13 @@ export class LiveThreadList {
     const source = typeof thread.source === 'string' ? thread.source : 'appServer';
     if (!['cli', 'vscode', 'appServer', 'exec'].includes(source)) return;
     if (!this.rows.has(id) && this.rows.size >= this.maximum) throw new DeliveryError('thread_list_capacity', 'New thread listing capacity exceeded');
-    const now = Math.floor(Date.now() / 1000);
+    const createdAt = typeof thread.createdAt === 'number' ? thread.createdAt : Math.floor(Date.now() / 1000);
+    const updatedAt = typeof thread.updatedAt === 'number' ? thread.updatedAt : createdAt;
     const row: JsonObject = {
       id, cwd: string(thread.cwd ?? cwd, 'created thread cwd'), source,
       modelProvider: text(thread.modelProvider, 256), preview: text(thread.preview, 256), name: typeof thread.name === 'string' ? text(thread.name, 128) : null,
-      createdAt: typeof thread.createdAt === 'number' ? thread.createdAt : now,
-      updatedAt: typeof thread.updatedAt === 'number' ? thread.updatedAt : now,
-      recencyAt: typeof thread.recencyAt === 'number' ? thread.recencyAt : now,
+      createdAt, updatedAt,
+      recencyAt: typeof thread.recencyAt === 'number' ? thread.recencyAt : updatedAt,
       status: { type: typeof thread.status === 'object' && thread.status !== null && !Array.isArray(thread.status) ? text(thread.status.type, 32) : 'idle' },
       parentThreadId: null, ephemeral: false,
     };
@@ -52,8 +53,10 @@ export class LiveThreadList {
     const cwd = typeof params.cwd === 'string' ? params.cwd : undefined;
     const search = typeof params.searchTerm === 'string' ? params.searchTerm.toLowerCase() : '';
     const rows = [...this.rows.values()].filter(row => (!cwd || samePath(String(row.cwd), cwd)) && (!search || String(row.name || row.preview).toLowerCase().includes(search)));
-    const sort = params.sortKey === 'created_at' ? 'createdAt' : params.sortKey === 'updated_at' ? 'updatedAt' : 'recencyAt';
-    rows.sort((a, b) => (Number(a[sort]) - Number(b[sort]) || String(a.id).localeCompare(String(b.id))) * (params.sortDirection === 'asc' ? 1 : -1));
+    // Unindexed summaries have no native section position yet.
+    const key = params.sortKey === 'section_position' ? 'recency_at' : params.sortKey;
+    rows.sort((a, b) => (threadListTime(a, key)! - threadListTime(b, key)! ||
+      String(a.id).localeCompare(String(b.id))) * (params.sortDirection === 'asc' ? 1 : -1));
     // A separate field keeps the native limit and cursor authoritative. The
     // full cache remains retained even when this bounded view is truncated.
     return { ...persisted, liveData: rows.slice(0, 100), liveDataTruncated: rows.length > 100 };

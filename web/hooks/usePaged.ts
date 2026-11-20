@@ -1,6 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Api } from '../lib/api';
 import { message, object } from '../lib/types';
+import { threadListTime } from '../../src/shared/thread-list-time';
+
+function uniqueRows<T>(method: string, items: T[]): T[] {
+  const rows = new Map<string, T>();
+  for (const item of items) {
+    const row = object(item);
+    const threadId = method === 'thread/search' ? object(row.thread).id : row.id;
+    const id = String(threadId ?? row.processId ?? row.name ?? JSON.stringify(item));
+    rows.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', id]) : id, item);
+  }
+  return [...rows.values()];
+}
+
+type Catalog<T> = { indexed: T[]; live: T[] };
+
+function visibleRows<T>({ indexed, live }: Catalog<T>, sortKey: unknown, direction: unknown): T[] {
+  if (!live.length) return indexed;
+  const time = (row: T) => threadListTime(object(row), sortKey);
+  // Legacy entries without any time retain their original display order.
+  if (sortKey !== 'section_position' &&
+      !live.some(row => time(row) !== undefined) && !indexed.some(row => time(row) !== undefined))
+    return uniqueRows('thread/list', [...live, ...indexed]);
+  const indexedIds = new Set(indexed.map(row => object(row).id));
+  const pending = live.filter(row => !indexedIds.has(object(row).id));
+  if (!pending.length) return indexed;
+  if (sortKey === 'section_position') return [...pending, ...indexed];
+
+  const rank = (row: T) => {
+    const value = time(row);
+    return value === undefined ? Infinity : direction === 'asc' ? value : -value;
+  };
+  pending.sort((a, b) => rank(a) - rank(b));
+  // Native ordering has sub-second precision which the response does not expose.
+  // Insert pending rows between native rows without reordering the native pages.
+  const rows: T[] = [];
+  let i = 0;
+  for (const row of indexed) {
+    while (i < pending.length && rank(pending[i]!) <= rank(row)) rows.push(pending[i++]!);
+    rows.push(row);
+  }
+  return rows.concat(pending.slice(i));
+}
+
 export function usePaged<T>(
   api: Api,
   method: string,
@@ -8,7 +51,7 @@ export function usePaged<T>(
   resourceKey: string,
   enabled = true,
 ) {
-  const [items, setItems] = useState<T[]>([]),
+  const [catalog, setCatalog] = useState<Catalog<T>>({ indexed: [], live: [] }),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(''),
     [warning, setWarning] = useState(''),
@@ -26,21 +69,16 @@ export function usePaged<T>(
   const running = useRef(false);
   const refresh = useCallback(() => setRevision(v => v + 1), []);
   const [snapshotKey, setSnapshotKey] = useState<string>();
-  const validate = (value: unknown, current: T[], count: number, cursors: Set<string>) => {
+  const validate = (value: unknown, current: Catalog<T>, count: number, cursors: Set<string>) => {
     const result = object(value), raw = result.data ?? result.threads ?? result.models ?? result.servers;
     if (!Array.isArray(raw)) throw new Error('目录响应格式无效。');
-    let data: unknown[] = raw;
+    let live = current.live;
     if (method === 'thread/list' && result.liveData !== undefined) {
-      const live = result.liveData;
-      if (!Array.isArray(live) || live.length > 128 || live.some(row => typeof object(row).id !== 'string') ||
-          JSON.stringify(live).length > 2_000_000)
+      const rows = result.liveData;
+      if (!Array.isArray(rows) || rows.length > 128 || rows.some(row => typeof object(row).id !== 'string') ||
+          JSON.stringify(rows).length > 2_000_000)
         throw new Error('正在运行的会话目录响应无效。');
-      // New native threads may not have reached the persistent index. The
-      // runtime supplies its known creations separately so its cursor is intact.
-      // An indexed copy always wins; never show a duplicate on a later page.
-      const rows = new Map<string, unknown>();
-      for (const row of [...live, ...data]) rows.set(String(object(row).id), row);
-      data = [...rows.values()];
+      live = uniqueRows(method, rows) as T[];
     }
     const next = result.nextCursor;
     if (
@@ -51,8 +89,8 @@ export function usePaged<T>(
       throw new Error('目录返回了无效或循环游标。');
     if (
       count >= 50 ||
-      current.length + data.length > 3000 ||
-      JSON.stringify(data).length > 2_000_000
+      current.indexed.length + raw.length + live.length > 3000 ||
+      JSON.stringify(result.liveData === undefined ? raw : [...live, ...raw]).length > 2_000_000
     )
       throw new Error('目录达到读取上限，已保留现有结果。');
     const warnings = method === 'model/list' && Array.isArray(result.providerErrors)
@@ -61,7 +99,8 @@ export function usePaged<T>(
         return `${String(failure.name ?? '供应商').slice(0, 64)}：${String(failure.message ?? '模型目录读取失败').slice(0, 300)}`;
       }) : method === 'thread/list' && result.liveDataTruncated === true
         ? ['正在建立索引的会话较多。可在“已加载会话”查看其余会话，或稍后刷新列表。'] : [];
-    return { data: data as T[], next: typeof next === 'string' ? next : null, warning: warnings.join('；') };
+    const indexed = uniqueRows(method, current.indexed.concat(raw as T[]));
+    return { catalog: { indexed, live }, next: typeof next === 'string' ? next : null, warning: warnings.join('；') };
   };
   useEffect(() => {
     const gen = ++epoch.current,
@@ -71,7 +110,7 @@ export function usePaged<T>(
     loadedScope.current = scope;
     setLoadedOwner(owner);
     running.current = false;
-    if (!sameScope || !['thread/list', 'thread/search', 'model/list', 'thread/backgroundTerminals/list'].includes(method)) setItems([]);
+    if (!sameScope || !['thread/list', 'thread/search', 'model/list', 'thread/backgroundTerminals/list'].includes(method)) setCatalog({ indexed: [], live: [] });
     setError('');
     setWarning('');
     setCursor(null);
@@ -84,7 +123,7 @@ export function usePaged<T>(
     setLoading(true);
     void (async () => {
       try {
-        let collected: T[] = [], next: string | null = null, warnings: string[] = [];
+        let collected: Catalog<T> = { indexed: [], live: [] }, next: string | null = null, warnings: string[] = [];
         const cursors = new Set<string>();
         let fetched = 0;
         for (let pageNumber = 0; pageNumber < wantedPages; pageNumber++) {
@@ -94,18 +133,13 @@ export function usePaged<T>(
           const page = validate(value, collected, fetched, cursors);
           if (page.next !== null) cursors.add(page.next);
           fetched++;
-          const merged = new Map<string, T>();
-          for (const item of [...collected, ...page.data]) {
-            const row = object(item), identity = String(row.id ?? row.processId ?? row.name ?? JSON.stringify(item));
-            merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
-          }
-          collected = [...merged.values()]; next = page.next;
+          collected = page.catalog; next = page.next;
           if (page.warning) warnings.push(page.warning);
           if (next === null) break;
         }
         pageCount.current = fetched;
         seen.current = cursors;
-        setItems(collected); setWarning([...new Set(warnings)].join('；'));
+        setCatalog(collected); setWarning([...new Set(warnings)].join('；'));
         setCursor(next); setSnapshotKey(resourceKey);
       } catch (e) {
         if (epoch.current === gen && !controller.signal.aborted) setError(message(e));
@@ -125,16 +159,10 @@ export function usePaged<T>(
     try {
       const value = await api.call(method, { ...paramsRef.current, cursor, limit: 50 });
       if (epoch.current !== gen) return;
-      const page = validate(value, items, pageCount.current, seen.current);
+      const page = validate(value, catalog, pageCount.current, seen.current);
       if (page.next !== null) seen.current.add(page.next);
       pageCount.current++;
-      const merged = new Map<string, T>();
-      for (const item of [...items, ...page.data]) {
-        const row = object(item);
-        const identity = String(row.id ?? row.processId ?? row.name ?? JSON.stringify(item));
-        merged.set(method === 'model/list' ? JSON.stringify([row.modelProvider ?? '', identity]) : identity, item);
-      }
-      setItems([...merged.values()]);
+      setCatalog(page.catalog);
       // Later native pages have no live-data snapshot and cannot clear its
       // first-page truncation notice. A fresh directory read resets it.
       if (method !== 'thread/list' || object(value).liveDataTruncated !== undefined) setWarning(page.warning);
@@ -148,6 +176,7 @@ export function usePaged<T>(
   // A new owner must never render the previous scope's catalog while its effect
   // is still pending (including refresh, authentication and runtime changes).
   const current = enabled && loadedOwner === owner;
+  const items = useMemo(() => visibleRows(catalog, params.sortKey, params.sortDirection), [catalog, params.sortKey, params.sortDirection]);
   return {
     items: enabled && loadedScope.current === scope ? items : [],
     loading: enabled && (!current || loading),

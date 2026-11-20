@@ -63,3 +63,16 @@ test('ephemeral and child-agent creations never become project sidebar summaries
   const cache = new LiveThreadList(); cache.capture({ ...thread('probe'), ephemeral: true }, cwd); cache.capture({ ...thread('child'), parentThreadId: 'parent' }, cwd);
   expect(live(cache.page({ cwd }, page()))).toEqual([]);
 });
+
+test('selects the bounded live page by native default creation time or requested activity', () => {
+  const cache = new LiveThreadList();
+  for (let n = 0; n <= 100; n++) {
+    cache.capture({ ...thread(String(n)), createdAt: n, updatedAt: 100 - n, recencyAt: null }, cwd);
+  }
+  const newest = live(cache.page({ cwd }, page()));
+  expect(newest.map(row => row.id)).toEqual(Array.from({ length: 100 }, (_, n) => String(100 - n)));
+  const active = live(cache.page({ cwd, sortKey: 'recency_at' }, page()));
+  expect(active.map(row => row.id)).toEqual(Array.from({ length: 100 }, (_, n) => String(n)));
+  expect(active[0]?.recencyAt).toBe(100);
+  expect(live(cache.page({ cwd, sortKey: 'updated_at', sortDirection: 'asc' }, page()))).toEqual(newest);
+});
