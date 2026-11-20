@@ -685,6 +685,8 @@ class ControlUpdater:
         self.validate_proxy_selection()
         self.prepare_paths()
         require(not self.pending(), "Run control-recover before another control update", "recovery_required")
+        from .mcp_switch_owners import publish
+        publish(self.layout)
         old_manifest = tree_manifest(self.layout.control)
         if rollback is None:
             from .install import control_material

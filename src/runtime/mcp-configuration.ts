@@ -59,15 +59,16 @@ export class McpConfiguration {
       }
       return true;
     };
-    return { version, baseVersion, flagsVersion, flags, file: state.filePath, servers, effective, systemServers, locked, withoutSession };
+    const codingPlanDefaults = new Set(Array.isArray(state.codingPlanHttpDefaults) ? state.codingPlanHttpDefaults : []);
+    return { version, baseVersion, flagsVersion, flags, codingPlanDefaults, file: state.filePath, servers, effective, systemServers, locked, withoutSession };
   }
   async read(cwd: string): Promise<JsonValue> {
-    const { version, servers, effective, flags, systemServers, locked, withoutSession } = await this.source(cwd);
+    const { version, servers, effective, flags, codingPlanDefaults, systemServers, locked, withoutSession } = await this.source(cwd);
     const inheritedDetails = Object.entries(effective).filter(([name]) => !Object.hasOwn(servers, name)).map(([name, row]) => {
       const effectiveEnabled = object(row).enabled !== false, overridden = Object.hasOwn(flags, name);
       const overrideAllowed = Object.hasOwn(systemServers, name) && !locked.has(name);
       const enabled = overrideAllowed ? overridden ? flags[name] === true : withoutSession(name) : effectiveEnabled;
-      return { name, transport: transport(object(row)), enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden, overrideAllowed };
+      return { name, transport: transport(object(row)), ...(codingPlanDefaults.has(name) ? { codingPlanHttpDefaultOff: true } : {}), enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden, overrideAllowed };
     });
     const inheritedNames = new Set(inheritedDetails.map(item => item.name));
     return { userVersion: version, servers: Object.entries(servers).filter(([name]) => !inheritedNames.has(name)).map(([name, entry]) => {

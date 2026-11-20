@@ -399,11 +399,11 @@ def workspace_main(layout: Layout, settings: dict) -> None:
         root = Root(request.get("root"), forbidden)
         if request["action"] == "mcp/enabled-read":
             from .mcp_enabled_override import read
-            response = {"ok": True, "result": read(Path(settings["home"]))}
+            response = {"ok": True, "result": read(Path(settings["home"]), providers=layout.config / "providers")}
         elif request["action"] == "mcp/enabled-override":
             from .mcp_enabled_override import apply
             writing_override = True
-            response = {"ok": True, "result": apply(Path(settings["home"]), request["params"])}
+            response = {"ok": True, "result": apply(Path(settings["home"]), request["params"], providers=layout.config / "providers")}
         elif request["action"].startswith("resource/"):
             from .workspace_resources import run
             response = {"ok": True, "result": run(root, request, layout, settings, forbidden)}

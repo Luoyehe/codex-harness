@@ -259,6 +259,8 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
     # the recovering phase available for another explicit recovery.
     journal["phase"] = "committed" if candidate else "recovered"
     write_json(journal_path, journal)
+    from .mcp_switch_owners import publish
+    publish(manager.layout)
     return {"providerConfigLayer": manager.config.get("providerConfigLayer", "legacy"), "recovered": True,
             "transaction": journal_path.parent.name, "direction": "candidate" if candidate else "old"}
 
@@ -337,5 +339,7 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
     # publish-before-fsync failure boundary as explicit recovery above.
     journal["phase"] = "committed"
     write_json(transaction / "state.json", journal)
+    from .mcp_switch_owners import publish
+    publish(layout)
     return {"providerConfigLayer": mode, "changed": True, "providerRevision": generation, "transaction": transaction.name,
             "userConfigPreserved": True, "nativeWorkspace": layered}

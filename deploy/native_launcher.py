@@ -351,7 +351,7 @@ def native_main(instance: str) -> None:
             return
         if sys.argv[1] == "thread-history":
             from .thread_history import history_main
-            history_main(Path(settings["home"]), settings["uid"])
+            history_main(Path(settings["home"]), settings["uid"], providers=layout.config / "providers")
             return
         if sys.argv[1] == "resolve-project":
             data = sys.stdin.buffer.read(4097)
@@ -400,7 +400,7 @@ def native_main(instance: str) -> None:
             from .auth_storage_policy import require_file_store
             require_file_store(layout, Path(settings["home"]), settings["uid"])
             from .mcp_enabled_override import launch_arguments
-            arguments += launch_arguments(Path(settings["home"]))
+            arguments += launch_arguments(Path(settings["home"]), providers=layout.config / "providers")
             arguments += ["-c", "thread_unload_delay_secs=0"]
             arguments += ["-c", 'cli_auth_credentials_store="file"']
         registry_path = env_path.parent / "runtime.json"

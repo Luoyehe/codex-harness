@@ -21,7 +21,8 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
   })();
     const attachmentProof = ['attachment-index', 'attachment-inspect'].includes(String(request.action));
     const body = jsonBytes(request, attachmentProof && request.activeImageDigests !== undefined ? 72 * 1024 : 8192);
-    const maxBuffer = ['queue-item', 'queue-capacity', 'queue-image'].includes(String(request.action)) ? 6 * 1024 * 1024 + 16384 :
+    const maxBuffer = ['mcp-enabled-read', 'mcp-enabled-launch', 'mcp-enabled-override'].includes(String(request.action)) ? 64 * 1024 :
+      ['queue-item', 'queue-capacity', 'queue-image'].includes(String(request.action)) ? 6 * 1024 * 1024 + 16384 :
       ['copy-inspect', 'attachment-index', 'attachment-inspect'].includes(String(request.action)) ? 2 * 1024 * 1024 + 16384 : 8192;
     return new Promise((resolve, reject) => {
       // Do not dispatch a helper after the operation's caller/epoch was revoked.

@@ -12,6 +12,8 @@ import stat
 import tempfile
 
 from .common import DeployError, fsync_directory, require
+from .mcp_switch_owners import OWNER, retained
+from .provider import CODING_HTTP, ZHIPU_URL
 
 
 def version(value: dict) -> str:
@@ -122,34 +124,106 @@ def _save(home, flags, before):
     _replace(home / STORE, (json.dumps(flags, sort_keys=True, ensure_ascii=False) + "\n").encode(), before, 65536)
 
 
-def _binding(name, entry):
-    # The first enabled Coding Plan may acquire the unsuffixed display name
-    # after a provider is disabled. Use the immutable connection id already
-    # present in the trusted launcher args/credential variable. Never retain
-    # any actual command, endpoint or credential in the user switch store.
-    name = name.replace("@", "@@")
-    if isinstance(entry, dict):
-        args = entry.get("args")
-        if isinstance(args, list) and len(args) == 2 and args[0] == "zai-server" and isinstance(args[1], str) and re.fullmatch("default|[a-f0-9]{32}", args[1]):
-            return name + "@provider:" + args[1]
-        key = entry.get("bearer_token_env_var")
-        if isinstance(key, str) and re.fullmatch("HARNESS_PROVIDER_KEY_(DEFAULT|[A-F0-9]{32})", key):
-            return name + "@provider:" + key.removeprefix("HARNESS_PROVIDER_KEY_").lower()
-    return name
+BUILTINS = "|".join((*CODING_HTTP, "zai-mcp-server"))
+BUILTIN_KEY = re.compile(rf"@builtin:({OWNER}):({BUILTINS})")
+OLD_BUILTIN_KEY = re.compile(rf"({BUILTINS})(?:-({OWNER}))?@provider:({OWNER})")
 
 
-def _state(home, flags, servers):
-    bindings = {name: _binding(name, entry) for name, entry in servers.items()}
+def _identity(name, entry, active, legacy_plan):
+    """Identify the renderer's logical server using its name AND transport."""
+    escaped = name.replace("@", "@@")
+    if not isinstance(entry, dict):
+        return escaped, None
+    args = entry.get("args")
+    key = entry.get("bearer_token_env_var")
+    owner = None
+    logical = None
+    if isinstance(args, list) and len(args) == 2 and args[0] == "zai-server" and isinstance(args[1], str) and re.fullmatch(OWNER, args[1]):
+        owner = args[1]
+        if isinstance(entry.get("command"), str) and Path(entry["command"]).name == "native-launch":
+            logical = "zai-mcp-server"
+    elif isinstance(key, str) and re.fullmatch(r"HARNESS_PROVIDER_KEY_(DEFAULT|[A-F0-9]{32})", key):
+        owner = key.removeprefix("HARNESS_PROVIDER_KEY_").lower()
+        logical = next((builtin for builtin, url in CODING_HTTP.items() if entry.get("url") == url), None)
+    elif legacy_plan and key == "HARNESS_PROVIDER_API_KEY" and name in CODING_HTTP and entry.get("url") == CODING_HTTP[name]:
+        return "@builtin:default:" + name, escaped
+    elif legacy_plan and name == "zai-mcp-server" and isinstance(entry.get("command"), str) and entry["command"].endswith("/node/bin/node"):
+        root = entry["command"].removesuffix("/node/bin/node")
+        if args == [root + "/app/node_modules/@z_ai/mcp-server/build/index.js"] and entry.get("env_vars") == ["Z_AI_API_KEY", "Z_AI_MODE"]:
+            return "@builtin:default:" + name, escaped
+    if owner is None:
+        return escaped, None
+    old = escaped + "@provider:" + owner
+    if logical and name in (logical, logical + "-" + owner) and (active is None or
+            owner in active and name == (logical if owner == active[0] else logical + "-" + owner)):
+        return "@builtin:" + owner + ":" + logical, old
+    # A separately inherited server can reference a provider credential while
+    # using its own endpoint. Keep its old switch private to that exact server.
+    return ("@system:" + old, old) if OLD_BUILTIN_KEY.fullmatch(old) else (old, None)
+
+
+def _normalize(flags, identities, owners):
+    result = dict(flags)
+    # Prefer current transport evidence for ambiguous legacy host-server keys.
+    for key, old in identities.values():
+        if old in result:
+            value = result.pop(old)
+            if key not in flags:
+                result[key] = result.get(key, True) and value
+    for key in list(result):
+        match = OLD_BUILTIN_KEY.fullmatch(key)
+        if match and match[2] in (None, match[3]):
+            target = "@builtin:" + match[3] + ":" + match[1]
+            value = result.pop(key)
+            # Legacy files did not retain recency. Conflicting aliases stay
+            # disabled until the owner chooses explicitly. New-format wins.
+            if target not in flags:
+                result[target] = result.get(target, True) and value
+    if owners is not None:
+        for key in list(result):
+            match = BUILTIN_KEY.fullmatch(key)
+            if match and match[1] not in owners:
+                del result[key]
+    return result
+
+
+def _state(home, flags, identities, servers):
+    bindings = {name: value[0] for name, value in identities.items()}
     visible = {name: flags[key] for name, key in bindings.items() if key in flags}
-    return {"flags": visible, "version": version({"flags": flags, "bindings": bindings}), "filePath": str(home / STORE)}
+    http_defaults = [name for name, key in bindings.items() if (match := BUILTIN_KEY.fullmatch(key))
+                     and match[2] in CODING_HTTP and servers[name].get("enabled") is False]
+    return {"flags": visible, "codingPlanHttpDefaults": http_defaults,
+            "version": version({"flags": flags, "bindings": bindings}), "filePath": str(home / STORE)}
 
 
-def read(home, *, system=None):
+def _switches(home, document, providers):
+    servers = document.get("mcp_servers", {})
+    models = document.get("model_providers")
+    model = models.get("harness_responses") if isinstance(models, dict) else None
+    legacy_plan = isinstance(model, dict) and model.get("base_url") == ZHIPU_URL and model.get("env_key") == "HARNESS_PROVIDER_API_KEY"
+    raw, before = _flags(home)
+    owners, active = retained(providers)
+    identities = {name: _identity(name, entry, active, legacy_plan) for name, entry in servers.items()}
+    flags = _normalize(raw, identities, owners)
+    return flags, before, identities, servers
+
+
+def read(home, *, system=None, providers=None):
     import tomllib
     _safe(home.lstat(), True)
-    flags, _ = _flags(home)
-    data, _ = _read(system or SYSTEM, limit=4 * 1024 * 1024, private=False)
-    return _state(home, flags, tomllib.loads(data.decode()).get("mcp_servers", {}))
+    def snapshot():
+        data, _ = _read(system or SYSTEM, limit=4 * 1024 * 1024, private=False)
+        flags, before, identities, servers = _switches(home, tomllib.loads(data.decode()), providers)
+        return _state(home, flags, identities, servers), flags, before
+
+    state, flags, before = snapshot()
+    if not before[1] or flags == json.loads(before[0]):
+        return state
+    with _exclusive(home):
+        state, flags, before = snapshot()
+        if before[1] and flags != json.loads(before[0]):
+            _save(home, flags, before)
+        return state
 
 
 @contextlib.contextmanager
@@ -170,56 +244,58 @@ def _native_layers(home, system):
     base = _read(home / "config.toml", limit=1024 * 1024, private=False)
     settings = tomllib.loads(base[0].decode())
     system_bytes, _ = _read(system, limit=4 * 1024 * 1024, private=False)
-    servers = tomllib.loads(system_bytes.decode()).get("mcp_servers", {})
-    return base, settings, servers
+    return base, settings, tomllib.loads(system_bytes.decode())
 
 
-def apply(home: Path, params: dict, *, system=None) -> dict:
+def apply(home: Path, params: dict, *, system=None, providers=None) -> dict:
     name, enabled = params.get("name"), params.get("enabled")
     require(set(params) == {"name", "enabled", "expectedVersion", "expectedFlags"} and _name(name)
             and (enabled is None or type(enabled) is bool), "Invalid MCP enabled override", "invalid_params")
     with _exclusive(home):
-        base, settings, system_servers = _native_layers(home, system or SYSTEM)
-        flags, before = _flags(home)
-        require(params["expectedFlags"] == _state(home, flags, system_servers)["version"] and
+        base, settings, document = _native_layers(home, system or SYSTEM)
+        flags, before, identities, system_servers = _switches(home, document, providers)
+        require(params["expectedFlags"] == _state(home, flags, identities, system_servers)["version"] and
                 (params["expectedVersion"] == version(settings) or base[1] is None and params["expectedVersion"] is None),
                 "User configuration changed; reload before saving", "config_conflict")
         require(name in system_servers and name not in settings.get("mcp_servers", {}),
                 "The inherited system server changed; reload before saving", "config_conflict")
-        key = _binding(name, system_servers[name])
+        key = identities[name][0]
         if enabled is None: flags.pop(key, None)
         else: flags[key] = enabled
         require(len(flags) <= 128, "Too many MCP switches", "capacity")
         if flags != (json.loads(before[0]) if before[1] else {}): _save(home, flags, before)
-        state = read(home, system=system)
-        require(state == _state(home, flags, system_servers), "MCP switch readback changed", "config_conflict")
+        _, _, current_document = _native_layers(home, system or SYSTEM)
+        saved, _, current_ids, current_servers = _switches(home, current_document, providers)
+        state = _state(home, saved, current_ids, current_servers)
+        require(state == _state(home, flags, identities, system_servers), "MCP switch readback changed", "config_conflict")
         return {**state, "written": True}
 
 
-def launch_arguments(home: Path, *, system=None) -> list[str]:
+def launch_arguments(home: Path, *, system=None, providers=None) -> list[str]:
     """The application's private user switch layer never enters Codex's writable base config."""
     system = system or SYSTEM
     # No switches and no system layer is the normal development/default setup.
     if not system.exists(): return []
     import tomllib
     with _exclusive(home):
-        base, settings, servers = _native_layers(home, system)
-        flags, before = _flags(home)
+        base, settings, document = _native_layers(home, system)
+        flags, before, identities, servers = _switches(home, document, providers)
         entries = settings.get("mcp_servers", {})
         legacy = {key: row["enabled"] for key, row in entries.items() if key in servers and _name(key)
                   and isinstance(row, dict) and set(row) == {"enabled"} and type(row["enabled"]) is bool}
+        # Publish a migration before removing legacy TOML. Either halfway
+        # state represents the same intent and is safe to retry.
+        flags = {**{identities[k][0]: v for k, v in legacy.items()}, **flags}
+        require(len(flags) <= 128, "Too many MCP switches", "capacity")
+        if flags != (json.loads(before[0]) if before[1] else {}):
+            _save(home, flags, before)
         if legacy:
-            # Publish the switches before removing old enabled-only TOML. Either
-            # halfway state represents the same intent and is safe to retry.
-            new_flags = {**{_binding(k, servers[k]): v for k, v in legacy.items()}, **flags}
-            require(len(new_flags) <= 128, "Too many MCP switches", "capacity")
-            if new_flags != flags: _save(home, new_flags, before)
             text = base[0].decode()
             for key in legacy:
                 text = edited(text, key, None, tomllib.loads(text))
             _replace(home / "config.toml", text.encode(), base, 1024 * 1024)
-            flags, entries = new_flags, tomllib.loads(text).get("mcp_servers", {})
-        active = {name: value for name, value in _state(home, flags, servers)["flags"].items() if name not in entries}
+            entries = tomllib.loads(text).get("mcp_servers", {})
+        active = {name: value for name, value in _state(home, flags, identities, servers)["flags"].items() if name not in entries}
         if not active: return []
         # A single TOML inline table preserves literal server names containing dots.
         values = ", ".join(json.dumps(k, ensure_ascii=False) + " = {enabled = " + str(v).lower() + "}" for k, v in sorted(active.items()))

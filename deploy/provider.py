@@ -186,6 +186,11 @@ def quote_toml(value: str) -> str:
     return json.dumps(value, ensure_ascii=False).replace(chr(127), "\\u007f")
 
 
+CODING_HTTP = {"web-search-prime": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
+               "web-reader": "https://open.bigmodel.cn/api/mcp/web_reader/mcp",
+               "zread": "https://open.bigmodel.cn/api/mcp/zread/mcp"}
+
+
 def _single_native_config(value: dict, layout: Layout | None = None) -> bytes:
     lines = ["# Managed provider generation; credentials are supplied by systemd."]
     if value.get("model"):
@@ -212,9 +217,7 @@ def _single_native_config(value: dict, layout: Layout | None = None) -> bytes:
             lines.append('env_key = "HARNESS_PROVIDER_API_KEY"')
     if value["kind"] == "zhipu-coding":
         require(layout is not None, "Zhipu configuration requires an installed layout")
-        for name, url in (("web-search-prime", "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp"),
-                          ("web-reader", "https://open.bigmodel.cn/api/mcp/web_reader/mcp"),
-                          ("zread", "https://open.bigmodel.cn/api/mcp/zread/mcp")):
+        for name, url in CODING_HTTP.items():
             lines += ["", "[mcp_servers." + quote_toml(name) + "]", "url = " + quote_toml(url),
                       'bearer_token_env_var = "HARNESS_PROVIDER_API_KEY"']
             if value.get("codingMcpPolicy") == 2:

@@ -17,7 +17,7 @@ type ServerConfig = {
   hasBearerTokenEnvVar: boolean;
   hasEnvHttpHeaders: boolean;
 };
-type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; transport: string; overridden: boolean }[] };
+type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; transport: string; overridden: boolean }[] };
 type Pair = { name: string; value: string };
 type Edit = {
   baseName?: string;
@@ -303,7 +303,7 @@ function McpConfigurationForm({
               <strong>{server.name}</strong>
               <p>{server.transport} · {server.overridden ? '用户覆盖' : '继承配置'}</p>
               {server.overrideAllowed !== true && <p className="small muted">此继承项的来源未授权用户级开关，请在其所属配置层管理。</p>}
-              {server.overrideAllowed === true && ['web-search-prime','web-reader','zread'].includes(server.name) && server.transport === 'http' && <p className="small muted">智谱 Coding Plan 集成默认关闭此远程服务，以兼容当前 Codex 的 MCP 握手。如需使用，可单独启用并核对实际连接状态。</p>}
+              {server.overrideAllowed === true && server.codingPlanHttpDefaultOff === true && server.transport === 'http' && <p className="small muted">智谱 Coding Plan 集成默认关闭此远程服务，以兼容当前 Codex 的 MCP 握手。如需使用，可单独启用并核对实际连接状态。</p>}
               <p>已保存：{server.enabled ? '启用' : '停用'} · 当前生效：{typeof server.effectiveEnabled !== 'boolean' ? '未确认' : server.effectiveEnabled ? '启用' : '停用'}</p>
               {server.restartRequired && <div className="workspace-warning" role="status">
                 重启原生服务后采用已保存的设置。

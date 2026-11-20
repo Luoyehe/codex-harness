@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, atomic_write, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
 from .provider import ProviderStore, redacted, validate_catalog, validate_provider
+from .mcp_switch_owners import publish as publish_mcp_owners
 from .journal import recover_as_owner
 from .safe_fs import inspect_tree
 from .system import System, run
@@ -521,6 +522,7 @@ class Manager:
                 profiles.save(value, old)
             else:
                 profiles.remove(value)
+            publish_mcp_owners(self.layout, old)
             return self.providers.public(old)
         new = value
         if not catalog and "connections" in new and ("kind" in params):
@@ -542,6 +544,9 @@ class Manager:
         mkdir(tx, 0o700)
         journal = {"kind": "provider", "old": old["revision"], "candidate": generation, "phase": "prepared"}
         write_json(tx / "state.json", journal)
+        # A native launcher may run before health confirms the candidate. Keep
+        # both registries (including disabled connections) eligible for rollback.
+        publish_mcp_owners(self.layout, old, new)
         # Only worker needs to stop; gateway remains available to return the receipt.
         unit = [self.layout.unit("worker")]
         self.system.stop(unit)
@@ -563,9 +568,11 @@ class Manager:
             self.healthy()
             journal["phase"] = "recovered"
             write_json(tx / "state.json", journal)
+            publish_mcp_owners(self.layout, old)
             raise
         journal["phase"] = "committed"
         write_json(tx / "state.json", journal)
+        publish_mcp_owners(self.layout, new)
         return self.providers.public(new)
 
     @staticmethod
@@ -618,6 +625,7 @@ class Manager:
 
     def restart(self) -> dict:
         installation = self.require_update_ready()
+        publish_mcp_owners(self.layout)
         self.system.stop(self.service_units)
         self.recover_control()
         self.refresh_main_units()
@@ -710,6 +718,8 @@ class Manager:
             self.healthy()
             state["phase"] = "recovered"
             write_json(path, state)
+            if state["kind"] == "provider":
+                publish_mcp_owners(self.layout)
         else:
             self.restart()
         return {"repaired": True, "recoveredTransactions": len(pending)}

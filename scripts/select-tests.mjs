@@ -182,7 +182,7 @@ export function selectTests(changed, available) {
   for (const name of plan.changed) {
     const checks = recoveryCoverageSources.has(name) ? [deploymentRecoveryTest] :
       name === 'deploy/workspace_store.py' ? ['tests/deploy/test_workspace_ack.py'] :
-      ['deploy/mcp_enabled_override.py', 'src/runtime/mcp-configuration.ts', 'src/runtime/service.ts'].includes(name) ? overrideTests :
+      ['deploy/mcp_enabled_override.py', 'deploy/mcp_switch_owners.py', 'src/runtime/mcp-configuration.ts', 'src/runtime/service.ts'].includes(name) ? overrideTests :
       ['deploy/thread_history.py', 'src/runtime/thread-history-compatibility.ts', 'src/runtime/queue-reply-identity.ts',
        'src/runtime/queue-image-bindings.ts'].includes(name) ? nativeHistoryConsumers :
       ['src/runtime/history-window.ts', 'src/runtime/history.ts', 'src/runtime/media-history.ts'].includes(name) ? ['web/tests/conversation-recovery.test.tsx', 'web/tests/timeline-history.test.tsx', 'web/tests/turn-footer.test.tsx'] :

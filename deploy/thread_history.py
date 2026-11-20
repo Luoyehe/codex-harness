@@ -958,7 +958,7 @@ def _recovery_copy(home: Path, uid: int, request: dict, source_path: Path) -> di
             with contextlib.suppress(FileNotFoundError): os.unlink(temporary)
 
 
-def operate(home: Path, uid: int, request: object) -> dict:
+def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
     replaced = False
     temporary = None
     try:
@@ -967,13 +967,13 @@ def operate(home: Path, uid: int, request: object) -> dict:
             return _queue_inspect(_local_path(str(home)), uid, request)
         if request == {"action": "mcp-enabled-read"}:
             from .mcp_enabled_override import read
-            return read(home)
+            return read(home, providers=providers)
         if request == {"action": "mcp-enabled-launch"}:
             from .mcp_enabled_override import launch_arguments
-            return {"args": launch_arguments(home)}
+            return {"args": launch_arguments(home, providers=providers)}
         if request.get("action") == "mcp-enabled-override":
             from .mcp_enabled_override import apply
-            try: return apply(home, {key: value for key, value in request.items() if key != "action"})
+            try: return apply(home, {key: value for key, value in request.items() if key != "action"}, providers=providers)
             except DeployError as error: raise HistoryError("thread_history_config_conflict", str(error)) from None
         if request.get("action") == "attachment-index":
             check(set(request) <= {"action", "attachmentRoot", "activeImageDigests"} and isinstance(request.get("attachmentRoot"), str), "Invalid attachment reconciliation request")
@@ -1045,14 +1045,14 @@ def operate(home: Path, uid: int, request: object) -> dict:
                 os.unlink(temporary)
 
 
-def history_main(home: Path, uid: int) -> None:
+def history_main(home: Path, uid: int, *, providers=None) -> None:
     try:
         raw = sys.stdin.buffer.read(REQUEST_LIMIT + 1)
         check(len(raw) <= REQUEST_LIMIT, "History request exceeds budget")
         request = _decode(raw)
         if not isinstance(request, dict) or request.get("action") not in ("attachment-index", "attachment-inspect"):
             check(len(raw) <= 8192, "History request exceeds budget")
-        result = operate(home, uid, request)
+        result = operate(home, uid, request, providers=providers)
         # Metadata can contain Unicode base instructions. Bind the budget to
         # actual UTF-8 stdout bytes instead of ASCII escapes or console locale.
         encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"

@@ -1219,6 +1219,7 @@ it('keeps project-controlled inherited services read-only and explains the bundl
   const {api,calls,events}=setup(c=>c.method==='mcp/config/read'?{...config,inheritedDetails:[
     {name:'project-only',transport:'http',overrideAllowed:false,enabled:true,effectiveEnabled:true,overridden:false},
     {name:'zread',transport:'http',overrideAllowed:true,enabled:false,effectiveEnabled:false,overridden:false},
+    {name:'zread-'+'a'.repeat(32),transport:'http',overrideAllowed:true,codingPlanHttpDefaultOff:true,enabled:false,effectiveEnabled:false,overridden:false},
   ]}:fallback(c));
   render(<McpPanel {...panelProps(api,events)} />);
   fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置',{selector:'summary'}));
@@ -1226,6 +1227,7 @@ it('keeps project-controlled inherited services read-only and explains the bundl
   expect(locked).toHaveProperty('disabled',true);
   fireEvent.click(locked);
   expect(calls.some(c=>c.method==='mcp/config/write')).toBe(false);
-  expect(screen.getByText(/智谱 Coding Plan 集成默认关闭/)).toBeTruthy();
+  const notice = screen.getByText(/智谱 Coding Plan 集成默认关闭/);
+  expect(notice.parentElement?.textContent).toContain('zread-'+'a'.repeat(32));
   expect(screen.getByRole('button',{name:'启用 zread'})).toHaveProperty('disabled',false);
 });
