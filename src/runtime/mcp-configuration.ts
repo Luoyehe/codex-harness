@@ -44,7 +44,7 @@ export class McpConfiguration {
     }
     const system = layers.find(layer => object(layer.name).type === 'system' && !layer.disabledReason);
     const systemServers = object(system ? object(system.config).mcp_servers ?? {} : {});
-    const state = this.controls && Object.keys(systemServers).length ? await this.controls(cwd) : {};
+    const state = this.controls && system ? await this.controls(cwd) : {};
     const flags = object(state.flags ?? {}), flagsVersion = state.version ?? null;
     const version = flagsVersion ? String(baseVersion ?? '') + '|' + String(flagsVersion) : baseVersion;
     // Native lists layers in decreasing precedence. Session flags supplied by
@@ -60,18 +60,18 @@ export class McpConfiguration {
       return true;
     };
     const codingPlanDefaults = new Set(Array.isArray(state.codingPlanHttpDefaults) ? state.codingPlanHttpDefaults : []);
-    return { version, baseVersion, flagsVersion, flags, codingPlanDefaults, file: state.filePath, servers, effective, systemServers, locked, withoutSession };
+    return { version, baseVersion, flagsVersion, flags, codingPlanDefaults, unassigned: object(state.unassigned ?? {}), managedOwners: object(state.managedOwners ?? {}), file: state.filePath, servers, effective, systemServers, locked, withoutSession };
   }
   async read(cwd: string): Promise<JsonValue> {
-    const { version, servers, effective, flags, codingPlanDefaults, systemServers, locked, withoutSession } = await this.source(cwd);
+    const { version, servers, effective, flags, codingPlanDefaults, unassigned, managedOwners, systemServers, locked, withoutSession } = await this.source(cwd);
     const inheritedDetails = Object.entries(effective).filter(([name]) => !Object.hasOwn(servers, name)).map(([name, row]) => {
       const effectiveEnabled = object(row).enabled !== false, overridden = Object.hasOwn(flags, name);
       const overrideAllowed = Object.hasOwn(systemServers, name) && !locked.has(name);
       const enabled = overrideAllowed ? overridden ? flags[name] === true : withoutSession(name) : effectiveEnabled;
-      return { name, transport: transport(object(row)), ...(codingPlanDefaults.has(name) ? { codingPlanHttpDefaultOff: true } : {}), enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden, overrideAllowed };
+      return { name, transport: transport(object(row)), ...(typeof managedOwners[name] === 'string' ? { managedOwner: managedOwners[name] } : {}), ...(codingPlanDefaults.has(name) ? { codingPlanHttpDefaultOff: true } : {}), enabled, effectiveEnabled, restartRequired: enabled !== effectiveEnabled, overridden, overrideAllowed };
     });
     const inheritedNames = new Set(inheritedDetails.map(item => item.name));
-    return { userVersion: version, servers: Object.entries(servers).filter(([name]) => !inheritedNames.has(name)).map(([name, entry]) => {
+    return { userVersion: version, ...(Object.keys(unassigned).length ? { unassigned } : {}), servers: Object.entries(servers).filter(([name]) => !inheritedNames.has(name)).map(([name, entry]) => {
       const value = object(entry), result: JsonObject = { name, transport: transport(value), enabled: value.enabled !== false, effectiveEnabled: Object.hasOwn(effective, name) ? object(effective[name]).enabled !== false : null,
         hasEnv: present(value, 'env'), hasHttpHeaders: present(value, 'http_headers'), hasBearerTokenEnvVar: present(value, 'bearer_token_env_var') || present(value, 'bearer_token'), hasEnvHttpHeaders: present(value, 'env_http_headers') };
       for (const key of ['command', 'args', 'url']) if (value[key] !== undefined) result[key] = value[key]!;
@@ -80,26 +80,40 @@ export class McpConfiguration {
   }
   async write(params: JsonObject, cwd: string, write: Call): Promise<JsonValue> {
     onlyKeys(params, ['cwd', 'expectedVersion', 'name', 'change']); const expectedVersion = params.expectedVersion === null ? null : string(params.expectedVersion, 'expectedVersion'), name = serverName(params.name), change = object(params.change);
-    onlyKeys(change, ['type', 'transport', 'command', 'args', 'url', 'enabled', 'env', 'httpHeaders', 'bearerTokenEnvVar', 'envHttpHeaders', 'clearSecrets']);
-    const { version, baseVersion, servers, effective, systemServers, flagsVersion, locked, withoutSession } = await this.source(cwd);
+    onlyKeys(change, ['type', 'transport', 'command', 'args', 'url', 'enabled', 'env', 'httpHeaders', 'bearerTokenEnvVar', 'envHttpHeaders', 'clearSecrets', 'legacyName']);
+    const { version, baseVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd);
     if (version !== expectedVersion) throw new DeliveryError('config_conflict', 'User configuration changed; reload before saving');
     const original = Object.hasOwn(servers, name) ? object(servers[name]) : undefined;
     const next: JsonObject = { ...servers };
-    if (change.type === 'inherit') {
+    if (change.type === 'discardLegacy') {
       onlyKeys(change, ['type', 'enabled']);
+      if (!Object.hasOwn(unassigned, name) || typeof change.enabled !== 'boolean' || unassigned[name] !== change.enabled || typeof flagsVersion !== 'string')
+        throw new DeliveryError('config_conflict', '旧开关记录已变化，请重新读取。');
+      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled,
+        expectedVersion: baseVersion, expectedFlags: flagsVersion, discardLegacy: true }));
+      const state = await this.source(cwd);
+      if (saved.written !== true || saved.version !== state.flagsVersion || Object.hasOwn(state.unassigned, name))
+        throw new DeliveryError('config_readback_unknown', '旧开关记录的移除结果未确认。', 'unknown');
+      return { status: 'ok', version: saved.version, filePath: saved.filePath! };
+    }
+    if (change.type === 'inherit') {
+      onlyKeys(change, ['type', 'enabled', 'legacyName']);
+      const recovery = change.legacyName === undefined ? {} : { legacyName: serverName(change.legacyName) };
       if (locked.has(name) || !Object.hasOwn(systemServers, name) || !Object.hasOwn(effective, name) || original || typeof flagsVersion !== 'string')
         throw new DeliveryError('mcp_missing', '该继承服务已变化，请重新读取有效配置。');
       if (change.enabled !== null && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'Choose an enabled override or restore inheritance');
       const desired = change.enabled ?? withoutSession(name);
-      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled!, expectedVersion: baseVersion, expectedFlags: flagsVersion }));
+      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled!, expectedVersion: baseVersion, expectedFlags: flagsVersion, ...recovery }));
       const state = await this.source(cwd);
       if (saved.written !== true || saved.version !== state.flagsVersion || saved.effective !== desired ||
+          (recovery.legacyName !== undefined && Object.hasOwn(state.unassigned, recovery.legacyName)) ||
           (change.enabled === null ? Object.hasOwn(state.flags, name) : state.flags[name] !== change.enabled))
         throw new DeliveryError('config_readback_unknown', '继承服务设置已写入，但原生读回未确认。', 'unknown');
       return { version: saved.version, status: 'ok', filePath: saved.filePath!, effective: desired, restartRequired: object(effective[name]).enabled !== desired };
     } else if (change.type === 'remove') {
       onlyKeys(change, ['type']); if (!original) throw new DeliveryError('mcp_missing', 'This server is not defined in the user layer'); delete next[name];
     } else if (change.type === 'upsert') {
+      if (change.legacyName !== undefined) throw new DeliveryError('invalid_params', 'Choose an inherited server to restore this switch');
       if (!['stdio', 'http'].includes(String(change.transport))) throw new DeliveryError('invalid_params', 'Choose stdio or HTTP transport');
       if (change.enabled !== undefined && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'enabled must be boolean');
       if (change.clearSecrets !== undefined && change.clearSecrets !== true) throw new DeliveryError('invalid_params', 'Only an explicit clearSecrets:true clears saved values');

@@ -111,12 +111,35 @@ class ExtendedProviderGenerationTests(unittest.TestCase):
 
     def test_fixed_native_and_root_launchers_collect_only_their_own_mcp_switches(self):
         from deploy import mcp_switch_owners
-        from deploy.execution_identity import native_settings
         registry = change({"expectedRevision": self.selected["revision"], "providerId": "new",
                            "kind": "zhipu-coding", "apiKey": "offline-fixture"}, self.selected)
         self.store.select(self.store.prepare(registry, layered=True))
         owner = entries(registry)[-1]["id"]
         mcp_switch_owners.publish(self.layout, registry)
+        for uid in (65534, 0):
+            home = self.switch_identity(uid)
+            path = home / "harness-mcp-enabled.json"
+            write_json(path, {"web-reader@provider:" + owner: bool(uid), "zread@provider:" + "e" * 32: True,
+                              "private-server": bool(uid)}, uid=uid, gid=uid)
+            expected = "true" if uid else "false"
+            self.assertEqual(self.invoke_switch(uid), ["-c", 'mcp_servers={"web-reader" = {enabled = ' + expected + '}}'])
+            self.assertEqual(path.stat().st_uid, uid)
+            self.assertEqual(json.loads(path.read_text()), {"@builtin:" + owner + ":web-reader": bool(uid), "private-server": bool(uid)})
+
+    def switch_identity(self, uid):
+        from deploy.execution_identity import native_settings
+        config = {"workerUid": 65534, "workerGid": 65534, "executionMode": "native" if uid else "root",
+                  "rootAllowed": True, "executionGeneration": "d" * 32, "codexRelative": "vendor/codex"}
+        settings = native_settings(self.layout, config)
+        write_json(self.layout.config / "instance.json", config)
+        write_json(self.layout.config / "native.json", settings, mode=0o644)
+        home = Path(settings["home"])
+        mkdir(home.parent, 0o700, uid, uid)
+        mkdir(home, 0o700, uid, uid)
+        return home
+
+    def invoke_switch(self, uid):
+        self.switch_identity(uid)
         code = """from pathlib import Path
 import sys
 from deploy.common import Layout
@@ -127,30 +150,37 @@ mcp_enabled_override.SYSTEM = layout.config / "providers/current/system-config.t
 sys.argv = ["native-launch", "thread-history"]
 native_launcher.native_main("fixture")
 """
+        def identity():
+            os.setgroups([])
+            os.setgid(uid)
+            os.setuid(uid)
+        result = subprocess.run([sys.executable, "-B", "-c", code, str(self.layout.root)], cwd=self.layout.control,
+                                env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"}, preexec_fn=identity,
+                                input=b'{"action":"mcp-enabled-launch"}', capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
+        return json.loads(result.stdout)["args"]
+
+    def test_cold_fixed_accounts_resolve_preupgrade_raw_json_and_toml_after_the_original_plan_is_disabled(self):
+        from deploy import mcp_switch_owners
+        old = validate_provider({"expectedRevision": self.current["revision"], "kind": "zhipu-coding", "apiKey": "old-fixture"}, self.current)
+        self.store.select(self.store.prepare(old, layered=True))
         for uid in (65534, 0):
-            config = {"workerUid": 65534, "workerGid": 65534, "executionMode": "native" if uid else "root",
-                      "rootAllowed": True, "executionGeneration": "d" * 32, "codexRelative": "vendor/codex"}
-            settings = native_settings(self.layout, config)
-            write_json(self.layout.config / "instance.json", config)
-            write_json(self.layout.config / "native.json", settings, mode=0o644)
-            home = Path(settings["home"])
-            mkdir(home.parent, 0o700, uid, uid)
-            mkdir(home, 0o700, uid, uid)
-            path = home / "harness-mcp-enabled.json"
-            write_json(path, {"web-reader@provider:" + owner: bool(uid), "zread@provider:" + "e" * 32: True,
-                              "private-server": bool(uid)}, uid=uid, gid=uid)
-            def identity():
-                os.setgroups([])
-                os.setgid(uid)
-                os.setuid(uid)
-            result = subprocess.run([sys.executable, "-B", "-c", code, str(self.layout.root)], cwd=self.layout.control,
-                                    env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"}, preexec_fn=identity,
-                                    input=b'{"action":"mcp-enabled-launch"}', capture_output=True, timeout=10)
-            self.assertEqual(result.returncode, 0, (result.stdout, result.stderr))
-            expected = "true" if uid else "false"
-            self.assertEqual(json.loads(result.stdout)["args"], ["-c", 'mcp_servers={"web-reader" = {enabled = ' + expected + '}}'])
-            self.assertEqual(path.stat().st_uid, uid)
-            self.assertEqual(json.loads(path.read_text()), {"@builtin:" + owner + ":web-reader": bool(uid), "private-server": bool(uid)})
+            home = self.switch_identity(uid)
+            if uid:
+                write_json(home / "harness-mcp-enabled.json", {"web-reader": True}, uid=uid, gid=uid)
+            else:
+                atomic_write(home / "config.toml", b'[mcp_servers.zai-mcp-server]\nenabled=false\n', uid=uid, gid=uid)
+        mcp_switch_owners.publish(self.layout)  # First control takeover, neither home visited.
+        other = change({"expectedRevision": old["revision"], "providerId": "new", "kind": "zhipu-coding", "apiKey": "new-fixture"}, old)
+        switched = change({"expectedRevision": other["revision"], "providerId": "default", "enabled": False}, other)
+        self.store.select(self.store.prepare(switched, layered=True))
+        mcp_switch_owners.publish(self.layout, switched)
+        for uid in (65534, 0):
+            self.assertEqual(self.invoke_switch(uid), [])
+        self.store.select(self.store.prepare(other, layered=True))
+        mcp_switch_owners.publish(self.layout, other)
+        self.assertEqual(self.invoke_switch(65534), ["-c", 'mcp_servers={"web-reader" = {enabled = true}}'])
+        self.assertEqual(self.invoke_switch(0), ["-c", 'mcp_servers={"zai-mcp-server" = {enabled = false}}'])
 
     def test_zhipu_helper_passes_only_its_selected_key_to_the_local_mcp(self):
         registry = change({"expectedRevision": self.selected["revision"], "providerId": "new", "kind": "zhipu-coding",

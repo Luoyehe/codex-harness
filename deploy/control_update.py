@@ -563,6 +563,8 @@ class ControlUpdater:
         self.prepare_paths()
         pending = self.pending()
         require(len(pending) == 1, "Expected one unfinished control transaction; inspect retained records", "recovery_required")
+        from .mcp_switch_owners import capture_origins
+        capture_origins(self.layout)
         return self.recover_candidate(*pending[0]) if target == "candidate" else self.recover_transaction(*pending[0])
 
     def require_account_guard(self, capabilities: dict) -> None:

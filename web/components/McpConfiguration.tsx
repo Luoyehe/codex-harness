@@ -17,7 +17,25 @@ type ServerConfig = {
   hasBearerTokenEnvVar: boolean;
   hasEnvHttpHeaders: boolean;
 };
-type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; transport: string; overridden: boolean }[] };
+type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; unassigned?: Record<string, boolean>; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; managedOwner?: string; transport: string; overridden: boolean }[] };
+function LegacySwitch({ name, value, targets, disabled, restore, discard }: {
+  name: string; value: boolean; targets: { name: string; managedOwner?: string }[]; disabled: boolean; restore: (target: string) => void; discard: () => void;
+}) {
+  const [target, setTarget] = useState('');
+  return <div className="info-card">
+    <p>原服务 {name} · 原设置为{value ? '启用' : '停用'}</p>
+    <label>将旧开关应用到
+      <select value={targets.some(row => row.name === target) ? target : ''} disabled={disabled || !targets.length}
+        onChange={event => setTarget(event.target.value)}>
+        <option value="">选择已核对的服务</option>
+        {targets.map(row => <option key={row.name} value={row.name}>{row.name} · {row.managedOwner ? `连接 ${row.managedOwner}` : '继承服务'}</option>)}
+      </select>
+    </label>
+    <button className="button small" disabled={disabled || !targets.some(row => row.name === target)} onClick={() => restore(target)}>应用原设置</button>
+    <button className="button small" disabled={disabled} onClick={discard}>放弃这条旧设置</button>
+  </div>;
+}
+
 type Pair = { name: string; value: string };
 type Edit = {
   baseName?: string;
@@ -297,6 +315,20 @@ function McpConfigurationForm({
           <p className="small muted">
             仅修改选中的用户层服务。未填写的敏感字段保持原值，其他服务保持原样。切换设置类别会清除新填敏感值及其替换选择，并清除授权勾选；其他未保存编辑仍保留。
           </p>
+          {catalog.data.unassigned && Object.keys(catalog.data.unassigned).length > 0 && <section className="stack">
+            <h4>待确认归属的旧开关</h4>
+            <p>旧配置只记录了服务名，无法确认当时的连接。请选择对应服务以恢复原设置。若连接已停用，可以先重新启用该连接。</p>
+            {Object.entries(catalog.data.unassigned).map(([name, value]) => {
+              const logical = (server: string) => server.replace(/-(?:default|[0-9a-f]{32})$/, '');
+              const targets = (catalog.data?.inheritedDetails ?? []).filter(row => row.overrideAllowed && logical(row.name) === logical(name));
+              return <LegacySwitch key={name + catalog.data!.userVersion} name={name} value={value} targets={targets}
+                disabled={!enabled || action.busy || catalog.loading || !!edit}
+                discard={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion,
+                  name, change: { type: 'discardLegacy', enabled: value } }, '旧设置已放弃。')}
+                restore={target => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion,
+                  name: target, change: { type: 'inherit', enabled: value, legacyName: name } }, '旧设置已恢复到所选服务。')} />;
+            })}
+          </section>}
           {catalog.data.inheritedServers.length > 0 && <p className="small muted">来自其他配置层：{catalog.data.inheritedServers.join('、')}</p>}
           {catalog.data.inheritedDetails?.map(server => (
             <div className="info-card" key={server.name}>

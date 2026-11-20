@@ -160,6 +160,29 @@ class ControlUpdateTests(unittest.TestCase):
         # tests independently exercise executable and configuration ownership.
         self.stack.enter_context(patch("deploy.service_proxy.verify_selection"))
 
+    def test_control_takeover_freezes_installed_legacy_provider_before_either_home_launches(self):
+        from deploy import mcp_enabled_override, mcp_switch_owners
+        from deploy.provider import ProviderStore, validate_provider
+        from deploy.provider_registry import change
+        store = ProviderStore(self.layout, self.updater.config["workerGid"])
+        seed = {"revision": "a" * 32, "kind": "chatgpt", "models": []}
+        original = validate_provider({"expectedRevision": seed["revision"], "kind": "zhipu-coding", "apiKey": "offline"}, seed)
+        store.select(store.prepare(original))
+        home = self.layout.root / "cold-home"
+        home.mkdir(mode=0o700)
+        (home / mcp_enabled_override.STORE).write_text('{"web-reader":true}')
+        updated = self.updater.update()
+        self.assertTrue(updated["controlUpdated"])
+        archive = read_json(store.root / mcp_switch_owners.ORIGINS)
+        self.assertEqual(archive["bindings"]["web-reader"][0], "@builtin:default:web-reader")
+        other = change({"expectedRevision": original["revision"], "providerId": "new", "kind": "zhipu-coding", "apiKey": "offline-other"}, original)
+        paused = change({"expectedRevision": other["revision"], "providerId": "default", "enabled": False}, other)
+        store.select(store.prepare(paused))
+        mcp_switch_owners.publish(self.layout, paused)
+        args = mcp_enabled_override.launch_arguments(home, system=store.root / "current/config.toml", providers=store.root)
+        self.assertEqual(args, [])
+        self.assertEqual(read_json(home / mcp_enabled_override.STORE), {"@builtin:default:web-reader": True})
+
     def legacy_main_units(self):
         old = render_units(self.layout, self.updater.config, self.updater.config["codexRelative"],
                            legacy_sudo_filters=True, legacy_runtime_directory=True, legacy_native_home=True)

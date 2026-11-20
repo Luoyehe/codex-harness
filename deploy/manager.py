@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .common import CODEX_VERSION, NODE_VERSION, PNPM_VERSION, DeployError, Layout, atomic_write, canonical, digest, fsync_directory, mkdir, read_json, require, write_json
 from .provider import ProviderStore, redacted, validate_catalog, validate_provider
-from .mcp_switch_owners import publish as publish_mcp_owners
+from .mcp_switch_owners import capture_origins, publish as publish_mcp_owners
 from .journal import recover_as_owner
 from .safe_fs import inspect_tree
 from .system import System, run
@@ -283,6 +283,7 @@ class Manager:
         # changes an unknown operation into an unsent or accepted operation.
         require(all(self.system.state(unit)["stopped"] for unit in self.service_units),
                 "Control recovery requires stopped services", "stop_unknown")
+        capture_origins(self.layout)
         recover_as_owner(self.layout.state / "gateway/journal.sqlite", self.config["gatewayUid"], self.config["gatewayGid"])
 
     def status(self) -> dict:
@@ -540,6 +541,7 @@ class Manager:
         if new == old:
             return self.providers.public(old)
         generation = self.providers.prepare(new)
+        capture_origins(self.layout)
         tx = self.layout.state / "transactions" / uuid.uuid4().hex
         mkdir(tx, 0o700)
         journal = {"kind": "provider", "old": old["revision"], "candidate": generation, "phase": "prepared"}
@@ -711,6 +713,7 @@ class Manager:
                 self.select(state["old"])
                 self.restore_previous(state)
             elif state["kind"] == "provider":
+                capture_origins(self.layout)
                 self.providers.select(state["old"])
             else:
                 raise DeployError("recovery_required", "Unknown transaction type")

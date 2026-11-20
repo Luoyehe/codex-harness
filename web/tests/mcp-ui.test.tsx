@@ -1231,3 +1231,34 @@ it('keeps project-controlled inherited services read-only and explains the bundl
   expect(notice.parentElement?.textContent).toContain('zread-'+'a'.repeat(32));
   expect(screen.getByRole('button',{name:'启用 zread'})).toHaveProperty('disabled',false);
 });
+
+it('restores an unassigned switch only to the selected service and allows discarding without any target', async () => {
+  const named = 'web-reader-' + 'e'.repeat(32);
+  const unassigned: Record<string, boolean> = {'web-reader': false, zread: true};
+  let version = 0;
+  const {api, calls, events} = setup(c => {
+    if (c.method === 'mcp/config/read') return {...config, userVersion: 'v' + version, unassigned: {...unassigned},
+      inheritedDetails: [{name: named, enabled: true, effectiveEnabled: true, transport: 'http', overridden: false,
+        overrideAllowed: true, managedOwner: 'e'.repeat(32)}]};
+    if (c.method === 'mcp/config/write') {
+      const change = c.params.change as {legacyName?: string};
+      delete unassigned[change.legacyName ?? String(c.params.name)];
+      version++;
+      return {written:true};
+    }
+    return fallback(c);
+  });
+  render(<McpPanel {...panelProps(api,events)} />);
+  fireEvent.click(screen.getByText('查看或编辑 MCP 服务配置',{selector:'summary'}));
+  await screen.findByText('待确认归属的旧开关');
+  const select = screen.getAllByLabelText('将旧开关应用到')[0]!;
+  expect(screen.getAllByRole('button', {name:'应用原设置'})[0]).toHaveProperty('disabled', true);
+  fireEvent.change(select, {target:{value:named}});
+  fireEvent.click(screen.getAllByRole('button', {name:'应用原设置'})[0]!);
+  await waitFor(() => expect(calls.some(c => c.method === 'mcp/config/write' && c.params.name === named &&
+    JSON.stringify(c.params.change) === JSON.stringify({type:'inherit', enabled:false, legacyName:'web-reader'}))).toBe(true));
+  await waitFor(() => expect(screen.getByRole('button', {name:'放弃这条旧设置'})).toHaveProperty('disabled', false));
+  fireEvent.click(screen.getByRole('button', {name:'放弃这条旧设置'}));
+  await waitFor(() => expect(calls.some(c => c.method === 'mcp/config/write' && c.params.name === 'zread' &&
+    JSON.stringify(c.params.change) === JSON.stringify({type:'discardLegacy', enabled:true}))).toBe(true));
+});

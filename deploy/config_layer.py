@@ -12,6 +12,7 @@ from pathlib import Path
 from .common import DeployError, atomic_write, canonical, fsync_directory, mkdir, read_json, require, write_json
 from .ownership import present, regular, require_owned
 from .provider import native_config, require_provider_layer
+from .mcp_switch_owners import capture_origins
 from .provider_layers import LAYER_MODE, prepare_host_targets, verify_system_layers
 from .system import run
 from .units import main_unit_templates, render_units, sudo_rule
@@ -154,6 +155,7 @@ def stop(manager) -> None:
 
 
 def restore_activity(manager, active: list[str]) -> None:
+    capture_origins(manager.layout)
     folder = barriers(manager, active)
     try:
         if active:
@@ -230,6 +232,7 @@ def recover_config_layer(manager, journal_path: Path, journal: dict, *, candidat
         # Reject old unsafe candidates before altering barriers, services or
         # journal phase. Restoring the original snapshot remains available.
         require_candidate_layer(manager, journal)
+    capture_origins(manager.layout)
     barriers(manager)
     stop(manager)  # No path, pointer or unit changes after an unconfirmed stop.
     journal["phase"] = "recovering-candidate" if candidate else "recovering"
@@ -321,6 +324,7 @@ def change_config_layer(manager, *, layered: bool = True) -> dict:
     mkdir(transaction, 0o700)
     journal = {"kind": "config-layer", "phase": "prepared", "targetMode": mode, "before": before,
                "oldProvider": current["revision"], "candidateProvider": generation, "candidateConfig": candidate_config, "active": active}
+    capture_origins(layout)
     write_json(transaction / "state.json", journal)
     barriers(manager)
     stop(manager)

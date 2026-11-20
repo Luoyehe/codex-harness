@@ -205,7 +205,10 @@ class ManagedSwitchLifecycle(unittest.TestCase):
         self.system = self.root / "single-plan.toml"
         self.system.write_bytes(native_config(upgrade_mcp_defaults(old), self.layout))
         path = self.home / switches.STORE
+        self.manager.providers.select(self.manager.providers.prepare(old))
         path.write_text(json.dumps({"web-reader": True, "zai-mcp-server": False, "custom": True}))
+        from deploy.mcp_switch_owners import capture_origins
+        capture_origins(self.layout)
         self.assertEqual(self.launched(), {"web-reader": True, "zai-mcp-server": False})
         registry = change({"expectedRevision": old["revision"], "providerId": "new", "kind": "zhipu-coding", "apiKey": "other"}, old)
         self.system.write_bytes(native_config(upgrade_mcp_defaults(registry), self.layout))
@@ -230,3 +233,174 @@ class ManagedSwitchLifecycle(unittest.TestCase):
         self.assertEqual(self.set_flag("web-reader", True)["flags"], {"web-reader": True})
         self.assertEqual(len(json.loads(path.read_text())), 2)
         self.assertIn("custom@@provider:" + owner, json.loads(path.read_text()))
+
+    def old_plan(self):
+        from deploy.provider import validate_provider
+        initial = self.manager.providers.read()
+        old = validate_provider({"expectedRevision": initial["revision"], "kind": "zhipu-coding", "apiKey": "offline"}, initial)
+        self.manager.providers.select(self.manager.providers.prepare(old))
+        return old
+
+    def legacy_home(self, name, fmt, flags):
+        home = self.root / name
+        home.mkdir(mode=0o700)
+        if fmt == "json":
+            (home / switches.STORE).write_text(json.dumps(flags))
+        else:
+            (home / "config.toml").write_text('model="preserved"\n' + "".join(
+                f'[mcp_servers."{service}"]\nenabled={str(value).lower()}\n' for service, value in flags.items()))
+        return home
+
+    def test_cold_and_visited_json_and_toml_migrate_against_the_original_generation(self):
+        from deploy.mcp_switch_owners import ORIGINS
+        self.old_plan()
+        flags = {"web-reader": True, "web-search-prime": True, "zread": True, "zai-mcp-server": False}
+        homes = {(fmt, visit): self.legacy_home(fmt + str(visit), fmt, flags)
+                 for fmt in ("json", "toml") for visit in (True, False)}
+        from deploy.mcp_switch_owners import capture_origins
+        capture_origins(self.layout)
+        for (_, visit), home in homes.items():
+            if visit:
+                self.assertEqual(self.launched(home), flags)
+        other = self.add_plan()
+        baseline = (self.providers / ORIGINS).read_bytes()
+        self.change(providerId="default", enabled=False)
+        for home in homes.values():
+            self.assertEqual(self.launched(home), {})
+            self.assertEqual(self.state(home)["unassigned"], {})
+        self.change(providerId="default", enabled=True)
+        self.assertEqual((self.providers / ORIGINS).read_bytes(), baseline)
+        for (fmt, _), home in homes.items():
+            self.assertEqual(self.launched(home), flags)
+            self.assertFalse(any(other in key for key in json.loads((home / switches.STORE).read_text())))
+            if fmt == "toml":
+                self.assertEqual((home / "config.toml").read_text(), 'model="preserved"\n')
+
+    def test_early_display_only_sdk_suffixes_and_native_toml_respect_old_owner(self):
+        from deploy import mcp_switch_owners
+        from deploy.provider_registry import change
+        old = self.old_plan()
+        registry = change({"expectedRevision": old["revision"], "providerId": "new", "kind": "zhipu-coding", "apiKey": "second"}, old)
+        self.manager.providers.select(self.manager.providers.prepare(registry))
+        second = registry["connections"][-1]["id"]
+        flags = {"web-reader": True, "web-reader-" + second: False, "zai-mcp-server-" + second: False}
+        homes = [self.legacy_home(fmt, fmt, flags) for fmt in ("json", "toml")]
+        mcp_switch_owners.publish(self.layout)  # Installed original registry at control takeover.
+        self.change(providerId="default", enabled=False)
+        for home in homes:
+            self.assertEqual(self.launched(home), {"web-reader": False, "zai-mcp-server": False})
+        self.change(providerId="default", enabled=True)
+        for home in homes:
+            self.assertEqual(self.launched(home), flags)
+
+    def test_cold_legacy_files_survive_rollback_and_saved_profile_or_retire_with_deleted_owner(self):
+        from unittest.mock import patch
+        self.old_plan()
+        flags = {"web-reader": True, "zai-mcp-server": False}
+        rollback = self.legacy_home("rollback", "toml", flags)
+        archived = self.legacy_home("archived", "json", flags)
+        retired = self.legacy_home("retired", "toml", flags)
+        self.add_plan()
+        profile = self.change(saveProfileName="original")["profiles"][0]["id"]
+        launches = []
+        def health():
+            launches.append(self.launched(rollback))
+            if len(launches) == 1:
+                raise RuntimeError("offline failed health check")
+        with patch.object(self.manager, "healthy", side_effect=health), self.assertRaises(RuntimeError):
+            self.change(removeProviderId="default")
+        self.assertEqual(launches, [{}, flags])
+        self.change(removeProviderId="default")
+        self.assertEqual(self.launched(archived), {})
+        self.change(profileId=profile)
+        self.assertEqual(self.launched(archived), flags)
+        self.change(removeProviderId="default")
+        self.change(deleteProfileId=profile)
+        self.assertEqual(self.launched(retired), {})
+        self.assertEqual(self.state(retired)["unassigned"], {})
+        self.assertNotIn("web-reader", (retired / "config.toml").read_text())
+
+    def test_late_same_name_import_is_retained_for_explicit_recovery_only(self):
+        from deploy import mcp_switch_owners
+        self.old_plan()
+        mcp_switch_owners.publish(self.layout)
+        self.add_plan()
+        self.change(providerId="default", enabled=False)
+        for fmt in ("json", "toml"):
+            home = self.legacy_home(fmt, fmt, {"web-reader": True})
+            self.assertEqual(self.launched(home), {})
+            before = self.state(home)
+            self.assertEqual(before["unassigned"], {"web-reader": True})
+            self.assertEqual(self.launched(home), {})
+            self.assertEqual(before, self.state(home))
+            import tomllib
+            settings = tomllib.loads((home / "config.toml").read_text()) if fmt == "toml" else None
+            params = {"name": "web-reader", "enabled": True, "expectedVersion": switches.version(settings) if settings is not None else None,
+                      "expectedFlags": before["version"], "legacyName": "web-reader"}
+            for bad in ({"name": "zread"}, {"enabled": False}, {"legacyName": "zread"}):
+                with self.assertRaises(DeployError):
+                    switches.apply(home, {**params, **bad}, system=self.system, providers=self.providers)
+            result = switches.apply(home, params, system=self.system, providers=self.providers)
+            self.assertEqual(result["unassigned"], {})
+            self.assertEqual(self.launched(home), {"web-reader": True})
+            self.assertEqual(self.state(home)["unassigned"], {})
+
+    def test_conflicting_owner_history_or_collected_generation_does_not_authorize_a_guess(self):
+        from deploy import mcp_switch_owners
+        self.old_plan()
+        home = self.legacy_home("before-upgrade", "toml", {"web-reader": True})
+        self.add_plan()
+        self.change(providerId="default", enabled=False)
+        # Simulate upgrading an installation that already reassigned this name
+        # under old controls. The managed transaction records and generations stay.
+        (self.providers / mcp_switch_owners.ORIGINS).unlink()
+        mcp_switch_owners.publish(self.layout)
+        self.assertEqual(self.launched(home), {})
+        self.assertEqual(self.state(home)["unassigned"], {"web-reader": True})
+
+    def test_archive_at_capacity_can_be_discarded_without_a_matching_server(self):
+        from deploy import mcp_switch_owners
+        self.old_plan()
+        self.add_plan()
+        home = self.legacy_home("late", "json", {"web-reader": False})
+        path = home / switches.STORE
+        self.change(providerId="default", enabled=False)
+        unknown = {"web-reader-" + format(number, "032x"): True for number in range(128)}
+        path.write_text(json.dumps(unknown))
+        self.assertEqual(self.launched(home), {})
+        self.assertEqual(self.state(home)["unassigned"], unknown)
+        self.set_flag("web-reader", True, home)
+        state = self.state(home)
+        original = next(iter(unknown))
+        args = {"name": original, "enabled": True, "expectedVersion": None,
+                "expectedFlags": state["version"], "discardLegacy": True}
+        wrong = {**args, "enabled": False}
+        with self.assertRaises(DeployError):
+            switches.apply(home, wrong, system=self.system, providers=self.providers)
+        saved = switches.apply(home, args, system=self.system, providers=self.providers)
+        self.assertNotIn(original, saved["unassigned"])
+        self.assertEqual(self.launched(home), {"web-reader": True})
+        with self.assertRaises(DeployError):
+            switches.apply(home, args, system=self.system, providers=self.providers)
+
+    def test_old_interrupted_candidate_is_considered_before_recovery_starts_a_cold_home(self):
+        from unittest.mock import patch
+        from deploy import mcp_switch_owners
+        from deploy.common import write_json
+        from deploy.provider_registry import change
+        old = self.old_plan()
+        second = change({"expectedRevision": old["revision"], "providerId": "new", "kind": "zhipu-coding", "apiKey": "new"}, old)
+        candidate = change({"expectedRevision": second["revision"], "providerId": "default", "enabled": False}, second)
+        store = self.manager.providers
+        store.select(store.prepare(candidate))
+        home = self.legacy_home("candidate-home", "toml", {"web-reader": True})
+        tx = self.layout.state / "transactions" / ("a" * 32)
+        tx.mkdir(parents=True)
+        write_json(tx / "state.json", {"kind": "provider", "phase": "selected", "old": old["revision"], "candidate": candidate["revision"]})
+        self.assertFalse((self.providers / mcp_switch_owners.ORIGINS).exists())
+        observed = []
+        with patch.object(self.manager, "recover_control"), patch.object(self.manager, "healthy", side_effect=lambda: observed.append(self.launched(home))):
+            self.manager.repair()
+        self.assertEqual(observed, [{}])
+        self.assertEqual(self.state(home)["unassigned"], {"web-reader": True})
+        self.assertEqual(self.launched(home), {})

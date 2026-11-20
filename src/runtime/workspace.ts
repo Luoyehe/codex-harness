@@ -38,7 +38,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
   const retire = internal && action === 'worktree/reconcile-retire';
   const internalAck = internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire-info', 'worktree/reconcile-retire'].includes(action);
   if (!internalAck && !internalRead && !mcpOverride && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
-  onlyKeys(input, mcpOverride ? ['name', 'enabled', 'expectedVersion', 'expectedFlags'] : internalRead ? [] : retire ? ['operationId', 'requestDigest', 'worktreeId', 'expectedRevision', 'confirm'] : internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
+  onlyKeys(input, mcpOverride ? ['name', 'enabled', 'expectedVersion', 'expectedFlags', 'legacyName', 'discardLegacy'] : internalRead ? [] : retire ? ['operationId', 'requestDigest', 'worktreeId', 'expectedRevision', 'confirm'] : internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
   const rootPath = string(root.path, 'registered workspace root');
   if (!rootPath.startsWith('/') || path.posix.normalize(rootPath) !== rootPath || /[\u0000-\u001f\u007f]/.test(rootPath)) throw new DeliveryError('invalid_project', 'Registered native workspace root must be canonical');
   const params = { ...input };

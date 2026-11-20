@@ -759,6 +759,7 @@ export class RuntimeService extends EventEmitter {
             ? await runWorkspace(this.config, { path: this.cwd(cwd) }, 'mcp/enabled-override', change, { ...context, beforeWrite: boundary }, true)
             : await historyHelper(this.config, { action: 'mcp-enabled-override', ...change }, true, boundary);
           acknowledged = true;
+          if (change.discardLegacy === true) return value;
           const probe = await RuntimeService.nativeProcess({ ...this.config, isolatedGroup: true });
           this.catalogProcesses.add(probe);
           try {

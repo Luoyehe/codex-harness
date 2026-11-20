@@ -41,7 +41,7 @@ FIELDS = {"worktree/reconcile-retire-info": {"operationId", "requestDigest"},
 FIELDS.update(INDEX_FIELDS)
 FIELDS["repository/identity"] = set()
 FIELDS["project/trust-roots"] = set()
-FIELDS["mcp/enabled-override"] = {"name", "enabled", "expectedVersion", "expectedFlags"}
+FIELDS["mcp/enabled-override"] = {"name", "enabled", "expectedVersion", "expectedFlags", "legacyName", "discardLegacy"}
 FIELDS["mcp/enabled-read"] = set()
 FIELDS["operation/ack"] = {"operationId", "requestDigest"}
 
@@ -80,7 +80,9 @@ def validate(value: object) -> dict:
     if action == "operation/read":
         operation_id(params.get("operationId"))
     if action == "mcp/enabled-override":
-        require(set(params) == FIELDS[action] and isinstance(params["name"], str) and
+        require(set(params) - {"legacyName", "discardLegacy"} == FIELDS[action] - {"legacyName", "discardLegacy"} and
+                ("discardLegacy" not in params or params["discardLegacy"] is True and "legacyName" not in params) and
+                ("legacyName" not in params or isinstance(params["legacyName"], str) and len(params["legacyName"].encode()) <= 128) and isinstance(params["name"], str) and
                 0 < len(params["name"].encode()) <= 128 and all(ord(c) >= 32 and ord(c) != 127 for c in params["name"])
                 and isinstance(params["expectedFlags"], str) and re.fullmatch(r"sha256:[a-f0-9]{64}", params["expectedFlags"]), "Invalid MCP enable override")
         require(params["enabled"] is None or type(params["enabled"]) is bool, "Expected an enable switch or null to inherit")

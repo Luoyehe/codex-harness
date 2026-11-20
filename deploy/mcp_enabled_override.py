@@ -12,7 +12,7 @@ import stat
 import tempfile
 
 from .common import DeployError, fsync_directory, require
-from .mcp_switch_owners import OWNER, retained
+from .mcp_switch_owners import OWNER, origins, retained
 from .provider import CODING_HTTP, ZHIPU_URL
 
 
@@ -115,16 +115,21 @@ def _replace(path, data, before, limit):
 def _flags(home):
     before = _read(home / STORE, limit=65536)
     flags = json.loads(before[0]) if before[1] is not None else {}
-    require(isinstance(flags, dict) and len(flags) <= 128 and all(isinstance(k, str) and len(k.encode()) <= 192 and all(ord(c) >= 32 and ord(c) != 127 for c in k) and type(v) is bool for k, v in flags.items()),
+    require(isinstance(flags, dict) and all(isinstance(k, str) and len(k.encode()) <= 192 and all(ord(c) >= 32 and ord(c) != 127 for c in k) and type(v) is bool for k, v in flags.items()),
             "Invalid stored MCP switches", "config_conflict")
+    require(sum(not key.startswith(UNASSIGNED) for key in flags) <= 128, "Invalid stored MCP switch count", "config_conflict")
     return flags, before
 
 
 def _save(home, flags, before):
-    _replace(home / STORE, (json.dumps(flags, sort_keys=True, ensure_ascii=False) + "\n").encode(), before, 65536)
+    data = (json.dumps(flags, sort_keys=True, ensure_ascii=False) + "\n").encode()
+    require(len(data) <= 65536, "Stored MCP switches exceed the size limit", "capacity")
+    _replace(home / STORE, data, before, 65536)
 
 
 BUILTINS = "|".join((*CODING_HTTP, "zai-mcp-server"))
+UNASSIGNED = "@unassigned:"
+DISPLAY = re.compile(rf"({BUILTINS})(?:-({OWNER}))?")
 BUILTIN_KEY = re.compile(rf"@builtin:({OWNER}):({BUILTINS})")
 OLD_BUILTIN_KEY = re.compile(rf"({BUILTINS})(?:-({OWNER}))?@provider:({OWNER})")
 
@@ -132,8 +137,9 @@ OLD_BUILTIN_KEY = re.compile(rf"({BUILTINS})(?:-({OWNER}))?@provider:({OWNER})")
 def _identity(name, entry, active, legacy_plan):
     """Identify the renderer's logical server using its name AND transport."""
     escaped = name.replace("@", "@@")
+    custom = "@host:" + escaped if DISPLAY.fullmatch(name) else escaped
     if not isinstance(entry, dict):
-        return escaped, None
+        return custom, None
     args = entry.get("args")
     key = entry.get("bearer_token_env_var")
     owner = None
@@ -152,7 +158,7 @@ def _identity(name, entry, active, legacy_plan):
         if args == [root + "/app/node_modules/@z_ai/mcp-server/build/index.js"] and entry.get("env_vars") == ["Z_AI_API_KEY", "Z_AI_MODE"]:
             return "@builtin:default:" + name, escaped
     if owner is None:
-        return escaped, None
+        return custom, None
     old = escaped + "@provider:" + owner
     if logical and name in (logical, logical + "-" + owner) and (active is None or
             owner in active and name == (logical if owner == active[0] else logical + "-" + owner)):
@@ -162,8 +168,24 @@ def _identity(name, entry, active, legacy_plan):
     return ("@system:" + old, old) if OLD_BUILTIN_KEY.fullmatch(old) else (old, None)
 
 
-def _normalize(flags, identities, owners):
+def _old_display(name, witness, history):
+    if history is not None:
+        # ctime includes replacement, copy and subsequent edits. Combined
+        # with the original transport evidence, this excludes late imports.
+        attribution = history["bindings"].get(name)
+        if attribution and witness is not None and attribution[1] <= witness[4] <= history["before"]:
+            return attribution[0]
+    return UNASSIGNED + name
+
+
+def _normalize(flags, identities, owners, history, witness):
     result = dict(flags)
+    for name in flags:
+        if DISPLAY.fullmatch(name):
+            key = _old_display(name, witness, history)
+            value = result.pop(name)
+            if key not in flags:
+                result[key] = result.get(key, True) and value
     # Prefer current transport evidence for ambiguous legacy host-server keys.
     for key, old in identities.values():
         if old in result:
@@ -192,7 +214,9 @@ def _state(home, flags, identities, servers):
     visible = {name: flags[key] for name, key in bindings.items() if key in flags}
     http_defaults = [name for name, key in bindings.items() if (match := BUILTIN_KEY.fullmatch(key))
                      and match[2] in CODING_HTTP and servers[name].get("enabled") is False]
-    return {"flags": visible, "codingPlanHttpDefaults": http_defaults,
+    managed = {name: match[1] for name, key in bindings.items() if (match := BUILTIN_KEY.fullmatch(key))}
+    unassigned = {key.removeprefix(UNASSIGNED): value for key, value in flags.items() if key.startswith(UNASSIGNED)}
+    return {"flags": visible, "codingPlanHttpDefaults": http_defaults, "unassigned": unassigned, "managedOwners": managed,
             "version": version({"flags": flags, "bindings": bindings}), "filePath": str(home / STORE)}
 
 
@@ -204,8 +228,16 @@ def _switches(home, document, providers):
     raw, before = _flags(home)
     owners, active = retained(providers)
     identities = {name: _identity(name, entry, active, legacy_plan) for name, entry in servers.items()}
-    flags = _normalize(raw, identities, owners)
-    return flags, before, identities, servers
+    history = origins(providers)
+    if history is None and legacy_plan and providers is not None:
+        # On a pristine pre-registry installation the sole immutable generation
+        # is positive evidence for the default. Generation retention keeps at
+        # least three predecessors once present. Missing metadata after a repair,
+        # an import, or any other selection cannot authorize a current-name guess.
+        from .mcp_switch_owners import initial_origins
+        history = initial_origins(providers)
+    flags = _normalize(raw, identities, owners, history, before[1])
+    return flags, before, identities, servers, history, owners
 
 
 def read(home, *, system=None, providers=None):
@@ -213,7 +245,7 @@ def read(home, *, system=None, providers=None):
     _safe(home.lstat(), True)
     def snapshot():
         data, _ = _read(system or SYSTEM, limit=4 * 1024 * 1024, private=False)
-        flags, before, identities, servers = _switches(home, tomllib.loads(data.decode()), providers)
+        flags, before, identities, servers, _, _ = _switches(home, tomllib.loads(data.decode()), providers)
         return _state(home, flags, identities, servers), flags, before
 
     state, flags, before = snapshot()
@@ -249,23 +281,37 @@ def _native_layers(home, system):
 
 def apply(home: Path, params: dict, *, system=None, providers=None) -> dict:
     name, enabled = params.get("name"), params.get("enabled")
-    require(set(params) == {"name", "enabled", "expectedVersion", "expectedFlags"} and _name(name)
+    legacy_name = params.get("legacyName")
+    require(set(params) - {"legacyName", "discardLegacy"} == {"name", "enabled", "expectedVersion", "expectedFlags"}
+            and ("discardLegacy" not in params or params["discardLegacy"] is True and "legacyName" not in params) and _name(name)
             and (enabled is None or type(enabled) is bool), "Invalid MCP enabled override", "invalid_params")
     with _exclusive(home):
         base, settings, document = _native_layers(home, system or SYSTEM)
-        flags, before, identities, system_servers = _switches(home, document, providers)
+        flags, before, identities, system_servers, _, _ = _switches(home, document, providers)
         require(params["expectedFlags"] == _state(home, flags, identities, system_servers)["version"] and
                 (params["expectedVersion"] == version(settings) or base[1] is None and params["expectedVersion"] is None),
                 "User configuration changed; reload before saving", "config_conflict")
-        require(name in system_servers and name not in settings.get("mcp_servers", {}),
-                "The inherited system server changed; reload before saving", "config_conflict")
-        key = identities[name][0]
-        if enabled is None: flags.pop(key, None)
-        else: flags[key] = enabled
-        require(len(flags) <= 128, "Too many MCP switches", "capacity")
+        if params.get("discardLegacy"):
+            require(DISPLAY.fullmatch(name) and type(enabled) is bool and flags.get(UNASSIGNED + name) is enabled,
+                    "The retained switch changed; reload before discarding", "config_conflict")
+            del flags[UNASSIGNED + name]
+        else:
+            require(name in system_servers and name not in settings.get("mcp_servers", {}),
+                    "The inherited system server changed; reload before saving", "config_conflict")
+            key = identities[name][0]
+            if "legacyName" in params:
+                source = DISPLAY.fullmatch(legacy_name) if _name(legacy_name) else None
+                target = DISPLAY.fullmatch(name)
+                require(source and target and source[1] == target[1] and type(enabled) is bool
+                        and flags.get(UNASSIGNED + legacy_name) is enabled,
+                        "The retained switch or selected service changed; reload before restoring", "config_conflict")
+                del flags[UNASSIGNED + legacy_name]
+            if enabled is None: flags.pop(key, None)
+            else: flags[key] = enabled
+        require(sum(not key.startswith(UNASSIGNED) for key in flags) <= 128, "Too many MCP switches", "capacity")
         if flags != (json.loads(before[0]) if before[1] else {}): _save(home, flags, before)
         _, _, current_document = _native_layers(home, system or SYSTEM)
-        saved, _, current_ids, current_servers = _switches(home, current_document, providers)
+        saved, _, current_ids, current_servers, _, _ = _switches(home, current_document, providers)
         state = _state(home, saved, current_ids, current_servers)
         require(state == _state(home, flags, identities, system_servers), "MCP switch readback changed", "config_conflict")
         return {**state, "written": True}
@@ -279,14 +325,21 @@ def launch_arguments(home: Path, *, system=None, providers=None) -> list[str]:
     import tomllib
     with _exclusive(home):
         base, settings, document = _native_layers(home, system)
-        flags, before, identities, servers = _switches(home, document, providers)
+        flags, before, identities, servers, history, owners = _switches(home, document, providers)
         entries = settings.get("mcp_servers", {})
-        legacy = {key: row["enabled"] for key, row in entries.items() if key in servers and _name(key)
+        legacy = {key: row["enabled"] for key, row in entries.items() if _name(key) and (key in servers or DISPLAY.fullmatch(key))
                   and isinstance(row, dict) and set(row) == {"enabled"} and type(row["enabled"]) is bool}
         # Publish a migration before removing legacy TOML. Either halfway
         # state represents the same intent and is safe to retry.
-        flags = {**{identities[k][0]: v for k, v in legacy.items()}, **flags}
-        require(len(flags) <= 128, "Too many MCP switches", "capacity")
+        imported = {}
+        for name, value in legacy.items():
+            key = _old_display(name, base[1], history) if DISPLAY.fullmatch(name) else identities[name][0]
+            match = BUILTIN_KEY.fullmatch(key)
+            if match and owners is not None and match[1] not in owners:
+                continue
+            imported[key] = imported.get(key, True) and value
+        flags = {**imported, **flags}
+        require(sum(not key.startswith(UNASSIGNED) for key in flags) <= 128, "Too many MCP switches", "capacity")
         if flags != (json.loads(before[0]) if before[1] else {}):
             _save(home, flags, before)
         if legacy:
