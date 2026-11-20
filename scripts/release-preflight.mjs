@@ -134,6 +134,16 @@ export function checkBuild(base, source, pins, head, rebuild = false) {
   return { path: buildRecord, sha256: sha(readFileSync(file)), builtForHead: record.builtForHead, sourceDigest: record.sourceDigest, outputs: record.outputs.length, rebuilt: rebuild };
 }
 
+/** Evidence is excluded from the source snapshot. Verify its own checked commit. */
+export function committedAuthorization(base, head, checksum) {
+  const authorization = releaseAuthorization(base, authorizationPath, checksum);
+  for (const binding of [{ path: authorizationPath, sha256: checksum }, ...(authorization.audit?.bindings ?? [])]) {
+    if (sha(Buffer.from(git(base, ['show', `${head}:${binding.path}`]), 'utf8')) !== binding.sha256)
+      throw Error('Release authorization or audit evidence differs from committed bytes');
+  }
+  return authorization;
+}
+
 export function releasePreflight(options, base = root) {
   base = realpathSync(base);
   const { head, pushBase, prBase, authorizationSha256, build = false } = options;
@@ -141,8 +151,7 @@ export function releasePreflight(options, base = root) {
   try { git(base, ['merge-base', '--is-ancestor', prBase, head]); }
   catch { throw Error('Release head must include the current target branch; integrate it and review the resulting source before release'); }
   const source = committedSource(base, head);
-  const authorization = releaseAuthorization(base, authorizationPath, authorizationSha256);
-  if (sha(Buffer.from(git(base, ['show', `${head}:${authorizationPath}`]), 'utf8')) !== authorization.sha256) throw Error('Authorization must match the expected committed bytes');
+  const authorization = committedAuthorization(base, head, authorizationSha256);
   const pins = toolPins(base);
   const env = { HARNESS_CI_HEAD: head, HARNESS_AUTHORIZATION_SHA: authorizationSha256 };
   const push = buildCiPlan(base, { ...env, HARNESS_CI_BASE: pushBase });

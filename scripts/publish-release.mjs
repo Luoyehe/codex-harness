@@ -1,8 +1,7 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { releaseAuthorization } from './release-authorization.mjs';
-import { committedSource } from './release-preflight.mjs';
+import { committedAuthorization, committedSource } from './release-preflight.mjs';
 import { testInventory } from './select-tests.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,7 +60,7 @@ export async function publishRelease(base, env = process.env, fetcher = fetch, c
     if (!checked.equals(readFileSync(path.join(base, name)))) throw Error('Reviewed release evidence differs from the checked commit');
   }
   const checksum = createHash('sha256').update(readFileSync(path.join(base, authorizationPath))).digest('hex');
-  const auth = releaseAuthorization(base, authorizationPath, checksum);
+  const auth = committedAuthorization(base, sha, checksum);
   const coverage = JSON.parse(readFileSync(path.join(base, '.work', 'release-coverage', String(runId), 'reconciled.json'), 'utf8'));
   verifiedCoverage(coverage, { head: sha, digest: current.digest, files: testInventory(base).length, authorization: auth.sha256 });
   // GitHub ignores target_commitish for an existing tag. Resolve the live tag

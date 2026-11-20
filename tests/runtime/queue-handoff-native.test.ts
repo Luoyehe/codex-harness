@@ -96,6 +96,8 @@ test.each(['tool-reference to image', 'image to tool-reference', 'oversized nati
   const small = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAI0lEQVR4nGPsn7+RgRTARJJqhlENxAEmItXBwagGYgDJoQQA62sB/85+iZAAAAAASUVORK5CYII=', 'base64');
   const wide = direction === 'acknowledged wide native image with update to tool-reference';
   const images = large ? [0, 1, 2, 3].map(i => largePng(i)) : wide ? [largePng(9, 4096, 240)] : paired ? [small, small] : [small];
+  const messageText = 'Keep this queued message exactly once' +
+    (originalConsumption ? '\n' + 'Fixture observation from a long document.\n'.repeat(16_000) : '');
   const filenames: string[] = [], firstClient = randomUUID();
   let queued: JsonObject = {};
   const uploads = await Promise.all(images.map((image, i) => runtime.call('attachment/upload', {
@@ -105,7 +107,7 @@ test.each(['tool-reference to image', 'image to tool-reference', 'oversized nati
     filenames.push(path.join(root, 'attachments', uploaded.attachmentId + '.png'));
     if ((natural || paired) && index > 0) continue;
     const ids = natural || paired ? uploads.map(row => row.attachmentId!).reverse() : [uploaded.attachmentId!];
-    const entry = object(object(await runtime.call('thread/queue/add', { threadId, text: index ? 'Other fixture row' : 'Keep this queued message exactly once',
+    const entry = object(object(await runtime.call('thread/queue/add', { threadId, text: index ? 'Other fixture row' : messageText,
       attachmentIds: ids, clientUserMessageId: index ? randomUUID() : firstClient,
       ...(index ? {} : { extraContext: [{ label: 'note', text: '保留原附加上下文' },
         ...(natural ? [{ label: 'source snapshot', text: trustedFile }] : [])] }) }, { ...actor, operationId: randomUUID() })).queuedSubmission);
@@ -169,10 +171,30 @@ test.each(['tool-reference to image', 'image to tool-reference', 'oversized nati
     for (const image of images) expect(modelRequest.includes(image.toString('base64'))).toBe(true);
     expect(notices).toHaveLength(1);
     expect(notices[0]?.threadId).toBe(threadId);
-    expect(JSON.stringify(notices)).toContain('Keep this queued message exactly once');
+    const parts = object(notices[0]!.item).content as JsonValue[];
+    expect(parts.some(value => object(value).text === messageText)).toBe(true);
+    expect(modelRequest.includes(JSON.stringify(messageText).slice(1, -1))).toBe(true);
     expect(JSON.stringify(notices)).not.toContain('base64,');
     expect(runtime.native.connected).toBe(true);
     expect(object(await runtime.call('thread/queue/list', { threadId }, actor)).data).toEqual([]);
+    // Reread the persisted transcript, not the live preview. The native item
+    // reply itself includes the original four inline images. Exact exports
+    // must not silently replace them with the browser's display notices.
+    const currentNative = runtime.native;
+    await runtime.close(); expectNativeClosed(currentNative); runtime = await create();
+    for (const mode of [{}, { intent: 'window' }]) {
+      const page = object(await runtime.call('thread/history', {
+        threadId, limit: 30, timelineFormat: 'references', ...mode,
+      }, actor));
+      const items = (page.turns as JsonValue[]).flatMap(turn => object(turn).items as JsonValue[]).map(item => object(item));
+      const user = items.find(item => item.type === 'userMessage' && (item.content as JsonValue[]).some(part => object(part).text === messageText));
+      expect(user).toBeDefined();
+      expect((user!.content as JsonValue[]).filter(part => String(object(part).text).includes('历史预览省略图片内容'))).toHaveLength(4);
+      expect(items.some(item => item.type === 'agentMessage' && item.text === 'Fixture response')).toBe(true);
+      expect(JSON.stringify(page).includes('data:image/')).toBe(false);
+    }
+    await expect(runtime.call('thread/export', { threadId, format:'json' }, actor)).rejects.toMatchObject({code: 'capacity'});
+    expect(runtime.native.connected).toBe(true);
     return;
   }
   // The native queue still owns the original entry. A cold read must retain the

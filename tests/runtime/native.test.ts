@@ -1,4 +1,4 @@
-import { NativeMediaEvent } from '../../src/runtime/native-media-event.js';
+import { fitHistoryImages, NativeMediaEvent } from '../../src/runtime/native-media-event.js';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mkdtempSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -156,6 +156,33 @@ describe('bounded native delivery', () => {
     expect(project({ method, params, id: 1 })).toBeUndefined();
     expect(project({ method, params: { ...params, turnId: null } })).toBeUndefined();
     expect(project({ method: 'thread/queue/changed', params })).toBeUndefined();
+  });
+
+  test('history previews preserve cursors, voice and replies and require the original read identity', () => {
+    const photo = { type: 'image', url: 'data:image/png;base64,' + 'YWJj'.repeat(512) };
+    const notes = { type: 'text', text: 'My notes', text_elements: [] };
+    const item = { type: 'userMessage', id: 'user', content: [notes, photo] };
+    const reply = { type: 'agentMessage', id: 'reply', text: 'Reviewed both documents.' };
+    const result = { data: [item, reply].map(item => ({ type: 'item', turnId: 'turn', item })),
+      nextCursor: 'older', activeRealtimeSessionAtPageStart: 'voice' };
+    const project = (value: unknown) => {
+      const reader = new NativeMediaEvent();
+      reader.update(Buffer.from(JSON.stringify(value)));
+      return reader;
+    };
+    const parsed = () => JSON.parse(JSON.stringify(result));
+    const reader = project({ id: 7, result });
+    const expected = { ...item, content: [notes, { type: 'text', text: expect.stringContaining('图片'), text_elements: [] }] };
+    const preview = { ...result, data: [{ ...result.data[0], item: expected }, result.data[1]] };
+    expect(reader.historyReply(7, 'timeline')).toEqual(preview);
+    expect(reader.historyReply(8, 'timeline')).toBeUndefined();
+    // A reply may fit the native frame but exceed the requested display window.
+    expect(fitHistoryImages(parsed(), 'timeline', photo.url.length)).toEqual(preview);
+    expect(fitHistoryImages(parsed(), 'timeline', photo.url.length + 1)).toEqual(result);
+    const unrelated = project({ id: 7, result: { data: [{ turnId: 'turn', item: { type: 'mcpToolCall', result: { item } } }] } });
+    expect(unrelated.historyReply(7, 'items')).toBeUndefined();
+    const legacy = project({ id: 9, result: { thread: { id: 'source', turns: [{ id: 'turn', items: [item, reply] }] } } });
+    expect(legacy.historyReply(9, 'thread')).toEqual({ thread: { id: 'source', turns: [{ id: 'turn', items: [expected, reply] }] } });
   });
 
   test('malformed native responses reject all waiters instead of hanging or claiming not_sent', async () => {

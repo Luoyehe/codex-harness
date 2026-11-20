@@ -69,9 +69,14 @@ test.each(['tests/runtime/mcp-oauth-fixture.mjs', 'tests/runtime/native-fixture.
 test('builtin MCP contract/checker changes retain offline vision and both managed credential render paths', () => {
   const required = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
   for (const changed of ['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs']) {
-    const plan = selectTests([changed], [...available, ...required]);
+    const auditConsumers = changed === 'tests/deploy/vision_stdio_probe.mjs' ? [] : ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts',
+      'tests/tooling/release-preflight.test.ts', 'tests/tooling/publish-release.test.ts'];
+    const plan = selectTests([changed], [...available, ...required, ...auditConsumers]);
     expect(plan.status).toBe('selected');
-    expect(plan.groups.unit).toEqual(required.slice(0, 2));
+    expect(plan.groups.unit).toEqual([...required.slice(0, 2), ...auditConsumers].sort());
+    for (const omitted of auditConsumers)
+      expect(selectTests([changed], [...available, ...required, ...auditConsumers.filter(file => file !== omitted)]).requiresFullAudit)
+        .toContainEqual({ path: omitted, reason: 'missing-release-authority-regression' });
     expect(plan.groups.deploy).toEqual([required[2]]); expect(plan.groups['deploy-root']).toEqual([required[3]]);
     for (const missing of required) expect(selectTests([changed], [...available, ...required.filter(name => name !== missing)]).requiresFullAudit)
       .toContainEqual({ path: missing, reason: 'missing-builtin-mcp-coverage' });

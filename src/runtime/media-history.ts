@@ -1,3 +1,4 @@
+import { fitHistoryImages } from './native-media-event.js';
 import { DeliveryError, integer, jsonBytes, LIMITS, object, string, type JsonValue } from './types.js';
 import type { NativeOptions } from './native.js';
 import type { GeneratedMedia } from './generated-media.js';
@@ -9,7 +10,10 @@ export async function readMediaHistory(native: NativeCall, media: GeneratedMedia
   const projected = (value: JsonValue) => media.project(value, threadId, typeof request.turnId === 'string' ? request.turnId : undefined);
   const batch = async (name: string, body: Record<string, JsonValue>, count: number): Promise<JsonValue> => {
     for (;;) {
-      try { return await native(name, { ...body, limit: count }, options); }
+      try {
+        const page = await native(name, { ...body, limit: count }, options);
+        return options?.historyImageDisplayChars ? fitHistoryImages(page, name === 'thread/timeline/list' ? 'timeline' : 'items', options.historyImageDisplayChars) : page;
+      }
       catch (error) {
         if (!(error instanceof DeliveryError) || error.code !== 'history_frame_capacity') throw error;
         if (count <= 1) throw new DeliveryError('capacity', '单条历史记录超过传输容量。');
@@ -84,6 +88,16 @@ export async function readMediaHistory(native: NativeCall, media: GeneratedMedia
       seen.add(continuation); cursor = continuation;
     }
     const result = { data, nextCursor: cursor, activeRealtimeSessionAtPageStart: active }; jsonBytes(result, LIMITS.historyBytes); return result;
+  }
+  if (method === 'thread/read' && request.includeTurns === true) {
+    let value: JsonValue;
+    try { value = await native(method, params, options); }
+    catch (error) {
+      if (error instanceof DeliveryError && error.code === 'history_frame_capacity')
+        throw new DeliveryError('capacity', '完整旧会话超过传输容量，可使用最近的历史窗口。');
+      throw error;
+    }
+    return projected(options?.historyImageDisplayChars ? fitHistoryImages(value, 'thread', options.historyImageDisplayChars) : value);
   }
   return projected(await native(method, params, options));
 }

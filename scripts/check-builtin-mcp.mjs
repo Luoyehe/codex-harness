@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -46,7 +47,7 @@ export async function checkBuiltinMcp(contract, packagePin, lockText, read = off
   const vision = contract.servers[3], issues = [], sources = [];
   if (packagePin !== vision.version || !lockText.includes(`'@z_ai/mcp-server@${vision.version}':\n    resolution: {integrity: ${vision.integrity}}`))
     issues.push({ source: 'local', reason: 'package-or-lock-does-not-match-reviewed-contract' });
-  const requests = [...contract.servers.map(row => row.documentation), registry + vision.version, registry + 'latest'];
+  const requests = sourceUrls(contract);
   const observations = await Promise.all(requests.map(async url => {
     try {
       const result = await read(url);
@@ -88,13 +89,38 @@ export async function checkBuiltinMcp(contract, packagePin, lockText, read = off
       'User-defined MCP and ZAI global configuration are outside this builtin CN contract. No automatic dependency update.'] };
 }
 
+function sourceUrls(contract) {
+  return [...contract.servers.map(row => row.documentation), registry + contract.servers[3].version, registry + 'latest'];
+}
+
+export function freshnessFileHashes(base) {
+  const files = [contractPath, 'deploy/provider.py', 'deploy/provider_registry.py', 'deploy/native_launcher.py', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml'];
+  return files.map(name => ({ path: name, sha256: sha(readFileSync(path.join(base, name))) }));
+}
+
+/** Verify a retained public check independently of any network operation. */
+export function validateFreshnessEvidence(result, current, round, base) {
+  const contract = validateContract(JSON.parse(readFileSync(path.join(base, contractPath), 'utf8')));
+  const started = Date.parse(result.checkedAt), completed = Date.parse(result.completedAt);
+  if (result.schemaVersion !== 1 || result.kind !== 'builtin-mcp-freshness' || result.complete !== true || result.status !== 'current' ||
+      !Array.isArray(result.issues) || result.issues.length || result.sourceDigest !== current.digest || result.sourceFiles !== current.files ||
+      !Number.isFinite(started) || !Number.isFinite(completed) || started < Date.parse(round.startedAt) ||
+      completed < started || completed > Date.parse(round.completedAt) || !isDeepStrictEqual(result.contract, contract) ||
+      !isDeepStrictEqual(result.files, freshnessFileHashes(base))) throw Error('Builtin MCP evidence does not match the audit round or source');
+  const vision = contract.servers[3];
+  const pinned = { version: vision.version, integrity: vision.integrity, deprecated: false };
+  const urls = sourceUrls(contract).sort();
+  if (!isDeepStrictEqual(result.pinned, pinned) || !isDeepStrictEqual(result.latest, pinned) ||
+      !Array.isArray(result.sources) || result.sources.some(row => row?.status !== 200 || !Number.isSafeInteger(row.bytes) || row.bytes < 1 || !/^[a-f0-9]{64}$/.test(row.sha256)) ||
+      !isDeepStrictEqual(result.sources.map(row => row.url).sort(), urls)) throw Error('Incomplete builtin MCP source or package observations');
+}
+
 export async function builtinFreshness(base = root, read = officialRead) {
   const before = snapshot(base), checkedAt = new Date().toISOString();
   const contract = JSON.parse(readFileSync(path.join(base, contractPath), 'utf8'));
   const pkg = JSON.parse(readFileSync(path.join(base, 'package.json'), 'utf8'));
   const result = await checkBuiltinMcp(contract, pkg.dependencies['@z_ai/mcp-server'], readFileSync(path.join(base, 'pnpm-lock.yaml'), 'utf8').replaceAll('\r\n', '\n'), read);
-  const files = [contractPath, 'deploy/provider.py', 'deploy/provider_registry.py', 'deploy/native_launcher.py', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml'];
-  const hashes = files.map(name => ({ path: name, sha256: sha(readFileSync(path.join(base, name))) }));
+  const hashes = freshnessFileHashes(base);
   if (snapshot(base).digest !== before.digest) throw Error('Source changed during builtin freshness check');
   return { schemaVersion: 1, kind: 'builtin-mcp-freshness', checkedAt, completedAt: new Date().toISOString(), sourceDigest: before.digest, sourceFiles: before.files,
     files: hashes, contract, ...result };

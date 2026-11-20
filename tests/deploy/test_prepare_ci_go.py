@@ -72,13 +72,16 @@ class PrepareCiGoTests(unittest.TestCase):
     def test_seed_cache_is_copied_without_modification_and_never_fetches(self):
         source = self.base / ".work/seed"
         source.mkdir()
-        (source / "fixture.txt").write_bytes(b"cached dependency")
+        seed = source / "fixture.txt"
+        seed.write_bytes(b"cached dependency")
         output, calls = self.prepare(self.archive(), seed_cache=source)
         value = json.loads(output.read_text())
         copied = Path(value["moduleCache"]) / "fixture.txt"
         self.assertEqual(copied.read_bytes(), b"cached dependency")
-        copied.write_bytes(b"isolated change")
-        self.assertEqual((source / "fixture.txt").read_bytes(), b"cached dependency")
+        self.assertFalse(seed.samefile(copied))
+        self.assertEqual(copied.stat().st_mode & 0o222, 0)
+        seed.write_bytes(b"changed seed")
+        self.assertEqual(copied.read_bytes(), b"cached dependency")
         self.assertTrue(all(env["GOPROXY"] == "off" for _, env, _ in calls))
         self.assertTrue(all(env["HTTPS_PROXY"] == "http://127.0.0.1:9" for _, env, _ in calls))
 

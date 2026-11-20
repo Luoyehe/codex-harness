@@ -1,5 +1,5 @@
 import { MANUAL_MCP_DEFAULT_SECONDS, MANUAL_MCP_REPLY_GRACE_MS } from '../shared/mcp-timeouts.js';
-import { NativeMediaEvent } from './native-media-event.js';
+import { NativeMediaEvent, type NativeHistoryShape } from './native-media-event.js';
 import { QueueReplyIdentity } from './queue-reply-identity.js';
 import { EventEmitter } from 'node:events';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -11,8 +11,8 @@ import { windowsJob } from './windows-job.js';
 import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
-export interface NativeOptions { beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
-interface Pending { frameKind?: 'history' | 'queue-read' | 'queue-write' | undefined; id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
+export interface NativeOptions { historyImageDisplayChars?: number; beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
+interface Pending { historyShape?: NativeHistoryShape | undefined; frameKind?: 'history' | 'queue-read' | 'queue-write' | undefined; id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
 
 /** One process, one protocol epoch. A failed process is never restarted in place. */
 export class NativeRpc extends EventEmitter {
@@ -24,6 +24,7 @@ export class NativeRpc extends EventEmitter {
   private input = Buffer.alloc(0);
   private inputBytes = 0;
   private mediaEvent?: NativeMediaEvent;
+  private historyReply?: { reader: NativeMediaEvent; entry: Pending };
   private discardingHistoryFrame = false;
   private queueReply?: { reader: QueueReplyIdentity; entry: Pending };
   private writing = false;
@@ -76,7 +77,10 @@ export class NativeRpc extends EventEmitter {
     try { frame = Buffer.from(jsonBytes({ id, method, params }) + '\n'); } catch (error) { return Promise.reject(error); }
     if (this.pending.size >= LIMITS.pending || this.retained + frame.length > LIMITS.retainedBytes) return Promise.reject(new DeliveryError('capacity', 'Native request budget exhausted'));
     return new Promise((resolve, reject) => {
-      const entry: Pending = { frameKind: method === 'thread/queue/list' ? 'queue-read' : ['thread/queue/add','thread/queue/update'].includes(method) ? 'queue-write' : ['thread/items/list', 'thread/timeline/list', 'thread/items/read'].includes(method) ? 'history' : undefined, id, frame, bytes: frame.length, sent: false, flushed: false, resolved: false, timer: null, options, resolve, reject };
+      const historyShape = method === 'thread/timeline/list' ? 'timeline' :
+        ['thread/items/list', 'thread/items/read'].includes(method) ? 'items' :
+        method === 'thread/read' && params && typeof params === 'object' && !Array.isArray(params) && params.includeTurns === true ? 'thread' : undefined;
+      const entry: Pending = { historyShape, frameKind: method === 'thread/queue/list' ? 'queue-read' : ['thread/queue/add','thread/queue/update'].includes(method) ? 'queue-write' : historyShape ? 'history' : undefined, id, frame, bytes: frame.length, sent: false, flushed: false, resolved: false, timer: null, options, resolve, reject };
       this.pending.set(id, entry); this.retained += entry.bytes; this.queue.push(entry);
       const slowOperation = method === 'mcpServer/tool/call' || method === 'plugin/install';
       const fallback = method === 'mcpServer/tool/call' ? MANUAL_MCP_DEFAULT_SECONDS * 1000 + MANUAL_MCP_REPLY_GRACE_MS :
@@ -134,6 +138,14 @@ export class NativeRpc extends EventEmitter {
     entry.reject(new DeliveryError('queue_frame_unconfirmed', '原生待办回执超过传输容量。请核对原操作、会话内容和队列，勿重复提交。', 'unknown', reader.proof()));
     this.release(entry);
   }
+  private finishHistoryReply(entry: Pending, reader: NativeMediaEvent): void {
+    if (entry.resolved) return;
+    const value = reader.historyReply(entry.id, entry.historyShape!);
+    entry.resolved = true;
+    if (value) entry.resolve(value);
+    else entry.reject(new DeliveryError('history_frame_capacity', '单页历史超过传输容量，请缩小读取窗口。'));
+    this.release(entry);
+  }
   private finishMediaEvent(): boolean {
     const projection = this.mediaEvent?.projection();
     delete this.mediaEvent;
@@ -149,9 +161,12 @@ export class NativeRpc extends EventEmitter {
       if (this.discardingHistoryFrame) {
         this.queueReply?.reader.update(piece);
         this.mediaEvent?.update(piece);
+        this.historyReply?.reader.update(piece);
         if (newline < 0) return;
         if (this.queueReply) this.finishOversizedQueue(this.queueReply.entry, this.queueReply.reader);
         delete this.queueReply;
+        if (this.historyReply) this.finishHistoryReply(this.historyReply.entry, this.historyReply.reader);
+        delete this.historyReply;
         if (this.mediaEvent && !this.finishMediaEvent()) return;
         this.discardingHistoryFrame = false; offset = newline + 1; continue;
       }
@@ -168,6 +183,11 @@ export class NativeRpc extends EventEmitter {
           if (newline >= 0 && !this.finishMediaEvent()) return;
         } else if (!entry?.frameKind || !entry.sent || entry.resolved) {
           this.fail(new Error('Native frame exceeds byte budget')); return;
+        } else if (entry.frameKind === 'history' && entry.options.historyImageDisplayChars) {
+          const reader = new NativeMediaEvent();
+          reader.update(this.input.subarray(0, this.inputBytes)); reader.update(piece);
+          if (newline < 0) this.historyReply = { reader, entry };
+          else this.finishHistoryReply(entry, reader);
         } else if (entry.frameKind === 'queue-write') {
           const reader = new QueueReplyIdentity(entry.id);
           reader.update(this.input.subarray(0, this.inputBytes)); reader.update(piece);

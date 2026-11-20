@@ -257,7 +257,7 @@ export class Workflows {
       }
       case 'thread/history/window': {
         onlyKeys(params, ['threadId', 'turnCursor', 'limit']); const cursor = string(params.turnCursor, 'turnCursor', LIMITS.cursorBytes, true); const p = pageParams({ threadId, cursor, ...(params.limit !== undefined ? { limit: params.limit } : {}), sortDirection: 'desc', itemsView: 'full' });
-        const result = pageResult('ThreadTurnsListResponse', await this.host.native('thread/turns/list', p), cursor); this.host.checkHistory(result.data as JsonValue[]);
+        const result = pageResult('ThreadTurnsListResponse', await this.host.native('thread/turns/list', p, { historyImageDisplayChars: 1_000_000 }), cursor); this.host.checkHistory(result.data as JsonValue[]);
         return { turns: [...result.data as JsonValue[]].reverse(), nextCursor: result.nextCursor!, backwardsCursor: result.backwardsCursor ?? null, complete: false, partial: true };
       }
       case 'thread/export': return this.export(params, context);

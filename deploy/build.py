@@ -32,9 +32,9 @@ SOURCE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconf
 MAX_LOCK_BYTES = 8 * 1024**2
 APPROVED_OVERRIDES = {
     "@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk": "1.32.2",
-    "@modelcontextprotocol/sdk@1.32.2>@hono/node-server": "1.19.19",
+    "@modelcontextprotocol/sdk@1.32.2>@hono/node-server": "2.1.9",
     "@modelcontextprotocol/sdk@1.32.2>hono": "4.13.16",
-    "@hono/node-server@1.19.19>hono": "4.13.16",
+    "@hono/node-server@2.1.9>hono": "4.13.16",
     "@modelcontextprotocol/sdk@1.32.2>zod": "4.6.7",
     "@z_ai/mcp-server@0.1.6>zod": "4.6.7",
     "zod-to-json-schema@3.25.2>zod": "4.6.7"

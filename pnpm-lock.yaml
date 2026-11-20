@@ -6,9 +6,9 @@ settings:
 
 overrides:
   '@z_ai/mcp-server@0.1.6>@modelcontextprotocol/sdk': 1.32.2
-  '@modelcontextprotocol/sdk@1.32.2>@hono/node-server': 1.19.19
+  '@modelcontextprotocol/sdk@1.32.2>@hono/node-server': 2.1.9
   '@modelcontextprotocol/sdk@1.32.2>hono': 4.13.16
-  '@hono/node-server@1.19.19>hono': 4.13.16
+  '@hono/node-server@2.1.9>hono': 4.13.16
   '@modelcontextprotocol/sdk@1.32.2>zod': 4.6.7
   '@z_ai/mcp-server@0.1.6>zod': 4.6.7
   zod-to-json-schema@3.25.2>zod: 4.6.7
@@ -159,9 +159,9 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@hono/node-server@1.19.19':
-    resolution: {integrity: sha512-Fy9R7PACOzHU9LDpfnuzVyuVYevKQRcEG2mZhmfc+DRdmayEd3RVfa2XOt2IgGcPNgA77Yk63KBszepcMFK5Ng==}
-    engines: {node: '>=18.14.1'}
+  '@hono/node-server@2.1.9':
+    resolution: {integrity: sha512-Sk4NQd3GFY0WZWCzndwFMPwJhtD0y9qjsQ+pjID0/03nK9pxyBCUoUHCho8QYBLBVhi0ssL8UkNPHqbgSOFPIQ==}
+    engines: {node: '>=20'}
     peerDependencies:
       hono: 4.13.16
 
@@ -1623,7 +1623,7 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@hono/node-server@1.19.19(hono@4.13.16)':
+  '@hono/node-server@2.1.9(hono@4.13.16)':
     dependencies:
       hono: 4.13.16
 
@@ -1638,7 +1638,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.2(zod@4.6.7)':
     dependencies:
-      '@hono/node-server': 1.19.19(hono@4.13.16)
+      '@hono/node-server': 2.1.9(hono@4.13.16)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5

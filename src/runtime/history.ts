@@ -3,7 +3,7 @@ import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys,
 import { validateTimelineContract } from './timeline-contract.js';
 import type { Activity } from './thread-activity.js';
 type State = Activity;
-interface Host { native(method: string, params: JsonValue): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
+interface Host { native(method: string, params: JsonValue, imageDisplayChars?: number): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
 interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; referenceIndex?: HistoryReferenceIndex; completeVersion?: number; legacy: boolean; state: State; turnRevision: number; unknown: boolean }
 const key = (threadId: string, context: CallContext, scope = '') => canonical([context.eventChannelId ?? null, context.clientId, threadId, scope]);
 /** Charge each logical message once across independently paged streams. Reference
@@ -51,12 +51,12 @@ export class UnifiedHistory {
     for (const [id, proof] of this.windows) if ((clientId === undefined || proof.context.clientId === clientId) && (channel === undefined || proof.context.eventChannelId === channel)) this.windows.delete(id);
     for (const [id, entry] of this.traversals) if ((clientId === undefined || entry.clientId === clientId) && (channel === undefined || entry.channel === channel)) this.traversals.delete(id); }
   clear(): void { this.traversals.clear(); this.windows.clear(); this.loadingWindows.clear(); }
-  isolated(context: CallContext): { read(params: JsonObject): Promise<JsonValue>; close(): void } {
+  isolated(context: CallContext, imageDisplayChars = 0): { read(params: JsonObject): Promise<JsonValue>; close(): void } {
     const scope = randomUUID(); const owned = new Set<string>(); let closed = false;
     return { read: params => {
       if (closed) throw new DeliveryError('history_stale', 'History reader is closed');
       owned.add(key(string(params.threadId, 'threadId'), context, scope));
-      return this.read(params, context, scope);
+      return this.read(params, context, scope, imageDisplayChars);
     }, close: () => { closed = true; for (const id of owned) this.traversals.delete(id); owned.clear(); } };
   }
   private cursor(page: JsonObject, prior: string | null, seen: Set<string>): string | null {
@@ -78,7 +78,7 @@ export class UnifiedHistory {
     if (object(meta.thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'History thread identity mismatch');
     this.host.observe(meta, revision);
     const turnRevision = state.turnRevision ?? 0;
-    const reader = this.isolated(context);
+    const reader = this.isolated(context, references ? 1_000_000 : 0);
     let page: JsonObject;
     let size = limit;
     try {
@@ -89,7 +89,7 @@ export class UnifiedHistory {
           if (size > 1) { size = Math.max(1, Math.floor(size / 2)); continue; }
           // One exceptionally large turn need not be materialized just to prove
           // current voice state. Read the latest independent timeline entry.
-          const tail = object(await this.host.native('thread/timeline/list', { threadId, limit: 1 }));
+          const tail = object(await this.host.native('thread/timeline/list', { threadId, limit: 1 }, references ? 1_000_000 : 0));
           validateTimelineContract('ThreadTimelineListResponse', tail);
           page = { turns: [], timeline: tail.data!, complete: false, activeRealtimeSessionAtPageStart: tail.activeRealtimeSessionAtPageStart! };
           break;
@@ -130,7 +130,7 @@ export class UnifiedHistory {
       turnsComplete: complete, timelineComplete: complete, complete, truncated: !complete,
       executionReady: this.windowReady(threadId, context), historyVersion: history };
   }
-  async read(params: JsonObject, context: CallContext, scope = ''): Promise<JsonValue> {
+  async read(params: JsonObject, context: CallContext, scope = '', imageDisplayChars = 4_000_000): Promise<JsonValue> {
     if (params.timelineFormat !== undefined && params.timelineFormat !== 'references') throw new DeliveryError('invalid_params', '未知的历史时间线格式。');
     const references = params.timelineFormat === 'references';
     if (scope === '' && params.intent === 'window') {
@@ -206,16 +206,17 @@ export class UnifiedHistory {
       }
       const requested = Number(!current.turnsComplete) + Number(!current.timelineComplete); if (current.pages + requested > 128) throw new DeliveryError('capacity', 'Combined native history exceeded 128 pages; context remains incomplete'); current.pages += requested;
       let turns: JsonValue[] = [], timeline: JsonValue[] = [], active: JsonValue = null;
+      const imagePreview = references ? imageDisplayChars : 0;
       if (!current.turnsComplete) {
         const legacy = async (): Promise<void> => {
           if (current.turnCursor !== null) throw new DeliveryError('unsupported_cursor', 'Legacy turn history cannot continue a native turn cursor');
-          const result = object(await this.host.native('thread/read', { threadId, includeTurns: true })), thread = object(result.thread);
+          const result = object(await this.host.native('thread/read', { threadId, includeTurns: true }, imagePreview)), thread = object(result.thread);
           if (thread.id !== threadId || !Array.isArray(thread.turns)) throw new DeliveryError('invalid_native_response', 'Legacy thread identity mismatch'); turns = thread.turns; this.host.checkTurns(turns); current.legacy = true; current.turnsComplete = true;
         };
         if (state.historyMode === 'legacy') await legacy();
         else {
           let page: JsonObject | undefined;
-          try { page = object(await this.host.native('thread/turns/list', { threadId, limit, sortDirection: 'desc', itemsView: 'full', ...(current.turnCursor !== null ? { cursor: current.turnCursor } : {}) })); }
+          try { page = object(await this.host.native('thread/turns/list', { threadId, limit, sortDirection: 'desc', itemsView: 'full', ...(current.turnCursor !== null ? { cursor: current.turnCursor } : {}) }, imagePreview)); }
           catch (error) { const unsupported = error instanceof DeliveryError && error.code === 'native_error' && error.data && typeof error.data === 'object' && !Array.isArray(error.data) && (error.data.code === -32601 || error.data.code === 'unsupported'); if (!unsupported) throw error; await legacy(); }
           if (page) {
             if (!Array.isArray(page.data) || page.data.length > limit) throw new DeliveryError('invalid_native_response', 'Invalid turn page'); this.host.checkTurns(page.data);
@@ -226,7 +227,7 @@ export class UnifiedHistory {
         }
       }
       if (!current.timelineComplete) {
-        const result = await this.host.native('thread/timeline/list', { threadId, limit, ...(current.timelineCursor !== null ? { cursor: current.timelineCursor } : {}) }); validateTimelineContract('ThreadTimelineListResponse', result); jsonBytes(result, LIMITS.historyBytes); const page = object(result);
+        const result = await this.host.native('thread/timeline/list', { threadId, limit, ...(current.timelineCursor !== null ? { cursor: current.timelineCursor } : {}) }, imagePreview); validateTimelineContract('ThreadTimelineListResponse', result); jsonBytes(result, LIMITS.historyBytes); const page = object(result);
         if (!Array.isArray(page.data) || page.data.length > limit) throw new DeliveryError('invalid_native_response', 'Invalid canonical timeline page'); timeline = page.data;
         current.timelineCursor = this.cursor(page, current.timelineCursor, current.timelineSeen); current.timelineComplete = current.timelineCursor === null; active = page.activeRealtimeSessionAtPageStart!;
       }

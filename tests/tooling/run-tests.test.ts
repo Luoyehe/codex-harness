@@ -5,6 +5,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import path from 'node:path';
 import { executePlan, prepareRun, validateAuditRecord } from '../../scripts/run-tests.mjs';
 import { snapshot } from '../../scripts/snapshot.mjs';
+import { freshnessFileHashes } from '../../scripts/check-builtin-mcp.mjs';
+import { committedAuthorization } from '../../scripts/release-preflight.mjs';
+import { buildCiPlan } from '../../scripts/ci-checks.mjs';
+import { releaseAuthorization } from '../../scripts/release-authorization.mjs';
 import { nativeTestFiles, runPythonTests } from '../../scripts/select-tests.mjs';
 import { goTestFile } from '../../scripts/go-tests.mjs';
 
@@ -19,12 +23,26 @@ function fixture(): string {
   for (const name of [...files, ...inspected.slice(1)]) put(root, name, '// Unexecuted gate fixture.\n'); return root;
 }
 function audited(root: string) {
+  const contractPath = 'reference/BUILTIN-MCP-CONTRACT.json';
+  const contract = JSON.parse(readFileSync(contractPath, 'utf8'));
+  const version = contract.servers[3].version, integrity = contract.servers[3].integrity;
+  put(root, contractPath, JSON.stringify(contract));
+  put(root, 'package.json', JSON.stringify({ version: '2.5.0', dependencies: { '@z_ai/mcp-server': version } }));
+  for (const name of ['deploy/provider.py', 'deploy/provider_registry.py', 'deploy/native_launcher.py', 'pnpm-lock.yaml', 'pnpm-workspace.yaml']) put(root, name, 'fixture\n');
+  const urls = [...contract.servers.map((v: { documentation: string }) => v.documentation),
+    'https://registry.npmjs.org/@z_ai/mcp-server/' + version, 'https://registry.npmjs.org/@z_ai/mcp-server/latest'];
   const current = snapshot(root);
   const rounds = [1, 2, 3].map(sequence => {
     const id = `round-${sequence}`; const reviewerId = `independent-reviewer-${sequence}`; const evidence = `verification/audit-evidence/${id}/${reviewerId}.json`;
     const bytes = JSON.stringify({ schemaVersion: 1, roundId: id, reviewerId, digest: current.digest, complete: true, findings: [], skipped: [], scopes, method: 'Independent fixture review of declared boundary behavior.', inspectedFiles: snapshot(root, true).names });
     put(root, evidence, bytes);
-    return { id, sequence, digest: current.digest, complete: true, findings: [], skipped: [], scopes, startedAt: `2026-01-0${sequence}T00:00:00Z`, completedAt: `2026-01-0${sequence}T01:00:00Z`, reviewers: [{ id: reviewerId, scopes, evidence, sha256: createHash('sha256').update(bytes).digest('hex') }] };
+    const report = JSON.stringify({ schemaVersion: 1, kind: 'builtin-mcp-freshness', sourceDigest: current.digest, sourceFiles: current.files,
+      checkedAt: `2026-01-0${sequence}T00:30:00Z`, completedAt: `2026-01-0${sequence}T00:31:00Z`,
+      sources: urls.map(url => ({ url, status: 200, bytes: 500, sha256: 'e'.repeat(64) })), files: freshnessFileHashes(root), contract,
+      pinned: { version, integrity, deprecated: false }, latest: { version, integrity, deprecated: false }, complete: true, status: 'current', issues: [] });
+    const builtinMcpFreshness = { path: `verification/audit-evidence/${id}/builtin-mcp.json`, sha256: createHash('sha256').update(report).digest('hex') };
+    put(root, builtinMcpFreshness.path, report);
+    return { id, sequence, builtinMcpFreshness, digest: current.digest, complete: true, findings: [], skipped: [], scopes, startedAt: `2026-01-0${sequence}T00:00:00Z`, completedAt: `2026-01-0${sequence}T01:00:00Z`, reviewers: [{ id: reviewerId, scopes, evidence, sha256: createHash('sha256').update(bytes).digest('hex') }] };
   });
   const record = { schemaVersion: 1, rounds }; put(root, 'verification/audits.json', JSON.stringify(record)); return { current, record };
 }
@@ -41,6 +59,55 @@ test('targeted refuses empty, directory, missing, traversal and duplicate-disgui
 test('full gate accepts three independently evidenced clean rounds without running any tests', () => {
   const root = fixture(); audited(root); const plan = prepareRun('--full', [], root);
   expect(plan.auditRounds).toEqual(['round-1', 'round-2', 'round-3']); expect(plan.files.sort()).toEqual([...files].sort());
+});
+
+test('three independently completed audits authorize a checked release, including PR trust and committed proof bytes', () => {
+  const root = fixture();
+  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...args], { cwd: root, encoding: 'utf8' }).trim();
+  git('add', '.'); git('commit', '-qm', 'baseline');
+  const baseline = git('rev-parse', 'HEAD'), { current, record } = audited(root);
+  const name = 'verification/audit-evidence/release-closeout/authorization.json';
+  const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
+  const authority = { schemaVersion: 1, kind: 'audited-release-closeout', auditRoundsWaived: false, auditRecordSha256: hash(JSON.stringify(record)),
+    sourceDigest: current.digest, sourceFiles: current.files, version: '2.5.0', baseCommit: baseline, approvedAt: '2026-01-04T00:00:00Z',
+    userInstruction: 'Run a complete audit and publish the fully validated release.', repairsReviewed: true, unresolvedBlockers: [], scopes: ['full-tests'] };
+  const bytes = JSON.stringify(authority), checksum = hash(bytes);
+  put(root, name, bytes); git('add', '.'); git('commit', '-qm', 'reviewed release');
+  const head = git('rev-parse', 'HEAD'), event = { pull_request: { base: { sha: baseline }, head: { sha: head } } };
+  expect(prepareRun('--full', ['--authorization', name, '--sha256', checksum], root).authorization?.audit?.rounds).toEqual(['round-1', 'round-2', 'round-3']);
+  expect(() => buildCiPlan(root, { GITHUB_SHA: head }, event)).toThrow(/trusted checksum|requires complete review/);
+  expect(buildCiPlan(root, { GITHUB_SHA: head, HARNESS_PR_AUTHORIZATION_SHA: checksum }, event).mode).toBe('authorized-full');
+  expect(committedAuthorization(root, head, checksum).audit?.bindings).toHaveLength(7);
+  const proof = record.rounds[2]!.builtinMcpFreshness;
+  const raw = readFileSync(path.join(root, proof.path), 'utf8');
+  put(root, proof.path, raw + '\n');
+  expect(() => releaseAuthorization(root, name, checksum)).toThrow(/checksum/);
+  put(root, proof.path, raw);
+  put(root, 'verification/audits.json', JSON.stringify(record) + '\n');
+  expect(() => releaseAuthorization(root, name, checksum)).toThrow(/checksum/);
+  authority.auditRecordSha256 = hash(JSON.stringify(record) + '\n');
+  put(root, name, JSON.stringify(authority));
+  expect(() => committedAuthorization(root, head, hash(JSON.stringify(authority)))).toThrow(/committed bytes/);
+  put(root, 'src/core/example.ts', 'a new fix');
+  expect(() => releaseAuthorization(root, name, hash(JSON.stringify(authority)))).toThrow(/source/);
+  expect(releaseAuthorization(root, name, hash(JSON.stringify(authority)), { allowHistorical: true }).audit).toBeUndefined();
+});
+
+test('each retained MCP observation must have current source, six official reads and its own round timing', () => {
+  const root = fixture(); const { current, record } = audited(root);
+  const proof = record.rounds[2]!.builtinMcpFreshness;
+  const raw = JSON.parse(readFileSync(path.join(root, proof.path), 'utf8'));
+  for (const change of [
+    (r: any) => r.sources.pop(), (r: any) => r.sources[0].url = r.sources[1].url, (r: any) => r.sources[0].status = 503,
+    (r: any) => r.sourceDigest = 'f'.repeat(64), (r: any) => r.checkedAt = record.rounds[0]!.startedAt,
+    (r: any) => r.latest.deprecated = true, (r: any) => r.files[0].sha256 = 'a'.repeat(64),
+    (r: any) => r.issues = ['retirement'], (r: any) => r.status = 'unavailable',
+  ]) {
+    const changed = structuredClone(raw); change(changed);
+    const data = JSON.stringify(changed);
+    proof.sha256 = createHash('sha256').update(data).digest('hex'); put(root, proof.path, data);
+    expect(() => validateAuditRecord(record, current, root)).toThrow(/builtin MCP/i);
+  }
 });
 
 test('a source fix resets eligibility and code hidden under verification changes the snapshot', () => {
