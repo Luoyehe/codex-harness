@@ -113,21 +113,63 @@ class CrossAuditWorkspace(unittest.TestCase):
         self.assertTrue(self.fixture.call('mkdir', {'path': 'new'})['ok'])
 
     def test_staged_terminal_receipt_recovers_without_reexecuting(self):
-        from deploy.workspace_store import Record, recover_pending, read_record, write_new
-        path = self.fixture.path / 'record'; path.mkdir(mode=0o700)
-        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            running = {'requestDigest': 'c' * 64, 'state': 'running'}
-            Record(fd, str(uuid.uuid4())).save(running)
-            completed = {**running, 'state': 'completed', 'response': {'ok': True, 'result': {'changed': True}}}
-            write_new(fd, '.state-next', canonical(completed) + b'\n')
-            recover_pending(fd)
-            self.assertEqual(read_record(fd), completed)
-            self.assertFalse((path / '.state-next').exists())
-            write_new(fd, '.state-next', canonical({**running, 'state': 'failed'}) + b'\n')
-            with self.assertRaises(DeployError): recover_pending(fd)
-            self.assertEqual(read_record(fd), completed)
-        finally: os.close(fd)
+        identity = str(uuid.uuid4())
+        params = {'path': 'once'}
+        original = self.fixture.call('mkdir', params, identity)
+        published = self.fixture.recovery / identity / 'state.json'
+        completed = published.read_bytes()
+        running = {'requestDigest': json.loads(completed)['requestDigest'], 'state': 'running'}
+        pending = published.with_name('.state-next')
+        published.rename(pending)
+        published.write_bytes(canonical(running))
+        published.chmod(0o600)
+
+        # A later user edit makes a repeated mkdir observable.
+        (self.fixture.path / 'once').rmdir()
+        recovery = self.fixture.call('recovery/read', {'operationId': identity})['result']
+        self.assertEqual(recovery['previouslyPublishedState'], 'running')
+        self.assertEqual(recovery['resolution'], 'published')
+        self.assertEqual(published.read_bytes(), completed)
+        self.assertFalse(pending.exists())
+        self.assertEqual(self.fixture.call('mkdir', params, identity), original)
+        self.assertFalse((self.fixture.path / 'once').exists())
+
+    def test_conflicting_receipt_candidates_preserve_each_unpublished_version(self):
+        from hashlib import sha256
+
+        identity = str(uuid.uuid4())
+        self.fixture.call('mkdir', {'path': 'kept'}, identity)
+        published = self.fixture.recovery / identity / 'state.json'
+        completed = published.read_bytes()
+        pending = published.with_name('.state-next')
+        retained = published.with_name('.state-incomplete')
+        candidate = {'requestDigest': json.loads(completed)['requestDigest'], 'state': 'failed'}
+        first = canonical(candidate)
+        evidence = {'state': 'failed', 'bytes': len(first), 'sha256': sha256(first).hexdigest()}
+        for attempt in ('first', 'identical retry'):
+            with self.subTest(attempt=attempt):
+                pending.write_bytes(first)
+                pending.chmod(0o600)
+                result = self.fixture.call('recovery/read', {'operationId': identity})['result']
+                self.assertEqual(result['previouslyPublishedState'], 'completed')
+                self.assertEqual(result['resolution'], 'retained')
+                self.assertEqual(result['unpublishedState'], evidence)
+                self.assertEqual(result['retainedState'], evidence)
+                self.assertEqual(published.read_bytes(), completed)
+                self.assertEqual(retained.read_bytes(), first)
+                self.assertFalse(pending.exists())
+
+        different = canonical({**candidate, 'state': 'broken'})
+        pending.write_bytes(different)
+        pending.chmod(0o600)
+        for action in ('recovery/read', 'operation/read'):
+            with self.subTest(action=action):
+                with self.assertRaises(DeployError) as caught:
+                    self.fixture.call(action, {'operationId': identity})
+                self.assertEqual(caught.exception.code, 'recovery_required')
+                self.assertEqual(published.read_bytes(), completed)
+                self.assertEqual(retained.read_bytes(), first)
+                self.assertEqual(pending.read_bytes(), different)
 
     def test_search_exclusions_are_explicit_and_reported(self):
         (self.fixture.path / 'node_modules').mkdir()
