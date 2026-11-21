@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "candidate": "historical-commit-069",
+  "expectedBehavior": "before",
+  "supplier": "Loopback Responses fixture",
+  "cli": "0.169.0",
+  "acceptanceSha256": "ee9088a7b01c1cedf285043b7b03eeb0e7daa1c3b702ce9254dac9e7bea41eda",
+  "baseline": {
+    "historyMode": "paginated",
+    "laterTurnsBeforeConcurrentAppend": 30
+  },
+  "native": {
+    "descendingPageSize": 25,
+    "stableAcrossNewerAppend": true,
+    "olderPageSize": 6,
+    "overlappingTurns": 0,
+    "exhaustedNextCursor": null,
+    "invalidCursor": {
+      "code": "native_error",
+      "message": "invalid cursor: invalid-native-cursor",
+      "nativeCode": -32600,
+      "nativeMessage": "invalid cursor: invalid-native-cursor"
+    },
+    "originalCursorResumesAfterCLIProcessRestart": true
+  },
+  "worker": {
+    "combinedFirstPageAscending": true,
+    "traversalInvalidatedByNewerTurn": "history_stale",
+    "turnsExhaustedBeforeTimeline": true,
+    "oldCombinedCursorAfterRestart": "invalid_cursor"
+  },
+  "recovery": {
+    "reopenedLedgerState": "unknown",
+    "statesAfterReconcile": [
+      "unknown",
+      "unknown",
+      "unknown",
+      "unknown",
+      "unknown"
+    ],
+    "workerCalls": [
+      {
+        "method": "thread/history",
+        "intent": null,
+        "continuation": false
+      },
+      {
+        "method": "thread/history",
+        "intent": null,
+        "continuation": false
+      },
+      {
+        "method": "thread/history",
+        "intent": null,
+        "continuation": false
+      },
+      {
+        "method": "thread/history",
+        "intent": null,
+        "continuation": false
+      },
+      {
+        "method": "thread/history",
+        "intent": null,
+        "continuation": false
+      }
+    ],
+    "additionalProviderRequests": 0,
+    "acceptedReceiptRetained": true,
+    "realNativeTurns": 32,
+    "localResponses": 32,
+    "distinctCLIProcesses": 2
+  },
+  "cliLaunch": "Direct app-server stdio with isolated home",
+  "verdict": "PASS",
+  "allNativeProcessesClosed": true
+}

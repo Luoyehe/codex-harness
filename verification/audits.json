@@ -8556,6 +8556,60 @@
         "path": "verification/audit-evidence/v250-round12/builtin-mcp.json",
         "sha256": "15893c1b49c08e72a74b05114abe2b00895b571645dcccdb07159d42191133e5"
       }
+    },
+    {
+      "id": "v250-round13",
+      "sequence": 94,
+      "digest": "570bbb24e6ef6e36b0c0315f65214eccc5dbde81a22d8d91f1319e6b2812b7d0",
+      "complete": true,
+      "startedAt": "2026-11-21T05:16:55.123Z",
+      "completedAt": "2026-11-21T05:26:35.448Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R13-01",
+          "severity": "P2",
+          "scope": "gateway-core",
+          "title": "Restart recovery never finds an automation turn older than the most recent 25 turns, skipping later scheduled runs",
+          "locations": [
+            "src/gateway/automation-scheduler.ts:158",
+            "src/runtime/history.ts:208",
+            "src/runtime/history.ts:182",
+            "src/core/automations.ts:116"
+          ],
+          "description": "After a lost completion notification or gateway outage, a user can continue the automation thread through another client. Recovery rereads the first 25 descending turns every time and ignores its valid nextCursor. If 25 later turns exist, the SQLite run stays unknown even though the target terminal turn is in the next page. The subsequent scheduled occurrence is skipped as previous_run_unresolved. The production Ledger was closed and reopened on disk and recovered before constructing a new dispatcher and scheduler. With 24 later turns the matched original became completed and the next scheduled conversation launched. With 25 later turns all three recovery checks requested the first page, the known completed turn remained unknown and no second conversation started. A separate reader traversing the same production UnifiedHistory returned the precise matching terminal turn on page two.",
+          "expected": "Use bounded, owner-bound continuation or an equivalently authoritative targeted native read to locate the exact thread/turn identity. Stop after a positive matching record or a bounded, explicit inconclusive outcome. Never redispatch missing/uncertain work. Cover the page boundary, failed/stale/incomplete reads and a no-match control, preserving stop/lease ownership.",
+          "evidence": [
+            ".work/v250/round13/paged-recovery.json",
+            ".work/v250/round13/paged-recovery.mjs"
+          ]
+        }
+      ],
+      "skipped": [
+        "Windows-only OS sharing-denied unlink and restart test on the Darwin reviewer host (tests/runtime/attachments.test.ts:219). The recorded test result is skipped."
+      ],
+      "reviewers": [
+        {
+          "id": "whole-audit-thirteen",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round13/independent.json",
+          "sha256": "4ac39e3242bfa032a3b669fe7b7362200447dc0a4379c1b76ab2d739e0cc8e50"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round13/builtin-mcp.json",
+        "sha256": "e37409eafab6d8c29d91a7ef9ba2c1c4707cdba7a0437a6a3072173cefe90bc6"
+      }
     }
   ],
   "fullTests": {

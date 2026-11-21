@@ -118,3 +118,17 @@
 - **只改参数会打开原本停用的同名服务。** 系统层有明确的 `enabled=false`，用户层只定义命令和参数。编辑前，网页把用户层缺少开关显示为启用，真实 CLI 按系统设置停用。用户只改参数，网页仍提交 `enabled=true`，保存后热读和冷重启均实际启用。同一个配置只发参数变更，则始终保持停用。专用 Debian 上通过正式 worker 独立重演得到相同结果。[网页提交](../audit-evidence/v250-round12/browser-layered.json) · [原生对照](../audit-evidence/v250-round12/layered-switch.json) · [正式 worker](../audit-evidence/v250-round12/layered-installed-worker.json)
 
 同一提交已在专用 Debian 正式安装，复验原来两种开关写法、BOM 和多行内联表，并完成实际回退和回切。上一轮的编辑与移除问题也通过旧配置和冷启动专项对照。[该提交的安装验证](../audit-evidence/v250-platform/debian-historical-commit-058.json) · [两种身份的工作区验证](../audit-evidence/v250-platform/mcp-workspace-historical-commit-058.json) · [第十一轮原操作复验](../audit-evidence/v250-platform/mcp-edit-recheck.json)
+
+### 第十二轮修复和存量配置
+
+针对官方 CLI 支持的环境变量、变量转发、固定及动态请求头、Bearer 引用和传输专属选项，逐项核对显示、普通编辑、清除及双向转换。用户不请求清除时保留原有配置；明确清除后，启动的本地 stdio 服务不再收到转发的合成标记。普通 HTTP 服务在切换传输前保留原有的 OAuth 客户端配置。[字段覆盖与真实配置读回](../audit-evidence/v250-round12/mcp-field-coverage.json)
+
+编辑已有服务只发送明确变更的开关。另为已经写入显式值的存量配置提供“恢复继承”，由用户确认后去掉该用户层字段。生产设置页连接官方 CLI 完成八次保存，两种布尔值均实测能够恢复为真正缺省。七个文件共 152 项定向测试、18 项 Python 测试、三项类型检查及生产构建通过。曾经由旧版写入的开关无法单凭现存布尔值判断是否符合用户本意，升级保留原值，用户可以自行恢复继承。
+
+## 第十三轮复审
+
+审阅冻结提交 `historical-commit-069` 的四个领域、2,194 个文件。325 项定向测试通过，一项 Windows 专属用例在 macOS 跳过；固定 CLI 重新生成的 1,430 个协议文件与仓库逐字节一致。发现一项 P2。[独立审阅](../audit-evidence/v250-round13/independent.json)
+
+自动任务错过完成通知后，恢复过程反复查询最新 25 个回合。使用真实 SQLite 关闭再打开：目标之后有 24 个回合时，恢复原任务为已完成并正常开始下一期；有 25 个时，第二页仍有完成记录，原任务却留在结果未知，下一期被跳过。另一项专项用正式调度、分派和运行进程连接固定 CLI 与本地响应服务，产生 32 个真实回合。关闭再启动网关、运行进程和 CLI 后，连续五次核查只读第一页，也没有重复发起原任务。[24/25 个回合的对照](../audit-evidence/v250-round13/paged-recovery.json) · [真实 CLI 分页与重启](../audit-evidence/v250-round13/native-recovery-before.json)
+
+上一轮的 MCP 配置修复在专用 Debian 上以冻结代码复验。八组案例分别经过两次冷启动，覆盖用户层显式开关恢复继承后的系统开关变化，以及清除环境变量转发后实际启动的本地子进程。[八组 MCP 对照](../audit-evidence/v250-platform/mcp-inheritance-historical-commit-069.json)

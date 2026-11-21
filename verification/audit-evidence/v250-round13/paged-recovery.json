@@ -1,0 +1,105 @@
+[
+  {
+    "laterCount": 24,
+    "realSqliteCloseAndReopen": true,
+    "observed": "completed",
+    "proof": "completed",
+    "runs": [
+      {
+        "state": "running",
+        "code": null
+      },
+      {
+        "state": "completed",
+        "code": null
+      }
+    ],
+    "conversationStarts": 2,
+    "schedulerRecoveryReads": [
+      {
+        "stage": "recovered",
+        "continued": false
+      }
+    ],
+    "nativeRecoveryReads": [
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      }
+    ]
+  },
+  {
+    "laterCount": 25,
+    "realSqliteCloseAndReopen": true,
+    "observed": "unknown",
+    "proof": "completed",
+    "runs": [
+      {
+        "state": "skipped",
+        "code": "previous_run_unresolved"
+      },
+      {
+        "state": "unknown",
+        "code": "gateway_restarted"
+      }
+    ],
+    "conversationStarts": 1,
+    "schedulerRecoveryReads": [
+      {
+        "stage": "recovered",
+        "continued": false
+      },
+      {
+        "stage": "recovered",
+        "continued": false
+      },
+      {
+        "stage": "recovered",
+        "continued": false
+      }
+    ],
+    "nativeRecoveryReads": [
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 0,
+        "limit": 25
+      },
+      {
+        "stage": "recovered",
+        "start": 25,
+        "limit": 25
+      }
+    ]
+  }
+]
