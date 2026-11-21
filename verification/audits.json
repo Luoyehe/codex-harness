@@ -8410,6 +8410,79 @@
         "path": "verification/audit-evidence/v250-round10/builtin-mcp.json",
         "sha256": "5c2f33eb47944998a9dd5db3d46f0f981ebf939e788198e27389b5ba3e180e44"
       }
+    },
+    {
+      "id": "v250-round11",
+      "sequence": 92,
+      "digest": "f15d40de1d74582d1cd952f8e3e2ec2f53f5e0dad3b26aedae19061cd16ed319",
+      "complete": true,
+      "startedAt": "2026-11-21T04:29:03.589Z",
+      "completedAt": "2026-11-21T04:41:06.596Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R11-MCP-01",
+          "severity": "P2",
+          "scope": "web-ux",
+          "title": "A user cannot disable their imported server when the settings view masks its URL or arguments",
+          "locations": [
+            "web/components/McpConfiguration.tsx:255",
+            "src/runtime/extensions.ts:110",
+            "src/runtime/mcp-configuration.ts:133",
+            "src/runtime/mcp-configuration.ts:140"
+          ],
+          "description": "The single-server editor re-submits every visible transport field on an enable-only change. A query-token URL or stdio token argument is rendered as [redacted]. The write validator rejects the unchanged display value. The user is unable to disable this originally valid server from the editor while retaining its stored launch settings.",
+          "observed": "The rendered form was driven through Edit, uncheck enabled, confirm, Save. For HTTP and stdio the actual submitted changes both failed invalid_params/not_sent against the fixed native configuration adapter, with zero native writes and the original file preserved. Sending enabled=false and omitting unchanged transport fields succeeded using the same original version and preserved the original private transport data on readback.",
+          "evidence": [
+            ".work/v250/round11/independent-work.nosync/masked-component.log",
+            ".work/v250/round11/independent-work.nosync/masked-dom.json",
+            ".work/v250/round11/independent-work.nosync/masked-flow.json",
+            ".work/v250/round11/independent-work.nosync/masked.test.tsx",
+            ".work/v250/round11/independent-work.nosync/masked-native.mjs"
+          ],
+          "suggestion": "Construct a patch from changed fields for existing servers. Omit untouched masked transport values, continue rejecting placeholder values as new input, and preserve explicit clear and transport-switch behavior."
+        },
+        {
+          "id": "R11-MCP-02",
+          "severity": "P3",
+          "scope": "runtime-protocol",
+          "title": "Saving one ordinary MCP server removes comments from a separate, untouched user server",
+          "locations": [
+            "src/runtime/mcp-configuration.ts:151",
+            "web/components/McpConfiguration.tsx:314"
+          ],
+          "description": "The single-server writer sends the complete mcp_servers table to native config/batchWrite with replace. When an unselected sibling has a multiline inline env table, the pinned CLI rebuilds that sibling and drops its inner and end-of-line maintenance comments.",
+          "observed": "In two fresh, identical user homes, editing the arguments of service change returned ok. The adapter removed both comments in unrelated personal.env. The control operation wrote only mcp_servers.change through the same official CLI and retained the sibling stanza byte-for-byte, including both comments. DOC_LANG and enabled retained their values in both experiments.",
+          "evidence": [
+            ".work/v250/round11/independent-work.nosync/sibling-comments.json",
+            ".work/v250/round11/independent-work.nosync/sibling-comments.mjs"
+          ],
+          "suggestion": "Limit ordinary edits to the selected literal server path. Keep literal names, optimistic versions, unrelated source text and actual deletion semantics correct for all supported shapes."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-eleven",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round11/independent.json",
+          "sha256": "6cd977492eab48de667fc9edd8144b393b4345ecb00b128075c4121bf1c4ac50"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round11/builtin-mcp.json",
+        "sha256": "8dd5aaf596b4e17d6f3e77bb6cd0653bee43e5aa44363a5b8cba52ccb915278e"
+      }
     }
   ],
   "fullTests": {
