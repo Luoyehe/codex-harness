@@ -1,0 +1,146 @@
+{
+  "commit": "historical-commit-133",
+  "sourceFiles": 2194,
+  "sourceSha256": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
+  "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+  "previousCommit": "historical-commit-108",
+  "previousRelease": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+  "environment": "Dedicated Debian 12 arm64, actual local gateway on loopback port 16372",
+  "build": "Independent ordinary UID 1000 offline Vite production builds of previous and frozen sources",
+  "hashAlgorithm": "SHA-256 over exact file bytes or HTTP 200 response body",
+  "compiledPreviousFiles": {
+    "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+    "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+    "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+    "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+    "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+    "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+    "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+    "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+  },
+  "compiledFrozenFiles": {
+    "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+    "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+    "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+    "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+    "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+    "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+    "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+    "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+  },
+  "removedOrChangedPaths": [
+    "assets/Settings-DYQtGYpJ.js",
+    "assets/TerminalPanel-D_ECyAJa.js",
+    "assets/index-G9iu5wC7.js",
+    "index.html"
+  ],
+  "addedOrChangedPaths": [
+    "assets/Settings-LaRNkEIx.js",
+    "assets/TerminalPanel-DjKz1n_Y.js",
+    "assets/index-B8-yzBI-.js",
+    "index.html"
+  ],
+  "phases": [
+    {
+      "phase": "before",
+      "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+      "installedFiles": {
+        "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "servedFiles": {
+        "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "preUpgradeAccountAuthenticated": true
+    },
+    {
+      "phase": "candidate",
+      "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+      "installedFiles": {
+        "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+        "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "servedFiles": {
+        "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+        "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "preUpgradeAccountAuthenticated": true
+    },
+    {
+      "phase": "previous",
+      "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+      "installedFiles": {
+        "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "servedFiles": {
+        "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "preUpgradeAccountAuthenticated": true
+    },
+    {
+      "phase": "returned",
+      "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+      "installedFiles": {
+        "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+        "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "servedFiles": {
+        "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+        "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+        "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+        "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+        "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+        "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+        "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+        "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+      },
+      "preUpgradeAccountAuthenticated": true
+    }
+  ],
+  "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true
+}

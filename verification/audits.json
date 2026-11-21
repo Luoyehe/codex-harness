@@ -8957,6 +8957,72 @@
         "path": "verification/audit-evidence/v250-round20/builtin-mcp.json",
         "sha256": "679c3ca06c320c2c78f79d1898712513eb0a15e1b54295166ac8af113c1a992c"
       }
+    },
+    {
+      "id": "v250-round21",
+      "sequence": 102,
+      "digest": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
+      "complete": true,
+      "startedAt": "2026-11-21T14:11:07.839Z",
+      "completedAt": "2026-11-21T14:21:02.569Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-twenty-one",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round21/independent.json",
+          "sha256": "ddb6530ab8407b3b21748e2dd40748b260323763f8111dab3c479d609bf78890"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round21/builtin-mcp.json",
+        "sha256": "40f263ac6963914a5c1d20143c3a4392b8084fada3d495b6bafe81dc2cbab7ad"
+      }
+    },
+    {
+      "id": "v250-round22",
+      "sequence": 103,
+      "digest": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
+      "complete": true,
+      "startedAt": "2026-11-21T14:21:26.062Z",
+      "completedAt": "2026-11-21T14:29:41.341Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-twenty-two",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round22/independent.json",
+          "sha256": "ad78ef935a1f1d55149cc6c181af1f78c9f292818d2f138a75322fc6fce5283f"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round22/builtin-mcp.json",
+        "sha256": "02315c5046983eb1ccfb1eecfc935c03c47e6f5ea75d266b7cafffd6d4ce0238"
+      }
     }
   ],
   "fullTests": {

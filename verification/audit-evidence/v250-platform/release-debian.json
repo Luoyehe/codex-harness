@@ -1,16 +1,16 @@
 {
-  "commit": "historical-commit-108",
+  "commit": "historical-commit-133",
   "sourceFiles": 2194,
-  "sourceSha256": "c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1",
+  "sourceSha256": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
   "platform": "Dedicated Debian 12 arm64 / systemd 252",
   "scope": "Supplemental actual install, version upgrade and configuration behavior",
-  "checkedAtUtc": "2026-11-21T13:17:35+00:00",
-  "gitFilesIncludingModes": 2532,
+  "checkedAtUtc": "2026-11-21T14:29:10+00:00",
+  "gitFilesIncludingModes": 2540,
   "packagedApplicationFiles": 1801,
   "packageMismatches": 0,
-  "sourceArchiveSha256": "eb5de49a67cf6abbae8668ac4168d5a5432af83ebe3fce9c75c87d36396f8f66",
-  "applicationPackageSha256": "a6a72575095ed549831b7e1d0d84986ba271df826ad4ac00804d29eafab6cf2b",
-  "installedRelease": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+  "sourceArchiveSha256": "263c8ea870b766a7847c391aea4c4c6936d994bb1dfbdc7cb506d757b9beb4aa",
+  "applicationPackageSha256": "8b6672468714d2a19d62905b8b4f8f90b81546f7648eb750fa4ef46d2c44488f",
+  "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
   "installedFilesVerified": 20530,
   "controlGeneration": "b82f6465e4d80b58cf2ca60dcb73599e8046d3d70c6f9dad76a9051e53861497",
   "platformTools": {
@@ -39,8 +39,8 @@
     "automationRunColumns": 17,
     "sqliteIntegrityChecksPassed": 2,
     "realApplicationRollbackAndReturn": {
-      "previous": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
-      "restoredCurrent": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+      "previous": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+      "restoredCurrent": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
       "bothHealthyWithRetainedDataAndLogin": true,
       "controlGenerationHeldDuringApplicationRollback": true
     },
@@ -51,7 +51,7 @@
       "servicesRestored": true
     },
     "controlTreeVerification": {
-      "commit": "historical-commit-108",
+      "commit": "historical-commit-133",
       "controlDigest": "b82f6465e4d80b58cf2ca60dcb73599e8046d3d70c6f9dad76a9051e53861497",
       "expectedAndInstalledMatch": true,
       "managedControlFilesAndDirectories": 92,
@@ -129,26 +129,29 @@
     }
   },
   "evidenceSha256": {
-    "debian-frozen-historical-commit-108-ci-complete.log": "3dd49b2aabfee3e79f23a8399a911ce22f99121a475beedb45acfe6141454565",
-    "debian-frozen-historical-commit-108-deploy.log": "781763841e1a798ade9f6643e373c5f57962bdc003236f56163355bee78c50c0",
-    "debian-frozen-historical-commit-108-business.log": "e030ba348ee7b39fad1e4192da2080e33cde61a9381a3448bde4e0f502f3c62e",
-    "debian-historical-commit-108-rollback-return.log": "d1b614c76d6bf11b05361a61dc05af9315ca44be55f55b4ca0fa8660c304f48f",
-    "debian-historical-commit-108-candidates-pre-update.json": "a504d41533194e1e98d3f85218fc381226ac566649eaf62807030f7dbbd6df7a",
-    "debian-historical-commit-108-candidate-archive.json": "ad248527b38df88c54811a5ee9840d0fd1951398f3efdcf1dad1f5c869233889",
-    "debian-historical-commit-108-cold-process-installed.log": "50f0a57c7b9d32efc6ed1ba4702b2fc5d06649f104911b991676423b15542260",
-    "debian-historical-commit-108-native-format-installed.log": "a0e669c7fe7008d25e79762852d5d3098744120b8e863ca84d9e570f5d4d2a38",
-    "debian-historical-commit-108-mixed-and-auth-installed.log": "e8fc0ffb072ce8d268b90b6a45c36989a89192b422cb9f5cf6104320a89f89e6",
+    "debian-frozen-historical-commit-133-ci-complete.log": "2653ad42438607c4b326dfcd1ef9faefeddda28a05dc66abf2c4f19aa40f6106",
+    "debian-frozen-historical-commit-133-deploy.log": "67bbf78f6b47b7b99d8d5251269e7f78a5cfc5cd1dfaa138259e799d0e08646c",
+    "debian-frozen-historical-commit-133-business.log": "ba81d8648a0f4ac358736bbf9828bda3d7c724c7c2706a184992df2a4be917e8",
+    "debian-historical-commit-133-rollback-return.log": "3735732602f99ccdc014b8b7b872622bd3ac8e2b7b2fa69dff35d1c443ab941a",
+    "debian-historical-commit-133-candidates-pre-update.json": "032f0888cf26df60ffdd361f377f66b1827bdc1bb6766d2b989a03fb9498af59",
+    "debian-historical-commit-133-candidate-archive.json": "428a1ab209b52cd0cebe4546f17070bb6fe8b5187914fa323535db1bc2d2703a",
+    "debian-historical-commit-133-cold-process-installed.log": "5e904d5ab0d7146ac3b01dcb1b41cd03fd3406121838e6d8e6fcaf51a0a209b8",
+    "debian-historical-commit-133-native-format-installed.log": "8b45791339fba7008aafee4642bcf05f0af3bf69bdc113dcb34f4cb5eca1b005",
+    "debian-historical-commit-133-mixed-and-auth-installed.log": "7dc62f4ef6aa49c02d7f982f2e943a1caa52d3be506fa726fafef7bc746b097a",
     "debian-historical-commit-062-native-format-prior.log": "12debbb4e5ce4faff03d922422e1ce2eba8bc30c222375395ed2900a036f8562",
-    "debian-historical-commit-108-user-mcp-workspace-native.log": "4686c2704b2d0b5e043d3989e147a37e721b2643ca67ef68668ebed4c9dd5303",
-    "debian-historical-commit-108-user-mcp-workspace-root.log": "dda42f77db6af3a04a077692b9ec2c81cc38887b1d5053bb9cd3cbc261a8ec9e",
-    "final-installed-mcp-workspace.json": "3cbe18601d903bd6c7ec93433e2e11692dee9ffb79911c596fda3b099decc60a",
-    "final-installed-toml-cases.json": "403735b4702388f99fc5278ddbdb27c5c8372d30a422eb4f9a3856aad31eca19",
-    "debian-historical-commit-108-installed-r12.json": "607ef295b9bdb77c64eb6718c62142deb421a7a0d5dec820f0d9d9997dfe504d",
-    "release-original-r9-startups.json": "1d91ac295085d0e7f1188f1345121bc8e66f48b9bf3bc8e88e458d70fcabd950",
-    "debian-historical-commit-108-workspace-ordinary.log": "267f74859c68c03b1a97deca2676b0abc039cd81b8c5e65953dab691670fa92b",
-    "debian-historical-commit-108-journal-schema-native.json": "5276dee112b987d19e8c218e6aaf7c4062d6dc25a0551e5448cecde25a58056c",
-    "debian-historical-commit-108-journal-schema-test.log": "80907d246a429d6e3ff65cc7d0040b5563eb083da81083dec5587dfe0313ac05",
-    "debian-historical-commit-108-control-live.json": "91c9f3527210ba5210502abdf39cf2db67da91c3e449a5a0bb44e1a2768e3d5c"
+    "debian-historical-commit-133-user-mcp-workspace-native.log": "d4f03335ea1402977f2e72d6b57ce696e3847e3e69b3ffc0a56982db0b447e2c",
+    "debian-historical-commit-133-user-mcp-workspace-root.log": "7f8c9929f2190c1b18c59d1e679137c58fb3e1b4b003f0229adeb7141254bd56",
+    "final-installed-mcp-workspace.json": "9da46803993956f496f05bc2ad24594d9323476c6539f0ebab733ad9d0e038b0",
+    "final-installed-toml-cases.json": "19a790bd8b42b7d45760280a6213af6f840d771dd476893e031a97538f9dd368",
+    "debian-historical-commit-133-installed-r12.json": "4a4fb7fe32087ce6b9804d87b88976f86afb49cfb8d426540d21d734cc31fee9",
+    "release-original-r9-startups.json": "ba76875bc949b5f1567bdd5d2c08baceb166c32f82d6c59bae0876e2f1ae218f",
+    "debian-historical-commit-133-workspace-ordinary.log": "c201b4f4a48f258957b9b1f4ed10012defc919ad44b9d68f1516aa14bb8244bf",
+    "debian-historical-commit-133-journal-schema-native.json": "98d04aaf272d55cbc9dc9c800b86ae40343e6a30544e4862dbc2987c9be45d68",
+    "debian-historical-commit-133-journal-schema-test.log": "09a37b3677fb71bc6ec7b7f5bb1fe7cc096c5cc7468998bab9d6c56223eeb5bf",
+    "debian-historical-commit-133-control-live.json": "8ac4c534719697bb13d07dc92f5a65b4a6a96dd439ce31d423459149607cf2ca",
+    "release-web-integrity.json": "9660b9e0878a7e352a5657d350c096482904819968d4e68a32d33097dd6fa85a",
+    "web-before.json": "71f321395a5d608d028abcc517f3859999a55bdec8197f0177edfd345e90bd01",
+    "web-candidate.json": "22d114ebc1c7a531d66fa499e3e073a7eeef5236c76cd46a4ec53f3f8ca63b0c"
   },
   "installedWorkerCustomMcpEdits": {
     "native": {
@@ -201,7 +204,7 @@
     "networkInterfaces": [
       "lo"
     ],
-    "rawEvidenceSha256": "607ef295b9bdb77c64eb6718c62142deb421a7a0d5dec820f0d9d9997dfe504d"
+    "rawEvidenceSha256": "4a4fb7fe32087ce6b9804d87b88976f86afb49cfb8d426540d21d734cc31fee9"
   },
   "linuxOrdinaryTargeted": {
     "files": [
@@ -223,7 +226,7 @@
     "total": 8,
     "successfulInitializations": 8,
     "secondStartReadOnly": true,
-    "evidenceSha256": "1d91ac295085d0e7f1188f1345121bc8e66f48b9bf3bc8e88e458d70fcabd950"
+    "evidenceSha256": "ba76875bc949b5f1567bdd5d2c08baceb166c32f82d6c59bae0876e2f1ae218f"
   },
   "fixtureRecovery": {
     "originalVerifiedSystemDiskSha256": "c5b9150dcff8cf1c9d45fc9eafd28f6b22af22bb0af9bc083eacd5ee967fb188",
@@ -233,11 +236,54 @@
     "workingVolumeGiB": 24,
     "isolatedLocalClones": true
   },
-  "installedProjectTrustModule": {
-    "module": "dist/src/runtime/project-trust.js",
-    "previousCompiledSha256": "2af2e7eeb4bd928c1129c2559877f2af0e798455c99df5272470b81d1ddf6950",
-    "frozenCompiledSha256": "6d35833597854248250de5c17afc58987faf30662ee72bb7f6c01e15d509f8f0",
-    "installedBeforeUpgradeSha256": "2af2e7eeb4bd928c1129c2559877f2af0e798455c99df5272470b81d1ddf6950",
-    "installedAfterReturnSha256": "6d35833597854248250de5c17afc58987faf30662ee72bb7f6c01e15d509f8f0"
+  "installedWebBundle": {
+    "compiledPreviousFiles": {
+      "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+      "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+      "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+      "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+      "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+      "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+      "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+      "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+    },
+    "compiledFrozenFiles": {
+      "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+      "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+      "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+      "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+      "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+      "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+      "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+      "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+    },
+    "phases": [
+      {
+        "phase": "before",
+        "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+        "loopbackResponseAndInstalledFilesMatchExpected": true,
+        "verifiedFileCount": 8
+      },
+      {
+        "phase": "candidate",
+        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+        "loopbackResponseAndInstalledFilesMatchExpected": true,
+        "verifiedFileCount": 8
+      },
+      {
+        "phase": "previous",
+        "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+        "loopbackResponseAndInstalledFilesMatchExpected": true,
+        "verifiedFileCount": 8
+      },
+      {
+        "phase": "returned",
+        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+        "loopbackResponseAndInstalledFilesMatchExpected": true,
+        "verifiedFileCount": 8
+      }
+    ],
+    "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true,
+    "evidenceSha256": "9660b9e0878a7e352a5657d350c096482904819968d4e68a32d33097dd6fa85a"
   }
 }

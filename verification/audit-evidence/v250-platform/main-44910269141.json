@@ -1,0 +1,52 @@
+{
+  "runId": 44910269141,
+  "url": "https://github.com/Luoyehe/codex-harness/actions/runs/44910269141",
+  "head": "historical-commit-006",
+  "conclusion": "failure",
+  "candidateRunOnSameCommit": 44908325919,
+  "jobs": [
+    {
+      "name": "plan",
+      "id": 136864392283,
+      "outcome": "success"
+    },
+    {
+      "name": "standard (ubuntu-24.04, linux, 0.169.0-linux-x64)",
+      "id": 136864500826,
+      "outcome": "failure"
+    },
+    {
+      "name": "root_deploy",
+      "id": 136864500846,
+      "outcome": "success"
+    },
+    {
+      "name": "standard (windows-2025, windows, 0.169.0-win32-x64)",
+      "id": 136864500863,
+      "outcome": "success"
+    },
+    {
+      "name": "Verified case coverage",
+      "id": 136867434221,
+      "outcome": "failure"
+    }
+  ],
+  "failedCase": {
+    "file": "web/tests/provider-target-ownership.test.tsx",
+    "name": "pins the initially displayed provider when the default changes in another client",
+    "assertion": "The observed system/models/refresh request count was zero, expected one."
+  },
+  "linuxJavaScriptCounts": {
+    "numTotalTests": 2738,
+    "numPassedTests": 2721,
+    "numFailedTests": 1,
+    "numPendingTests": 16
+  },
+  "source": {
+    "complete-logs.zip": "899784e64ca5aadab8bf8d9bec9a79cdd171b252c15b4c3cdd5427a36abd3202",
+    "linux.log": "c9949d80bdf274c003069d694bf67e79541e5912d485edb2ac68ede570b4a6c4",
+    "result-linux.json": "e21fde34325ded893b73b36a5ec135f24da9e66b469ea69e04e7361030f98605",
+    "vitest.json": "fd3a1d00212a2e29948e70734cbc494d2568956fae4278dad3cf986c7736e2ea"
+  },
+  "completeArchiveMembers": 69
+}

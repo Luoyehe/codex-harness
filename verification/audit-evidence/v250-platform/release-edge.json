@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "commit": "historical-commit-108",
+  "commit": "historical-commit-133",
   "platform": "desktop Edge with mobile touch viewport, controlled loopback responses",
   "physicalHandset": false,
   "result": {
     "browser": "152.0.4191.53",
-    "commit": "historical-commit-108",
+    "commit": "historical-commit-133",
     "viewport": {
       "width": 390,
       "height": 740,
@@ -33,7 +33,7 @@
       },
       "action": {
         "x": 205.5,
-        "y": 592,
+        "y": 643,
         "inViewport": true,
         "hit": true
       },
@@ -201,12 +201,12 @@
     "calledMethods": [
       "project/list",
       "thread/list",
-      "thread/session",
-      "prompt/list",
       "model/list",
       "collaborationMode/list",
       "thread/read",
       "thread/history",
+      "prompt/list",
+      "thread/session",
       "thread/delete",
       "process/list",
       "thread/searchOccurrences",
@@ -214,14 +214,14 @@
     ]
   },
   "evidenceDigests": {
-    "confirm.png": "cad24c0a7564798d85ed3a008ad8bc22e1b62e4d640456e978e49da4493dfa4b",
-    "dist/assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
-    "dist/assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
-    "dist/assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
-    "dist/index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+    "confirm.png": "977280c48fdfb8f39f6bd20278e210ef509805ac63511b851728cbd3992882f6",
+    "dist/assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+    "dist/assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+    "dist/assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+    "dist/index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
     "dist/theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba",
-    "drawer.png": "54775672c08e7f7f62f2e19eca8ab49072c8d69b39606c348f4a9466e6b640b7",
+    "drawer.png": "a24b950e8b75c718492acceae77dab01ed31794958db7c304608574415b77d0a",
     "locate.png": "03a17284b0e190ef3e801ca0e716e0f85d917f9ef492d04635e5c8f47397ab71",
-    "observations.json": "be5f246ee7732664cbb3536e845ca8e06d803a66ed88918666a942b5420761b8"
+    "observations.json": "6b82d31053aff5343b7c3b90c28103f9879dacd55dd754a19af3ccc011b24178"
   }
 }

@@ -1,6 +1,6 @@
 {
-  "commit": "historical-commit-108",
-  "installedRelease": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+  "commit": "historical-commit-133",
+  "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
   "source": {
     "originalArtifact": "verification/audit-evidence/v250-round9/original-config-retries.json",
     "canonicalTree": "historical-commit-122",
@@ -17,14 +17,15 @@
         "inputBytes": 67,
         "inputSha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3"
       }
-    }
+    },
+    "frozenCommitContainingSameCanonicalBlob": "historical-commit-133"
   },
   "systemLayer": "[mcp_servers.web-reader]\ncommand = \"local-fixture\"\n",
   "platform": "Debian 12 arm64",
   "officialCli": "0.169.0",
   "installation": {
-    "commit": "historical-commit-108",
-    "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+    "commit": "historical-commit-133",
+    "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
     "installedControlPythonFilesMatched": 80,
     "fixedLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
     "installedCliSha256": "3bb41c9a80187773e2a59278d4fc355b1a163c31bb5a79581e37d4fe428af047",
@@ -38,7 +39,7 @@
   "serviceUid": 994,
   "serviceGid": 993,
   "initializations": 8,
-  "rawLogSha256": "14cf19c19f89fae303fa8efea1b43209c788fea1f2e87cc9f134e63cc9b0ec2b",
+  "rawLogSha256": "108117338f091e9854222d65c8d96afb959d6b4dde37ecd96bde2d4573adff81",
   "observations": [
     {
       "input": "dotted-inline",
@@ -46,7 +47,7 @@
       "initialConfig": {
         "sha256": "aeaaebfe7aacc2b2bf83850fbab25a0da3563c1f4739a48014f748c90105791a",
         "inode": "5",
-        "mtimeNs": "1795267052772618118",
+        "mtimeNs": "1795271347849489637",
         "mode": "0600",
         "uid": 994
       },
@@ -68,21 +69,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267052820615278",
+            "mtimeNs": "1795271347901488579",
             "mode": "0600",
             "uid": 994
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267052820615278",
+            "mtimeNs": "1795271347901488579",
             "mode": "0600",
             "uid": 994
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 38679,
+          "verifiedCliPid": 16051,
           "verifiedCliUid": 994
         },
         {
@@ -102,21 +103,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267052820615278",
+            "mtimeNs": "1795271347901488579",
             "mode": "0600",
             "uid": 994
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267052820615278",
+            "mtimeNs": "1795271347901488579",
             "mode": "0600",
             "uid": 994
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 38751,
+          "verifiedCliPid": 16115,
           "verifiedCliUid": 994
         }
       ],
@@ -129,7 +130,7 @@
       "initialConfig": {
         "sha256": "aeaaebfe7aacc2b2bf83850fbab25a0da3563c1f4739a48014f748c90105791a",
         "inode": "5",
-        "mtimeNs": "1795267053324585455",
+        "mtimeNs": "1795271348385478739",
         "mode": "0600",
         "uid": 0
       },
@@ -151,21 +152,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267053384581905",
+            "mtimeNs": "1795271348449477438",
             "mode": "0600",
             "uid": 0
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267053384581905",
+            "mtimeNs": "1795271348449477438",
             "mode": "0600",
             "uid": 0
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 38825,
+          "verifiedCliPid": 16188,
           "verifiedCliUid": 0
         },
         {
@@ -185,21 +186,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267053384581905",
+            "mtimeNs": "1795271348449477438",
             "mode": "0600",
             "uid": 0
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267053384581905",
+            "mtimeNs": "1795271348449477438",
             "mode": "0600",
             "uid": 0
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 38898,
+          "verifiedCliPid": 16258,
           "verifiedCliUid": 0
         }
       ],
@@ -212,7 +213,7 @@
       "initialConfig": {
         "sha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3",
         "inode": "5",
-        "mtimeNs": "1795267053896551608",
+        "mtimeNs": "1795271348961467032",
         "mode": "0600",
         "uid": 994
       },
@@ -234,21 +235,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267053948548531",
+            "mtimeNs": "1795271349017465895",
             "mode": "0600",
             "uid": 994
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267053948548531",
+            "mtimeNs": "1795271349017465895",
             "mode": "0600",
             "uid": 994
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 38973,
+          "verifiedCliPid": 16334,
           "verifiedCliUid": 994
         },
         {
@@ -268,21 +269,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267053948548531",
+            "mtimeNs": "1795271349017465895",
             "mode": "0600",
             "uid": 994
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267053948548531",
+            "mtimeNs": "1795271349017465895",
             "mode": "0600",
             "uid": 994
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 39040,
+          "verifiedCliPid": 16400,
           "verifiedCliUid": 994
         }
       ],
@@ -295,7 +296,7 @@
       "initialConfig": {
         "sha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3",
         "inode": "5",
-        "mtimeNs": "1795267054448518940",
+        "mtimeNs": "1795271349529455503",
         "mode": "0600",
         "uid": 0
       },
@@ -317,21 +318,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267054500515862",
+            "mtimeNs": "1795271349589454285",
             "mode": "0600",
             "uid": 0
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267054500515862",
+            "mtimeNs": "1795271349589454285",
             "mode": "0600",
             "uid": 0
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 39113,
+          "verifiedCliPid": 16477,
           "verifiedCliUid": 0
         },
         {
@@ -351,21 +352,21 @@
           "config": {
             "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
             "inode": "8",
-            "mtimeNs": "1795267054500515862",
+            "mtimeNs": "1795271349589454285",
             "mode": "0600",
             "uid": 0
           },
           "sidecar": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795267054500515862",
+            "mtimeNs": "1795271349589454285",
             "mode": "0600",
             "uid": 0
           },
           "sidecarFlags": {
             "@unassigned:web-reader": false
           },
-          "verifiedCliPid": 39182,
+          "verifiedCliPid": 16549,
           "verifiedCliUid": 0
         }
       ],

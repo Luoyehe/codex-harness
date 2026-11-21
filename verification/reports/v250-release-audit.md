@@ -199,14 +199,34 @@ Debian 12 以普通用户实际执行原 139 项，有 137 项通过、两项断
 
 首次提交 GitHub 的候选为 `historical-commit-122`，与两轮审阅的源文件完全一致。GitHub 安全检查通过，全量测试失败，候选未进入 main。记录保存了三个平台的逐项结果、完整日志压缩包的校验值，以及会影响项目可信状态和测试可信度的问题。[首次全量检查结果](../audit-evidence/v250-platform/candidate-44905367136.json) · [完整复盘](v250-historical-checks.md)
 
+## 首次进入主分支的候选和第十九、二十轮复审
+
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1`。[v250-round19](../audit-evidence/v250-round19/independent.json)、[v250-round20](../audit-evidence/v250-round20/independent.json)。[本次发布授权](https://github.com/Luoyehe/codex-harness)
+
+最终源码通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](https://github.com/Luoyehe/codex-harness)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](https://github.com/Luoyehe/codex-harness)
+
+最终安装核对 20,530 个文件。控制工具已与候选相符，运行正式更新命令后，另将受管控制树 92 项和冻结材料逐一核对。应用从源码重装，随后实际回退并切回新版本。此前的有效登录、项目、暂停任务、操作回执及两个数据库均保留。56 次配置冷启动中 52 次完成初始化，4 次按预期拒绝不兼容的认证配置。另用首次审计记录里的 66、67 字节两份输入，在实际服务身份和 root 下逐字节重放，8 次全部完成初始化，第二次均未改写持久文件。两种身份的 MCP 设置继承专项合计 16 项通过。[56 次启动](https://github.com/Luoyehe/codex-harness) · [首次原文与 8 次重放](https://github.com/Luoyehe/codex-harness) · [MCP 读写](https://github.com/Luoyehe/codex-harness) · [继承专项](https://github.com/Luoyehe/codex-harness)
+
+同一冻结源码另复跑了 32 个真实 CLI 回合后的任务恢复、13 种审批状态、4 种停止回执时序、重连资源释放以及 jsdom 下连续关闭 1,024 条审批的回收对照。[自动任务与网页状态专项](https://github.com/Luoyehe/codex-harness)
+
+发布候选的全量测试和安全检查均通过，独立对账 303 个测试文件中的 3,876 个已上报用例均有适用平台通过。相同提交进入主分支后，Linux 普通用户测试检出一个此前没有稳定复现的网页问题。Windows、Linux 特权组和安全检查通过，主分支覆盖检查正确失败，未创建版本标签。[候选成功的全量运行](https://github.com/Luoyehe/codex-harness/actions/runs/44908325919) · [主分支失败运行的逐项证据](../audit-evidence/v250-platform/main-44910269141.json)
+
+## 主分支失败后的两项网页修复
+
+在两个客户端分别打开供应商设置。当一个客户端把默认连接从 a 改为 b，另一个客户端仍应在原目标 a 上编辑。主分支测试观察到页面保存了原目标、目录与推理强度，但用户点击后请求数为零。固定到新版本首次可以交互时重新勾选，旧代码会在稍后取消刚刚给出的确认。修复后旧确认立即失效，新勾选只向 a 的新版本提交一次。相同回归用例在旧版失败，修复后直接相关的 10 份文件共 107 项通过。托管日志没有发现误写 b。[单项失败与平台结果](../audit-evidence/v250-platform/main-44910269141.json) · [断言、首次漏检原因及修复验证](v250-historical-checks.md)
+
+沿此路径又检查了配置档恢复和删除。桌面 Edge 实测显示，在旧内容仍可见而新版正在读取时，旧页面允许勾选。新版恢复预览随后多出一个将被移除的连接，原先的勾选仍可向新版提交恢复；删除配置档也可保留旧勾选。两种操作在受控本地服务分别观测到一次写入。修复后，读取期间禁用确认，旧确认不能授权新版。两种操作在看见新版并重新确认前均为零写入，之后各发出一次有效请求。原版三条回归用例全部失败，修复后三份相关测试共 30 项通过。两项产品修复已分别整合为 `historical-commit-084`、`historical-commit-133`。[原始与修复版浏览器、时序和测试数据](../audit-evidence/v250-platform/provider-consent-verification.json)
+
 ## 最终候选的连续复审
 
-本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1`。[v250-round19](../audit-evidence/v250-round19/independent.json)、[v250-round20](../audit-evidence/v250-round20/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9`。[v250-round21](../audit-evidence/v250-round21/independent.json)、[v250-round22](../audit-evidence/v250-round22/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
 
 最终源码通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](../audit-evidence/v250-platform/release-debian.json)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](../audit-evidence/v250-platform/release-edge.json)
 
-最终安装核对 20,530 个文件。控制工具已与候选相符，运行正式更新命令后，另将受管控制树 92 项和冻结材料逐一核对。应用从源码重装，随后实际回退并切回新版本。此前的有效登录、项目、暂停任务、操作回执及两个数据库均保留。56 次配置冷启动中 52 次完成初始化，4 次按预期拒绝不兼容的认证配置。另用首次审计记录里的 66、67 字节两份输入，在实际服务身份和 root 下逐字节重放，8 次全部完成初始化，第二次均未改写持久文件。两种身份的 MCP 设置继承专项合计 16 项通过。[56 次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [首次原文与 8 次重放](../audit-evidence/v250-platform/release-original-r9-startups.json) · [MCP 读写](../audit-evidence/v250-platform/release-mcp-workspace.json) · [继承专项](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+冻结提交为 `historical-commit-133`。v250-round21 和 v250-round22 顺序完成后，重新按初次发现时使用的程序实测。真实 CLI 在 32 个回合后重启，找回了已完成的任务，恢复过程没有额外推理请求。另核对 13 种审批状态、4 种停止请求时序，以及 jsdom 中连续关闭 1,024 条审批后保留编号归零。[自动任务与审批复验](../audit-evidence/v250-platform/release-automations.json)
 
-同一冻结源码另复跑了 32 个真实 CLI 回合后的任务恢复、13 种审批状态、4 种停止回执时序、重连资源释放以及 jsdom 下连续关闭 1,024 条审批的回收对照。[自动任务与网页状态专项](../audit-evidence/v250-platform/release-automations.json)
+专用 Debian 安装后校验 20,530 个文件。56 次 MCP 配置冷启动中，52 次正常初始化，4 次按预期拒绝认证配置。另从首次审计原件提取两份 TOML，以正式服务账户和 root 各自使用同一目录连续启动两次。8 次均完成初始化，第二次没有改写配置或开关文件。两种身份的继承专项合计 16 项通过。[56 次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [两份原文 8 次启动](../audit-evidence/v250-platform/release-original-r9-startups.json) · [MCP 编辑](../audit-evidence/v250-platform/release-mcp-workspace.json) · [开关继承](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+
+网页同时从前后两个冻结版本独立构建。升级前、升级后、正式回退、再次切回四个阶段，各经 HTTP 读出 8 个文件；每个文件都与相应构建及安装目录逐字节一致。升级前的同一登录在四次访问中均有效。[四个阶段的文件校验](../audit-evidence/v250-platform/release-web-integrity.json)
 
 GitHub 将在发布候选和 main 提交分别运行 Linux、Windows、Linux 特权测试及安全扫描。正式发布须等待 main 对应提交的两项检查成功，并核对逐用例覆盖结果。[GitHub Actions](https://github.com/Luoyehe/codex-harness/actions)
