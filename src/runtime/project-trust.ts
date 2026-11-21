@@ -16,10 +16,16 @@ export class ProjectTrust {
     const projectLayers = state.layers.map(value => object(value)).filter(layer => object(layer.name).type === 'project')
       .map(layer => ({ name: layer.name!, disabledReason: layer.disabledReason ?? null }));
     const levels = state.effectiveProjects;
+    const cwdPath = cwd.replaceAll(path.sep, '/');
     const candidates = projectLayers.map(layer => ({ layer, folder: object(layer.name).dotCodexFolder }))
       .filter((row): row is typeof row & { folder: string } => typeof row.folder === 'string')
       .map(({ layer, folder }) => ({ layer, root: path.dirname(folder) }))
-      .filter(({ root }) => cwd === root || cwd.startsWith(root + path.sep)).sort((a, b) => b.root.length - a.root.length);
+      .filter(({ root }) => {
+        const layerPath = root.replaceAll(path.sep, '/');
+        const prefix = layerPath.endsWith('/') ? layerPath : layerPath + '/';
+        // Compare complete path components without folding distinct config keys.
+        return path.isAbsolute(root) && !cwdPath.split('/').includes('..') && (cwdPath === layerPath || cwdPath.startsWith(prefix));
+      }).sort((a, b) => b.root.length - a.root.length);
     const levelsAt = (key: string): 'trusted' | 'untrusted' | null => {
       const level = Object.hasOwn(levels, key) ? object(levels[key]).trust_level : null;
       return level === 'trusted' || level === 'untrusted' ? level : null;

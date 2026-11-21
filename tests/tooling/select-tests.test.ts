@@ -70,7 +70,7 @@ test.each(['tests/runtime/mcp-oauth-fixture.mjs', 'tests/runtime/native-fixture.
 test('builtin MCP contract/checker changes retain offline vision and both managed credential render paths', () => {
   const required = ['tests/tooling/builtin-mcp.test.ts', 'tests/tooling/vision-compat.test.ts', 'tests/deploy/test_provider_registry.py', 'tests/deploy/root/test_provider_extended.py'];
   for (const changed of ['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs']) {
-    const auditConsumers = changed === 'tests/deploy/vision_stdio_probe.mjs' ? [] : ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts',
+    const auditConsumers = changed === 'tests/deploy/vision_stdio_probe.mjs' ? [] : ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts',
       'tests/tooling/release-preflight.test.ts', 'tests/tooling/publish-release.test.ts'];
     const plan = selectTests([changed], [...available, ...required, ...auditConsumers]);
     expect(plan.status).toBe('selected');

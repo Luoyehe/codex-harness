@@ -187,7 +187,7 @@ export function selectTests(changed, available) {
     else if (!patchProofInputs.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'unknown-change-mapping' });
   }
   for (const name of plan.changed.filter(name => ['scripts/audit-rounds.mjs', 'scripts/release-authorization.mjs', 'scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json'].includes(name))) {
-    const required = ['tests/tooling/run-tests.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/publish-release.test.ts'];
+    const required = ['tests/tooling/run-tests.test.ts', 'tests/tooling/test-environment.test.ts', 'tests/tooling/ci-checks.test.ts', 'tests/tooling/release-preflight.test.ts', 'tests/tooling/publish-release.test.ts'];
     for (const test of required) if (!inventory.has(test)) plan.requiresFullAudit.push({ path: test, reason: 'missing-release-authority-regression' });
     add(name, required, 'source-bound-release-authority');
   }

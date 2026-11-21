@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { executePlan } from '../../scripts/run-tests.mjs';
 import { isolatedPaths, isolatedTestEnvironment } from '../../scripts/test-environment.mjs';
@@ -95,7 +95,13 @@ test('the real targeted CLI isolates JavaScript and Python Git fixtures from art
   git(control, controlEnv, 'init', '-q'); put(control, 'fixture.txt', 'fixture'); git(control, controlEnv, 'add', '.');
   git(control, controlEnv, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'positive-control');
   expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\n');
-  for (const file of ['run-tests.mjs', 'select-tests.mjs', 'test-environment.mjs', 'go-tests.mjs', 'snapshot.mjs', 'release-audit.mjs', 'git-object-reader.mjs', 'test-paths.mjs', 'test-retention.mjs', 'release-authorization.mjs', 'python-tests.py']) put(base, 'scripts/' + file, readFileSync(path.resolve('scripts', file), 'utf8'));
+  // This fixture executes the real runner, including its transitive audit modules.
+  mkdirSync(path.join(base, 'scripts'));
+  for (const file of readdirSync('scripts', { withFileTypes: true })) {
+    if (file.isFile() && /\.(?:mjs|py)$/.test(file.name)) {
+      copyFileSync(path.join('scripts', file.name), path.join(base, 'scripts', file.name));
+    }
+  }
   put(base, 'package.json', JSON.stringify({ type: 'module', scripts: { 'test:targeted': 'node scripts/run-tests.mjs --targeted' } }));
   put(base, 'vitest.config.mjs', "export default { test: { include: ['tests/**/*.test.ts'], maxWorkers: 1 } };\n");
   put(base, 'tests/tooling/unselected.test.ts', "throw Error('unselected fixture must not run');\n");
