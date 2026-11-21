@@ -1,0 +1,540 @@
+{
+  "schemaVersion": 1,
+  "commit": "historical-commit-119",
+  "sourceVerification": {
+    "files": 2194,
+    "digest": "cd514e389c687c2d72240af9fd9ff3733cb2919dfe478a8e521147e265ee7f35",
+    "mismatches": []
+  },
+  "compiledFromFrozenSource": true,
+  "platform": "macOS arm64",
+  "node": "v24.22.1",
+  "cli": "0.169.0",
+  "result": "passed",
+  "generatedAt": "2026-11-21T12:14:25.228696+00:00",
+  "coverage": "Local CLI model turns used a loopback Responses fixture and isolated homes. Approval ordering and protocol frames were controlled. Stop deliveries used loopback HTTP and WebSocket with synthetic interruption actions and virtual deadline/recovery clocks. Browser retention used the real React hook with synthetic events in jsdom.",
+  "fixtureHashes": {
+    "r13NativeHistory": "ee9088a7b01c1cedf285043b7b03eeb0e7daa1c3b702ce9254dac9e7bea41eda",
+    "r14Prompts": {
+      "accept.mjs": "27b09c0acd9414513fb6ae79c3f7782508f09008979729607a4c1b2c5b1f06c8",
+      "worker.mjs": "6a23d60126e4f326c0c392e63d287cb7eec27408f3ea2d9074ec27565b731209",
+      "relay.mjs": "480133b12837046bdcb83bb00d99f8a5afb43e3ca7ac107163afbd9f71504538",
+      "source.mjs": "b51f63375f342cb7a43d13ec1db52ef7d11ccc127a759a2fb35d125cfa56cd79"
+    },
+    "r14Transport": "795f61ae8adc78fa9cc529189fba103592d7e73ebb045f7beeb947c755a02f80",
+    "r15": {
+      "tests/gateway/round15-owner-cleanup.test.ts": {
+        "baselineSha256": "b08a2bf2c615fa1dcda96316176aef8378164ad9e8fda3a4c4e3d3e83f9515a9",
+        "currentSha256": "898f4d5b5be1eb5fa8db43120517bccd5e1623d592005d933d3dc4afd4270095"
+      },
+      "tests/gateway/round15-scheduler-cleanup.test.ts": {
+        "baselineSha256": "4e86f593e79d305d7222e3106657987ef171da679fc6f539be5f7e711eaf9453",
+        "currentSha256": "df531a7d365edfa094e8cd4b6ffbc3b487fc7b73652d037419ec7fc7cca8f024"
+      },
+      "web/tests/round15-closed-prompt-retention.test.tsx": {
+        "baselineSha256": "b75f66c392c9afa8d34800ec361d3fcde58519c0bf661b69b3a076d7b6d546c6",
+        "currentSha256": "4faa7d00af30748cd3458fec62a5e5a7f17eeee887f67ab6b6b4a5223ae6126e"
+      }
+    }
+  },
+  "publicReportHashes": {
+    "historyBefore": "1d9f91ab23b1d3c1d0fe253e861303dc884567b935548cb41cedcff173ded2a0",
+    "historyPreviousFix": "a8f2b5fa5a5b170b0fb4e1b8cfcd12348d9daa94e7fe1aa120897501501948e2",
+    "historyCurrent": "dc53c039566b092224f8a273006c3f296730601186cb377965fe7974d9b2db96",
+    "approvalsBefore": "58d94b40d5b4b0266807258b886e6c66d93b3808d9a04c2504701983ec647cfd",
+    "approvalsCurrent": "73ef66d0be25bde8b1cf7f0cfbd3163216011cde2dcc2ecadd98d14272ddafd0",
+    "stopBefore": "25a029e2f962eb4353215aa49bf1c69d16cf6897e7c0f96c8274d98f0b6d9378",
+    "stopCurrent": "f52e485a0a01888828b6898baa3266703b9fb3f82a9b7c0d3c4675f5df9c7b0f",
+    "workerServerControl": "e6e27e299c89852a7972f6250c06f725f8e41f2889bbeef9ef87b99fe2bd0e50",
+    "r15Baseline": "f3b67359f077620ccb4f9b73803110ae69d5ac8c935eb173960f5761cfec8449"
+  },
+  "history": {
+    "priorDefectCommit": "historical-commit-069",
+    "priorDefectFiveReconcileStates": [
+      "unknown",
+      "unknown",
+      "unknown",
+      "unknown",
+      "unknown"
+    ],
+    "previousFixCommit": "historical-commit-054",
+    "previousFixReconcileStates": [
+      "unknown",
+      "completed"
+    ],
+    "currentEvidence": {
+      "schema": 1,
+      "candidate": "historical-commit-119",
+      "expectedBehavior": "after",
+      "supplier": "Loopback Responses fixture",
+      "cli": "0.169.0",
+      "acceptanceSha256": "ee9088a7b01c1cedf285043b7b03eeb0e7daa1c3b702ce9254dac9e7bea41eda",
+      "baseline": {
+        "historyMode": "paginated",
+        "laterTurnsBeforeConcurrentAppend": 30
+      },
+      "native": {
+        "descendingPageSize": 25,
+        "stableAcrossNewerAppend": true,
+        "olderPageSize": 6,
+        "overlappingTurns": 0,
+        "exhaustedNextCursor": null,
+        "invalidCursor": {
+          "code": "native_error",
+          "message": "invalid cursor: invalid-native-cursor",
+          "nativeCode": -32600,
+          "nativeMessage": "invalid cursor: invalid-native-cursor"
+        },
+        "originalCursorResumesAfterCLIProcessRestart": true
+      },
+      "worker": {
+        "combinedFirstPageAscending": true,
+        "traversalInvalidatedByNewerTurn": "history_stale",
+        "turnsExhaustedBeforeTimeline": true,
+        "turnStatusSurvivesAppend": true,
+        "oldCombinedCursorAfterRestart": "invalid_cursor",
+        "turnStatusSurvivesWorkerRestart": true
+      },
+      "recovery": {
+        "reopenedLedgerState": "unknown",
+        "statesAfterReconcile": [
+          "unknown",
+          "completed"
+        ],
+        "workerCalls": [
+          {
+            "method": "thread/history",
+            "intent": "turnStatus",
+            "continuation": false
+          },
+          {
+            "method": "thread/history",
+            "intent": "turnStatus",
+            "continuation": true
+          }
+        ],
+        "additionalProviderRequests": 0,
+        "acceptedReceiptRetained": true,
+        "realNativeTurns": 32,
+        "localResponses": 32,
+        "distinctCLIProcesses": 2
+      },
+      "cliLaunch": "Direct app-server stdio with isolated home",
+      "verdict": "PASS",
+      "allNativeProcessesClosed": true
+    }
+  },
+  "approvals": {
+    "id": "V250-R14-02",
+    "baselineCommit": "historical-commit-054",
+    "currentFacts": {
+      "earlyRequestReachedGatewayBeforeLaunchAck": true,
+      "realNativeTurns": 5,
+      "loopbackResponses": 5,
+      "approvedOperations": 0,
+      "declinesAtProtocolBoundary": 3,
+      "ordinarilyCompletedRuns": 5,
+      "gatewayGenerations": 3,
+      "workerProcessSeparate": true,
+      "officialCLIVersion": "0.169.0",
+      "workerExited": true,
+      "cliAndRelayExited": true
+    },
+    "gatewayReopens": 2,
+    "states": {
+      "earlyBeforeStartReceipt": {
+        "baseline": "running",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "twoForSameTurn": {
+        "baseline": "needs_attention",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "oneOfTwoClosed": {
+        "baseline": "needs_attention",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "lastClosedByNativeNotification": {
+        "baseline": "needs_attention",
+        "expected": "running",
+        "observed": "running"
+      },
+      "singleLate": {
+        "baseline": "needs_attention",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "lastClosedByBrowserDecline": {
+        "baseline": "needs_attention",
+        "expected": "running",
+        "observed": "running"
+      },
+      "unrelatedBaseline": {
+        "baseline": "running",
+        "expected": "running",
+        "observed": "running"
+      },
+      "otherTurnInSameThread": {
+        "baseline": "needs_attention",
+        "expected": "running",
+        "observed": "running"
+      },
+      "threadWithoutAttributedTurn": {
+        "baseline": "needs_attention",
+        "expected": "running",
+        "observed": "running"
+      },
+      "presentBeforeRestart": {
+        "baseline": "needs_attention",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "closedWhileGatewayOffline": {
+        "baseline": "needs_attention",
+        "expected": "running",
+        "observed": "running"
+      },
+      "openedWhileGatewayOffline": {
+        "baseline": "running",
+        "expected": "needs_attention",
+        "observed": "needs_attention"
+      },
+      "declinedAfterRecovery": {
+        "baseline": "running",
+        "expected": "running",
+        "observed": "running"
+      }
+    },
+    "baselineFailures": [
+      "earlyBeforeStartReceipt",
+      "lastClosedByNativeNotification",
+      "lastClosedByBrowserDecline",
+      "otherTurnInSameThread",
+      "threadWithoutAttributedTurn",
+      "closedWhileGatewayOffline",
+      "openedWhileGatewayOffline"
+    ],
+    "currentFailures": []
+  },
+  "stop": {
+    "id": "V250-R14-01",
+    "baselineCommit": "historical-commit-054",
+    "description": "Real unmodified WorkerClient.call/request logic, TCP loopback, HTTP request bodies, real WebSocket close and automatic reconnect, actual dispatcher, scheduler, and SQLite. The observer only records the returned delivery/ack. For pre-write the Node agent was held at one socket; the receiver/action simulator is local, does not launch any process, and clock offsets replace waiting 93 seconds for recovery ticks.",
+    "recoveryIntervals": 3,
+    "secondsPerInterval": 31,
+    "inputHashes": {
+      "src/core/automations.ts": "f4fd72eb93c9dd7e4f538be2192ac52b79afabb60c98fbaca7396cb30c2f7627",
+      "src/gateway/automation-scheduler.ts": "6bd9e382a3e0efce7ff63bc0234eb6df0021a3702920ef3421c66564734d6bd7",
+      "src/gateway/worker-client.ts": "99459f8efe219f06b6229af4a9d6697945da879e6e4ebba8768b76580f6f72e9",
+      "src/gateway/dispatch.ts": "16ce94b0b7aab8517c87f8d5c6370b56dd80a61e28e7d08d021ce123b1fd94bd"
+    },
+    "cases": [
+      {
+        "mode": "before-http-write",
+        "baselineAfterThreeIntervals": {
+          "httpBodies": 0,
+          "syntheticActions": 0,
+          "attemptOutcomes": [
+            "not_sent"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "afterDisconnect": {
+          "state": "unknown",
+          "code": "gateway_restarted",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "afterFirstOutcome": {
+          "run": {
+            "state": "unknown",
+            "code": "gateway_restarted",
+            "stopSent": false,
+            "stopRequested": true
+          },
+          "httpBodies": 0,
+          "syntheticActions": 0,
+          "attemptOutcomes": [
+            "not_sent"
+          ]
+        },
+        "currentAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "not_sent",
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "runAfterThreeIntervals": {
+          "state": "stopping",
+          "code": null,
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "terminalState": "interrupted",
+        "noAdditionalStopAfterTerminal": true,
+        "registeredWorkerServerControl": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "not_sent",
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        }
+      },
+      {
+        "mode": "worker-refused-before-action",
+        "baselineAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 0,
+          "attemptOutcomes": [
+            "not_sent"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "afterDisconnect": {
+          "state": "unknown",
+          "code": "gateway_restarted",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "afterFirstOutcome": {
+          "run": {
+            "state": "unknown",
+            "code": "gateway_restarted",
+            "stopSent": false,
+            "stopRequested": true
+          },
+          "httpBodies": 1,
+          "syntheticActions": 0,
+          "attemptOutcomes": [
+            "not_sent"
+          ]
+        },
+        "currentAfterThreeIntervals": {
+          "httpBodies": 2,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "not_sent",
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "runAfterThreeIntervals": {
+          "state": "stopping",
+          "code": null,
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "terminalState": "interrupted",
+        "noAdditionalStopAfterTerminal": true,
+        "registeredWorkerServerControl": {
+          "httpBodies": 2,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "not_sent",
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        }
+      },
+      {
+        "mode": "after-write-reply-lost",
+        "baselineAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "unknown"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "afterDisconnect": {
+          "state": "unknown",
+          "code": "gateway_restarted",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "afterFirstOutcome": {
+          "run": {
+            "state": "unknown",
+            "code": "stop_unconfirmed",
+            "stopSent": true,
+            "stopRequested": true
+          },
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "unknown"
+          ]
+        },
+        "currentAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "unknown"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "runAfterThreeIntervals": {
+          "state": "unknown",
+          "code": "stop_unconfirmed",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "terminalState": "interrupted",
+        "noAdditionalStopAfterTerminal": true,
+        "registeredWorkerServerControl": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "unknown"
+          ],
+          "exactInProgressHistoryReads": 3
+        }
+      },
+      {
+        "mode": "acknowledged",
+        "baselineAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "afterDisconnect": {
+          "state": "unknown",
+          "code": "gateway_restarted",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "afterFirstOutcome": {
+          "run": {
+            "state": "unknown",
+            "code": "gateway_restarted",
+            "stopSent": true,
+            "stopRequested": true
+          },
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "acknowledged"
+          ]
+        },
+        "currentAfterThreeIntervals": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        },
+        "runAfterThreeIntervals": {
+          "state": "unknown",
+          "code": "gateway_restarted",
+          "stopSent": true,
+          "stopRequested": true
+        },
+        "terminalState": "interrupted",
+        "noAdditionalStopAfterTerminal": true,
+        "registeredWorkerServerControl": {
+          "httpBodies": 1,
+          "syntheticActions": 1,
+          "attemptOutcomes": [
+            "acknowledged"
+          ],
+          "exactInProgressHistoryReads": 3
+        }
+      }
+    ]
+  },
+  "additionalServerTransportControl": {
+    "originalScriptSha256": "bdeea3be6c3800c72a59fdcd0fcc00000675874a7c9798723047de99449149db",
+    "correctedScriptSha256": "74a7bb413f66c1740e18b4ac4a320dbb787775a9673ac735c71aff8bdcb44a64",
+    "correction": "Used the previously retained fixture with an explicitly registered synthetic browser to create the automation.",
+    "verdict": "passed",
+    "description": "Actual startWorkerServer and WorkerClient, production HTTP envelope and WS channel/lease enforcement on TCP loopback, automatic reconnect, actual dispatcher, scheduler and SQLite. All actions run against a synthetic RuntimeService; no subprocess or external service. The production server guard itself refused a stale channel before the synthetic action. Agent connection limit deterministically delayed the pre-write case. The observer delegates unchanged and records returned delivery/ack; a synthetic clock controls recovery ticks.",
+    "casesPassed": 4
+  },
+  "r15": {
+    "baselineCommit": "historical-commit-093",
+    "before": {
+      "workerClient": {
+        "counts": {
+          "oldConnect": 1,
+          "oldDisconnect": 1,
+          "newConnect": 1,
+          "newDisconnect": 0
+        },
+        "replacementOwnerRetained": true
+      },
+      "scheduler": {
+        "calls": [
+          "one:automation/validate",
+          "one:/connect",
+          "one:conversation/start",
+          "one:prompt/list",
+          "one:thread/history",
+          "one:turn/interrupt",
+          "one:prompt/list",
+          "one:thread/history",
+          "one:/disconnect",
+          "two:/connect",
+          "two:thread/history"
+        ],
+        "replacementOwnerRetained": true,
+        "row": "unknown",
+        "starts": 1
+      },
+      "browserPromptHistory": {
+        "settledListReads": 1,
+        "pending": 0,
+        "retainedResolvedIdentities": 1024
+      }
+    },
+    "current": {
+      "workerClient": {
+        "counts": {
+          "oldConnect": 1,
+          "oldDisconnect": 1,
+          "newConnect": 1,
+          "newDisconnect": 1
+        },
+        "replacementOwnerRetained": false
+      },
+      "scheduler": {
+        "calls": [
+          "one:automation/validate",
+          "one:/connect",
+          "one:conversation/start",
+          "one:prompt/list",
+          "one:thread/history",
+          "one:turn/interrupt",
+          "one:prompt/list",
+          "one:thread/history",
+          "one:/disconnect",
+          "two:/connect",
+          "two:thread/history",
+          "two:/disconnect"
+        ],
+        "replacementOwnerRetained": false,
+        "row": "unknown",
+        "starts": 1
+      },
+      "browserPromptHistory": {
+        "settledListReads": 1,
+        "pending": 0,
+        "retainedResolvedIdentities": 0
+      }
+    },
+    "currentTestsPassed": 3,
+    "method": "Same three R15 scenarios with passing-state assertions. The two transport tests exercise delayed unregister over separate real loopback channels. The browser fixture publishes 1024 distinct open/close pairs after the initial list settles and reports zero when no Set ever receives closed IDs.",
+    "frozenSourceUnchanged": true
+  }
+}

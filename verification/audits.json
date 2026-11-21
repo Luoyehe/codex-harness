@@ -8771,6 +8771,60 @@
         "path": "verification/audit-evidence/v250-round15/builtin-mcp.json",
         "sha256": "9632b15854dc05c1e46ecde00f28b6a29b02d86de17801ceade5476d33042039"
       }
+    },
+    {
+      "id": "v250-round16",
+      "sequence": 97,
+      "digest": "cd514e389c687c2d72240af9fd9ff3733cb2919dfe478a8e521147e265ee7f35",
+      "complete": true,
+      "startedAt": "2026-11-21T12:11:57.766Z",
+      "completedAt": "2026-11-21T12:19:14.421Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R16-01",
+          "severity": "P3",
+          "scope": "deployment-release",
+          "title": "The targeted test runner reports Linux-only filesystem setup as nine failures on macOS",
+          "paths": [
+            "tests/deploy/test_workspace_ack.py:25",
+            "deploy/workspace_paths.py:134",
+            "tests/deploy/test_workspace_resources.py:32",
+            "tests/deploy/test_workspace_search.py:23",
+            "tests/deploy/test_workspace_commit.py:38"
+          ],
+          "description": "The filesystem class describes Linux descriptor paths and renameat2, but its skipUnless condition accepts every POSIX host. macOS passes this guard and lacks os.O_PATH. Nine tests abort inside Root initialization before the workspace behavior executes. The normal targeted runner records failed/exit 1, obscuring a host precondition. The same POSIX-only predicate appears on the listed analogous Linux filesystem classes. Scope is the test report and the host precondition. Debian 12 arm64 with a non-root account ran the specific file 10/10.",
+          "verification": [
+            ".work/v250/round16/independent-targeted.log",
+            ".work/v250/round16/platform-differential.json",
+            ".work/v250/debian-cold-lifecycle.nosync/materials/historical-commit-119/workspace-ack.json"
+          ],
+          "recommendation": "Apply an accurate Linux/capability guard only to cases that actually require Linux descriptor/procfs/rename semantics. Keep portable validation runnable; prove skipped-vs-failed behavior on macOS and actual execution on Linux."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-sixteen",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round16/independent.json",
+          "sha256": "31c2b354010c50c2cd747ae3ed97f09a436fec1f1ec5b99e5a98abbb8d89f75a"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round16/builtin-mcp.json",
+        "sha256": "37d655e9012a93b2afd5ea8783d2c775dab10ff53a36c18688d17fc85b5c0d57"
+      }
     }
   ],
   "fullTests": {

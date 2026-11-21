@@ -1,0 +1,25 @@
+{
+  "commit": "historical-commit-119",
+  "file": "tests/deploy/test_workspace_ack.py",
+  "darwin": {
+    "operatingSystem": "macOS",
+    "osName": "posix",
+    "supportsOPath": false,
+    "pass": 1,
+    "setupErrors": 9,
+    "platformSkip": 0,
+    "formalLogSha256": "5bbef9d4bf2ece3c7818c0d568717a1ca2e6821ee39dfb3398f36dd9117b01aa"
+  },
+  "linux": {
+    "commit": "historical-commit-119",
+    "platform": "Debian 12 arm64",
+    "uid": 1000,
+    "python": "3.11.2",
+    "oPath": 2097152,
+    "file": "tests/deploy/test_workspace_ack.py",
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "rawLogSha256": "58784c1d1489b9629e219d752839481535c4e29bf3f2930cf00e1b2e110d72ef"
+  }
+}
