@@ -16,11 +16,16 @@ const code = () => ({
   userCode: 'PRIVATE-DEVICE-CODE',
   expiresAt: Date.now() + 60000,
 });
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>(done => { resolve = done; });
+  return { promise, resolve };
+}
 function setup(handler: (c: Call) => unknown = () => undefined) {
   const api = new Api(),
     events = new Events(),
     calls: Call[] = [];
-  const handoff = Promise.withResolvers<void>();
+  const handoff = deferred();
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (_url, init) => {
@@ -286,9 +291,9 @@ it('clears codes and ignores old owner responses on disconnect or replacement', 
   expect(s.calls.filter((c) => c.method === 'account/login/handoff')).toHaveLength(1);
 });
 it('keeps account handoff mounted across settings tabs and ordinary config refresh', async () => {
-  const refreshed = Promise.withResolvers<void>();
+  const refreshed = deferred();
   let providerReads = 0;
-  const finishRefresh = Promise.withResolvers<void>();
+  const finishRefresh = deferred();
   const s = setup(async c => {
     if (c.method === 'system/provider/read' && ++providerReads === 2) {
       refreshed.resolve();
