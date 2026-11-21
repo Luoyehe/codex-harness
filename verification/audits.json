@@ -8284,6 +8284,74 @@
         "path": "verification/audit-evidence/v250-round8/builtin-mcp.json",
         "sha256": "bcb9fd4361a592001d8ac4dd794544a9e88ecc2a883df1d6d99808cccf351b45"
       }
+    },
+    {
+      "id": "v250-round9",
+      "sequence": 90,
+      "digest": "90cabbfd6d7654ec1342d53cad0d19f1ade6e10b71562dd4b1dc80ed92243a8c",
+      "complete": true,
+      "startedAt": "2026-11-21T03:09:50.381Z",
+      "completedAt": "2026-11-21T03:28:55.401Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R9-01",
+          "severity": "P1",
+          "scope": "deployment-release",
+          "title": "Two legal TOML spellings for an inherited MCP switch permanently block the native runtime during upgrade",
+          "variants": [
+            {
+              "id": "dotted-inline",
+              "input": "mcp_servers.web-reader = { enabled = false }",
+              "cause": "The editor can remove the inline assignment suffix but leaves the leading dotted registry path."
+            },
+            {
+              "id": "quoted-escape",
+              "input": "[mcp_servers.\"web\\u002dreader\"] followed by enabled=false",
+              "cause": "The deletion regex matches the decoded server name literally and cannot match an equivalent escape inside a TOML quoted key."
+            }
+          ],
+          "affected": [
+            "deploy/mcp_enabled_override.py:25",
+            "deploy/mcp_enabled_override.py:54",
+            "deploy/mcp_enabled_override.py:345",
+            "deploy/native_launcher.py:403"
+          ],
+          "observation": "tomllib parsed all four fixtures into the same mapping. On each defective form launch_arguments raised config_conflict twice, with byte-identical base configuration and the unresolved switch saved exactly once. Both control spellings succeeded twice and preserved the model. The Debian process records independently showed 8/8 failed starts in the affected forms on UID 65534 and UID 0 and 4/4 successful native initialize handshakes for ordinary table syntax. Each pair used the same home.",
+          "impact": "An affected cold ordinary or root home cannot start its app-server, including after a retry. The configuration must be repaired to restore service. No loss of the unrelated model or switch record was observed.",
+          "recommendation": "Remove the intended decoded path for dotted-prefix inline tables and escaped quoted keys while preserving unrelated settings. Cover repeat cold starts and controls, including the actual launcher.",
+          "evidence": [
+            ".work/v250/round9/resumed/toml-retries.json",
+            ".work/v250/round9/iota/toml-spellings.json",
+            ".work/v250/debian-historical-commit-004-cold-process-prior.log"
+          ]
+        }
+      ],
+      "skipped": [
+        "One of the 78 install/provider/history Python cases is Windows-specific: test_extended_drive_path_is_same_file_but_device_namespaces_are_rejected. No Windows host run by this reviewer."
+      ],
+      "reviewers": [
+        {
+          "id": "resumed-audit-one",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round9/independent.json",
+          "sha256": "df1738bf84c3a1b0bccc2fabbac56c425e4d47d4c6db0278fa7108c0c0304237"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round9/builtin-mcp.json",
+        "sha256": "9cd43c0b330b57ba0137e58572abd2345d52ddf7d790eda5406ef2794474372d"
+      }
     }
   ],
   "fullTests": {

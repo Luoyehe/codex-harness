@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "kind": "builtin-mcp-freshness",
+  "checkedAt": "2026-11-21T03:09:51.248Z",
+  "completedAt": "2026-11-21T03:10:02.280Z",
+  "sourceDigest": "90cabbfd6d7654ec1342d53cad0d19f1ade6e10b71562dd4b1dc80ed92243a8c",
+  "sourceFiles": 2183,
+  "files": [
+    {
+      "path": "reference/BUILTIN-MCP-CONTRACT.json",
+      "sha256": "3a582f66a34def5b146c1d9fb60d5ee4bc0dbd4f6ed9247b1d682a75462b8f3c"
+    },
+    {
+      "path": "deploy/provider.py",
+      "sha256": "82e34cbd193863037e0e8835148edf0ed4ba828b9bfabbcff5f7f1822832b7cf"
+    },
+    {
+      "path": "deploy/provider_registry.py",
+      "sha256": "7bb2e51513909b85424aa79307399a5ea56a9a288264054a0dbf706d930cbf17"
+    },
+    {
+      "path": "deploy/native_launcher.py",
+      "sha256": "eab4b055762e93a07ccd15960db5ce0b4bd02581bba763b6b88202aa0f7916c8"
+    },
+    {
+      "path": "package.json",
+      "sha256": "ed7329d372c4ef9aa5f88866c7288f74cd4ae51f707b114f9ac7f5911adebb3b"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "acbca0644c9bc8900bfde596ce184aade28fa1314424b3cac9cc295ed202a57b"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "b97ef7f8402dfcfdb05ef4051878f3c1b8ec24fe6d5686b34818f71d41bc8d06"
+    }
+  ],
+  "contract": {
+    "schemaVersion": 1,
+    "providerKind": "zhipu-coding",
+    "region": "CN",
+    "credential": "same-enabled-provider-api-key",
+    "browserOAuth": false,
+    "servers": [
+      {
+        "name": "web-search-prime",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server"
+      },
+      {
+        "name": "web-reader",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/web_reader/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/reader-mcp-server"
+      },
+      {
+        "name": "zread",
+        "transport": "streamable-http",
+        "url": "https://open.bigmodel.cn/api/mcp/zread/mcp",
+        "authorization": "Bearer",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/zread-mcp-server"
+      },
+      {
+        "name": "zai-mcp-server",
+        "transport": "stdio",
+        "package": "@z_ai/mcp-server",
+        "version": "0.1.6",
+        "integrity": "sha512-RmsCfM7m87dC9JqWmbUcitDvwiFE6oEWNJUoBmqediKt7TIPM2J9h7b4o+BZmPgltLXSlKN+BToBSfbskiAytg==",
+        "keyEnvironment": "Z_AI_API_KEY",
+        "modeEnvironment": "Z_AI_MODE",
+        "mode": "ZHIPU",
+        "documentation": "https://docs.bigmodel.cn/cn/coding-plan/mcp/vision-mcp-server"
+      }
+    ]
+  },
+  "complete": false,
+  "status": "unavailable",
+  "pinned": null,
+  "latest": null,
+  "sources": [
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/reader-mcp-server",
+      "status": null,
+      "error": "public-source-unavailable"
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server",
+      "status": null,
+      "error": "public-source-unavailable"
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/vision-mcp-server",
+      "status": null,
+      "error": "public-source-unavailable"
+    },
+    {
+      "url": "https://docs.bigmodel.cn/cn/coding-plan/mcp/zread-mcp-server",
+      "status": null,
+      "error": "public-source-unavailable"
+    },
+    {
+      "url": "https://registry.npmjs.org/@z_ai/mcp-server/0.1.6",
+      "status": null,
+      "error": "public-source-unavailable"
+    },
+    {
+      "url": "https://registry.npmjs.org/@z_ai/mcp-server/latest",
+      "status": null,
+      "error": "public-source-unavailable"
+    }
+  ],
+  "issues": [
+    {
+      "source": "web-search-prime",
+      "reason": "documentation-unavailable"
+    },
+    {
+      "source": "web-reader",
+      "reason": "documentation-unavailable"
+    },
+    {
+      "source": "zread",
+      "reason": "documentation-unavailable"
+    },
+    {
+      "source": "zai-mcp-server",
+      "reason": "documentation-unavailable"
+    },
+    {
+      "source": "pinned",
+      "reason": "registry-unavailable"
+    },
+    {
+      "source": "latest",
+      "reason": "registry-unavailable"
+    }
+  ],
+  "limits": [
+    "Public documentation and package metadata only; no credential or live MCP connection/tool call.",
+    "Token matching detects drift but does not replace semantic documentation review or offline renderer/stdio compatibility tests.",
+    "User-defined MCP and ZAI global configuration are outside this builtin CN contract. No automatic dependency update."
+  ]
+}

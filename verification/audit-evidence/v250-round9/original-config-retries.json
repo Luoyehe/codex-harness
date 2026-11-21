@@ -1,0 +1,92 @@
+[
+  {
+    "spelling": "section",
+    "input": "model = \"test-model\"\n[mcp_servers.web-reader]\nenabled = false\n",
+    "attempts": [
+      {
+        "argv": []
+      },
+      {
+        "argv": []
+      }
+    ],
+    "baseByteIdentical": false,
+    "endConfig": {
+      "model": "test-model"
+    },
+    "savedSwitch": {
+      "@unassigned:web-reader": false
+    }
+  },
+  {
+    "spelling": "dotted-inline",
+    "input": "model = \"test-model\"\nmcp_servers.web-reader = { enabled = false }\n",
+    "attempts": [
+      {
+        "error": "The native MCP flag could not be updated without changing unrelated settings",
+        "code": "config_conflict"
+      },
+      {
+        "error": "The native MCP flag could not be updated without changing unrelated settings",
+        "code": "config_conflict"
+      }
+    ],
+    "baseByteIdentical": true,
+    "endConfig": {
+      "model": "test-model",
+      "mcp_servers": {
+        "web-reader": {
+          "enabled": false
+        }
+      }
+    },
+    "savedSwitch": {
+      "@unassigned:web-reader": false
+    }
+  },
+  {
+    "spelling": "quoted-escape",
+    "input": "model = \"test-model\"\n[mcp_servers.\"web\\u002dreader\"]\nenabled=false\n",
+    "attempts": [
+      {
+        "error": "The native MCP flag could not be updated without changing unrelated settings",
+        "code": "config_conflict"
+      },
+      {
+        "error": "The native MCP flag could not be updated without changing unrelated settings",
+        "code": "config_conflict"
+      }
+    ],
+    "baseByteIdentical": true,
+    "endConfig": {
+      "model": "test-model",
+      "mcp_servers": {
+        "web-reader": {
+          "enabled": false
+        }
+      }
+    },
+    "savedSwitch": {
+      "@unassigned:web-reader": false
+    }
+  },
+  {
+    "spelling": "dotted-leaf",
+    "input": "model = \"test-model\"\nmcp_servers.web-reader.enabled = false\n",
+    "attempts": [
+      {
+        "argv": []
+      },
+      {
+        "argv": []
+      }
+    ],
+    "baseByteIdentical": false,
+    "endConfig": {
+      "model": "test-model"
+    },
+    "savedSwitch": {
+      "@unassigned:web-reader": false
+    }
+  }
+]
