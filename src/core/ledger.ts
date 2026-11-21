@@ -55,6 +55,10 @@ export class Ledger {
     this.#db.exec(`UPDATE receipts SET bytes=${payloadBytes} WHERE bytes<>(${payloadBytes})`);
     this.retention = new OperationRetention(this.#db, now);
     this.automations = new Automations(this.#db, now, () => this.newOperationId());
+    // Reclaim hints left by a crash or an older gateway that settled the run.
+    this.#db.exec(`DELETE FROM metadata WHERE key GLOB 'automationTurnCursor:*'
+      AND NOT EXISTS (SELECT 1 FROM automation_runs WHERE id=substr(metadata.key,length('automationTurnCursor:')+1)
+        AND state IN ('running','needs_attention','stopping','unknown'))`);
     this.worktrees = new Worktrees(this.#db, now, id => this.automations.projectRemoved(id));
   }
   operationGeneration(): number { return this.retention.generation(); }
@@ -254,6 +258,14 @@ export class Ledger {
   }
   setMeta(key: string, value: string): void {
     this.#db.prepare('INSERT INTO metadata(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, value);
+  }
+  // Recovery hints use existing metadata so older gateways and the offline
+  // journal recovery helper can open the same file. A cursor proves no outcome.
+  automationCursor(id: string): string | null { return this.getMeta('automationTurnCursor:' + id); }
+  setAutomationCursor(id: string, cursor: string | null): void {
+    const key = 'automationTurnCursor:' + id;
+    if (cursor === null) this.#db.prepare('DELETE FROM metadata WHERE key=?').run(key);
+    else this.setMeta(key, cursor);
   }
   projects(): Project[] {
     return this.#db.prepare('SELECT id,name,path FROM projects ORDER BY name,id').all().map(row => ({ id: String(row.id), name: String(row.name), path: String(row.path) }));

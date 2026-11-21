@@ -24,7 +24,7 @@ function setup(file = ':memory:', initialTime = Date.parse('2026-01-01T00:00:00Z
       if (behavior) return behavior(method, params, context);
       context.beforeWrite?.();
       if (method === 'conversation/start') { expect(leases.has(context.clientId)).toBe(true); return { thread: { id: 'thread', cwd: '/project' }, turn: { id: 'turn', status: 'inProgress' } }; }
-      if (method === 'thread/history') return { turns: [{ id: 'turn', status: turnState }], nextCursor: null, complete: true };
+      if (method === 'thread/history') return { threadId: params.threadId!, turns: [{ id: 'turn', status: turnState }], nextCursor: null, complete: true };
       if (method === 'turn/interrupt') { turnState = 'interrupted'; return {}; }
       return {};
     },
@@ -46,7 +46,7 @@ describe('durable bounded automation execution', () => {
     f.behavior(async (method, _params, context) => {
       context.beforeWrite?.();
       if (method === 'conversation/start') { await gate; return { thread: { id: 'second', cwd: '/project' }, turn: { id: 'second-turn', status: 'inProgress' } }; }
-      if (method === 'thread/history') return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+      if (method === 'thread/history') return { threadId: 'thread', turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
       return {};
     });
     f.advance(60_000); const pending = f.scheduler.tick();
@@ -61,7 +61,7 @@ describe('durable bounded automation execution', () => {
     const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
     f.behavior(async (method, _params, context) => {
       if (method === 'turn/interrupt') throw new HarnessError('temporarily_busy', 'not sent');
-      context.beforeWrite?.(); return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+      context.beforeWrite?.(); return { threadId: 'thread', turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
     });
     f.advance(600_000); await f.scheduler.tick(); await f.scheduler.tick();
     expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'running', stopRequested: true, stopSent: false });
@@ -72,7 +72,7 @@ describe('durable bounded automation execution', () => {
     const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
     f.behavior(async method => {
       if (method === 'turn/interrupt') throw new HarnessError('temporarily_busy', 'not sent');
-      return { turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
+      return { threadId: 'thread', turns: [{ id: 'turn', status: 'inProgress' }], complete: true, nextCursor: null };
     });
     f.scheduler.start(); f.advance(600_000); await f.scheduler.tick();
     expect(f.scheduler['nextRead'].has(run.id)).toBe(true); expect(f.scheduler['nextStop'].has(run.id)).toBe(true);
@@ -87,7 +87,7 @@ describe('durable bounded automation execution', () => {
     const stopGate = new Promise<void>(resolve => { releaseStop = resolve; }), readGate = new Promise<void>(resolve => { releaseRead = resolve; });
     f.behavior(async (method, _params, context) => {
       if (method === 'turn/interrupt') { if (delivery === 'unknown') context.beforeWrite?.(); await stopGate; throw new HarnessError('delayed_stop', 'fixture failure', delivery); }
-      if (method === 'thread/history') { await readGate; return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null }; }
+      if (method === 'thread/history') { await readGate; return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null }; }
       return {};
     });
     f.advance(600_000); f.scheduler.start(); const pending = f.scheduler.tick();
@@ -104,7 +104,7 @@ describe('durable bounded automation execution', () => {
     const f = setup(); const job = await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
     f.behavior(async (method, _params, context) => {
       if (method === 'turn/interrupt') { context.beforeWrite?.(); throw new HarnessError('lost', 'unknown stop', 'unknown'); }
-      return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
+      return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
     });
     f.advance(600_000); await f.scheduler.tick();
     expect(f.ledger.automations.getRun(run.id).state).toBe('unknown'); expect(f.scheduler['nextRead'].has(run.id)).toBe(true);
@@ -249,7 +249,7 @@ it('restores pending approval when a stop is explicitly not sent', async () => {
   f.ledger.automations.attention(run.threadId!);
   f.behavior(async method => {
     if (method === 'turn/interrupt') throw new HarnessError('busy', '请稍后再试', 'not_sent');
-    return { turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
+    return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
   });
   f.advance(600_000); await f.scheduler.tick();
   expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'needs_attention', stopRequested: true, stopSent: false });
@@ -279,4 +279,145 @@ it('rolls back project removal, job pausing, queued cancellation and public even
   expect(f.ledger.automations.get(String(job.id)).state).toBe('active');
   expect(f.ledger.automations.getRun(String(run.runId)).state).toBe('queued');
   expect(f.ledger.read(id)?.state).toBe('not_sent'); expect(events).not.toHaveBeenCalled();
+});
+
+it.each([24, 25, 3500])('recovers the exact result past %i newer turns while new turns arrive, one page per tick', async newer => {
+  const f = setup(), job = await f.create();
+  f.advance(60_000); await f.scheduler.tick();
+  const run = f.ledger.automations.outstanding()[0]!;
+  f.ledger.automations.recover();
+  const reads: (JsonValue | undefined)[] = [];
+  let newest = newer;
+  f.behavior(async (method, params, context) => {
+    if (method === 'conversation/start') { context.beforeWrite?.(); return { thread: { id: 'next' }, turn: { id: 'next-turn', status: 'completed' } }; }
+    if (method !== 'thread/history') return {};
+    reads.push(params.cursor);
+    expect(params).toMatchObject({ intent: 'turnStatus', threadId: run.threadId, turnId: run.turnId, limit: 25 });
+    const first = params.cursor === undefined ? newest : Number(String(params.cursor).slice(6));
+    newest += 25; // Newer work grows at least as quickly as the reader consumes it.
+    const more = first >= 25;
+    return { threadId: run.threadId, turns: more ? [] : [{ id: run.turnId, status: 'completed' }], nextCursor: more ? 'older:' + (first - 25) : null };
+  });
+  const pages = Math.floor(newer / 25) + 1;
+  for (let i = 0; i < pages; i++) {
+    f.advance(2000); await f.scheduler.tick(); await f.scheduler.tick();
+    expect(reads).toHaveLength(i + 1);
+    expect(f.leases.size).toBe(0);
+  }
+  expect(reads.filter(cursor => cursor === undefined)).toHaveLength(1);
+  expect(f.ledger.automations.getRun(run.id).state).toBe('completed');
+  expect(f.ledger.automationCursor(run.id)).toBeNull();
+  f.advance(3_600_000 - pages * 2000); await f.scheduler.tick();
+  const history = f.ledger.automations.read('automation/runs', { id: job.id! });
+  expect(history).toMatchObject({ data: [{ state: 'completed', turnId: 'next-turn' }, { id: run.id, state: 'completed' }] });
+  expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(2);
+});
+
+it('reopens an older run, preserves its native scan through another restart and transient failure, and keeps skipped occurrences', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'automation-scan-')), file = join(dir, 'journal.sqlite');
+  const first = setup(file), job = await first.create();
+  first.advance(60_000); await first.scheduler.tick();
+  const run = first.ledger.automations.outstanding()[0]!, recycled = randomUUID();
+  first.ledger.setAutomationCursor(recycled, 'orphaned-by-an-older-gateway');
+  first.ledger.setMeta('unrelated', 'preserved');
+  await cleanups.pop()!();
+  const current = setup(file, run.scheduledAt + 3_600_000);
+  expect(current.ledger.automationCursor(recycled)).toBeNull(); expect(current.ledger.getMeta('unrelated')).toBe('preserved');
+  current.behavior(async () => ({ threadId: run.threadId, turns: [], nextCursor: 'native-page-two' }));
+  await current.scheduler.tick(); // This occurrence was due while the old execution was unresolved.
+  expect(current.ledger.automationCursor(run.id)).toBe('native-page-two');
+  await cleanups.pop()!();
+  const next = setup(file, run.scheduledAt + 3_600_000);
+  const close = cleanups.pop()!; cleanups.push(async () => { await close(); rmSync(dir, { recursive: true }); });
+  let attempts = 0;
+  next.behavior(async (method, params, ctx) => {
+    if (method === 'conversation/start') { ctx.beforeWrite?.(); return { thread: { id: 'next' }, turn: { id: 'new-turn', status: 'completed' } }; }
+    if (method !== 'thread/history') return {};
+    expect(params.cursor).toBe('native-page-two');
+    if (!attempts++) throw new HarnessError('worker_unavailable', 'temporary failure');
+    return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'failed' }], nextCursor: null };
+  });
+  await next.scheduler.tick(); await next.scheduler.tick();
+  expect(attempts).toBe(1); expect(next.ledger.automations.getRun(run.id).state).toBe('unknown');
+  next.advance(30_000); await next.scheduler.tick();
+  expect(next.ledger.automations.getRun(run.id).state).toBe('failed'); expect(next.ledger.automationCursor(run.id)).toBeNull();
+  next.advance(3_570_000); await next.scheduler.tick();
+  expect(next.ledger.automations.read('automation/runs', { id: job.id! })).toMatchObject({ data: [
+    { state: 'completed', turnId: 'new-turn' }, { state: 'skipped', code: 'previous_run_unresolved' }, { id: run.id, state: 'failed' },
+  ] });
+  expect(next.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
+});
+
+it('gives same-thread runs separate positions, and a blocked read cannot delay another result or duplicate a launch', async () => {
+  const f = setup();
+  for (const text of ['first', 'second']) await f.command('automation/create', { spec: { ...f.spec, text } as unknown as JsonValue });
+  f.behavior(async (method, params, ctx) => {
+    if (method !== 'conversation/start') return { threadId: params.threadId ?? null, turns: [{ id: params.turnId ?? null, status: 'inProgress' }], nextCursor: null };
+    ctx.beforeWrite?.(); return { thread: { id: 'shared' }, turn: { id: params.text!, status: 'inProgress' } };
+  });
+  f.advance(60_000); await f.scheduler.tick(); f.ledger.automations.recover();
+  const [first, second] = ['first', 'second'].map(id => f.ledger.automations.outstanding().find(run => run.turnId === id)!);
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  f.behavior(async (method, params) => {
+    if (method !== 'thread/history') return {};
+    if (!params.cursor) return { threadId: 'shared', turns: [], nextCursor: 'older-' + params.turnId };
+    if (params.turnId === 'first') await gate;
+    expect(params.cursor).toBe('older-' + params.turnId);
+    return { threadId: 'shared', turns: [{ id: params.turnId!, status: params.turnId === 'first' ? 'interrupted' : 'completed' }], nextCursor: null };
+  });
+  await f.scheduler.tick(); f.advance(2000);
+  const waiting = f.scheduler.tick();
+  try {
+    await vi.waitFor(() => expect(f.ledger.automations.getRun(second!.id).state).toBe('completed'));
+    f.advance(30_000); await f.scheduler.tick();
+    expect(f.ledger.automations.getRun(first!.id).state).toBe('unknown');
+    expect(f.calls.filter(call => call.params.cursor === 'older-first')).toHaveLength(1);
+  } finally { release(); await waiting; }
+  expect(f.ledger.automations.getRun(first!.id).state).toBe('interrupted');
+  expect(f.leases.size).toBe(0); expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(2);
+});
+
+it('retains uncertain outcomes for unrelated, malformed or missing turns and backs off on invalid or cyclic positions', async () => {
+  const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+  const run = f.ledger.automations.outstanding()[0]!; f.ledger.automations.finish(run.id, 'unknown', 'stop_unconfirmed');
+  const reads: (JsonValue | undefined)[] = [];
+  let phase = 'cycle';
+  f.behavior(async (method, params) => {
+    if (method !== 'thread/history') return {};
+    reads.push(params.cursor);
+    if (phase === 'cycle') return { threadId: run.threadId, turns: [], nextCursor: params.cursor === 'a' ? 'b' : 'a' };
+    if (phase === 'expired' && params.cursor) throw new HarnessError('invalid_cursor', 'invalidated');
+    if (phase === 'expired') return { threadId: run.threadId, turns: [], nextCursor: 'invalidated' };
+    if (phase === 'wrong thread') return { threadId: 'another', turns: [{ id: run.turnId, status: 'completed' }], nextCursor: null };
+    if (phase === 'wrong turn') return { threadId: run.threadId, turns: [{ id: 'another', status: 'completed' }], nextCursor: null };
+    return { threadId: run.threadId, turns: [{ id: run.turnId, status: phase === 'invalid status' ? ['completed'] : 'inProgress' }], nextCursor: null };
+  });
+  for (let i = 0; i < 4; i++) { f.advance(2000); await f.scheduler.tick(); }
+  expect(reads).toEqual([undefined, 'a', 'b', 'a']); expect(f.ledger.automationCursor(run.id)).toBeNull();
+  f.advance(2000); await f.scheduler.tick(); expect(reads).toHaveLength(4);
+  phase = 'expired'; f.advance(30_000); await f.scheduler.tick(); f.advance(2000); await f.scheduler.tick();
+  expect(f.ledger.automationCursor(run.id)).toBeNull();
+  for (phase of ['wrong thread', 'wrong turn', 'invalid status', 'active']) {
+    f.advance(30_000); await f.scheduler.tick(); expect(f.ledger.automations.getRun(run.id).state).toBe('unknown');
+  }
+  expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(0);
+  expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
+});
+
+it('polls the matched older page for an active recovered turn until that exact turn ends', async () => {
+  const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+  const run = f.ledger.automations.outstanding()[0]!; f.ledger.automations.recover();
+  let status = 'inProgress';
+  f.behavior(async (method, params) => {
+    if (method !== 'thread/history') return {};
+    return params.cursor === 'older' ? { threadId: run.threadId, turns: [{ id: run.turnId, status }], nextCursor: 'still-older' }
+      : { threadId: run.threadId, turns: [], nextCursor: 'older' };
+  });
+  await f.scheduler.tick(); f.advance(2000); await f.scheduler.tick();
+  expect(f.ledger.automations.getRun(run.id).state).toBe('running');
+  status = 'interrupted'; f.advance(30_000); await f.scheduler.tick();
+  expect(f.calls.filter(call => call.method === 'thread/history').slice(-3).map(call => call.params.cursor)).toEqual([undefined, 'older', 'older']);
+  expect(f.ledger.automations.getRun(run.id).state).toBe('interrupted');
+  expect(f.ledger.automationCursor(run.id)).toBeNull();
 });

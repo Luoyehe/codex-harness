@@ -1,12 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { canonical, DeliveryError, integer, jsonBytes, LIMITS, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { advanceWindowVoice, fitHistoryWindow, WINDOW_CHARS } from './history-window.js';
+import { validateOfficial } from './validation.js';
 import { validateTimelineContract } from './timeline-contract.js';
 import type { Activity } from './thread-activity.js';
 type State = Activity;
 interface Host { native(method: string, params: JsonValue, imageDisplayChars?: number, windowTail?: boolean): Promise<JsonValue>; state(id: string): State; observe(value: JsonValue, revision: number): void; checkTurns(turns: JsonValue[]): void; closed(): boolean }
 interface Traversal { threadId: string; clientId: string; channel: string | undefined; next: string | null | undefined; complete: boolean; loading: boolean; turnCursor: string | null; timelineCursor: string | null; turnsComplete: boolean; timelineComplete: boolean; turnSeen: Set<string>; timelineSeen: Set<string>; pages: number; bytes: number; items: number; referenceIndex?: HistoryReferenceIndex; completeVersion?: number; legacy: boolean; state: State; turnRevision: number; unknown: boolean }
 const key = (threadId: string, context: CallContext, scope = '') => canonical([context.eventChannelId ?? null, context.clientId, threadId, scope]);
+// Historical storage can synthesize an interrupted row for the exact live turn.
+function observedStatus(turn: JsonObject, state: State): JsonValue {
+  const terminal = state.lastTerminalTurn;
+  return terminal && terminal.id === turn.id ? terminal.status
+    : !state.unknown && state.turnId !== null && state.turnId === turn.id ? 'inProgress' : turn.status!;
+}
+function unsupportedTurnPages(error: unknown): boolean {
+  return error instanceof DeliveryError && error.code === 'native_error' && !!error.data &&
+    typeof error.data === 'object' && !Array.isArray(error.data) && (error.data.code === -32601 || error.data.code === 'unsupported');
+}
 /** Charge each logical message once across independently paged streams. Reference
  * only turn bodies already delivered to this traversal; a timeline-only item keeps its body. */
 class HistoryReferenceIndex {
@@ -119,7 +130,60 @@ export class UnifiedHistory {
       turnsComplete: complete, timelineComplete: complete, complete, truncated: !complete,
       executionReady: this.windowReady(threadId, context), historyVersion: history });
   }
+  private async legacyTurns(threadId: string, imagePreview = 0): Promise<JsonValue[]> {
+    const result = object(await this.host.native('thread/read', { threadId, includeTurns: true }, imagePreview)), thread = object(result.thread);
+    if (thread.id !== threadId || !Array.isArray(thread.turns)) throw new DeliveryError('invalid_native_response', 'Legacy thread identity mismatch');
+    this.host.checkTurns(thread.turns);
+    return thread.turns;
+  }
+  /** A status lookup grants no transcript or execution permission. Its native
+   * continuation is independent of the browser, worker lease and gateway process. */
+  private async turnStatusPage(params: JsonObject): Promise<JsonObject> {
+    onlyKeys(params, ['intent', 'threadId', 'turnId', 'limit', 'cursor']);
+    const threadId = string(params.threadId, 'threadId'), turnId = string(params.turnId, 'turnId');
+    const cursor = params.cursor == null ? null : string(params.cursor, 'cursor', LIMITS.cursorBytes);
+    const limit = integer(params.limit ?? 25, 'limit', 1, 25);
+    const state = this.host.state(threadId);
+    if (!state.historyMode) {
+      const revision = state.revision, metadata = await this.host.native('thread/read', { threadId, includeTurns: false });
+      if (object(object(metadata).thread).id !== threadId) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch');
+      this.host.observe(metadata, revision);
+    }
+    const revision = state.turnRevision, unknown = state.unknown;
+    let turns: JsonValue[] | undefined, nextCursor: string | null = null;
+    if (state.historyMode !== 'legacy') {
+      let page: JsonObject | undefined;
+      try {
+        page = object(await this.host.native('thread/turns/list', { threadId, limit, sortDirection: 'desc', itemsView: 'notLoaded', ...(cursor === null ? {} : { cursor }) }));
+      } catch (error) {
+        if (cursor !== null && error instanceof DeliveryError && error.code === 'native_error' && error.data &&
+            typeof error.data === 'object' && !Array.isArray(error.data) && error.data.code === -32600 && /^invalid cursor\b/i.test(error.message))
+          throw new DeliveryError('invalid_cursor', 'Native turn status cursor is no longer valid');
+        if (!unsupportedTurnPages(error)) throw error;
+      }
+      if (page) {
+        if (!Array.isArray(page.data) || page.data.length > limit) throw new DeliveryError('invalid_native_response', 'Invalid turn status page');
+        if (page.nextCursor !== null) {
+          try { nextCursor = string(page.nextCursor, 'nextCursor', LIMITS.cursorBytes); }
+          catch { throw new DeliveryError('invalid_cursor', 'Invalid native turn status cursor'); }
+          if (nextCursor === cursor) throw new DeliveryError('cursor_loop', 'Native turn status cursor repeated');
+        }
+        validateOfficial('ThreadTurnsListResponse', page);
+        turns = page.data;
+      }
+    }
+    if (!turns) turns = await this.legacyTurns(threadId);
+    const matches = turns.map(value => object(value)).filter(turn => turn.id === turnId);
+    // An empty match only advances a native position. Unrelated live turns
+    // must not keep the scan at the head. A status verdict needs a stable read.
+    if (this.host.closed() || this.host.state(threadId) !== state ||
+        (matches.length > 0 && (state.turnRevision !== revision || state.unknown !== unknown)))
+      throw new DeliveryError('history_stale', 'Turn lifecycle changed during the status read');
+    if (matches.length > 1) throw new DeliveryError('invalid_native_response', 'Ambiguous turn identity in history');
+    return { threadId, turns: matches.map(turn => ({ id: turnId, status: observedStatus(turn, state) })), nextCursor };
+  }
   async read(params: JsonObject, context: CallContext, scope = '', imageDisplayChars = 4_000_000): Promise<JsonValue> {
+    if (scope === '' && params.intent === 'turnStatus') return this.turnStatusPage(params);
     if (params.timelineFormat !== undefined && params.timelineFormat !== 'references') throw new DeliveryError('invalid_params', '未知的历史时间线格式。');
     const references = params.timelineFormat === 'references';
     if (scope === '' && params.intent === 'window') {
@@ -164,10 +228,8 @@ export class UnifiedHistory {
       // interrupted row must not override an exact live/terminal notification.
       // Keep native items and pagination: this cache is not history completeness.
       turns = turns.map(value => {
-        const turn = object(value), state = current.state, terminal = state.lastTerminalTurn;
-        const status = terminal && terminal.id === turn.id ? terminal.status
-          : !state.unknown && state.turnId !== null && state.turnId === turn.id ? 'inProgress' : turn.status;
-        return status === turn.status ? value : { ...turn, status: status! };
+        const turn = object(value), status = observedStatus(turn, current.state);
+        return status === turn.status ? value : { ...turn, status };
       });
       if (current.referenceIndex) {
         const compact = current.referenceIndex.project(turns, timeline);
@@ -199,14 +261,13 @@ export class UnifiedHistory {
       if (!current.turnsComplete) {
         const legacy = async (): Promise<void> => {
           if (current.turnCursor !== null) throw new DeliveryError('unsupported_cursor', 'Legacy turn history cannot continue a native turn cursor');
-          const result = object(await this.host.native('thread/read', { threadId, includeTurns: true }, imagePreview)), thread = object(result.thread);
-          if (thread.id !== threadId || !Array.isArray(thread.turns)) throw new DeliveryError('invalid_native_response', 'Legacy thread identity mismatch'); turns = thread.turns; this.host.checkTurns(turns); current.legacy = true; current.turnsComplete = true;
+          turns = await this.legacyTurns(threadId, imagePreview); current.legacy = true; current.turnsComplete = true;
         };
         if (state.historyMode === 'legacy') await legacy();
         else {
           let page: JsonObject | undefined;
           try { page = object(await this.host.native('thread/turns/list', { threadId, limit, sortDirection: 'desc', itemsView: 'full', ...(current.turnCursor !== null ? { cursor: current.turnCursor } : {}) }, imagePreview)); }
-          catch (error) { const unsupported = error instanceof DeliveryError && error.code === 'native_error' && error.data && typeof error.data === 'object' && !Array.isArray(error.data) && (error.data.code === -32601 || error.data.code === 'unsupported'); if (!unsupported) throw error; await legacy(); }
+          catch (error) { if (!unsupportedTurnPages(error)) throw error; await legacy(); }
           if (page) {
             if (!Array.isArray(page.data) || page.data.length > limit) throw new DeliveryError('invalid_native_response', 'Invalid turn page'); this.host.checkTurns(page.data);
             if (page.backwardsCursor != null) string(page.backwardsCursor, 'backwardsCursor', LIMITS.cursorBytes, true);
