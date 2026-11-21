@@ -1,6 +1,6 @@
 """Real local Git commits, native index locks and prepared ref transactions."""
-import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -35,7 +35,7 @@ class CommitValidationTests(unittest.TestCase):
             with self.assertRaises(DeployError): validate({**request, **changed})
 
 
-@unittest.skipUnless(os.name == "posix", "Requires Linux descriptors and Git ref transactions")
+@unittest.skipUnless(sys.platform == "linux", "Requires Linux descriptors and Git ref transactions")
 class CommitFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-commit-")

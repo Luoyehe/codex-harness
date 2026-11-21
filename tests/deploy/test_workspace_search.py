@@ -1,5 +1,6 @@
 """Search never follows links and never represents a bounded scan as complete."""
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,7 +21,7 @@ class SearchValidationTests(unittest.TestCase):
                 validate(params)
 
 
-@unittest.skipUnless(os.name == "posix", "Requires Linux descriptors and procfs")
+@unittest.skipUnless(sys.platform == "linux", "Requires Linux descriptors and procfs")
 class SearchFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-search-")

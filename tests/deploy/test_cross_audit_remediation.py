@@ -1,6 +1,7 @@
 """Regression coverage for the verified cross-audit boundaries (offline only)."""
 import json
 import os
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -93,7 +94,7 @@ class CrossAuditContracts(unittest.TestCase):
             self.assertEqual(caught.exception.code, 'proxy_unsupported')
 
 
-@unittest.skipUnless(os.name == 'posix', 'Real Linux descriptors and renameat2')
+@unittest.skipUnless(sys.platform == 'linux', 'Real Linux descriptors and renameat2')
 class CrossAuditWorkspace(unittest.TestCase):
     def setUp(self):
         from tests.deploy import test_workspace as fixture
@@ -155,7 +156,7 @@ class CrossAuditWorkspace(unittest.TestCase):
         self.assertEqual(list(self.fixture.path.iterdir()), [])
 
 
-@unittest.skipUnless(os.name == 'posix', 'Real Linux Git worktrees')
+@unittest.skipUnless(sys.platform == 'linux', 'Real Linux Git worktrees')
 class CrossAuditWorktrees(unittest.TestCase):
     def setUp(self):
         from tests.deploy import test_workspace_worktrees as fixture
@@ -183,7 +184,7 @@ class CrossAuditWorktrees(unittest.TestCase):
         self.assertTrue(self.fixture.create()['created'])
 
 
-@unittest.skipUnless(os.name == 'posix', 'Real Linux Git index')
+@unittest.skipUnless(sys.platform == 'linux', 'Real Linux Git index')
 class CrossAuditGitAttributes(unittest.TestCase):
     def test_info_attributes_block_raw_staging_without_running_filter(self):
         from tests.deploy.test_workspace_index import IndexFilesystemTests

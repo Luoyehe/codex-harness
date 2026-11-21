@@ -1,6 +1,7 @@
 """Recovery validates explicit source/destination versions and never replays unknown writes."""
 import json
 import os
+import sys
 import tempfile
 import unittest
 import uuid
@@ -37,7 +38,7 @@ class RecoveryValidationTests(unittest.TestCase):
             validate(self.request("recovery/read", {"operationId": "bad"}))
 
 
-@unittest.skipUnless(os.name == "posix", "Requires real Linux descriptor paths and renameat2")
+@unittest.skipUnless(sys.platform == "linux", "Requires real Linux descriptor paths and renameat2")
 class RecoveryFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-recovery-")

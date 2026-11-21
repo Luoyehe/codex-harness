@@ -1,5 +1,6 @@
 """Read-only skill resources and project-directory containment under native UID."""
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,7 +30,7 @@ class ResourceValidationTests(unittest.TestCase):
                 validate({**request, "action": "resource/directory/resolve", "params": params})
 
 
-@unittest.skipUnless(os.name == "posix", "Requires Linux descriptors and procfs")
+@unittest.skipUnless(sys.platform == "linux", "Requires Linux descriptors and procfs")
 class ResourceFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-resource-")

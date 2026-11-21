@@ -1,6 +1,6 @@
 """Supervisor acknowledgements reclaim only confirmed, payload-free receipts."""
 import json
-import os
+import sys
 import tempfile
 import unittest
 import uuid
@@ -22,7 +22,7 @@ class AcknowledgementValidationTests(unittest.TestCase):
             with self.assertRaises(DeployError): validate({**request, **change})
 
 
-@unittest.skipUnless(os.name == "posix", "Requires Linux descriptor paths and renameat2")
+@unittest.skipUnless(sys.platform == "linux", "Requires Linux descriptor paths and renameat2")
 class AcknowledgementFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-ack-")

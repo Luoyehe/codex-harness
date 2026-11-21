@@ -1,6 +1,6 @@
 """Fixed-identity worktree lifecycle; local Git only, no network or root paths."""
-import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -72,7 +72,7 @@ class WorktreeValidationTests(unittest.TestCase):
                 validate({**request, **changed})
 
 
-@unittest.skipUnless(os.name == "posix", "Requires real Linux Git, descriptor paths and renameat2")
+@unittest.skipUnless(sys.platform == "linux", "Requires real Linux Git, descriptor paths and renameat2")
 class WorktreeFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-worktree-")

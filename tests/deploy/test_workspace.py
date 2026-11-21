@@ -5,6 +5,7 @@ import json
 import os
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -112,7 +113,7 @@ class WorkspaceValidationTests(unittest.TestCase):
         validate(self.request("download", {"path": "file", "expectedRevision": "a" * 64}))
 
 
-@unittest.skipUnless(os.name == "posix", "Requires real Linux descriptor paths and renameat2")
+@unittest.skipUnless(sys.platform == "linux", "Requires real Linux descriptor paths and renameat2")
 class WorkspaceFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-descriptor-")

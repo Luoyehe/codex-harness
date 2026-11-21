@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -37,7 +38,7 @@ class IndexValidationTests(unittest.TestCase):
         with self.assertRaises(DeployError): validate_index("git/index/recovery/discard", {"recoveryOperationId": source, "expectedManifest": "a" * 64, "confirm": False})
 
 
-@unittest.skipUnless(os.name == "posix", "Requires native Linux Git and descriptor transactions")
+@unittest.skipUnless(sys.platform == "linux", "Requires native Linux Git and descriptor transactions")
 class IndexFilesystemTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workspace-index-")
