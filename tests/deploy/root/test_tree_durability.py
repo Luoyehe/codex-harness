@@ -18,12 +18,15 @@ from deploy.safe_fs import durable_tree, extract_tar, inspect_tree, snapshot
 from tests.deploy.test_toolchain import archive_for
 
 
+ARCHIVE_PAYLOAD = b"runtime fixture"
+
+
 def archive_bytes(name="package/bin/tool"):
     output = io.BytesIO()
     with tarfile.open(fileobj=output, mode="w:gz") as archive:
         item = tarfile.TarInfo(name)
-        item.mode, item.size = 0o755, len(b"runtime fixture")
-        archive.addfile(item, io.BytesIO(b"runtime fixture"))
+        item.mode, item.size = 0o755, len(ARCHIVE_PAYLOAD)
+        archive.addfile(item, io.BytesIO(ARCHIVE_PAYLOAD))
         link = tarfile.TarInfo(str(Path(name).parent / "alias"))
         link.type, link.linkname = tarfile.SYMTYPE, Path(name).name
         archive.addfile(link)
@@ -48,7 +51,7 @@ class TreeDurabilityTests(unittest.TestCase):
         return path
 
     @contextmanager
-    def syncing(self, fail=None):
+    def syncing(self, fail=None, after_sync=None):
         """Record actual open descriptors, preserving the real fsync syscall."""
         import fcntl
         actual = os.fsync
@@ -61,6 +64,8 @@ class TreeDurabilityTests(unittest.TestCase):
             if fail and fail(path):
                 raise OSError("Injected durability failure")
             actual(fd)
+            if after_sync is not None:
+                after_sync(fd, path)
 
         with patch("os.fsync", side_effect=sync):
             yield events
@@ -263,28 +268,63 @@ class TreeDurabilityTests(unittest.TestCase):
     def test_edge_manifest_requires_durable_extracted_tree_and_container_parent(self):
         data, opener = self.edge_fixture()
         root = self.layout.control / "edge/caddy"
+        target = root / "caddy"
+        synced_files = {}
+        real_replace = os.replace
+
+        def record_synced_file(fd, path):
+            info = os.fstat(fd)
+            if path.parent == root and stat.S_ISREG(info.st_mode):
+                synced_files[path] = (info, Path(f"/proc/self/fd/{fd}").read_bytes())
+
+        def replace(source, destination, *args, **kwargs):
+            if Path(destination) != target:
+                return real_replace(source, destination, *args, **kwargs)
+            staged = Path(source)
+            self.assertFalse(target.exists())
+            synced_info, contents = synced_files[staged]
+            self.assertEqual(contents, ARCHIVE_PAYLOAD)
+            self.assertEqual(stat.S_IMODE(synced_info.st_mode), 0o755)
+            real_replace(source, destination, *args, **kwargs)
+            self.assertTrue(os.path.samestat(synced_info, target.stat()))
+            events.append(("published", target))
+
         with patch("deploy.https.urllib.request.build_opener", return_value=opener), \
                 patch("deploy.https.architecture", return_value="x64"), \
-                patch.dict("deploy.https.EDGE_HASHES", {("caddy", "amd64"): hashlib.sha256(data).hexdigest()}), self.syncing() as events:
+                patch.dict("deploy.https.EDGE_HASHES", {("caddy", "amd64"): hashlib.sha256(data).hexdigest()}), \
+                self.syncing(after_sync=record_synced_file) as events, patch("os.replace", side_effect=replace):
             def publish(path, value):
                 positions = self.positions(events)
-                self.assertLess(positions[root / "caddy"], positions[root])
+                self.assertLess(events.index(("published", target)), positions[root])
                 self.assertLess(positions[root], positions[root.parent])
                 self.assertLess(positions[root.parent], positions[root.parent.parent])
+                self.assertEqual(target.read_bytes(), ARCHIVE_PAYLOAD)
+                self.assertEqual(value["sha256"], hashlib.sha256(target.read_bytes()).hexdigest())
                 write_json(path, value)
             with patch("deploy.https.write_json", side_effect=publish):
-                self.assertEqual(edge_binary(self.layout, "caddy"), root / "caddy")
+                self.assertEqual(edge_binary(self.layout, "caddy"), target)
         with self.syncing(lambda path: path == root), self.assertRaises(OSError):
             edge_binary(self.layout, "caddy")
 
     def test_edge_extract_fsync_failure_does_not_publish_manifest(self):
         data, opener = self.edge_fixture()
         root = self.layout.control / "edge/caddy"
+        target = root / "caddy"
+
+        def fail_binary_sync(path):
+            if path.parent != root or not path.is_file():
+                return False
+            self.assertEqual(path.read_bytes(), ARCHIVE_PAYLOAD)
+            self.assertFalse(target.exists())
+            return True
+
         with patch("deploy.https.urllib.request.build_opener", return_value=opener), \
                 patch("deploy.https.architecture", return_value="x64"), \
                 patch.dict("deploy.https.EDGE_HASHES", {("caddy", "amd64"): hashlib.sha256(data).hexdigest()}), \
-                self.syncing(lambda path: path == root / "caddy"), self.assertRaises(OSError):
+                self.syncing(fail_binary_sync), self.assertRaisesRegex(OSError, "Injected durability failure"):
             edge_binary(self.layout, "caddy")
+        self.assertFalse(target.exists())
+        self.assertEqual(list(root.iterdir()), [])
         self.assertFalse((self.layout.config / "caddy-binary.json").exists())
 
 
