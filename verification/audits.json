@@ -8610,6 +8610,83 @@
         "path": "verification/audit-evidence/v250-round13/builtin-mcp.json",
         "sha256": "e37409eafab6d8c29d91a7ef9ba2c1c4707cdba7a0437a6a3072173cefe90bc6"
       }
+    },
+    {
+      "id": "v250-round14",
+      "sequence": 95,
+      "digest": "bc0979b5592cacddd206d0fe58ea218d20e3fbcdad1a463cbe894952f3b88a8d",
+      "complete": true,
+      "startedAt": "2026-11-21T05:36:50.020Z",
+      "completedAt": "2026-11-21T05:45:25.663Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R14-01",
+          "severity": "P2",
+          "scope": "gateway-core",
+          "title": "Confirmed non-delivery of a stop can be lost on transport disconnect",
+          "paths": [
+            "src/gateway/automation-scheduler.ts:150",
+            "src/core/automations.ts:150",
+            "src/core/automations.ts:145",
+            "src/gateway/worker-client.ts:58"
+          ],
+          "description": "An admitted deadline or manual stop claims stop_sent before dispatch. A separate worker event channel can disconnect before the outstanding interrupt returns its definite not_sent response. recover() changes stopping to unknown/gateway_restarted and retains stop_sent. stopNotSent updates only stopping rows. Even a later exact inProgress observation cannot restore this row because restoreActive requires stop_sent=0. A still-running turn can therefore outlive its deadline, and a future scheduler tick cannot deliver the requested stop.",
+          "observation": "A scheduler started through its public entry point used real Dispatcher and SQLite and a controlled transport. After a confirmed not_sent and three reconnection ticks spaced 31 seconds apart, the row was unknown/gateway_restarted, stopRequested=true, stopSent=true. There had been five history requests and only one interrupt.",
+          "expected": "A definitive negative delivery for that claimed attempt should release its sent fence after disconnect, preserving the request and cooldown. An uncertain or positively acknowledged stop must remain fenced. Terminal or recycled rows must not be reopened.",
+          "evidence": [
+            ".work/v250/round14/independent-ordering.log",
+            ".work/v250/round14/independent-src/tests/gateway/round-fourteen-observation.test.ts"
+          ]
+        },
+        {
+          "id": "V250-R14-02",
+          "severity": "P2",
+          "scope": "gateway-core",
+          "relatedScopes": [
+            "runtime-protocol",
+            "web-ux"
+          ],
+          "title": "Automation approval state misses prompts before the start ACK and stays set after resolution",
+          "paths": [
+            "src/gateway/automation-scheduler.ts:212",
+            "src/core/automations.ts:141",
+            "src/runtime/service.ts:351",
+            "src/runtime/service.ts:354",
+            "web/components/AutomationsPanel.tsx:468"
+          ],
+          "description": "Runtime sends pending/resolved prompt events independently of the HTTP start response. The scheduler sets attention only if an existing row matches the thread and is already running or stopping. An early approval misses that row, and status reconciliation never queries pending approvals. For an approval that was recorded, prompt-closed is ignored and the attention bit survives its resolution until a terminal update. While work continues, the scheduled-run panel can either hide an actual approval wait or keep instructing the user to handle a resolved one.",
+          "observation": "Two controlled public-entry sequences with the actual dispatcher, scheduler and SQLite reproduced both directions. An approval preceding conversation/start acknowledgement left state=running, promptReads=0. Resolving the only pending approval for an already identified run left state=needs_attention after a later inProgress check, promptReads=0.",
+          "expected": "Reconcile unresolved prompts with the exact run and turn at acceptance/reconnect and on resolution. Keep attention until the last relevant pending prompt resolves. Ignore prompts for another turn and preserve terminal and stop outcomes.",
+          "evidence": [
+            ".work/v250/round14/independent-ordering.log",
+            ".work/v250/round14/independent-src/tests/gateway/round-fourteen-observation.test.ts"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-fourteen",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round14/independent.json",
+          "sha256": "bc4ab1adac6293c2215bbd51092edef84f78bdf9e6f31016406d9706d6064c3a"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round14/builtin-mcp.json",
+        "sha256": "e1237d1eab8d23f8863d67c0b1d097c9ae12846c50ed0a9558d9f980a2dc7b96"
+      }
     }
   ],
   "fullTests": {
