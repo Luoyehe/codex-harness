@@ -206,16 +206,56 @@ class CrossAuditWorktrees(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
 
-    def test_generated_symlink_keeps_readable_identity_but_blocks_archive(self):
+    def test_generated_internal_symlink_survives_attach_archive_and_restore(self):
         current = self.fixture.create()
-        target = Path(current['path']); (target / 'node_modules').mkdir()
-        os.symlink('../file', target / 'node_modules/bin')
+        target = Path(current['path'])
+        (target / 'node_modules').mkdir()
+        (target / 'node_modules/bin').symlink_to('../file')
+
+        read = self.fixture.read(current)
+        self.assertRegex(read['revision'], r'^[0-9a-f]{64}$')
+        self.assertEqual(read['binding'], current['binding'])
+        attached = self.fixture.call('worktree/attach', {
+            'worktreeId': read['worktreeId'], 'expectedRevision': read['revision'],
+        }, read['binding'])
+        self.assertTrue(attached['attached'])
+        archived = self.fixture.move('archive', attached)
+        self.assertEqual(archived['phase'], 'archived')
+        restored = self.fixture.move('restore', archived)
+        self.assertEqual(restored['phase'], 'active')
+        self.assertEqual(restored['path'], current['path'])
+        self.assertEqual(restored['binding'], current['binding'])
+        link = target / 'node_modules/bin'
+        self.assertEqual(os.readlink(link), '../file')
+        self.assertEqual(link.read_bytes(), b'base\n')
+
+    def test_external_symlink_preserves_readable_identity_but_blocks_attach_and_archive(self):
+        current = self.fixture.create()
+        target = Path(current['path'])
+        link = target / 'node_modules/bin'
+        link.parent.mkdir()
+        outside = self.fixture.path / 'outside'
+        outside.write_bytes(b'outside')
+        destination = os.path.relpath(outside, link.parent)
+        link.symlink_to(destination)
+
         read = self.fixture.read(current)
         self.assertIsNone(read['revision'])
         self.assertEqual(read['path'], current['path'])
+        self.assertEqual(read['binding'], current['binding'])
         self.assertEqual(read['mutationUnavailable']['code'], 'unsafe_path')
-        with self.assertRaises(DeployError): self.fixture.move('archive', current)
-        self.assertTrue((target / 'file').exists())
+        with self.assertRaises(DeployError) as attach_error:
+            self.fixture.call('worktree/attach', {
+                'worktreeId': current['worktreeId'], 'expectedRevision': current['revision'],
+            }, current['binding'])
+        self.assertEqual(attach_error.exception.code, 'unsafe_path')
+        with self.assertRaises(DeployError) as archive_error:
+            self.fixture.move('archive', current)
+        self.assertEqual(archive_error.exception.code, 'unsafe_path')
+        self.assertEqual(self.fixture.read(current)['phase'], 'active')
+        self.assertEqual((target / 'file').read_bytes(), b'base\n')
+        self.assertEqual(os.readlink(link), destination)
+        self.assertEqual(outside.read_bytes(), b'outside')
 
     def test_clean_retirement_frees_active_slot_and_keeps_checkout(self):
         current = self.fixture.create()
