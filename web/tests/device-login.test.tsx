@@ -20,11 +20,13 @@ function setup(handler: (c: Call) => unknown = () => undefined) {
   const api = new Api(),
     events = new Events(),
     calls: Call[] = [];
+  const handoff = Promise.withResolvers<void>();
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (_url, init) => {
       const c: Call = JSON.parse(init.body);
       calls.push(c);
+      if (c.method === 'account/login/handoff') handoff.resolve();
       const result =
         (await handler(c)) ??
         (c.method === 'system/provider/read'
@@ -51,7 +53,7 @@ function setup(handler: (c: Call) => unknown = () => undefined) {
       };
     }),
   );
-  return { api, events, calls };
+  return { api, events, calls, handoffRequested: handoff.promise };
 }
 const props = (s: ReturnType<typeof setup>) => ({
   api: s.api,
@@ -62,7 +64,23 @@ const props = (s: ReturnType<typeof setup>) => ({
   enabled: true,
   onServiceSettings: vi.fn(),
 });
-const start = async () => fireEvent.click(await enabledButton({ name: '使用 ChatGPT 登录' }));
+async function start({ api }: ReturnType<typeof setup>) {
+  const login = await enabledButton({ name: '使用 ChatGPT 登录' });
+  const begin = vi.spyOn(api, 'beginMutation');
+  try {
+    await act(async () => {
+      fireEvent.click(login);
+      expect(begin).toHaveBeenCalledExactlyOnceWith('account/login', {});
+      const issued = begin.mock.results[0];
+      if (issued?.type !== 'return') throw new Error('Login did not return a mutation');
+      // Both accepted and lost replies are exercised. Wait for the real local
+      // journal transaction before checking the outcome on screen.
+      await Promise.allSettled([issued.value.result]);
+    });
+  } finally {
+    begin.mockRestore();
+  }
+}
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
@@ -95,7 +113,7 @@ it('blocks account changes during reading but allows an explicit login after a t
   expect(login).toHaveProperty('disabled', false);
   expect(logout).toHaveProperty('disabled', false);
   expect(s.calls.some(c => ['account/login', 'account/logout', 'account/rateLimits'].includes(c.method))).toBe(false);
-  await start();
+  await start(s);
   await screen.findByText('PRIVATE-DEVICE-CODE');
   expect(s.calls.filter(c => c.method === 'account/login')).toHaveLength(1);
   expect(login).toHaveProperty('disabled', true);
@@ -144,7 +162,7 @@ it('reads limits only after authenticated state and removes them on logout witho
   await screen.findByText('尚未登录');
   expect(screen.queryByText(/fixtureRemaining/)).toBeNull();
   expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
-  await start();
+  await start(s);
   await screen.findByText('PRIVATE-DEVICE-CODE');
   expect(s.calls.filter(c => c.method === 'account/rateLimits')).toHaveLength(1);
   loggedIn = true;
@@ -163,7 +181,7 @@ it('keeps cancellation of the original device login available while account stat
   const s = setup(c => c.method === 'account/read' && hold
     ? new Promise(resolve => { finishes.push(resolve); }) : undefined);
   render(<AccountSettings {...props(s)} />);
-  await start();
+  await start(s);
   await screen.findByText('PRIVATE-DEVICE-CODE');
   hold = true;
   fireEvent.click(screen.getByRole('button', { name: '重新读取账户与登录状态' }));
@@ -180,7 +198,7 @@ it('keeps device secrets outside receipts and storage and reads only the owner h
   const s = setup();
   render(<AccountSettings {...props(s)} />);
   expect(s.calls.some((c) => c.method === 'account/login')).toBe(false);
-  await start();
+  await start(s);
   await screen.findByText('PRIVATE-DEVICE-CODE');
   expect(screen.getByText(/本地登录交接保留至/).textContent).toContain('设备码是否有效以验证页面为准');
   expect(screen.queryByText(/^有效至 /)).toBeNull();
@@ -215,12 +233,12 @@ it('recovers a lost login response through the original receipt without opening 
       };
   });
   render(<AccountSettings {...props(s)} />);
-  await start();
+  await start(s);
   const recover = await enabledButton({ name: '查询原账户操作回执' });
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
   ).toBe(true);
-  fireEvent.click(recover);
+  await act(async () => { fireEvent.click(recover); await s.handoffRequested; });
   await screen.findByText('PRIVATE-DEVICE-CODE');
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
   expect((await listOperations())).toEqual([]);
@@ -235,8 +253,8 @@ it('does not revive a device code from a late handoff after native completion', 
       : undefined,
   );
   render(<AccountSettings {...props(s)} />);
-  await start();
-  await waitFor(() => expect(s.calls.some((c) => c.method === 'account/login/handoff')).toBe(true));
+  await start(s);
+  await s.handoffRequested;
   act(() =>
     s.events.publish({
       type: 'notification',
@@ -258,8 +276,8 @@ it('clears codes and ignores old owner responses on disconnect or replacement', 
       : undefined,
   );
   const view = render(<AccountSettings {...props(s)} />);
-  await start();
-  await waitFor(() => expect(s.calls.some((c) => c.method === 'account/login/handoff')).toBe(true));
+  await start(s);
+  await s.handoffRequested;
   view.rerender(<AccountSettings {...props(s)} connected={false} />);
   await act(async () => finish(code()));
   expect(screen.queryByText('PRIVATE-DEVICE-CODE')).toBeNull();
@@ -268,7 +286,15 @@ it('clears codes and ignores old owner responses on disconnect or replacement', 
   expect(s.calls.filter((c) => c.method === 'account/login/handoff')).toHaveLength(1);
 });
 it('keeps account handoff mounted across settings tabs and ordinary config refresh', async () => {
-  const s = setup();
+  const refreshed = Promise.withResolvers<void>();
+  let providerReads = 0;
+  const finishRefresh = Promise.withResolvers<void>();
+  const s = setup(async c => {
+    if (c.method === 'system/provider/read' && ++providerReads === 2) {
+      refreshed.resolve();
+      await finishRefresh.promise;
+    }
+  });
   const p = {
     api: s.api,
     events: s.events,
@@ -288,13 +314,18 @@ it('keeps account handoff mounted across settings tabs and ordinary config refre
   };
   const view = render(<Settings {...p} />);
   fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
-  fireEvent.click(await enabledButton({ name: '使用 ChatGPT 登录' }));
-  await screen.findByText('PRIVATE-DEVICE-CODE');
+  await start(s);
+  const originalCode = await screen.findByText('PRIVATE-DEVICE-CODE');
   fireEvent.click(screen.getByRole('button', { name: '通用' }));
   expect(screen.queryByRole('link', { name: '打开验证页面 ↗' })).toBeNull();
   view.rerender(<Settings {...p} epoch="resource-2" />);
   fireEvent.click(screen.getByRole('button', { name: '模型供应商' }));
+  await refreshed.promise;
+  expect(screen.getByText('PRIVATE-DEVICE-CODE')).toBe(originalCode);
+  await act(async () => finishRefresh.resolve());
+  expect(screen.getByText('PRIVATE-DEVICE-CODE')).toBe(originalCode);
   expect(screen.getByRole('link', { name: '打开验证页面 ↗' })).toBeTruthy();
+  expect(s.calls.filter(c => c.method === 'account/login/handoff')).toHaveLength(1);
   expect(s.calls.filter((c) => c.method === 'account/login')).toHaveLength(1);
 });
 it('treats revoked handoffs as closed and blocks changes when global admission is disabled', async () => {
@@ -311,7 +342,7 @@ it('treats revoked handoffs as closed and blocks changes when global admission i
   fireEvent.click(screen.getByRole('button', { name: '使用 ChatGPT 登录' }));
   expect(s.calls.some((c) => c.method === 'account/login')).toBe(false);
   view.rerender(<AccountSettings {...props(s)} />);
-  await start();
+  await start(s);
   await screen.findByText(/原登录交接已撤销或到期/);
   expect(screen.queryByText('PRIVATE-DEVICE-CODE')).toBeNull();
   await screen.findByText('读取账户中…');
@@ -330,7 +361,7 @@ it('does not turn accepted receipt without login identity into a fresh automatic
   const s = setup((c) => (c.method === 'account/login' ? {} : undefined));
   const service = vi.fn();
   render(<AccountSettings {...props(s)} onServiceSettings={service} />);
-  await start();
+  await start(s);
   await screen.findByText(/没有取得有效登录 ID/);
   expect(
     (screen.getByRole('button', { name: '使用 ChatGPT 登录' }) as HTMLButtonElement).disabled,
@@ -342,7 +373,7 @@ it('does not turn accepted receipt without login identity into a fresh automatic
 it('retains the missing-identity recovery gate when the settings modal is reopened', async () => {
   const s = setup((c) => (c.method === 'account/login' ? {} : undefined));
   const view = render(<AccountSettings {...props(s)} />);
-  await start();
+  await start(s);
   await screen.findByText(/没有取得有效登录 ID/);
   view.unmount();
   render(<AccountSettings {...props(s)} />);
