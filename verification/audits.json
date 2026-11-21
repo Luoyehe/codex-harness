@@ -9089,6 +9089,59 @@
         "path": "verification/audit-evidence/v250-round24/builtin-mcp.json",
         "sha256": "021f928b5d7cb8e0bb7eef3c16250f933e0c8092c7e0fd58e4795bd6c2d44f02"
       }
+    },
+    {
+      "id": "v250-round25",
+      "sequence": 106,
+      "digest": "2ec265e57b099765aa2817ea849608820c276880e430e448c0c6cd2f07c6e467",
+      "complete": true,
+      "startedAt": "2026-11-21T15:41:26.769Z",
+      "completedAt": "2026-11-21T15:47:32.239Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R25-01",
+          "severity": "P2",
+          "scope": "deployment-release",
+          "title": "Device-login test uses the ES2024 Promise.withResolvers API outside the web TypeScript project’s ES2023 library",
+          "paths": [
+            "web/tests/device-login.test.tsx:23",
+            "web/tests/device-login.test.tsx:289",
+            "web/tests/device-login.test.tsx:291",
+            "web/tsconfig.json:3"
+          ],
+          "description": "The new test arrangement contains three deferred promises implemented with Promise.withResolvers. Node 24 can execute the scenarios and the targeted test passes, but web/tsconfig.json includes the entire web tests tree and declares ES2023 plus the DOM libraries. The pinned TypeScript compiler exits with three TS2550 diagnostics. This is a development and release-check regression. The result supplies no evidence of device-code loss in the production browser.",
+          "verification": [
+            ".work/v250/round25/independent-web-tsc.log",
+            ".work/v250/round25/independent-web-tsc.exit",
+            ".work/v250/round25/js.json"
+          ],
+          "recommendation": "Use an ES2023-compatible promise constructed with its executor or an existing compatible deferred helper. Retain the test’s mutation, handoff and refresh barriers and its once-only assertions. Rerun the original web typecheck and the device-login tests on the exact corrected source."
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-twenty-five",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round25/independent.json",
+          "sha256": "a9198de9a5113912bcf535053c0c5acd9e77ab9f0803cab41a1289a209abe44f"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round25/builtin-mcp.json",
+        "sha256": "bcf574fef2ea9dbe5f8acbaa9fc5c820e361daaf9cd6b3c1de764c09de5e4fb7"
+      }
     }
   ],
   "fullTests": {

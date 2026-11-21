@@ -1,0 +1,18 @@
+{
+  "frozenCommit": "historical-commit-061",
+  "typescript": "7.0.2",
+  "webTarget": "ES2023",
+  "webLibrary": [
+    "ES2023",
+    "DOM",
+    "DOM.Iterable"
+  ],
+  "command": "tsc -p web/tsconfig.json --noEmit",
+  "exit": 1,
+  "diagnostics": [
+    "web/tests/device-login.test.tsx(23,27): error TS2550: Property 'withResolvers' does not exist on type 'PromiseConstructor'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2024' or later.",
+    "web/tests/device-login.test.tsx(289,29): error TS2550: Property 'withResolvers' does not exist on type 'PromiseConstructor'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2024' or later.",
+    "web/tests/device-login.test.tsx(291,33): error TS2550: Property 'withResolvers' does not exist on type 'PromiseConstructor'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2024' or later."
+  ],
+  "logSha256": "11cbf90dcf170787e2234c9892f706e9d2fc3b4b0a1d39fe8ee66f1a881ebcc4"
+}

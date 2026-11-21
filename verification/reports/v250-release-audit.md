@@ -233,16 +233,20 @@ Debian 12 以普通用户实际执行原 139 项，有 137 项通过、两项断
 
 该失败在固定时序的真实子进程中得到解释。最后一个正常回显可以先返回回复，再收到写入完成通知；两者之间的 1 项、58 字节属于该回显。原来的固定等待也不能保证已经看到 MCP 的迟到回复。修正了测试与受控子进程，把三个断言对齐到真实回复和写入事件。业务超时策略及应用代码保持原值。[原因及漏检复盘](v250-historical-checks.md) · [独立时序数据](../audit-evidence/v250-platform/native-delivery-timing.json) · [修复前后对照](../audit-evidence/v250-platform/native-delivery-fix.json)
 
-## 最终候选的连续复审
+## 第二十三、二十四轮复审及主分支的 Windows 验证
 
-本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41`。[v250-round23](../audit-evidence/v250-round23/independent.json)、[v250-round24](../audit-evidence/v250-round24/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41`。[v250-round23](../audit-evidence/v250-round23/independent.json)、[v250-round24](../audit-evidence/v250-round24/independent.json)。[本次发布授权](https://github.com/Luoyehe/codex-harness)
 
-最终提交仅修订两个测试文件。专用 Debian 12 对最新冻结提交重新打包并比对在服文件，正式控制命令和数据核验记录列入[本版升级证据](../audit-evidence/v250-platform/release-debian.json)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](../audit-evidence/v250-platform/release-edge.json)
+本轮提交仅修订原生通信测试和测试子进程两个文件。专用 Debian 12 对最新冻结提交重新打包并比对在服文件，正式控制命令和数据核验记录列入[本版升级证据](https://github.com/Luoyehe/codex-harness)。另在本轮网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](https://github.com/Luoyehe/codex-harness)
 
-冻结提交为 `historical-commit-032`。v250-round23 和 v250-round24 按顺序完成。专项另在同一源码上使用初次发现时的程序实测。真实 CLI 在 32 个回合后重启，找回了已完成的任务，恢复过程没有额外推理请求。另核对 13 种审批状态、4 种停止请求时序，以及 jsdom 中连续关闭 1,024 条审批后保留编号归零。[自动任务与审批复验](../audit-evidence/v250-platform/release-automations.json)
+冻结提交为 `historical-commit-032`。v250-round23 和 v250-round24 按顺序完成。专项另在同一源码上使用初次发现时的程序实测。真实 CLI 在 32 个回合后重启，找回了已完成的任务，恢复过程没有额外推理请求。另核对 13 种审批状态、4 种停止请求时序，以及 jsdom 中连续关闭 1,024 条审批后保留编号归零。[自动任务与审批复验](https://github.com/Luoyehe/codex-harness)
 
-正式部署工具在专用 Debian 校验 20,530 个安装项（文件与目录）。56 次 MCP 配置冷启动中，52 次正常初始化，4 次按预期拒绝认证配置。另从首次审计原件提取两份 TOML，以正式服务账户和 root 各自使用同一目录连续启动两次。8 次均完成初始化，第二次没有改写配置或开关文件。两种身份的继承专项合计 16 项通过。[56 次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [两份原文 8 次启动](../audit-evidence/v250-platform/release-original-r9-startups.json) · [MCP 编辑](../audit-evidence/v250-platform/release-mcp-workspace.json) · [开关继承](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+正式部署工具在专用 Debian 校验 20,530 个安装项（文件与目录）。56 次 MCP 配置冷启动中，52 次正常初始化，4 次按预期拒绝认证配置。另从首次审计原件提取两份 TOML，以正式服务账户和 root 各自使用同一目录连续启动两次。8 次均完成初始化，第二次没有改写配置或开关文件。两种身份的继承专项合计 16 项通过。[56 次启动](https://github.com/Luoyehe/codex-harness) · [两份原文 8 次启动](https://github.com/Luoyehe/codex-harness) · [MCP 编辑](https://github.com/Luoyehe/codex-harness) · [开关继承](https://github.com/Luoyehe/codex-harness)
 
-上一次实际安装 `historical-commit-133` 时，升级前后、正式回退和再次切回四阶段分别从 HTTP 读取 8 个网页文件，并与各自独立构建及安装目录逐字节核对，升级前同一登录在四次访问中均有效。本轮对新冻结提交重新比对部署文件与当前 HTTP 响应；1,801 个打包文件逐项一致，两个 gzip 包只有头部的时间戳字节不同；整个解压 tar 的 SHA-256 相同。另独立核对 210 个服务端构建文件和 8 个在服网页文件。[四个阶段的文件校验](../audit-evidence/v250-platform/release-web-integrity.json)
+上一次实际安装 `historical-commit-133` 时，升级前后、正式回退和再次切回四阶段分别从 HTTP 读取 8 个网页文件，并与各自独立构建及安装目录逐字节核对，升级前同一登录在四次访问中均有效。本轮对新冻结提交重新比对部署文件与当前 HTTP 响应；1,801 个打包文件逐项一致，两个 gzip 包只有头部的时间戳字节不同；整个解压 tar 的 SHA-256 相同。另独立核对 210 个服务端构建文件和 8 个在服网页文件。[四个阶段的文件校验](https://github.com/Luoyehe/codex-harness)
 
-GitHub 将在发布候选和 main 提交分别运行 Linux、Windows、Linux 特权测试及安全扫描。正式发布须等待 main 对应提交的两项检查成功，并核对逐用例覆盖结果。[GitHub Actions](https://github.com/Luoyehe/codex-harness/actions)
+候选分支的全量和安全检查均通过。从三个平台原始记录对账，303 份测试文件的 3,879 个去重用例全部在适用平台通过。同一提交进入主分支后，Windows 全量中有一个设置页登录用例失败。失败发生在点击登录后首次等待测试设备码时，后续切页、刷新配置和返回查看验证链接的步骤均未执行。失败当时记录的页面文本中，页面显示“尚未登录”和已有操作尚未取得登录 ID。该记录无法判定设备码丢失的时序或根因。主分支 Linux 普通组、Linux 特权组和安全检查均通过。Windows 的失败使汇总检查停止，没有据此创建版本标签。[候选分支全量](https://github.com/Luoyehe/codex-harness/actions/runs/44917369913) · [主分支全量](https://github.com/Luoyehe/codex-harness/actions/runs/44918614737) · [主分支安全检查](https://github.com/Luoyehe/codex-harness/actions/runs/44918614682) · [唯一失败的断言、平台计数与日志校验](../audit-evidence/v250-platform/main-44918614737.json)
+
+## 第二十五轮复审发现的测试兼容性问题
+
+主分支的 Windows 设备码测试等不到首次设备码。使用离线初始设置、原版 React 组件和真实客户端操作记录路径，控制本地账号响应或测试数据库的任务调度后，能在相同位置复现。设备码随后可正常显示，切页和刷新后仍可见。首个修正版本 `historical-commit-061` 把断言同步到登录事务与交接。不过网页 TypeScript 项目明确以 ES2023 为目标，测试的三处 `Promise.withResolvers` 调用只在较新的标准库声明中提供。用项目固定编译器检查该冻结提交，在三个位置确实报 TS2550，退出码为 1。这轮计为有发现。改用项目支持的普通 Promise，保留对原事务、首次交接和切页后同一设备码的检查。[主分支原始失败](../audit-evidence/v250-platform/main-44918614737.json) · [独立操作与数据库时序](../audit-evidence/v250-platform/device-handoff-timing.json) · [原版类型诊断](../audit-evidence/v250-round25/typecheck.json)

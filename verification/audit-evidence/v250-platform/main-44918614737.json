@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "id": 44918614737,
+    "head_sha": "historical-commit-106",
+    "head_branch": "main",
+    "event": "push",
+    "run_number": 84,
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/44918614737"
+  },
+  "security": {
+    "id": 44918614682,
+    "head_sha": "historical-commit-106",
+    "head_branch": "main",
+    "event": "push",
+    "run_number": 66,
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/44918614682"
+  },
+  "frozenSourceCommit": "historical-commit-032",
+  "sameCommitCandidate": {
+    "checkedRun": {
+      "id": 44917369913,
+      "head_sha": "historical-commit-106",
+      "head_branch": "luoyehe/release-v250",
+      "event": "workflow_dispatch",
+      "run_number": 83,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/44917369913"
+    },
+    "securityRun": {
+      "id": 44917373326,
+      "head_sha": "historical-commit-106",
+      "head_branch": "luoyehe/release-v250",
+      "event": "workflow_dispatch",
+      "run_number": 65,
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Luoyehe/codex-harness/actions/runs/44917373326"
+    },
+    "independentlyReconciled": {
+      "mode": "authorized-full",
+      "targets": [
+        "linux",
+        "windows",
+        "linux-root"
+      ],
+      "authorizationSha256": "74556f01ce0502202d5f1135392499243beb8231762c473f8cf4f20231614562",
+      "status": "passed",
+      "sourceDigest": "e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41",
+      "head": "historical-commit-106",
+      "files": 303,
+      "cases": 3879,
+      "coverageGaps": [],
+      "note": "All observed cases passed on an appropriate platform; individual skips remain recorded."
+    },
+    "reconciledSha256": "905fdba69217fc8d7d9fcf2a9c6ea08708b0d0d00612e08104a2e99e6fe5fef2"
+  },
+  "jobs": [
+    {
+      "id": 136889525327,
+      "name": "plan",
+      "conclusion": "success",
+      "startedAt": "2026-11-21T15:20:07Z",
+      "completedAt": "2026-11-21T15:20:33Z"
+    },
+    {
+      "id": 136889665736,
+      "name": "standard (windows-2025, windows, 0.169.0-win32-x64)",
+      "conclusion": "failure",
+      "startedAt": "2026-11-21T15:20:36Z",
+      "completedAt": "2026-11-21T15:32:02Z"
+    },
+    {
+      "id": 136889665758,
+      "name": "root_deploy",
+      "conclusion": "success",
+      "startedAt": "2026-11-21T15:20:36Z",
+      "completedAt": "2026-11-21T15:21:46Z"
+    },
+    {
+      "id": 136889665772,
+      "name": "standard (ubuntu-24.04, linux, 0.169.0-linux-x64)",
+      "conclusion": "success",
+      "startedAt": "2026-11-21T15:20:36Z",
+      "completedAt": "2026-11-21T15:27:29Z"
+    },
+    {
+      "id": 136892774707,
+      "name": "Verified case coverage",
+      "conclusion": "failure",
+      "startedAt": "2026-11-21T15:32:05Z",
+      "completedAt": "2026-11-21T15:32:18Z"
+    }
+  ],
+  "platforms": {
+    "windows": {
+      "member": "3_standard (windows-2025, windows, 0.169.0-win32-x64).txt",
+      "sha256": "eebbb90bdf79f9e32084dabdc1298dccd3564d3fc06f947cbba58dfd9365b1e1",
+      "selectedFiles": 276,
+      "groups": {
+        "javascript": {
+          "selectedFiles": 219,
+          "harnessStatus": "failed",
+          "jobLogLine": 2354,
+          "countsSource": "Original Vitest JSON. Failed JavaScript group emitted a null case array in the platform aggregate.",
+          "counts": {
+            "total": 2741,
+            "passed": 2724,
+            "failed": 1,
+            "skipped": 16,
+            "other": 0
+          }
+        },
+        "deploy": {
+          "selectedFiles": 56,
+          "harnessStatus": "skipped",
+          "jobLogLine": 3109,
+          "counts": {
+            "total": 743,
+            "passed": 591,
+            "failed": 0,
+            "skipped": 152,
+            "other": 0
+          }
+        },
+        "go": {
+          "selectedFiles": 1,
+          "harnessStatus": "passed",
+          "jobLogLine": 3111,
+          "counts": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          }
+        }
+      },
+      "observedOutcomes": {
+        "total": 3504,
+        "passed": 3335,
+        "failed": 1,
+        "skipped": 168,
+        "other": 0
+      }
+    },
+    "linux": {
+      "member": "2_standard (ubuntu-24.04, linux, 0.169.0-linux-x64).txt",
+      "sha256": "5417833b3982ec08b4e5651ba8b3aeb8f8074ea99f7ac17d8c93921adf0d8283",
+      "selectedFiles": 276,
+      "groups": {
+        "javascript": {
+          "selectedFiles": 219,
+          "harnessStatus": "skipped",
+          "jobLogLine": 904,
+          "counts": {
+            "total": 2741,
+            "passed": 2725,
+            "failed": 0,
+            "skipped": 16,
+            "other": 0
+          }
+        },
+        "deploy": {
+          "selectedFiles": 56,
+          "harnessStatus": "skipped",
+          "jobLogLine": 1659,
+          "counts": {
+            "total": 743,
+            "passed": 742,
+            "failed": 0,
+            "skipped": 1,
+            "other": 0
+          }
+        },
+        "go": {
+          "selectedFiles": 1,
+          "harnessStatus": "passed",
+          "jobLogLine": 1661,
+          "counts": {
+            "total": 20,
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          }
+        }
+      },
+      "observedOutcomes": {
+        "total": 3504,
+        "passed": 3487,
+        "failed": 0,
+        "skipped": 17,
+        "other": 0
+      }
+    },
+    "linux-root": {
+      "member": "1_root_deploy.txt",
+      "sha256": "e110a678d8333e84d45b8284c9856f23375c1f3608ec10435d1b87264ae0f696",
+      "selectedFiles": 27,
+      "groups": {
+        "deploy": {
+          "selectedFiles": 27,
+          "harnessStatus": "passed",
+          "jobLogLine": 695,
+          "counts": {
+            "total": 375,
+            "passed": 375,
+            "failed": 0,
+            "skipped": 0,
+            "other": 0
+          }
+        }
+      },
+      "observedOutcomes": {
+        "total": 375,
+        "passed": 375,
+        "failed": 0,
+        "skipped": 0,
+        "other": 0
+      }
+    }
+  },
+  "failedCase": {
+    "file": "web/tests/device-login.test.tsx",
+    "fileAtHeadSha256": "e468b0efc80edcdcfb30f54bea0cb34ab8496b3a5fb379fa004f5deda5c8a032",
+    "name": "keeps account handoff mounted across settings tabs and ordinary config refresh",
+    "assertionLocation": "web/tests/device-login.test.tsx:292:16",
+    "assertion": "The first lookup for the synthetic device code following the sign-in button click timed out.",
+    "result": "Unable to find an element with the fixture code text.",
+    "observedBeforeFailure": [
+      "Settings rendered and the providers tab was opened at lines 289–290.",
+      "The enabled sign-in button was clicked at line 291.",
+      "The captured DOM showed a signed-out account and an original account operation with no login ID yet. The receipt-query button was disabled."
+    ],
+    "notReached": [
+      "Switch to General at line 293.",
+      "Ordinary config epoch refresh at line 295.",
+      "Return to providers at line 296 and check verification link at line 297.",
+      "Single login request assertion at line 298."
+    ],
+    "limits": "The hosted log does not contain per-RPC traces or distinguish a late reply from a lost one. It does not demonstrate loss of an already visible code after switching tabs. All account data in this test comes from an offline fixture."
+  },
+  "downstreamCoverageFailure": "Required job outcome mismatch: standard",
+  "evidence": {
+    "archiveEntriesCrcChecked": 69,
+    "completeLogArchiveSha256": "30fd6eef3c0efe126e4b8c5f64a2339eb4f5619a855d2322812ab423f6afe0e7",
+    "windowsPlatformSha256": "fa4829fc513b3704f7d98d850dae1ac7d7c8e02d4b020d55ae22f5c79dc8d095",
+    "windowsVitestSha256": "f52c46019acd8da8bee70c6fc722389a8f8533ac555c2bb4bf0c77036ca82be5",
+    "jobListSha256": "5f350eb839f81e7c25857a916f30503a5dbfec37b0fe7359d7277fe05764e9c8",
+    "combinedWindowsCaseRowsExcludingFailedJsGroup": 763
+  }
+}
