@@ -130,7 +130,8 @@ class HttpsMetadataOwnershipTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == "linux" and os.geteuid() == 0, "Real Linux root ownership fixture")
 class HttpsTransactionTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        # Recovery reads the journal only below an entirely root-controlled path.
+        self.temp = tempfile.TemporaryDirectory(dir="/root", prefix="https-fixture-")
         self.root = Path(self.temp.name)
         self.layout = Layout("fixture", self.root)
         for folder in (self.layout.config, self.layout.units, self.layout.state / "transactions", self.layout.config / "identity", self.layout.state / "identity", self.layout.config / "tls"):
@@ -591,6 +592,15 @@ class HttpsTransactionTests(unittest.TestCase):
         journal = self.layout.state / "transactions" / ("a" * 32) / "state.json"
         mkdir(journal.parent)
         write_json(journal, {"kind": "https", "phase": "recovered", "before": before})
+        # Even a valid journal under a writable ancestor cannot authorize a reset.
+        self.root.chmod(0o770)
+        try:
+            with self.assertRaises(DeployError) as caught:
+                reset_prepared(self.manager, expected_revision=revision, confirm=True)
+            self.assertEqual(caught.exception.code, "unsafe_path")
+            self.assertEqual(read_json(self.layout.config / "https.json"), self.metadata)
+        finally:
+            self.root.chmod(0o700)
         result = reset_prepared(self.manager, expected_revision=revision, confirm=True)
         self.assertTrue(result["reset"])
         self.assertFalse((self.layout.config / "https.json").exists())

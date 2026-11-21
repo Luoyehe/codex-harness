@@ -300,8 +300,8 @@ class CandidateArchiveRootTests(unittest.TestCase):
         with image.open("xb") as out:
             out.truncate(16 * 1024**2)
         image.chmod(0o600)
-        subprocess.run(["mkfs.ext4", "-q", "-F", str(image)], check=True)
-        subprocess.run(["mount","-o","loop,nosuid,nodev",str(image),str(mount)], check=True)
+        subprocess.run(["/usr/sbin/mkfs.ext4", "-q", "-F", str(image)], check=True)
+        subprocess.run(["/usr/bin/mount","-o","loop,nosuid,nodev",str(image),str(mount)], check=True)
         from deploy.system import run as actual_run
         try:
             (mount / "fixture").write_bytes(b"retained intermediate")
@@ -316,10 +316,10 @@ class CandidateArchiveRootTests(unittest.TestCase):
                 item = archive.archive_candidate(self.layout, self.candidate, confirm_stop=True, allow_failed=True)
             evidence = Path(item["archive"]) / "fetch.ext4"
             self.assertTrue(evidence.is_file())
-            self.assertEqual(subprocess.run(["debugfs", "-R", "cat /fixture",str(evidence)], capture_output=True, check=True).stdout, b"retained intermediate")
+            self.assertEqual(subprocess.run(["/usr/sbin/debugfs", "-R", "cat /fixture",str(evidence)], capture_output=True, check=True).stdout, b"retained intermediate")
         finally:
             if mount.is_mount():
-                subprocess.run(["umount", str(mount)],check=True)
+                subprocess.run(["/usr/bin/umount", str(mount)],check=True)
 
     def test_retained_image_is_never_archived(self):
         (self.source / "build.ext4").write_bytes(b"uncertain image")

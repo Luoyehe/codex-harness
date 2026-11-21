@@ -33,7 +33,8 @@ def archive_bytes(name="package/bin/tool"):
 @unittest.skipUnless(sys.platform == "linux" and os.geteuid() == 0, "Real Linux root durability fixture")
 class TreeDurabilityTests(unittest.TestCase):
     def setUp(self):
-        self.folder = tempfile.TemporaryDirectory(prefix="durability-fixture-")
+        # Edge installation checks ownership and write access up to the filesystem root.
+        self.folder = tempfile.TemporaryDirectory(dir="/root", prefix="durability-fixture-")
         self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name)
         self.layout = Layout("fixture", self.root)
