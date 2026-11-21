@@ -146,7 +146,22 @@ export class Automations {
     return Number(update.changes) === 1;
   }
   requestStop(id: string): void { this.db.prepare("UPDATE automation_runs SET stop_requested=1 WHERE id=? AND state IN ('running','needs_attention')").run(id); }
-  claimStop(id: string): boolean { return !!Number(this.db.prepare("UPDATE automation_runs SET attention_before_stop=(state='needs_attention'),stop_sent=1,state='stopping' WHERE id=? AND state IN ('running','needs_attention') AND stop_requested=1 AND stop_sent=0").run(id).changes); }
-  stopNotSent(id: string, code: string): void { this.db.prepare("UPDATE automation_runs SET stop_sent=0,state=CASE WHEN attention_before_stop=1 THEN 'needs_attention' ELSE 'running' END,code=? WHERE id=? AND state='stopping'").run(code, id); }
+  claimStop(run: AutomationRun): boolean {
+    const result = this.db.prepare(`UPDATE automation_runs SET attention_before_stop=(state='needs_attention'),stop_sent=1,state='stopping'
+      WHERE id=? AND thread_id=? AND turn_id=? AND state IN ('running','needs_attention') AND stop_requested=1 AND stop_sent=0`)
+      .run(run.id, run.threadId, run.turnId);
+    return Number(result.changes) === 1;
+  }
+  stopNotSent(run: AutomationRun, code: string): void {
+    // A definitive rejection can arrive after the independent event channel
+    // disconnected. It settles only the stop attempt. Keep the run unknown
+    // until a fresh read identifies the exact active or terminal turn.
+    this.db.prepare(`UPDATE automation_runs SET stop_sent=0,
+      state=CASE WHEN state='unknown' THEN state WHEN attention_before_stop=1 THEN 'needs_attention' ELSE 'running' END,
+      code=CASE WHEN state='unknown' THEN code ELSE ? END
+      WHERE id=? AND thread_id=? AND turn_id=? AND stop_sent=1
+        AND (state='stopping' OR (state='unknown' AND code='gateway_restarted'))`)
+      .run(code, run.id, run.threadId, run.turnId);
+  }
   recover(): void { this.db.prepare("UPDATE automation_runs SET attention_before_stop=CASE WHEN state='needs_attention' THEN 1 ELSE attention_before_stop END,state='unknown',code='gateway_restarted',finished_at=? WHERE state IN ('dispatching','running','needs_attention','stopping')").run(this.now()); }
 }

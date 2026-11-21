@@ -11,6 +11,7 @@ const finalStates = new Set(['completed', 'failed', 'interrupted']);
 export class AutomationScheduler {
   private timer: NodeJS.Timeout | undefined;
   private closed = false;
+  private connectionGeneration = 0;
   private leases = new Set<string>();
   private nextRead = new Map<string, number>();
   private nextStop = new Map<string, number>();
@@ -106,7 +107,7 @@ export class AutomationScheduler {
     for (const value of candidates) {
       if (value.state !== 'unknown' && value.startedAt !== null && this.now() - value.startedAt >= value.spec.maxRunMinutes * 60_000) this.ledger.transaction(() => this.ledger.automations.requestStop(value.id));
       const latest = this.ledger.automations.getRun(value.id);
-      if (latest.stopRequested && !latest.stopSent && latest.threadId && latest.turnId && latest.state !== 'unknown' && (this.nextStop.get(value.id) ?? 0) <= this.now()) run(`stop:${value.id}`, () => this.stop(latest));
+      if (latest.stopRequested && !latest.stopSent && latest.threadId && latest.turnId && latest.state !== 'unknown') pending.push(this.stopWhenDue(latest));
     }
     if (candidates.length) {
       for (let i = 0; i < Math.min(4, candidates.length); i++) {
@@ -140,14 +141,26 @@ export class AutomationScheduler {
       await this.releaseSettled(run);
     }
   }
+  private stopWhenDue(run: AutomationRun): Promise<void> {
+    const key = `stop:${run.id}`;
+    if (this.controls.has(key) || (this.nextStop.get(run.id) ?? 0) > this.now()) return Promise.resolve();
+    return this.controlRun(key, () => this.stop(run));
+  }
   private async stop(run: AutomationRun): Promise<void> {
+    let claimed = false;
     try {
       await this.lease(run.clientId); const context = this.context(run.clientId); context.requireConnection?.();
-      if (!this.ledger.transaction(() => this.ledger.automations.claimStop(run.id))) return;
+      claimed = this.ledger.transaction(() => this.ledger.automations.claimStop(run));
+      if (!claimed) return;
       await this.dispatcher.call({ method: 'turn/interrupt', params: { threadId: run.threadId!, turnId: run.turnId! } }, context);
       // An interrupt acknowledgement is not proof the turn completed or its processes exited.
     } catch (error) {
-      if (error instanceof HarnessError && error.delivery === 'not_sent') { this.ledger.transaction(() => this.ledger.automations.stopNotSent(run.id, error.code)); this.nextStop.set(run.id, this.now() + 30_000); }
+      // Lease registration itself can have an unknown outcome before the
+      // interrupt is claimed. No interrupt was attempted on that path.
+      if (!claimed || (error instanceof HarnessError && error.delivery === 'not_sent')) {
+        if (claimed && error instanceof HarnessError) this.ledger.transaction(() => this.ledger.automations.stopNotSent(run, error.code));
+        this.nextStop.set(run.id, this.now() + 30_000);
+      }
       else this.ledger.transaction(() => this.ledger.automations.finish(run.id, 'unknown', 'stop_unconfirmed'));
     } finally { await this.releaseSettled(run); }
     this.publish(run.id);
@@ -175,6 +188,7 @@ export class AutomationScheduler {
       }
       if (finalStates.has(run.state) || !run.threadId || !run.turnId) return;
       await this.lease(run.clientId);
+      const generation = this.connectionGeneration;
       cursor = this.ledger.automationCursor(run.id);
       const history = await this.dispatcher.call({ method: 'thread/history', params: { intent: 'turnStatus', threadId: run.threadId, turnId: run.turnId, limit: 25, ...(cursor === null ? {} : { cursor }) } }, this.context(run.clientId));
       object(history);
@@ -182,13 +196,13 @@ export class AutomationScheduler {
       if (history.turns.length === 0) { this.advanceScan(run.id, cursor, history.nextCursor); return; }
       const found = history.turns[0]; object(found);
       if (found.id !== run.turnId) return;
-      if (found.status === 'inProgress' && run.state === 'unknown' && run.threadId && run.turnId &&
+      if (found.status === 'inProgress' && run.state === 'unknown' && generation === this.connectionGeneration && this.worker.connected && !this.closed && run.threadId && run.turnId &&
           this.ledger.transaction(() => this.ledger.automations.restoreActive(run.id, run.threadId!, run.turnId!))) {
         this.publish(run.id);
         const active = this.ledger.automations.getRun(run.id);
         if (active.stopRequested || (active.startedAt !== null && this.now() - active.startedAt >= active.spec.maxRunMinutes * 60_000)) {
           this.ledger.transaction(() => this.ledger.automations.requestStop(active.id));
-          await this.stop(active);
+          await this.stopWhenDue(active);
         }
       }
       if (typeof found.status === 'string' && finalStates.has(found.status)) { this.ledger.transaction(() => this.ledger.automations.finish(run.id, found.status as RunState)); this.publish(run.id); }
@@ -207,7 +221,7 @@ export class AutomationScheduler {
     try {
       object(event.data);
       if (event.type === 'state' && event.data.connected === false) {
-        this.leases.clear(); this.ledger.transaction(() => this.ledger.automations.recover()); return;
+        this.connectionGeneration++; this.leases.clear(); this.ledger.transaction(() => this.ledger.automations.recover()); return;
       }
       if (event.type === 'prompt') {
         const threadId = event.data.threadId;

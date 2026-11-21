@@ -57,6 +57,138 @@ describe('durable bounded automation execution', () => {
       expect(f.ledger.automations.getRun(first.id).stopSent).toBe(true); release(); await tick;
     } finally { release(); await pending; }
   });
+  it.each([
+    ['deadline', 'disconnect-first'], ['deadline', 'rejection-first'],
+    ['manual', 'disconnect-first'], ['manual', 'rejection-first'],
+  ])('retries a definitely unsent %s stop after %s only on fresh identity and after cooldown', async (trigger, order) => {
+    const f = setup(); f.scheduler.start(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+    const run = f.ledger.automations.outstanding()[0]!;
+    const gate = Promise.withResolvers<void>();
+    let attempts = 0, delivered = 0;
+    f.behavior(async (method, params) => {
+      if (method === 'turn/interrupt') {
+        attempts++;
+        if (attempts === 1) { await gate.promise; throw new HarnessError('client_disconnected', 'lease revoked', 'not_sent'); }
+        delivered++; return {};
+      }
+      return { threadId: params.threadId ?? null, turns: [{ id: run.turnId, status: 'inProgress' }], nextCursor: null };
+    });
+    f.advance(trigger === 'deadline' ? 600_000 : 31_000);
+    if (trigger === 'manual') await f.command('automation/stop', { runId: run.id });
+    const pending = f.scheduler.tick();
+    try {
+      await vi.waitFor(() => expect(attempts).toBe(1));
+      expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'stopping', stopSent: true });
+      const disconnect = () => { f.worker.connected = false; f.dispatcher.disconnected(); };
+      if (order === 'disconnect-first') disconnect();
+      f.advance(25_000); gate.resolve(); await pending;
+      await vi.waitFor(() => expect(f.ledger.automations.getRun(run.id).stopSent).toBe(false));
+      if (order === 'rejection-first') {
+        expect(f.ledger.automations.getRun(run.id).state).toBe('running');
+        disconnect();
+      }
+      expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'unknown', code: 'gateway_restarted', stopRequested: true, stopSent: false });
+      await expect(f.command('automation/stop', { runId: run.id })).rejects.toMatchObject({ code: 'operation_unknown' });
+      f.worker.connected = true; f.advance(5000); await f.scheduler.tick();
+      expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'running', stopSent: false });
+      expect(attempts).toBe(1);
+      f.advance(24_999); await f.scheduler.tick(); expect(attempts).toBe(1);
+      f.advance(1); await Promise.all([f.scheduler.tick(), f.scheduler.tick()]);
+      expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'stopping', stopSent: true });
+      expect(attempts).toBe(2); expect(delivered).toBe(1);
+      f.dispatcher.emit('event', { type: 'notification', data: { method: 'turn/completed', params: { threadId: run.threadId, turn: { id: run.turnId, status: 'interrupted' } } } });
+      f.advance(31_000); await f.scheduler.tick();
+      expect(f.ledger.automations.getRun(run.id).state).toBe('interrupted');
+      expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
+      expect(attempts).toBe(2);
+    } finally { gate.resolve(); await pending; }
+  });
+  it.each(['accepted', 'unknown', 'not_sent'])('preserves %s stop delivery after disconnect, exact live history and a gateway restart', async outcome => {
+    const dir = mkdtempSync(join(tmpdir(), 'automation-stop-')), file = join(dir, 'journal.sqlite');
+    const f = setup(file); f.scheduler.start(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+    const run = f.ledger.automations.outstanding()[0]!, gate = Promise.withResolvers<void>();
+    f.behavior(async method => {
+      if (method === 'turn/interrupt') {
+        await gate.promise;
+        if (outcome === 'unknown') throw new HarnessError('worker_lost', 'reply lost', 'unknown');
+        if (outcome === 'not_sent') throw new HarnessError('client_disconnected', 'lease revoked', 'not_sent');
+        return {};
+      }
+      return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'inProgress' }], nextCursor: null };
+    });
+    f.advance(600_000); const pending = f.scheduler.tick();
+    try {
+      await vi.waitFor(() => expect(f.calls.some(call => call.method === 'turn/interrupt')).toBe(true));
+      f.worker.connected = false; f.dispatcher.disconnected(); gate.resolve(); await pending;
+      expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'unknown', stopSent: outcome !== 'not_sent' });
+    } finally { gate.resolve(); await pending; }
+    await cleanups.pop()!();
+    const next = setup(file, run.scheduledAt + 650_000);
+    const close = cleanups.pop()!; cleanups.push(async () => { await close(); rmSync(dir, { recursive: true }); });
+    await next.scheduler.tick(); next.advance(31_000); await next.scheduler.tick();
+    expect(next.ledger.automations.getRun(run.id)).toMatchObject({ state: outcome === 'not_sent' ? 'interrupted' : 'unknown', stopSent: true });
+    next.terminal('interrupted'); next.advance(31_000); await next.scheduler.tick();
+    expect(next.ledger.automations.getRun(run.id).state).toBe('interrupted');
+    expect(next.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(outcome === 'not_sent' ? 1 : 0);
+    expect(next.calls.filter(call => call.method === 'conversation/start')).toHaveLength(0);
+  });
+  it.each(['completed', 'closed_unknown'])('keeps %s immutable when a disconnected stop is later definitively rejected', async outcome => {
+    const f = setup(); f.scheduler.start(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+    const run = f.ledger.automations.outstanding()[0]!, gate = Promise.withResolvers<void>();
+    f.behavior(async method => {
+      if (method === 'turn/interrupt') { await gate.promise; throw new HarnessError('client_disconnected', 'not delivered'); }
+      return { threadId: run.threadId, turns: [], nextCursor: null };
+    });
+    f.advance(600_000); const pending = f.scheduler.tick();
+    try {
+      await vi.waitFor(() => expect(f.ledger.automations.getRun(run.id).state).toBe('stopping'));
+      f.dispatcher.disconnected();
+      f.dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+      if (outcome === 'completed') f.dispatcher.emit('event', { type: 'notification', data: { method: 'turn/completed', params: { threadId: run.threadId, turn: { id: run.turnId, status: 'completed' } } } });
+      else await f.command('automation/acknowledge', { runId: run.id, confirm: true });
+      const closed = f.ledger.automations.getRun(run.id);
+      expect(closed.state).toBe(outcome); gate.resolve(); await pending;
+      f.advance(31_000); await f.scheduler.tick();
+      expect(f.ledger.automations.getRun(run.id)).toEqual(closed); expect(f.scheduler['nextStop'].size).toBe(0);
+      expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+    } finally { gate.resolve(); await pending; }
+  });
+  it('does not label an unconfirmed lease registration as an attempted interrupt', async () => {
+    const f = setup(); f.scheduler.start(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+    const run = f.ledger.automations.outstanding()[0]!;
+    const register = vi.spyOn(f.worker, 'clientConnected').mockRejectedValueOnce(new HarnessError('worker_lost', 'registration lost', 'unknown'));
+    f.advance(600_000); const pending = f.scheduler.tick();
+    f.dispatcher.disconnected(); await pending;
+    expect(register).toHaveBeenCalled(); expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'unknown', code: 'gateway_restarted', stopSent: false });
+    expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(0);
+    f.advance(31_000); await f.scheduler.tick();
+    expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+  });
+  it('requires a new exact active proof after disconnect before retrying an unsent stop', async () => {
+    const f = setup(); f.scheduler.start(); await f.create(); f.advance(60_000); await f.scheduler.tick();
+    const run = f.ledger.automations.outstanding()[0]!;
+    f.ledger.transaction(() => f.ledger.automations.requestStop(run.id));
+    f.dispatcher.disconnected();
+    let answer = 'stale'; const gate = Promise.withResolvers<void>(), entered = Promise.withResolvers<void>();
+    f.behavior(async method => {
+      if (method !== 'thread/history') return {};
+      if (answer === 'stale') { entered.resolve(); await gate.promise; }
+      return { threadId: answer === 'other-thread' ? 'other' : run.threadId,
+        turns: answer === 'absent' ? [] : [{ id: answer === 'other-turn' ? 'other' : run.turnId, status: 'inProgress' }], nextCursor: null };
+    });
+    f.advance(31_000); const read = f.scheduler.tick();
+    try {
+      await entered.promise;
+      f.dispatcher.disconnected(); gate.resolve(); await read;
+      for (answer of ['other-thread', 'other-turn', 'absent']) {
+        f.advance(31_000); await f.scheduler.tick();
+        expect(f.ledger.automations.getRun(run.id)).toMatchObject({ state: 'unknown', stopSent: false });
+      }
+      expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(0);
+      answer = 'exact'; f.advance(31_000); await f.scheduler.tick();
+      expect(f.calls.filter(call => call.method === 'turn/interrupt')).toHaveLength(1);
+    } finally { gate.resolve(); await read; }
+  });
   it('known not-sent stop failures retry only after cooldown without marking the run unknown', async () => {
     const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick(); const run = f.ledger.automations.outstanding()[0]!;
     f.behavior(async (method, _params, context) => {
