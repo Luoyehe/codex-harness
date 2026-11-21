@@ -58,10 +58,10 @@ describe('extension workflows', () => {
   });
   test('effective configuration masks environment/header secrets in every layer and exposes the base user revision', async () => {
     const config: JsonObject = {};
-    config.mcp_servers = { fixture: { env: { NOT_NAMED_SECRET: 'do-not-expose' }, http_headers: { custom: 'hidden-header' }, api_key: 'hidden-key' } };
+    config.mcp_servers = { fixture: { env: { NOT_NAMED_SECRET: 'do-not-expose' }, http_headers: { custom: 'hidden-header' }, http_headers_helper: 'private-header-helper', env_vars: ['private-forward-name'], api_key: 'hidden-key' } };
     const { service } = setup({ 'config/read': { config, origins: {}, layers: [{ name: { type: 'user', file: '/native/config.toml', profile: null }, version: 'base-version', config: { nested: { api_key: 'hidden-key' } }, disabledReason: null }] } });
     const result = object(await service.call('settings/read', { cwd: '/project' }, context)); const text = JSON.stringify(result);
-    expect(result.userVersion).toBe('base-version'); expect(text).not.toContain('do-not-expose'); expect(text).not.toContain('hidden-header'); expect(text).not.toContain('hidden-key');
+    expect(result.userVersion).toBe('base-version'); expect(text).not.toContain('do-not-expose'); expect(text).not.toContain('hidden-header'); expect(text).not.toContain('hidden-key'); expect(text).not.toContain('private-header-helper'); expect(text).not.toContain('private-forward-name');
   });
   test('feature enablement validates a bounded fresh catalog and refuses retired features', async () => {
     const { service, calls } = setup({ 'experimentalFeature/list': { data: ['stable', 'removed'].map(stage => ({ name: stage, stage, displayName: null, description: null, announcement: null, enabled: false, defaultEnabled: false })), nextCursor: null }, 'experimentalFeature/enablement/set': { enablement: { stable: true } } });

@@ -1,0 +1,169 @@
+{
+  "findings": [
+    "R12 user MCP environment/header clearing",
+    "R12 user MCP implicit enabled override"
+  ],
+  "base": "historical-commit-058",
+  "cli": "0.169.0",
+  "verification": "Isolated disabled configurations. Compared codex mcp get --json transport output and validation, then config/read user and effective layers before and after a fresh official app-server process. Opened Settings > MCP in the production React interface; no external model or MCP connections.",
+  "fields": [
+    {
+      "native": "env",
+      "transport": "stdio",
+      "presence": "Fixed environment",
+      "normal": "Keep unless explicitly replaced",
+      "clear": "Remove",
+      "conversion": "Remove for HTTP"
+    },
+    {
+      "native": "env_vars",
+      "transport": "stdio",
+      "presence": "Forwarded environment; variable names stay private",
+      "shape": "Names or structured entries carrying name/source",
+      "normal": "Keep exact entries, including when fixed env is edited",
+      "clear": "Remove",
+      "conversion": "Remove for HTTP"
+    },
+    {
+      "native": "http_headers",
+      "transport": "HTTP",
+      "presence": "Fixed headers",
+      "normal": "Keep unless explicitly replaced",
+      "clear": "Remove",
+      "conversion": "Remove for stdio"
+    },
+    {
+      "native": "http_headers_helper",
+      "transport": "HTTP",
+      "presence": "Header helper; command stays private",
+      "normal": "Keep, including when fixed headers are edited",
+      "clear": "Remove",
+      "conversion": "Remove for stdio"
+    },
+    {
+      "native": "env_http_headers",
+      "transport": "HTTP",
+      "presence": "Environment-based headers",
+      "normal": "Keep unless explicitly replaced",
+      "clear": "Remove",
+      "conversion": "Remove for stdio"
+    },
+    {
+      "native": "bearer_token_env_var",
+      "transport": "HTTP",
+      "presence": "Bearer reference",
+      "normal": "Keep unless explicitly replaced",
+      "clear": "Remove",
+      "conversion": "Remove for stdio"
+    },
+    {
+      "native": "bearer_token",
+      "transport": "legacy",
+      "presence": "Bearer setting if an older layer contains it",
+      "normal": "Supported 0.169.0 rejects inline bearer_token for both transports; compatibility merge covered with a private-layer fixture",
+      "clear": "Remove",
+      "conversion": "Remove"
+    },
+    {
+      "native": "auth, oauth, oauth_resource",
+      "transport": "HTTP",
+      "presence": "OAuth client settings shown by presence only",
+      "normal": "Keep, including nested client configuration",
+      "clear": "Preserve under the explicit environment/header/Bearer action",
+      "conversion": "Remove for stdio; CLI rejects these fields there"
+    },
+    {
+      "native": "command, args, cwd / url",
+      "transport": "stdio / HTTP",
+      "normal": "Keep omitted fields",
+      "clear": "Preserve",
+      "conversion": "Remove fields exclusive to the old transport"
+    },
+    {
+      "native": "scopes, environment_id, required, other unrelated fields",
+      "transport": "shared or opaque",
+      "normal": "Preserve",
+      "clear": "Preserve",
+      "conversion": "Preserve"
+    },
+    {
+      "native": "headers, experimental_bearer_token",
+      "transport": "unrecognized MCP spellings",
+      "normal": "CLI get does not consume them as native static headers or a Bearer reference. Unknown fields are preserved, without widening the editor write allowlist."
+    },
+    {
+      "native": "enabled",
+      "transport": "shared",
+      "normal": "Existing user layer keeps absence or its explicit value unless user changes the switch. Checkbox shows effective inherited value when absent.",
+      "clear": "Preserve",
+      "conversion": "Preserve"
+    }
+  ],
+  "observations": {
+    "preserved": {
+      "forwarded": 2,
+      "headerHelper": true,
+      "oauthClient": true,
+      "sibling": true,
+      "scope": true,
+      "allOff": true,
+      "effectiveForwarded": 2,
+      "effectiveHeaderHelper": true
+    },
+    "hot": {
+      "forwarded": 0,
+      "headerHelper": false,
+      "oauthClient": true,
+      "sibling": true,
+      "scope": true,
+      "allOff": true,
+      "effectiveForwarded": 0,
+      "effectiveHeaderHelper": false
+    },
+    "cold": {
+      "forwarded": 0,
+      "headerHelper": false,
+      "oauthClient": true,
+      "sibling": true,
+      "scope": true,
+      "allOff": true,
+      "effectiveForwarded": 0,
+      "effectiveHeaderHelper": false
+    },
+    "converted": {
+      "forwarded": 0,
+      "headerHelper": false,
+      "oauthClient": false,
+      "sibling": true,
+      "scope": true,
+      "allOff": true,
+      "effectiveForwarded": 0,
+      "effectiveHeaderHelper": false
+    },
+    "writes": [
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "args": [
+          "changed"
+        ]
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "clearSecrets": true
+      },
+      {
+        "type": "upsert",
+        "transport": "http",
+        "clearSecrets": true
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "command": "converted-inert",
+        "args": []
+      }
+    ]
+  }
+}

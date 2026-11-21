@@ -488,7 +488,7 @@ it.each(['clear', 'replace', 'undo'] as const)('allows explicit %s of a masked a
   }
   if (mode === 'undo') fireEvent.click(replace);
   fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'replacement-command' } });
-  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: true,
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio',
     command: 'replacement-command', ...(mode === 'undo' ? {} : { args: mode === 'clear' ? [] : ['fixture-argument'] }) });
   expect(JSON.stringify(await listOperations())).not.toContain('fixture-argument');
 });
@@ -501,7 +501,7 @@ it('sends a new address only after deliberate replacement and rejects a display 
   await screen.findByText(/请填写完整的新值/);
   expect(calls.some(c => c.method === 'mcp/config/write')).toBe(false);
   fireEvent.change(url, { target: { value: 'http://127.0.0.1:9/updated' } });
-  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', enabled: true, url: 'http://127.0.0.1:9/updated' });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', url: 'http://127.0.0.1:9/updated' });
   expect(JSON.stringify(await listOperations())).not.toContain('127.0.0.1');
 });
 it('keeps untouched transport fields after switching back, and sends the new transport on conversion', async () => {
@@ -512,7 +512,21 @@ it('keeps untouched transport fields after switching back, and sends the new tra
   fireEvent.change(transport, { target: { value: 'http' } });
   expect(screen.getByLabelText('HTTP(S) 服务地址')).toHaveProperty('value', '');
   fireEvent.change(transport, { target: { value: 'stdio' } });
-  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: true, command: 'local-fixture', args: [] });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', command: 'local-fixture', args: [] });
+});
+it.each(['untouched', 'enable', 'undo'] as const)('keeps an inherited disabled switch unless explicitly enabled (%s)', async action => {
+  const server = { ...ownedStdio, enabled: false, effectiveEnabled: false, hasEnabledOverride: false,
+    hasForwardedEnv: true, command: 'local', args: ['old'] };
+  const { calls } = await openOwned(() => ({ ...config, servers: [server] }));
+  const toggle = screen.getByLabelText('启用用户配置中的此服务');
+  expect(toggle).toHaveProperty('checked', false);
+  expect(screen.getByText(/用户层未单独设置开关/)).toBeTruthy();
+  expect(screen.getByText(/已配置环境变量转发/)).toBeTruthy();
+  if (action !== 'untouched') fireEvent.click(toggle);
+  if (action === 'undo') fireEvent.click(toggle);
+  fireEvent.change(screen.getByLabelText('命令参数 1'), { target: { value: 'new' } });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', args: ['new'],
+    ...(action === 'enable' ? { enabled: true } : {}) });
 });
 it('omits an ordinary field edited and restored to its original value', async () => {
   const initial = { ...ownedStdio, command: 'plain-command', args: ['first', 'second'] };
@@ -530,7 +544,7 @@ it('addresses each matching display name by its selected opaque ID for edit and 
   fireEvent.click(screen.getByRole('button', { name: '编辑 ' + name + ' · ' + second.slice(0, 12) }));
   fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'second-command' } });
   expect(await saveOwned(calls)).toEqual({ projectId: 'project', expectedVersion: 'v1', id: second,
-    change: { type: 'upsert', transport: 'stdio', enabled: true, command: 'second-command' } });
+    change: { type: 'upsert', transport: 'stdio', command: 'second-command' } });
   fireEvent.click(await screen.findByRole('button', { name: '移除 ' + name + ' · ' + first.slice(0, 12) + ' 用户配置' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '确认移除此用户服务定义' }));
   fireEvent.click(screen.getByRole('button', { name: '确认移除服务配置' }));
@@ -611,7 +625,7 @@ it('drops masked replacements on hide and leaves the saved URL out of an unrelat
   await screen.findByRole('button', { name: '编辑 remote' });
   expect(url()).toHaveProperty('value', '');
   fireEvent.click(screen.getByRole('checkbox', { name: /清除已保存的环境变量/ }));
-  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', enabled: true, clearSecrets: true });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', clearSecrets: true });
 });
 it('requires a fresh comparison and carries only the edited command onto the latest same-transport version', async () => {
   let version = 'v1', server = ownedStdio;
@@ -629,7 +643,7 @@ it('requires a fresh comparison and carries only the edited command onto the lat
   fireEvent.click(screen.getByRole('button', { name: '采用当前服务配置版本' }));
   expect(screen.getByLabelText('命令参数 1')).toHaveProperty('value', 'latest-argument');
   expect(await saveOwned(calls)).toEqual({ projectId: 'project', expectedVersion: 'v3', name: 'owned',
-    change: { type: 'upsert', transport: 'stdio', enabled: false, command: 'replacement-command' } });
+    change: { type: 'upsert', transport: 'stdio', command: 'replacement-command' } });
 });
 it.each(['removed', 'replaced'])('requires reselection when the original server was %s at another version', async kind => {
   let changed = false;

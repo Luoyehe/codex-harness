@@ -12,7 +12,7 @@ from .mcp_enabled_override import _exclusive, _file_version, _name, _read, _repl
 LIMIT = 1024 * 1024
 TEXT_FIELDS = {"command", "url", "bearer_token_env_var"}
 MAP_FIELDS = {"env", "http_headers", "env_http_headers"}
-REMOVE_ONLY = {"bearer_token", "env_vars", "cwd"}
+REMOVE_ONLY = {"bearer_token", "env_vars", "cwd", "http_headers_helper", "auth", "oauth", "oauth_resource"}
 
 
 def _check_reparse(path):

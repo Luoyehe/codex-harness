@@ -54,7 +54,7 @@ function pageBounds(params: JsonObject): void {
 function sensitiveConfig(value: JsonValue, redactor: DiagnosticRedactor): JsonValue {
   if (Array.isArray(value)) return value.map(item => sensitiveConfig(item, redactor));
   if (value && typeof value === 'object') return redactor.value(Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
-    /^(?:env|http_headers|headers|bearer_token|bearer_token_env_var|env_http_headers)$/i.test(key) ? '[redacted]' : sensitiveConfig(item, redactor)])));
+    /^(?:env|env_vars|http_headers|http_headers_helper|headers|bearer_token|bearer_token_env_var|env_http_headers)$/i.test(key) ? '[redacted]' : sensitiveConfig(item, redactor)])));
   return redactor.value(value);
 }
 function rejectRedacted(value: JsonValue): void {

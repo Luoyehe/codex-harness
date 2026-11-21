@@ -14,13 +14,17 @@ type ServerConfig = ConfigEntry & {
   transport: 'stdio' | 'http' | 'unsupported';
   enabled: boolean;
   effectiveEnabled: boolean | null;
+  hasEnabledOverride?: boolean;
   command?: string;
   args?: string[];
   url?: string;
   hasEnv: boolean;
+  hasForwardedEnv?: boolean;
   hasHttpHeaders: boolean;
+  hasHeaderHelper?: boolean;
   hasBearerTokenEnvVar: boolean;
   hasEnvHttpHeaders: boolean;
+  hasOAuthConfig?: boolean;
 };
 type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; unassigned?: Record<string, boolean>; legacySwitches?: (ConfigEntry & { enabled: boolean; targetIds: string[] })[]; inheritedDetails?: { id?: string; name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; managedOwner?: string; transport: string; overridden: boolean }[] };
 function LegacySwitch({ name, value, targets, disabled, restore, discard }: {
@@ -288,7 +292,7 @@ function McpConfigurationForm({
       const change = {
         type: 'upsert',
         transport: edit.transport,
-        enabled: edit.enabled ?? savedEnabled,
+        ...(edit.enabled !== undefined || !original ? { enabled: edit.enabled ?? true } : {}),
         ...(edit.clearSecrets ? { clearSecrets: true } : {}),
         ...(edit.transport === 'stdio'
           ? {
@@ -385,7 +389,7 @@ function McpConfigurationForm({
               <div className="section-heading">
                 <strong>{entryLabel(server)}</strong>
                 <span className="badge">
-                  {server.transport} · 用户层{server.enabled ? '启用' : '停用'}
+                  {server.transport} · {server.hasEnabledOverride === false ? '用户层未单独设置开关' : `用户层${server.enabled ? '启用' : '停用'}`}
                 </span>
               </div>
               <p className="small path">
@@ -399,12 +403,13 @@ function McpConfigurationForm({
                   : server.effectiveEnabled
                     ? '启用'
                     : '停用'}{' '}
-                · 已保存敏感字段：
+                · 已配置的环境及认证项：
                 {[
-                  server.hasEnv && '环境变量',
-                  server.hasHttpHeaders && '请求头',
+                  server.hasEnv && (server.hasForwardedEnv ? '环境变量（含转发）' : '环境变量'),
+                  server.hasHttpHeaders && (server.hasHeaderHelper ? '请求头（含辅助程序）' : '请求头'),
                   server.hasBearerTokenEnvVar && 'Token 引用',
                   server.hasEnvHttpHeaders && '请求头环境变量引用',
+                  server.hasOAuthConfig && 'OAuth 客户端配置',
                 ]
                   .filter(Boolean)
                   .join('、') || '无'}
@@ -522,6 +527,8 @@ function McpConfigurationForm({
               />
               启用用户配置中的此服务
             </label>
+            {edit.source?.hasEnabledOverride === false && <p className="small muted">{edit.source.effectiveEnabled === null
+              ? '此服务的有效状态尚未确认。' : '此开关当前采用有效配置。'}修改开关会保存用户层设置。</p>}
             {edit.transport === 'stdio' ? (
               <>
                 <label className="field">
@@ -569,6 +576,7 @@ function McpConfigurationForm({
                     添加参数
                   </button>
                 </fieldset>
+                {source?.hasForwardedEnv && <p className="small muted">此服务已配置环境变量转发。下表可修改固定值。下方的清除选项也会移除转发。</p>}
                 <PairFields
                   label="环境变量" value={edit.env} clearedNames={edit.envNames}
                   onChange={(env) => patch({ env, envNames: undefined })}
@@ -586,6 +594,7 @@ function McpConfigurationForm({
                     onChange={(event) => patch({ url: event.target.value === savedUrl ? undefined : event.target.value })}
                   />
                 </label>
+                {source?.hasHeaderHelper && <p className="small muted">此服务已配置请求头辅助程序。下表可修改固定请求头。下方的清除选项也会移除辅助程序。</p>}
                 <PairFields
                   label="HTTP 请求头"
                   value={edit.headers}
@@ -615,8 +624,9 @@ function McpConfigurationForm({
                 checked={edit.clearSecrets}
                 onChange={(event) => patch({ clearSecrets: event.target.checked })}
               />
-              清除已保存的环境变量、请求头及 Bearer Token 设置，再应用本次填写的值
+              清除已保存的环境变量（含转发）、请求头（含辅助程序）及 Bearer Token 设置，再应用本次填写的值
             </label>
+            {source?.hasOAuthConfig && <p className="small muted">上述清除选项会保留已有的 OAuth 客户端配置。</p>}
             <label className="check-row">
               <input
                 type="checkbox"

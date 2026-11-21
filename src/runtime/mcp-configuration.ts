@@ -3,7 +3,12 @@ import { DeliveryError, jsonBytes, object, onlyKeys, string, type JsonObject, ty
 import { validateOfficial } from './validation.js';
 
 type Call = (method: string, params: JsonValue) => Promise<JsonValue>;
-const sensitive = ['env', 'http_headers', 'bearer_token_env_var', 'env_http_headers', 'bearer_token'];
+const stdioEnv = ['env', 'env_vars'];
+const httpHeaders = ['http_headers', 'http_headers_helper'];
+const bearer = ['bearer_token_env_var', 'bearer_token'];
+const httpCredentials = [...httpHeaders, 'env_http_headers', ...bearer];
+const stdioOnly = ['command', 'args', 'cwd', ...stdioEnv];
+const httpOnly = ['url', 'auth', 'oauth', 'oauth_resource', ...httpCredentials];
 function serverName(value: JsonValue | undefined): string { const name = string(value, 'server name', 128); if (/[\x00-\x1f\x7f]/.test(name) || ['__proto__', 'constructor', 'prototype'].includes(name)) throw new DeliveryError('invalid_params', 'Invalid server name'); return name; }
 function transport(value: JsonObject): string { return typeof value.command === 'string' ? 'stdio' : typeof value.url === 'string' ? 'http' : 'unsupported'; }
 function map(value: JsonValue, environment: boolean, variableNames = false): JsonObject {
@@ -87,8 +92,14 @@ export class McpConfiguration {
     });
     const inheritedNames = new Set(inheritedDetails.map(item => item.name));
     return { userVersion: version, ...(Object.keys(unassigned).length ? { unassigned } : {}), servers: Object.entries(servers).filter(([name]) => !inheritedNames.has(name)).map(([name, entry]) => {
-      const value = object(entry), result: JsonObject = { name, transport: transport(value), enabled: value.enabled !== false, effectiveEnabled: Object.hasOwn(effective, name) ? object(effective[name]).enabled !== false : null,
-        hasEnv: present(value, 'env'), hasHttpHeaders: present(value, 'http_headers'), hasBearerTokenEnvVar: present(value, 'bearer_token_env_var') || present(value, 'bearer_token'), hasEnvHttpHeaders: present(value, 'env_http_headers') };
+      const value = object(entry);
+      const effectiveEnabled = Object.hasOwn(effective, name) ? object(effective[name]).enabled !== false : null;
+      const hasEnabledOverride = typeof value.enabled === 'boolean';
+      const result: JsonObject = { name, transport: transport(value), hasEnabledOverride,
+        enabled: hasEnabledOverride ? value.enabled! : effectiveEnabled ?? true, effectiveEnabled,
+        hasEnv: stdioEnv.some(key => present(value, key)), hasForwardedEnv: present(value, 'env_vars'),
+        hasHttpHeaders: httpHeaders.some(key => present(value, key)), hasHeaderHelper: present(value, 'http_headers_helper'),
+        hasBearerTokenEnvVar: bearer.some(key => present(value, key)), hasEnvHttpHeaders: present(value, 'env_http_headers'), hasOAuthConfig: present(value, 'oauth') };
       for (const key of ['command', 'args', 'url']) if (value[key] !== undefined) result[key] = value[key]!;
       return result;
     }), inheritedServers: [...inheritedNames], inheritedDetails };
@@ -137,24 +148,28 @@ export class McpConfiguration {
       if (change.enabled !== undefined && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'enabled must be boolean');
       if (change.clearSecrets !== undefined && change.clearSecrets !== true) throw new DeliveryError('invalid_params', 'Only an explicit clearSecrets:true clears saved values');
       const value: JsonObject = { ...(original ?? {}) };
-      if (change.clearSecrets === true || (original && transport(original) !== change.transport)) for (const key of sensitive) delete value[key];
+      const switching = original && transport(original) !== change.transport;
+      if (switching)
+        for (const key of change.transport === 'stdio' ? httpOnly : stdioOnly) delete value[key];
+      if (change.clearSecrets === true || switching)
+        for (const key of [...stdioEnv, ...httpCredentials]) delete value[key];
       if (change.enabled !== undefined) value.enabled = change.enabled;
       if (change.transport === 'stdio') {
         if (change.url !== undefined || change.httpHeaders !== undefined || change.bearerTokenEnvVar !== undefined || change.envHttpHeaders !== undefined) throw new DeliveryError('invalid_params', 'stdio cannot include HTTP fields');
-        for (const key of ['url', 'http_headers', 'env_http_headers', 'bearer_token_env_var', 'bearer_token']) delete value[key];
         if (change.command !== undefined) { const command = string(change.command, 'command', 4096); if (!command.trim() || command.includes('\0') || command.includes('[redacted]')) throw new DeliveryError('invalid_params', 'Command must be a program name or path'); value.command = command; }
         if (change.args !== undefined) { if (!Array.isArray(change.args) || change.args.length > 256) throw new DeliveryError('invalid_params', 'args must be an array'); value.args = change.args.map(arg => { const text = string(arg, 'argument', 8192, true); if (text.includes('\0') || text.includes('[redacted]')) throw new DeliveryError('invalid_params', 'Arguments cannot contain NUL or masked values'); return text; }); }
         if (change.env !== undefined) value.env = map(change.env, true);
         if (typeof value.command !== 'string' || !value.command) throw new DeliveryError('invalid_params', 'stdio requires a command');
       } else {
         if (change.command !== undefined || change.args !== undefined || change.env !== undefined) throw new DeliveryError('invalid_params', 'HTTP cannot include stdio fields');
-        for (const key of ['command', 'args', 'env', 'env_vars', 'cwd']) delete value[key];
         if (change.url !== undefined) value.url = httpUrl(change.url);
         if (typeof value.url !== 'string') throw new DeliveryError('invalid_params', 'HTTP requires a URL');
         // Disabling a legacy credential-bearing URL must remain possible. Its
         // bytes are preserved only in the private layer; enabling still requires
         // migrating to the supported secret fields.
-        if (!(original && change.enabled === false && change.url === undefined && Object.keys(change).every(key => ['type', 'transport', 'enabled'].includes(key)))) httpUrl(value.url);
+        const disabled = change.enabled === false || (change.enabled === undefined &&
+          (original?.enabled === false || (Object.hasOwn(effective, name) && object(effective[name]).enabled === false)));
+        if (!(original && disabled && change.url === undefined && Object.keys(change).every(key => ['type', 'transport', 'enabled'].includes(key)))) httpUrl(value.url);
         if (change.httpHeaders !== undefined) value.http_headers = map(change.httpHeaders, false);
         if (change.envHttpHeaders !== undefined) value.env_http_headers = map(change.envHttpHeaders, false, true);
         if (change.bearerTokenEnvVar !== undefined) { const key = string(change.bearerTokenEnvVar, 'bearer token environment name', 128); if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new DeliveryError('invalid_params', 'Bearer token must name an environment variable'); value.bearer_token_env_var = key; delete value.bearer_token; }

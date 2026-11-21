@@ -69,6 +69,52 @@ describe('per-server MCP configuration preserves unrelated credentials', () => {
     await f.update('first', { type: 'upsert', transport: 'stdio', clearSecrets: true }); expect(object(f.servers().first).env).toBeUndefined();
     await f.update('second', { type: 'upsert', transport: 'stdio', command: 'python', args: [] }); expect(object(f.servers().second)).toEqual({ enabled: false, command: 'python', args: [] });
   });
+  it('reads the effective switch for an owned row with no saved override as lower layers change', async () => {
+    let lower = false;
+    const local = { command: 'inert' };
+    const config = new McpConfiguration(async () => ({
+      config: { mcp_servers: { local: { ...local, enabled: lower } } }, origins: {}, layers: [
+        { name: { type: 'user', file: '/native/config.toml', profile: null }, config: { mcp_servers: { local } },
+          version: 'user', disabledReason: null },
+        { name: { type: 'system', file: '/system/config.toml' }, config: { mcp_servers: { local: { enabled: lower } } },
+          version: 'system', disabledReason: null },
+      ],
+    }));
+    for (lower of [false, true, false])
+      expect(await config.read('/project')).toMatchObject({ servers: [{ enabled: lower, effectiveEnabled: lower, hasEnabledOverride: false }] });
+  });
+  it('reports, preserves and explicitly clears forwarded environment and HTTP credential sources', async () => {
+    const f = setup();
+    const first = object(f.servers().first), second = object(f.servers().second);
+    const forwarded = ['SIMPLE_LABEL', { name: 'STRUCTURED_LABEL', source: 'local' }];
+    first.env_vars = forwarded; delete first.env;
+    second.http_headers_helper = 'private-header-command'; delete second.http_headers;
+    const status = await f.config.read('/project');
+    expect(status).toMatchObject({ servers: [{ hasEnv: true, hasForwardedEnv: true }, { hasHttpHeaders: true, hasHeaderHelper: true }] });
+    expect(JSON.stringify(status)).not.toMatch(/SIMPLE_LABEL|STRUCTURED_LABEL|private-header-command/);
+    await f.update('first', { type: 'upsert', transport: 'stdio', args: ['new'] });
+    await f.update('second', { type: 'upsert', transport: 'http', httpHeaders: { 'X-Fixed': 'one' } });
+    expect(first.env_vars).toEqual(forwarded);
+    expect(second.http_headers_helper).toBe('private-header-command');
+    Object.assign(second, { env_http_headers: { 'X-Ref': 'HEADER_VAR' }, bearer_token_env_var: 'TOKEN_VAR',
+      bearer_token: 'legacy-value', oauth: { client_id: 'client', client_secret: 'preserved' }, oauth_resource: 'https://example.invalid/res' });
+    await f.update('first', { type: 'upsert', transport: 'stdio', clearSecrets: true, env: { NEW: 'explicit' } });
+    await f.update('second', { type: 'upsert', transport: 'http', clearSecrets: true, httpHeaders: { 'X-New': 'two' } });
+    expect(first.env_vars).toBeUndefined(); expect(first.env).toEqual({ NEW: 'explicit' });
+    expect(second).toEqual({ enabled: false, url: 'https://example.invalid/mcp', http_headers: { 'X-New': 'two' },
+      oauth: { client_id: 'client', client_secret: 'preserved' }, oauth_resource: 'https://example.invalid/res' });
+  });
+  it('preserves shared fields through transport conversion and removes transport-exclusive credentials and options', async () => {
+    const f = setup(), second = object(f.servers().second);
+    const shared = { scopes: ['read'], environment_id: 'local', required: false, unrelated: 'preserved' };
+    Object.assign(second, shared, { auth: 'oauth', oauth: { client_id: 'local' }, oauth_resource: 'https://example.invalid/res',
+      http_headers_helper: 'old-command', bearer_token_env_var: 'TOKEN_VAR', env_http_headers: { X: 'X_NAME' } });
+    await f.update('second', { type: 'upsert', transport: 'stdio', command: 'local-program' });
+    expect(second).toEqual({ ...shared, enabled: false, command: 'local-program' });
+    Object.assign(second, { cwd: '/work', args: ['one'], env: { FIXED: 'two' }, env_vars: [{ name: 'EXPORTED', source: 'local' }] });
+    await f.update('second', { type: 'upsert', transport: 'http', url: 'https://example.invalid/other' });
+    expect(second).toEqual({ ...shared, enabled: false, url: 'https://example.invalid/other' });
+  });
   it('reads through older controls and leaves every byte alone when they cannot perform a lossless write', async () => {
     const f = setup(false);
     expect(object(await f.config.read('/project')).servers).toHaveLength(2);

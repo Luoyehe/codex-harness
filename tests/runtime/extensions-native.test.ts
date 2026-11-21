@@ -207,3 +207,70 @@ test('locates disabled user MCP servers with colliding display names through the
     expect(Object.keys(await privateServers())).toEqual(['notes-lilac']);
   } finally { await runtime.close(); expectNativeClosed(runtime.native); }
 });
+
+test('cold-reloads MCP environment forwarding, header helpers and HTTP-only settings after selective edits', async () => {
+  const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
+  const root = mkdtempSync(path.join(parent, 'mcp-fields-')), home = path.join(root, 'codex');
+  const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: path.join(root, 'tmp') });
+  const options = { bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true };
+  writeFileSync(path.join(home, 'config.toml'), [
+    'check_for_update_on_startup=false', '[mcp_servers.stdio]', 'command="inert-fixture"', 'enabled=false',
+    'env_vars=["PLAIN_LABEL", {name="STRUCTURED_LABEL", source="local"}]', 'args=["old"]',
+    '[mcp_servers.http]', 'url="http://127.0.0.1:9/mcp"', 'enabled=false', 'http_headers_helper="inert-header-fixture"',
+    'http_headers={ X="fixed-label" }', 'env_http_headers={ Y="HEADER_LABEL" }', 'bearer_token_env_var="BEARER_LABEL"',
+    'auth="oauth"', 'oauth={client_id="local-client",client_secret="preserved-label"}', 'oauth_resource="http://127.0.0.1:9/resource"',
+    'scopes=["read"]', 'required=false', 'future_setting="unrelated"',
+    '[mcp_servers.convert_http]', 'enabled=false', 'url="http://127.0.0.1:9/mcp"', 'http_headers_helper="inert-header-fixture"',
+    'auth="oauth"', 'oauth={client_id="client",client_secret="preserved-label"}', 'oauth_resource="http://127.0.0.1:9/resource"',
+    'scopes=["read"]', 'required=false', 'future_setting="unrelated"',
+    '[mcp_servers.convert_stdio]', 'enabled=false', 'command="inert-fixture"', 'args=["old"]', 'cwd="."',
+    'env={OLD="local"}', 'env_vars=[{name="STRUCTURED_LABEL",source="local"}]', 'future_setting="unrelated"', '',
+  ].join('\n'));
+  let runtime = await RuntimeService.create(options);
+  const context = { clientId: 'mcp-fields', beforeWrite: () => {} };
+  const read = async () => object(await runtime.call('mcp/config/read', { cwd: root }, context));
+  const nativeRows = async () => {
+    const state = object(await runtime.native.call('config/read', { cwd: root, includeLayers: true }));
+    const layer = (state.layers as JsonObject[]).find(row => object(row.name).type === 'user')!;
+    return { private: object(object(layer.config).mcp_servers), effective: object(object(state.config).mcp_servers) };
+  };
+  const save = async (name: string, change: JsonObject) => {
+    const snapshot = await read(), row = (snapshot.servers as JsonObject[]).find(s => s.name === name)!;
+    await runtime.call('mcp/config/write', { cwd: root, expectedVersion: snapshot.userVersion!, id: row.id!, change }, context);
+  };
+  const restart = async () => { await runtime.close(); runtime = await RuntimeService.create(options); };
+  try {
+    const before = await read(), original = await nativeRows();
+    expect((before.servers as JsonObject[]).find(s => s.name === 'stdio')).toMatchObject({ hasEnv: true, hasForwardedEnv: true });
+    expect((before.servers as JsonObject[]).find(s => s.name === 'http')).toMatchObject({ hasHttpHeaders: true, hasHeaderHelper: true });
+    expect(JSON.stringify(before)).not.toMatch(/PLAIN_LABEL|STRUCTURED_LABEL|inert-header-fixture|preserved-label|HEADER_LABEL|BEARER_LABEL/);
+    await save('stdio', { type: 'upsert', transport: 'stdio', args: ['new'] });
+    await save('http', { type: 'upsert', transport: 'http', url: 'http://127.0.0.1:9/changed' });
+    await restart();
+    const changed = (await nativeRows()).private;
+    expect(changed.stdio).toEqual({ ...object(original.private.stdio), args: ['new'] });
+    expect(changed.http).toEqual({ ...object(original.private.http), url: 'http://127.0.0.1:9/changed' });
+    await save('stdio', { type: 'upsert', transport: 'stdio', clearSecrets: true });
+    await save('http', { type: 'upsert', transport: 'http', clearSecrets: true });
+    for (const cold of [false, true]) {
+      if (cold) await restart();
+      const rows = await nativeRows();
+      expect(object(rows.private.stdio)).not.toHaveProperty('env_vars');
+      expect(object(rows.effective.stdio).env_vars ?? []).toEqual([]);
+      const http = object(rows.private.http);
+      for (const key of ['http_headers_helper', 'http_headers', 'env_http_headers', 'bearer_token_env_var'])
+        expect(http).not.toHaveProperty(key);
+      expect(http.oauth).toEqual(object(original.private.http).oauth);
+      expect((await read()).servers).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'stdio', hasEnv: false, hasForwardedEnv: false }),
+        expect.objectContaining({ name: 'http', hasHttpHeaders: false, hasHeaderHelper: false, hasEnvHttpHeaders: false, hasBearerTokenEnvVar: false }),
+      ]));
+    }
+    await save('convert_http', { type: 'upsert', transport: 'stdio', command: 'new-inert-fixture' });
+    await save('convert_stdio', { type: 'upsert', transport: 'http', url: 'http://127.0.0.1:9/new' });
+    await restart();
+    const converted = (await nativeRows()).private;
+    expect(converted.convert_http).toEqual({ enabled: false, command: 'new-inert-fixture', scopes: ['read'], required: false, future_setting: 'unrelated' });
+    expect(converted.convert_stdio).toEqual({ enabled: false, url: 'http://127.0.0.1:9/new', future_setting: 'unrelated' });
+  } finally { await runtime.close(); expectNativeClosed(runtime.native); }
+});
