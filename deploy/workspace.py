@@ -24,7 +24,7 @@ WRITES = {"write", "mkdir", "copy", "remove", "git/commit", "recovery/restore", 
 READS |= {"git/index/recovery/list", "git/index/recovery/read"}
 # Internal supervisor housekeeping. It is deliberately absent from public RPC
 # methods; an acknowledgement does not return or attest an operation result.
-READS |= {"operation/ack", "repository/identity", "project/trust-roots", "mcp/enabled-read", "mcp/enabled-override"}
+READS |= {"operation/ack", "repository/identity", "project/trust-roots", "mcp/enabled-read", "mcp/enabled-override", "mcp/user-state", "mcp/user-edit"}
 WRITES |= {"git/stage", "git/unstage", "git/index/recovery/restore", "git/index/recovery/discard"}
 FIELDS = {"worktree/reconcile-retire-info": {"operationId", "requestDigest"},
           "worktree/reconcile-retire": {"operationId", "requestDigest", "worktreeId", "expectedRevision", "confirm"},
@@ -43,6 +43,8 @@ FIELDS["repository/identity"] = set()
 FIELDS["project/trust-roots"] = set()
 FIELDS["mcp/enabled-override"] = {"name", "enabled", "expectedVersion", "expectedFlags", "legacyName", "discardLegacy"}
 FIELDS["mcp/enabled-read"] = set()
+FIELDS["mcp/user-state"] = set()
+FIELDS["mcp/user-edit"] = {"name", "expectedVersion", "changes"}
 FIELDS["operation/ack"] = {"operationId", "requestDigest"}
 
 
@@ -79,6 +81,9 @@ def validate(value: object) -> dict:
                 "Removal requires explicit confirmation and recursive:false; only files and empty directories are supported")
     if action == "operation/read":
         operation_id(params.get("operationId"))
+    if action == "mcp/user-edit":
+        from .mcp_user_config import validate as validate_edit
+        validate_edit(params)
     if action == "mcp/enabled-override":
         require(set(params) - {"legacyName", "discardLegacy"} == FIELDS[action] - {"legacyName", "discardLegacy"} and
                 ("discardLegacy" not in params or params["discardLegacy"] is True and "legacyName" not in params) and
@@ -402,6 +407,13 @@ def workspace_main(layout: Layout, settings: dict) -> None:
         if request["action"] == "mcp/enabled-read":
             from .mcp_enabled_override import read
             response = {"ok": True, "result": read(Path(settings["home"]), providers=layout.config / "providers")}
+        elif request["action"] == "mcp/user-state":
+            from .mcp_user_config import state
+            response = {"ok": True, "result": state(Path(settings["home"]))}
+        elif request["action"] == "mcp/user-edit":
+            from .mcp_user_config import apply
+            writing_override = True
+            response = {"ok": True, "result": apply(Path(settings["home"]), request["params"])}
         elif request["action"] == "mcp/enabled-override":
             from .mcp_enabled_override import apply
             writing_override = True

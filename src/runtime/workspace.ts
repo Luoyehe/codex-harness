@@ -33,12 +33,13 @@ function operationId(value: unknown): string {
   return id;
 }
 export function workspaceRequest(root: WorkspaceRoot, action: string, input: JsonObject, context: CallContext, internal = false): JsonObject {
+  const mcpEdit = internal && action === 'mcp/user-edit';
   const mcpOverride = internal && action === 'mcp/enabled-override';
-  const internalRead = internal && ['feedback/path', 'repository/identity', 'project/trust-roots', 'mcp/enabled-read'].includes(action);
+  const internalRead = internal && ['feedback/path', 'repository/identity', 'project/trust-roots', 'mcp/enabled-read', 'mcp/user-state'].includes(action);
   const retire = internal && action === 'worktree/reconcile-retire';
   const internalAck = internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire-info', 'worktree/reconcile-retire'].includes(action);
-  if (!internalAck && !internalRead && !mcpOverride && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
-  onlyKeys(input, mcpOverride ? ['name', 'enabled', 'expectedVersion', 'expectedFlags', 'legacyName', 'discardLegacy'] : internalRead ? [] : retire ? ['operationId', 'requestDigest', 'worktreeId', 'expectedRevision', 'confirm'] : internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
+  if (!internalAck && !internalRead && !mcpEdit && !mcpOverride && !Object.hasOwn(fields, action)) throw new DeliveryError('method_not_found', 'Unsupported workspace action');
+  onlyKeys(input, mcpEdit ? ['name', 'expectedVersion', 'changes'] : mcpOverride ? ['name', 'enabled', 'expectedVersion', 'expectedFlags', 'legacyName', 'discardLegacy'] : internalRead ? [] : retire ? ['operationId', 'requestDigest', 'worktreeId', 'expectedRevision', 'confirm'] : internalAck ? ['operationId', 'requestDigest'] : [...fields[action]!]);
   const rootPath = string(root.path, 'registered workspace root');
   if (!rootPath.startsWith('/') || path.posix.normalize(rootPath) !== rootPath || /[\u0000-\u001f\u007f]/.test(rootPath)) throw new DeliveryError('invalid_project', 'Registered native workspace root must be canonical');
   const params = { ...input };
@@ -112,7 +113,7 @@ export function workspaceRequest(root: WorkspaceRoot, action: string, input: Jso
 
 export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, action: string, params: JsonObject, context: CallContext, internal = false): Promise<JsonValue> {
   const request = workspaceRequest(root, action, params, context, internal);
-  const mutation = workspaceMutations.has(action) || (internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire', 'mcp/enabled-override'].includes(action));
+  const mutation = workspaceMutations.has(action) || (internal && ['operation/ack', 'worktree/reconcile-create', 'worktree/reconcile-retire', 'mcp/enabled-override', 'mcp/user-edit'].includes(action));
   if (mutation && !context.beforeWrite) throw new DeliveryError('operation_required', 'Workspace mutations require the durable operation boundary');
   const body = jsonBytes(request, 1024 * 1024);
   const command = nativeCommand(config, 'workspace');

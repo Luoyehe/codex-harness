@@ -9,6 +9,7 @@ import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonValue } from '../../src/runtime/types.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
+const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
 test('official CLI updates isolated user configuration with version conflicts, resolves skill toggles, and reports capabilities without inference', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temp = path.join(home, 'tmp');
@@ -22,7 +23,6 @@ test('official CLI updates isolated user configuration with version conflicts, r
   writeFileSync(path.join(marketplace, '.agents', 'plugins', 'marketplace.json'), JSON.stringify({ name: 'test-marketplace', interface: { displayName: 'Isolated fixture marketplace' }, plugins: [{ name: 'local-fixture', source: { source: 'local', path: './plugins/local-fixture' } }] }));
   writeFileSync(path.join(plugin, '.codex-plugin', 'plugin.json'), JSON.stringify({ name: 'local-fixture', version: '1.0.0', description: 'Isolated harmless plugin', skills: './skills/' }));
   writeFileSync(path.join(plugin, 'skills', 'local-fixture', 'SKILL.md'), '---\nname: local-fixture\ndescription: Harmless test skill.\n---\nOnly a local protocol acceptance fixture.\n');
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
   let modelRequests = 0;
   const deny = createServer((req, res) => { if (req.url?.endsWith('/responses')) modelRequests++; req.resume(); res.writeHead(503, { 'content-type': 'application/json' }); res.end('{"error":"isolated fixture denies network"}'); });
   deny.on('connect', (_req, socket) => { socket.end('HTTP/1.1 503 Denied\r\nContent-Length: 0\r\n\r\n'); });
@@ -107,3 +107,59 @@ test('official CLI updates isolated user configuration with version conflicts, r
     expect(await runtime.call('rollout/compress', { confirm: true }, context)).toEqual({ triggered: true, completionConfirmed: false });
     expect(modelRequests).toBe(0);
 }), 60000);
+
+test('custom MCP changes preserve native TOML and reload the selected literal server', async () => {
+  const { nativeTestEnvironment } = await import('../fixtures/native-env.js');
+  const parent = path.resolve('.work/extensions-native');
+  mkdirSync(parent, { recursive: true });
+  const root = mkdtempSync(path.join(parent, 'mcp-source-')), home = path.join(root, 'codex');
+  const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: path.join(root, 'tmp') });
+  const file = path.join(home, 'config.toml'), name = 'work.区域 "a"\\leaf';
+  const other = '  personal = {command="echo", enabled=false, env={ # keep sibling\r\n    DOC_LANG="zh_CN", # regional operator\r\n  },},\r\n';
+  const date = 'stamp=0000-01-01, # native temporal value';
+  const secret = '  KEEP="fixture-private", # retained credential setting';
+  const raw = '\ufeffcheck_for_update_on_startup=false\r\nmcp_servers={\r\n' + other +
+    '  ' + JSON.stringify(name) + '={command="echo", enabled=false, ' + date + '\r\n  env={\r\n' + secret + '\r\n  },},\r\n}\r\n';
+  writeFileSync(file, raw);
+  const service = await RuntimeService.create({ bin, home, workerHome: root, cwd: root, env, dev: true });
+  const ctx = { clientId: 'source-preserving-mcp', beforeWrite: () => {} };
+  const read = async () => object(await service.call('mcp/config/read', { cwd: root }, ctx));
+  const rawRead = async () => {
+    const layers = object(await service.native.call('config/read', { cwd: root, includeLayers: true })).layers as JsonValue[];
+    const user = layers.map(layer => object(layer)).find(layer => object(layer.name).type === 'user' && object(layer.name).profile === null)!;
+    return object(object(user.config).mcp_servers ?? {});
+  };
+  const change = async (server: string, edit: Record<string, JsonValue>, version?: JsonValue) => service.call('mcp/config/write',
+    { cwd: root, name: server, expectedVersion: version ?? (await read()).userVersion!, change: edit }, ctx);
+  const source = () => readFileSync(file, 'utf8');
+  try {
+    const beforeNote = (await read()).userVersion!;
+    writeFileSync(file, raw + '# operator added this note\r\n');
+    await expect(change(name, { type: 'remove' }, beforeNote)).rejects.toMatchObject({ code: 'config_conflict', delivery: 'not_sent' });
+    expect(source()).toBe(raw + '# operator added this note\r\n');
+    const firstVersion = (await read()).userVersion!;
+    await change(name, { type: 'upsert', transport: 'stdio', args: ['changed'] }, firstVersion);
+    const firstSave = source();
+    expect(firstSave).toContain(other); expect(firstSave).toContain(date); expect(firstSave).toContain(secret);
+    expect(firstSave.charCodeAt(0)).toBe(0xfeff); expect(firstSave.replaceAll('\r\n', '')).not.toContain('\n');
+    const target = object((await rawRead())[name]);
+    expect(target.stamp).toEqual({ '$__toml_private_datetime': '0000-01-01' });
+    expect(target.args).toEqual(['changed']);
+    expect(JSON.stringify(await read())).not.toContain('fixture-private');
+    await expect(change(name, { type: 'remove' }, firstVersion)).rejects.toMatchObject({ code: 'config_conflict', delivery: 'not_sent' });
+    expect(source()).toBe(firstSave);
+    await change(name, { type: 'upsert', transport: 'http', url: 'http://127.0.0.1:9', enabled: false });
+    const converted = object((await rawRead())[name]);
+    expect(converted).toMatchObject({ url: 'http://127.0.0.1:9/', enabled: false, stamp: target.stamp });
+    for (const old of ['command', 'args', 'env']) expect(converted).not.toHaveProperty(old);
+    expect(source()).toContain(other);
+    await change(name, { type: 'remove' });
+    expect(Object.keys(await rawRead())).toEqual(['personal']); expect(source()).toContain(other);
+    await change(name, { type: 'upsert', transport: 'stdio', command: 'echo', enabled: false });
+    expect((await rawRead())[name]).toEqual({ command: 'echo', enabled: false }); expect(source()).toContain(other);
+    await change('toString', { type: 'upsert', transport: 'stdio', command: 'echo', enabled: false });
+    await change('toString', { type: 'remove' });
+    expect(Object.keys(await rawRead())).toEqual(expect.arrayContaining(['personal', name]));
+    expect(Object.keys(await rawRead())).not.toContain('toString');
+  } finally { await service.close(); expectNativeClosed(service.native); }
+});

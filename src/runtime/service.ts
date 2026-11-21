@@ -142,9 +142,9 @@ export class RuntimeService extends EventEmitter {
     this.extensions = new Extensions({ native: (method, params, options) => this.native.call(method, params, options), configure: (operation, context) => this.configurationMutation(operation, context), cwd: value => this.cwd(value), redactor: this.redactor, notify: (method, params) => this.emitEvent('notification', { method, params }),
       resource: async (cwd, action, params) => {
         const root = { path: this.cwd(cwd) }, context = { clientId: 'internal-resource' };
-        if (action === 'mcp/enabled-read') return this.config.launcher
+        if (action === 'mcp/enabled-read' || action === 'mcp/user-state') return this.config.launcher
           ? object(await runWorkspace(config, root, action, {}, context, true))
-          : historyHelper(config, { action: 'mcp-enabled-read' });
+          : historyHelper(config, { action: action === 'mcp/user-state' ? 'mcp-user-state' : 'mcp-enabled-read' });
         if (!this.config.launcher && this.config.dev) return devResource(root.path, action, params, [path.join(this.config.env.HOME ?? this.config.workerHome, '.agents', 'skills'), path.join(this.config.home, 'skills'), path.join(this.config.home, 'plugins', 'cache')]);
         if (action === 'feedback/path' || action === 'project/trust-roots') return object(await runWorkspace(config, root, action, {}, context, true));
         if (action === 'resource/skill/read') return readSkillResource(this.config, root, params, context);
@@ -753,7 +753,12 @@ export class RuntimeService extends EventEmitter {
       const result = await operation(async (method, params, options = {}) => {
         const boundary = () => { beforeWrite(); options.beforeWrite?.(); };
         let value: JsonValue;
-        if (method === 'harness/mcp/enabled-override') {
+        if (method === 'harness/mcp/user-edit') {
+          const { cwd, ...change } = object(params);
+          value = this.config.launcher
+            ? await runWorkspace(this.config, { path: this.cwd(cwd) }, 'mcp/user-edit', change, { ...context, beforeWrite: boundary }, true)
+            : await historyHelper(this.config, { action: 'mcp-user-edit', ...change }, true, boundary);
+        } else if (method === 'harness/mcp/enabled-override') {
           const { cwd, ...change } = object(params);
           value = this.config.launcher
             ? await runWorkspace(this.config, { path: this.cwd(cwd) }, 'mcp/enabled-override', change, { ...context, beforeWrite: boundary }, true)

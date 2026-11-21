@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { DeliveryError, jsonBytes, object, onlyKeys, string, type JsonObject, type JsonValue } from './types.js';
 import { validateOfficial } from './validation.js';
 
@@ -22,8 +23,16 @@ function httpUrl(value: JsonValue | undefined): string {
 function present(value: JsonObject, key: string): boolean { const item = value[key]; return item !== undefined && item !== null && item !== '' && (typeof item !== 'object' || Object.keys(item).length > 0); }
 /** Merge against the unredacted user layer. Masked effective configuration is never written back. */
 export class McpConfiguration {
-  constructor(private native: Call, private controls?: (cwd: string) => Promise<JsonObject>) {}
-  private async source(cwd: string) {
+  constructor(private native: Call, private controls?: (cwd: string, userFileOnly?: boolean) => Promise<JsonObject>) {}
+  private async userEditor(cwd: string, optional = false): Promise<JsonObject> {
+    if (!this.controls) return {};
+    try { return await this.controls(cwd, true); }
+    catch (error) {
+      if (!(error instanceof DeliveryError) || (!optional && !['invalid_input', 'thread_history_invalid', 'history_compatibility_unavailable'].includes(error.code))) throw error;
+      return {}; // Earlier controls and native-only clients can still read.
+    }
+  }
+  private async source(cwd: string, editor?: JsonObject) {
     const value = await this.native('config/read', { cwd, includeLayers: true }); validateOfficial('ConfigReadResponse', value); const response = object(value);
     jsonBytes(response, 1024 * 1024);
     const layers = ((response.layers as JsonValue[] | null) ?? []).map(value => object(value));
@@ -50,7 +59,9 @@ export class McpConfiguration {
     // user TOML bytes, including native types that JSON cannot represent.
     const hasFileVersion = Object.hasOwn(state, 'fileVersion');
     const helperVersion = hasFileVersion ? (state.fileVersion ?? null) : baseVersion;
-    const version = flagsVersion ? [baseVersion ?? '', flagsVersion, ...(hasFileVersion ? [helperVersion ?? ''] : [])].join('|') : baseVersion;
+    const fileState = flagsVersion ? {} : editor ?? await this.userEditor(cwd, true);
+    const version = flagsVersion ? [baseVersion ?? '', flagsVersion, ...(hasFileVersion ? [helperVersion ?? ''] : [])].join('|')
+      : fileState.userConfigEdits === 1 ? [baseVersion ?? '', fileState.fileVersion ?? ''].join('|') : baseVersion;
     // Native lists layers in decreasing precedence. Session flags supplied by
     // this adapter contain only booleans, so the next lower explicit value
     // determines what restoring inheritance will do.
@@ -85,7 +96,11 @@ export class McpConfiguration {
   async write(params: JsonObject, cwd: string, write: Call): Promise<JsonValue> {
     onlyKeys(params, ['cwd', 'expectedVersion', 'name', 'change']); const expectedVersion = params.expectedVersion === null ? null : string(params.expectedVersion, 'expectedVersion'), name = serverName(params.name), change = object(params.change);
     onlyKeys(change, ['type', 'transport', 'command', 'args', 'url', 'enabled', 'env', 'httpHeaders', 'bearerTokenEnvVar', 'envHttpHeaders', 'clearSecrets', 'legacyName']);
-    const { version, baseVersion, helperVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd);
+    // Capture the file witness before the official layer read. An external edit
+    // between these reads or before publication will fail the helper's compare.
+    const userEdit = change.type === 'upsert' || change.type === 'remove';
+    const editor = userEdit ? await this.userEditor(cwd) : undefined;
+    const { version, helperVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd, editor);
     if (version !== expectedVersion) throw new DeliveryError('config_conflict', 'User configuration changed; reload before saving');
     const original = Object.hasOwn(servers, name) ? object(servers[name]) : undefined;
     const next: JsonObject = { ...servers };
@@ -148,8 +163,31 @@ export class McpConfiguration {
     } else throw new DeliveryError('invalid_params', 'Choose upsert or remove');
     if (Object.keys(next).length > 128) throw new DeliveryError('capacity', 'At most 128 user MCP servers can be edited through the workspace');
     jsonBytes(next, 1024 * 1024);
-    const result = await write('config/batchWrite', { expectedVersion: baseVersion, edits: [{ keyPath: 'mcp_servers', value: next, mergeStrategy: 'replace' }], reloadUserConfig: true });
-    try { validateOfficial('ConfigWriteResponse', result); } catch { throw new DeliveryError('invalid_native_response', 'MCP configuration write result is unknown', 'unknown'); }
-    return result;
+    if (editor?.userConfigEdits !== 1 || !Object.hasOwn(editor, 'fileVersion'))
+      throw new DeliveryError('control_update_required', '请先更新实例控制工具，再保存自定义 MCP 服务。');
+    const target = Object.hasOwn(next, name) ? next[name] : undefined;
+    const changes: JsonObject | null = target === undefined ? null : {};
+    if (changes !== null) {
+      const row = object(target);
+      for (const key of new Set([...Object.keys(original ?? {}), ...Object.keys(row)])) {
+        if (!isDeepStrictEqual(original?.[key], row[key])) changes[key] = row[key] ?? null;
+      }
+    }
+    const receipt = await write('harness/mcp/user-edit', { cwd, name, changes, expectedVersion: editor.fileVersion! });
+    try {
+      // Codex reparses the live user file. An empty batch hot-reloads it without
+      // reserializing even the unmodified parts of an inline table.
+      const saved = object(receipt);
+      if (typeof saved.fileVersion !== 'string') throw new Error('Invalid file revision');
+      const current = await this.source(cwd);
+      if (!isDeepStrictEqual(current.servers, next)) throw new Error('User layer changed');
+      const result = await write('config/batchWrite', { expectedVersion: current.baseVersion, edits: [], reloadUserConfig: true });
+      validateOfficial('ConfigWriteResponse', result);
+      const witness = await this.controls!(cwd, true);
+      if (object(result).version !== current.baseVersion || saved.fileVersion !== witness.fileVersion) throw new Error('User file changed');
+      return result;
+    } catch {
+      throw new DeliveryError('config_readback_unknown', '已提交 MCP 配置，但未能确认原生配置读回和重新加载结果。', 'unknown');
+    }
   }
 }

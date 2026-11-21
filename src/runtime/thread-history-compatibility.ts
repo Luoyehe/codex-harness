@@ -20,7 +20,7 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
       args: ['-B', '-m', 'deploy.thread_history', '--home', config.home], cwd: root, env: config.env };
   })();
     const attachmentProof = ['attachment-index', 'attachment-inspect'].includes(String(request.action));
-    const body = jsonBytes(request, attachmentProof && request.activeImageDigests !== undefined ? 72 * 1024 : 8192);
+    const body = jsonBytes(request, request.action === 'mcp-user-edit' ? 1024 * 1024 : attachmentProof && request.activeImageDigests !== undefined ? 72 * 1024 : 8192);
     const maxBuffer = ['mcp-enabled-read', 'mcp-enabled-launch', 'mcp-enabled-override'].includes(String(request.action)) ? 64 * 1024 :
       ['queue-item', 'queue-capacity', 'queue-image'].includes(String(request.action)) ? 6 * 1024 * 1024 + 16384 :
       ['copy-inspect', 'attachment-index', 'attachment-inspect'].includes(String(request.action)) ? 2 * 1024 * 1024 + 16384 : 8192;
@@ -33,6 +33,10 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
           const result = object(JSON.parse(stdout));
           if (error || result.error !== undefined) {
             const fault = object(result.error);
+            if (request.action === 'mcp-user-edit' && fault.delivery === 'unknown')
+              throw new DeliveryError('config_readback_unknown', '已提交 MCP 配置，但未能确认原生用户配置的保存结果。', 'unknown');
+            if (request.action === 'mcp-user-edit' && fault.code === 'thread_history_config_conflict' && fault.delivery === 'not_sent')
+              throw new DeliveryError('config_conflict', 'User configuration changed or could not be edited safely');
             if (typeof fault.code === 'string' && /^thread_history_[a-z_]+$/.test(fault.code) && fault.delivery === 'not_sent')
               throw new DeliveryError(fault.code, string(fault.message, 'history error', 2048));
             throw new Error('Unconfirmed helper result');

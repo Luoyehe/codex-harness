@@ -72,7 +72,7 @@ export class Extensions {
   private trust: ProjectTrust;
   private accounts: AccountTools;
   constructor(private host: ExtensionHost) {
-    this.mcpConfiguration = new McpConfiguration(host.native, host.resource ? cwd => this.resource(cwd, 'mcp/enabled-read', {}) : undefined); this.imports = new Imports(host.native); this.feedback = new Feedback(host.native, cwd => this.resource(cwd, 'feedback/path', {}));
+    this.mcpConfiguration = new McpConfiguration(host.native, host.resource ? (cwd, fileOnly) => this.resource(cwd, fileOnly ? 'mcp/user-state' : 'mcp/enabled-read', {}) : undefined); this.imports = new Imports(host.native); this.feedback = new Feedback(host.native, cwd => this.resource(cwd, 'feedback/path', {}));
     this.trust = new ProjectTrust(host.native, cwd => this.resource(cwd, 'project/trust-roots', {}));
     this.accounts = new AccountTools(host);
     this.sharing = new PluginSharing({ native: host.native, select: params => this.selectPlugin(params), preview: (cwd, relative) => this.resource(cwd, 'resource/plugin/preview', { path: relative }) });

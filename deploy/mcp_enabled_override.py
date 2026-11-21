@@ -11,7 +11,7 @@ import stat
 import tempfile
 
 from . import native_toml
-from .common import fsync_directory, require
+from .common import DeployError, fsync_directory, require
 from .mcp_switch_owners import OWNER, origins, retained
 from .provider import CODING_HTTP, ZHIPU_URL
 
@@ -49,15 +49,27 @@ def _read(path, *, limit, private=True):
         return data, (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
 
+def _unconfirmed():
+    error = DeployError("config_readback_unknown", "Configuration was published but confirmation failed")
+    error.delivery = "unknown"
+    return error
+
+
 def _replace(path, data, before, limit):
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".mcp-enabled-")
     try:
         with os.fdopen(fd, "wb") as out:
             out.write(data); out.flush(); os.fsync(out.fileno())
         require(_read(path, limit=limit) == before, "Configuration changed while saving", "config_conflict")
-        os.replace(tmp, path); fsync_directory(path.parent)
+        os.replace(tmp, path)
+        tmp = None
+        try:
+            fsync_directory(path.parent)
+        except Exception:
+            raise _unconfirmed() from None
     finally:
-        with contextlib.suppress(FileNotFoundError): os.unlink(tmp)
+        if tmp is not None:
+            with contextlib.suppress(FileNotFoundError): os.unlink(tmp)
 
 
 def _flags(home):

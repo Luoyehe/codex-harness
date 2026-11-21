@@ -2,6 +2,7 @@
 from .common import DeployError
 
 MESSAGES = {
+    "config_readback_unknown": "已写入原生配置，但未能确认保存结果。请先重新读取设置。",
     "config_conflict": "设置已变化或与原生配置冲突。请重新读取设置并核对原有配置。",
     "capacity": "工作区数据超出容量上限，请在核对现有数据后缩小请求。",
     "already_exists": "目标已存在。请选择其他名称，或刷新后核对现有内容。",

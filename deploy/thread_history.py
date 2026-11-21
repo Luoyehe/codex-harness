@@ -969,10 +969,19 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
         if request == {"action": "mcp-enabled-launch"}:
             from .mcp_enabled_override import launch_arguments
             return {"args": launch_arguments(home, providers=providers)}
+        if request == {"action": "mcp-user-state"}:
+            from .mcp_user_config import state
+            return state(home)
+        if request.get("action") == "mcp-user-edit":
+            from .mcp_user_config import apply
+            try:
+                return apply(home, {k: v for k, v in request.items() if k != "action"})
+            except DeployError as error:
+                raise HistoryError("thread_history_config_conflict", "User MCP edit could not be confirmed", getattr(error, "delivery", "not_sent")) from None
         if request.get("action") == "mcp-enabled-override":
             from .mcp_enabled_override import apply
             try: return apply(home, {key: value for key, value in request.items() if key != "action"}, providers=providers)
-            except DeployError as error: raise HistoryError("thread_history_config_conflict", str(error)) from None
+            except DeployError as error: raise HistoryError("thread_history_config_conflict", str(error), getattr(error, "delivery", "not_sent")) from None
         if request.get("action") == "attachment-index":
             check(set(request) <= {"action", "attachmentRoot", "activeImageDigests"} and isinstance(request.get("attachmentRoot"), str), "Invalid attachment reconciliation request")
             return _attachment_index(_local_path(str(home)), uid, request["attachmentRoot"], _active_image_digests(request))
@@ -1045,11 +1054,13 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
 
 def history_main(home: Path, uid: int, *, providers=None) -> None:
     try:
-        raw = sys.stdin.buffer.read(REQUEST_LIMIT + 1)
-        check(len(raw) <= REQUEST_LIMIT, "History request exceeds budget")
+        raw = sys.stdin.buffer.read(1024 * 1024 + 1)
+        check(len(raw) <= 1024 * 1024, "History request exceeds budget")
         request = _decode(raw)
-        if not isinstance(request, dict) or request.get("action") not in ("attachment-index", "attachment-inspect"):
-            check(len(raw) <= 8192, "History request exceeds budget")
+        action = request.get("action") if isinstance(request, dict) else None
+        if action != "mcp-user-edit":
+            limit = REQUEST_LIMIT if action in ("attachment-index", "attachment-inspect") else 8192
+            check(len(raw) <= limit, "History request exceeds budget")
         result = operate(home, uid, request, providers=providers)
         # Metadata can contain Unicode base instructions. Bind the budget to
         # actual UTF-8 stdout bytes instead of ASCII escapes or console locale.
