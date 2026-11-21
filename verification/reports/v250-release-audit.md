@@ -109,3 +109,12 @@
 服务端在当前运行身份的用户目录校验原文件版本，局部编辑 TOML，核对完整语义，再让官方 CLI 重新读取与加载。未编辑服务、维护注释、原生日期类型、BOM、CRLF 及原有 TOML 1.0 兼容性均有回归。覆盖新增、传输转换、移除、重新创建以及带点号、引号和中文的名称。提交前失败可确认未写入，替换文件后同步或读回失败会明确标为结果未知。未更新控制工具的部署在写入前提示先更新。另对 400 项名称、写法、换行及字段编辑组合验证了持久数据和重复操作。
 
 服务配置的显示名与操作标识分开。即使两个服务的显示名同时被隐藏成相同文字，也按用户选择的行编辑及移除。版本过时、后台重启导致标识失效时，操作会要求重选。两项停用的本地服务经生产表单和固定 CLI 读写验证，目标服务有变更，另一项保持原样。[同名显示的实际验收](../audit-evidence/v250-round11/masked-config-identity.json)
+
+## 第十二轮复审
+
+第十二轮完整覆盖 2,194 个文件，重建的 479 份 JSON 和 951 份 TypeScript 协议与库内版本一致，两组共 254 项定向测试通过。对原生配置保存和启动的额外操作发现两项 P2，均经冷重启和对照确认。[独立审阅](../audit-evidence/v250-round12/independent.json)
+
+- **清除成功后仍转发已有环境变量。** 旧 stdio 服务用官方 `env_vars` 指定要继承的进程变量，页面却报告没有配置环境变量。勾选明确清除后保存成功，冷启动后仍保留该项。用纯本地测试服务再次启动，确实收到合成标记。另一个只删去该转发项的配置没有收到标记。该测试没有执行工具或访问外部服务。[原生读回](../audit-evidence/v250-round12/env-fields.json) · [子进程对照](../audit-evidence/v250-round12/env-forward.json)
+- **只改参数会打开原本停用的同名服务。** 系统层有明确的 `enabled=false`，用户层只定义命令和参数。编辑前，网页把用户层缺少开关显示为启用，真实 CLI 按系统设置停用。用户只改参数，网页仍提交 `enabled=true`，保存后热读和冷重启均实际启用。同一个配置只发参数变更，则始终保持停用。专用 Debian 上通过正式 worker 独立重演得到相同结果。[网页提交](../audit-evidence/v250-round12/browser-layered.json) · [原生对照](../audit-evidence/v250-round12/layered-switch.json) · [正式 worker](../audit-evidence/v250-round12/layered-installed-worker.json)
+
+同一提交已在专用 Debian 正式安装，复验原来两种开关写法、BOM 和多行内联表，并完成实际回退和回切。上一轮的编辑与移除问题也通过旧配置和冷启动专项对照。[该提交的安装验证](../audit-evidence/v250-platform/debian-historical-commit-058.json) · [两种身份的工作区验证](../audit-evidence/v250-platform/mcp-workspace-historical-commit-058.json) · [第十一轮原操作复验](../audit-evidence/v250-platform/mcp-edit-recheck.json)

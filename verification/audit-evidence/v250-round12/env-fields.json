@@ -1,0 +1,24 @@
+{
+  "catalog": {
+    "name": "local",
+    "transport": "stdio",
+    "enabled": true,
+    "effectiveEnabled": true,
+    "hasEnv": false,
+    "hasHttpHeaders": false,
+    "hasBearerTokenEnvVar": false,
+    "hasEnvHttpHeaders": false,
+    "command": "/usr/bin/true",
+    "args": [
+      "old"
+    ]
+  },
+  "addedEnabledWithoutToggling": true,
+  "coldReadback": true,
+  "afterClearForwardedEnv": [
+    "ROUND12_LOCAL"
+  ],
+  "afterColdClearForwardedEnv": [
+    "ROUND12_LOCAL"
+  ]
+}

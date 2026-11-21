@@ -8483,6 +8483,79 @@
         "path": "verification/audit-evidence/v250-round11/builtin-mcp.json",
         "sha256": "8dd5aaf596b4e17d6f3e77bb6cd0653bee43e5aa44363a5b8cba52ccb915278e"
       }
+    },
+    {
+      "id": "v250-round12",
+      "sequence": 93,
+      "digest": "d575fd5b3a65e27a94cb366bd534e7df07d591c55633d4a22bd44ccac3a9292f",
+      "complete": true,
+      "startedAt": "2026-11-21T04:57:12.680Z",
+      "completedAt": "2026-11-21T05:08:53.135Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "R12-01",
+          "severity": "P2",
+          "scope": "runtime-protocol",
+          "title": "Clearing saved user MCP environment settings leaves native environment forwarding active",
+          "locations": [
+            "src/runtime/mcp-configuration.ts:6",
+            "src/runtime/mcp-configuration.ts:91",
+            "web/components/McpConfiguration.tsx:618",
+            "deploy/mcp_user_config.py:15"
+          ],
+          "description": "A valid old stdio row using env_vars reports hasEnv false. Saving the explicit clearSecrets action leaves env_vars in the private TOML, in native hot readback, and after a cold restart. A local stdio child actually received a synthetic variable after the successful clear. Removing only env_vars prevented that transfer. This concerns a custom user service, independently of the four managed builtins.",
+          "expected": "Explicit clearing must cover native env forwarding. Ordinary edits must preserve an untouched forwarding list. Signal that environment forwarding is configured without revealing its values.",
+          "evidence": [
+            ".work/v250/round12/env-fields-public.json",
+            ".work/v250/round12/env-forward.json",
+            ".work/release-io.nosync/.work/round12-reliability/native-check.mjs",
+            ".work/release-io.nosync/.work/round12-reliability/env-forward.mjs"
+          ]
+        },
+        {
+          "id": "R12-02",
+          "severity": "P2",
+          "scope": "web-ux",
+          "title": "Editing arguments can activate an MCP server that the system layer disabled",
+          "locations": [
+            "web/components/McpConfiguration.tsx:253",
+            "web/components/McpConfiguration.tsx:291",
+            "src/runtime/mcp-configuration.ts:90"
+          ],
+          "description": "An old user row defines a command and arguments while the lower system row for the same service sets enabled=false. The catalog shows saved enabled=true by default and effectiveEnabled=false. Editing only one argument in the actual React form sends enabled:true. Ordinary Debian user/private mount tests and the installed worker Unix socket both confirm the accepted write adds enabled=true to user TOML and activates the service on hot/cold reads. An identical isolated control that sends only the new argument keeps enabled absent from the user file and the native state remains false.",
+          "expected": "Editing unrelated fields should preserve the missing user switch and effective inherited state. Explicit user choices to enable or disable the service should still work.",
+          "evidence": [
+            ".work/v250/round12/browser-layered.json",
+            ".work/v250/round12/layered-switch-public.json",
+            ".work/v250/debian-historical-commit-058-layered-switch.log",
+            ".work/v250/debian-historical-commit-058-layered-installed-worker.log"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-twelve",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round12/independent.json",
+          "sha256": "548be289e2fbea65cc42bbc8639159f8255098d11648363cfa3df3cbc5870f46"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round12/builtin-mcp.json",
+        "sha256": "15893c1b49c08e72a74b05114abe2b00895b571645dcccdb07159d42191133e5"
+      }
     }
   ],
   "fullTests": {

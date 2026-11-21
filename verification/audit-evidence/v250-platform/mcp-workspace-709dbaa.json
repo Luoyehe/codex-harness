@@ -1,0 +1,140 @@
+{
+  "commit": "historical-commit-058",
+  "installedRelease": "90333e8097ae6550f1f8de12d5d67a49450c1a53fd9832eeb58b8f5680d6baf7",
+  "debian": "12 arm64",
+  "actualWorkerEntrypointSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
+  "actualInstalledLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
+  "workerClientDriverSha256": "ac80f196fff7bf78009baa8d8a2f5f4f5c96ecc8d2970749765388d0c392708e",
+  "fixtureOriginalSha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
+  "syntheticToml": "\ufeff# synthetic fixture\r\nmodel = 'fixture'\r\n[mcp_servers.plain] # keep this header\r\n  enabled = true   # switch annotation\r\ncommand = 'echo'\r\n[mcp_servers.\"dot.name\"] # literal period\r\ncommand = \"echo\"  # field owned by dot.name\r\nstartup_timeout_sec = 1e1\r\n# retained sibling note\r\n[mcp_servers.neighbor]\r\ncommand = 'echo' # leave exact bytes",
+  "method": "The installed worker main.js started under the production control identity in private mount and network namespaces. Each role used its own synthetic user home, fixed installed launcher, private Unix worker socket and a real websocket event connection.",
+  "rpc": [
+    "mcp/config/read",
+    "mcp/config/write",
+    "mcp/user-state",
+    "mcp/user-edit"
+  ],
+  "actualWritesEachRole": 2,
+  "inProcessReloadAndColdWorkerRestart": true,
+  "modelTurns": 0,
+  "cases": [
+    {
+      "identity": "native",
+      "supervisorUid": 993,
+      "targetUid": 994,
+      "readInitial": {
+        "sha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
+        "inode": "5",
+        "mtimeNs": "1795237371329017520",
+        "uid": 994,
+        "mode": "0600"
+      },
+      "afterCompatibilityNameToggle": {
+        "sha256": "fad94dbd9b49538c8374bf4b6c3619aaa89382184857e33b4e5df99f99de62a4",
+        "inode": "130",
+        "mtimeNs": "1795237372981104804",
+        "uid": 994,
+        "mode": "0600"
+      },
+      "afterLiteralDottedNameLabeledByOpaqueId": {
+        "sha256": "c79bcef2e87e5fe7513a627d936b2dc34ac931a8ccb2c84c9495baaa3ce5e95a",
+        "inode": "131",
+        "mtimeNs": "1795237374765198671",
+        "uid": 994,
+        "mode": "0600"
+      },
+      "result": {
+        "legacyOrdinaryNameEdited": true,
+        "opaqueSelectedTargetEdited": true,
+        "oldOpaqueIdRejectedAfterRestart": true,
+        "plainEnabled": false,
+        "dottedCommand": "printf",
+        "siblingCommand": "echo",
+        "byteExactAfterEachWrite": true,
+        "bomAndCrlfPreserved": true,
+        "siblingAndCommentsPreserved": true,
+        "staleInternalEditBeforeDispatch": {
+          "error": "config_conflict",
+          "delivery": "not_sent"
+        },
+        "stalePublicEditRejected": true,
+        "directWorkspaceEditNoOpWasConfirmed": true,
+        "workspaceUserStateFetched": true,
+        "normalPublicRpc": "mcp/config/write",
+        "fixedWorkspaceHelper": "mcp/user-edit",
+        "survivedWorkerRestart": true,
+        "otherIdentityDenied": true,
+        "otherHomeUnchanged": true,
+        "managedSidecarUnchanged": true,
+        "publicWorkspacePrivateActionDenied": true,
+        "modelTurns": 0
+      }
+    },
+    {
+      "identity": "root",
+      "supervisorUid": 993,
+      "targetUid": 0,
+      "readInitial": {
+        "sha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
+        "inode": "5",
+        "mtimeNs": "1795237376805305553",
+        "uid": 0,
+        "mode": "0600"
+      },
+      "afterCompatibilityNameToggle": {
+        "sha256": "fad94dbd9b49538c8374bf4b6c3619aaa89382184857e33b4e5df99f99de62a4",
+        "inode": "130",
+        "mtimeNs": "1795237378293383198",
+        "uid": 0,
+        "mode": "0600"
+      },
+      "afterLiteralDottedNameLabeledByOpaqueId": {
+        "sha256": "c79bcef2e87e5fe7513a627d936b2dc34ac931a8ccb2c84c9495baaa3ce5e95a",
+        "inode": "131",
+        "mtimeNs": "1795237380137479061",
+        "uid": 0,
+        "mode": "0600"
+      },
+      "result": {
+        "legacyOrdinaryNameEdited": true,
+        "opaqueSelectedTargetEdited": true,
+        "oldOpaqueIdRejectedAfterRestart": true,
+        "plainEnabled": false,
+        "dottedCommand": "printf",
+        "siblingCommand": "echo",
+        "byteExactAfterEachWrite": true,
+        "bomAndCrlfPreserved": true,
+        "siblingAndCommentsPreserved": true,
+        "staleInternalEditBeforeDispatch": {
+          "error": "config_conflict",
+          "delivery": "not_sent"
+        },
+        "stalePublicEditRejected": true,
+        "directWorkspaceEditNoOpWasConfirmed": true,
+        "workspaceUserStateFetched": true,
+        "normalPublicRpc": "mcp/config/write",
+        "fixedWorkspaceHelper": "mcp/user-edit",
+        "survivedWorkerRestart": true,
+        "otherIdentityDenied": true,
+        "otherHomeUnchanged": true,
+        "managedSidecarUnchanged": true,
+        "publicWorkspacePrivateActionDenied": true,
+        "modelTurns": 0
+      }
+    }
+  ],
+  "linuxOrdinaryTargeted": {
+    "files": [
+      "tests/deploy/test_workspace.py",
+      "tests/deploy/test_mcp_user_config.py"
+    ],
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "evidenceSha256": {
+    "debian-historical-commit-058-user-mcp-workspace-native.log": "9767314cc446c90634312a060be504c876dd9beb6a7550a9e28ef66205b8fa1b",
+    "debian-historical-commit-058-user-mcp-workspace-root.log": "7d3079b842c53ee9a84e59b2bb98b7ce36271687ffc0841ad53179cf3b4df33d",
+    "debian-historical-commit-058-workspace-ordinary.log": "a1484841b8f92d4eb68fc70759b56d76b63bceb7fe9d7e048b22009a8a53d61a"
+  }
+}

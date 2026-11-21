@@ -1,0 +1,15 @@
+{
+  "initial": {
+    "enabled": true,
+    "effectiveEnabled": false
+  },
+  "action": "edit args only",
+  "change": {
+    "type": "upsert",
+    "transport": "stdio",
+    "enabled": true,
+    "args": [
+      "new"
+    ]
+  }
+}
