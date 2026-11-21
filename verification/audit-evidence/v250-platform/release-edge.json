@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "commit": "historical-commit-023",
+  "platform": "desktop Edge with mobile touch viewport, controlled loopback responses",
+  "physicalHandset": false,
+  "result": {
+    "browser": "152.0.4191.53",
+    "commit": "historical-commit-023",
+    "viewport": {
+      "width": 390,
+      "height": 740,
+      "touch": 1,
+      "platform": "MacIntel"
+    },
+    "loadFocus": {
+      "tag": "BODY",
+      "cls": "",
+      "editable": false
+    },
+    "delete": {
+      "scrollGestures": 3,
+      "before": {
+        "x": 348,
+        "y": 2174,
+        "inViewport": false,
+        "hit": false
+      },
+      "after": {
+        "x": 348,
+        "y": 602,
+        "inViewport": true,
+        "hit": true
+      },
+      "action": {
+        "x": 205.5,
+        "y": 623,
+        "inViewport": true,
+        "hit": true
+      },
+      "sent": "one t43",
+      "remaining": 43
+    },
+    "closeNavigationFocus": {
+      "tag": "BUTTON",
+      "cls": "icon-button mobile-menu",
+      "editable": false
+    },
+    "openProcessFocus": {
+      "tag": "H3",
+      "cls": "",
+      "editable": false
+    },
+    "returnChatFocus": {
+      "tag": "DIV",
+      "cls": "workspace-body",
+      "editable": false
+    },
+    "locateFocus": {
+      "tag": "DIV",
+      "cls": "message-anchor search-selected",
+      "editable": false
+    },
+    "locate": {
+      "x": 195,
+      "y": 292.5859375,
+      "inViewport": true,
+      "hit": true,
+      "focusedTarget": true,
+      "windowRequests": 0
+    },
+    "lifecycleCases": {
+      "normal": {
+        "before": "离开 normal",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal"
+          },
+          {
+            "type": "beforeunload",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "pagehide",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "after",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 normal · 最后输入"
+          }
+        ],
+        "restored": "离开 normal · 最后输入"
+      },
+      "visibilitychange": {
+        "before": "离开 visibilitychange",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 visibilitychange"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "after",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 visibilitychange · 最后输入"
+          }
+        ],
+        "restored": "离开 visibilitychange · 最后输入"
+      },
+      "pagehide": {
+        "before": "离开 pagehide",
+        "trace": [
+          {
+            "type": "beforeunload",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide"
+          },
+          {
+            "type": "pagehide",
+            "phase": "before",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide"
+          },
+          {
+            "type": "pagehide",
+            "phase": "after",
+            "state": "visible",
+            "trusted": true,
+            "text": "离开 pagehide · 最后输入"
+          },
+          {
+            "type": "visibilitychange",
+            "phase": "before",
+            "state": "hidden",
+            "trusted": true,
+            "text": "离开 pagehide · 最后输入"
+          }
+        ],
+        "restored": "离开 pagehide · 最后输入"
+      }
+    },
+    "closeSettingsFocus": {
+      "tag": "BUTTON",
+      "cls": "icon-button mobile-menu",
+      "editable": false
+    },
+    "newConversationFocus": {
+      "tag": "DIV",
+      "cls": "workspace-body",
+      "editable": false
+    },
+    "pageErrors": [],
+    "status": "passed",
+    "calledMethods": [
+      "project/list",
+      "thread/list",
+      "collaborationMode/list",
+      "prompt/list",
+      "model/list",
+      "thread/read",
+      "thread/history",
+      "thread/session",
+      "thread/delete",
+      "process/list",
+      "thread/searchOccurrences",
+      "defaults/read"
+    ]
+  },
+  "evidenceDigests": {
+    "confirm.png": "977280c48fdfb8f39f6bd20278e210ef509805ac63511b851728cbd3992882f6",
+    "dist/assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+    "dist/assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+    "dist/assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
+    "dist/index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+    "dist/theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba",
+    "drawer.png": "268ad076c106857fb3a0ab288e4c8a586bb3cb2f92d312f918ca659b4f341d75",
+    "locate.png": "03a17284b0e190ef3e801ca0e716e0f85d917f9ef492d04635e5c8f47397ab71",
+    "observations.json": "4c8480ec621754dc412981b053c5e26129c13a99f855c9a002b62b5fb6535dda"
+  }
+}

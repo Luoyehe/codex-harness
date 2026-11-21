@@ -173,3 +173,26 @@
 发现一个 P3 测试工具问题。部分需要 Linux 文件描述符特性的测试把所有 POSIX 平台都视作符合运行条件。在 macOS 执行工作区回执测试，1 个通用校验通过，另外 9 个用例在准备阶段报错；在同一源码的 Debian 12 以普通用户运行，10 项全部通过。正式结果应该区分未具备平台条件与实际业务验证失败。 [独立审阅](../audit-evidence/v250-round16/independent.json) · [同一测试在两平台的原始对照](../audit-evidence/v250-round16/platform-differential.json)
 
 该冻结源码的 32 回合历史恢复、13 项审批状态、四种停止断线时序、重连登记释放和浏览器审批编号回收，均用原夹具重跑通过。[五组实际场景](../audit-evidence/v250-platform/automation-recheck-historical-commit-119.json)
+
+### 第十六轮修复及双平台复验
+
+对九个工作区测试模块扩大检查，最初的 139 项在 macOS 有 37 项通过、102 项在准备阶段失败。修正平台条件后，同一批编号为 37 项通过、102 项明确跳过。非 Linux 的普通 POSIX 校验继续执行。另一个 DNS 归档用例需要 Linux 挂载信息，单独标注其前提；相邻的私有文件用例保留适用于 POSIX root 的条件。
+
+Debian 12 以普通用户实际执行原 139 项，有 137 项通过、两项断言失败。按 169 项底稿和正常操作入口查明，两条旧断言分别与 R141、R24 约定冲突。R141 要求保全首份异常回执、避免重复执行；R24 允许仍指向受管工作树内部的相对链接正常归档。补测经正式工作区操作验证以下行为。
+
+- 有效的待发布回执能完成发布。重放原操作不会重建用户随后删除的目录。遇首份异常回执时逐字节保留，遇相同内容可以重复读取，两份相互冲突的材料同时存在时明确要求处理，原回执及两份材料均完整。
+- 内部相对链接能绑定、归档和还原，链接文字与目标文件的内容一致。对指向受管范围以外的链接，仍可读出工作树身份，绑定与归档返回拒绝，原工作树、链接和外部文件均完整。
+
+整合提交 `historical-commit-023` 在 Debian 普通用户下 141 项全部通过，root 下另外两项全部通过，均无跳过。macOS 普通用户对同一批 143 项有 37 项通过、106 项按实际前提跳过，退出码 3 明确表示该平台单独运行无法覆盖全部项目。[平台、运行身份、逐组结果及原始记录摘要](../audit-evidence/v250-platform/workspace-platform-conditions.json)
+
+## 最终候选的连续复审
+
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28`。[v250-round17](../audit-evidence/v250-round17/independent.json)、[v250-round18](../audit-evidence/v250-round18/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
+
+最终源码通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](../audit-evidence/v250-platform/release-debian.json)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](../audit-evidence/v250-platform/release-edge.json)
+
+同一冻结提交再次用真实 CLI 产生 32 个回合，重启后找到原任务终态，额外模型请求为零。另验证 13 个审批状态、四种停止投递时序、新旧连接的登记和释放，以及连续关闭 1,024 项审批后的内存回收。对 MCP 配置还独立执行了 400 组本地编辑、语义与重复保存对照，全部通过。[自动任务和浏览器状态复验](../audit-evidence/v250-platform/release-automations.json)
+
+专用 Debian 在最终安装后核对了 20,530 个文件。两种原始 TOML、规范对照、其它合法格式及认证政策对照共做 56 次冷启动，52 次初始化成功、4 次按预期拒绝。普通用户和 root 的 MCP 工作区写入与继承也分别实测，继承专项合计 16 项通过。实际回退再切回候选版后，原登录、项目、暂停任务、操作回执与两个数据库均通过核验。[逐次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [双身份读写](../audit-evidence/v250-platform/release-mcp-workspace.json) · [开关继承](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+
+GitHub 将在发布候选和 main 提交分别运行 Linux、Windows、Linux 特权测试及安全扫描。正式发布须等待 main 对应提交的两项检查成功，并核对逐用例覆盖结果。[GitHub Actions](https://github.com/Luoyehe/codex-harness/actions)

@@ -1,0 +1,798 @@
+{
+  "commit": "historical-commit-023",
+  "installedRelease": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+  "debian": "12 arm64",
+  "modelTurns": 0,
+  "modes": {
+    "native": {
+      "mode": "native",
+      "commit": "historical-commit-023",
+      "release": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+      "workerEntrySha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
+      "launcherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
+      "publicDriverSha256": "749497c41cfb1d56903c3f61ce1955e05e6a50803360aa3c5afd074514b8c610",
+      "testingPrivateMountAndNetwork": true,
+      "modelTurns": 0,
+      "sourceCases": 8,
+      "results": [
+        {
+          "case": "args-only",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "enable",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "disable",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "restore-true",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "9e0e4ef22c6f1038c2d0e829f2bf36a26f86bd4490389ba1adae27f89121098d"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "restore-false",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "5fb8407451dd675a58a66acd045b06cec6668f1e4e62399c7e1f8ab7bb54c0aa"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "keep",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "c59eb66c310f5d2f850aeeccabfed222c2ed85c3f65a4b62cfe24410ace9f518"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "3017587dc5a0517a93c7572cb2bf5deb68696125942d90b75deafa6497d85fa2"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "3017587dc5a0517a93c7572cb2bf5deb68696125942d90b75deafa6497d85fa2",
+              "childReceivedSyntheticRegion": true,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "3017587dc5a0517a93c7572cb2bf5deb68696125942d90b75deafa6497d85fa2",
+              "childReceivedSyntheticRegion": true,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "clear",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "c59eb66c310f5d2f850aeeccabfed222c2ed85c3f65a4b62cfe24410ace9f518"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "c29a5597e326004fd2bfc9feea4b74bd684b51a536ee89a727bc9041a8a7b99f"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "c29a5597e326004fd2bfc9feea4b74bd684b51a536ee89a727bc9041a8a7b99f",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "c29a5597e326004fd2bfc9feea4b74bd684b51a536ee89a727bc9041a8a7b99f",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "absent-control",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "c29a5597e326004fd2bfc9feea4b74bd684b51a536ee89a727bc9041a8a7b99f"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4479275d8c50b4b49557aea19d12731566d3d3d578cc74a4f85e7849d9453743"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4479275d8c50b4b49557aea19d12731566d3d3d578cc74a4f85e7849d9453743",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4479275d8c50b4b49557aea19d12731566d3d3d578cc74a4f85e7849d9453743",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "root": {
+      "mode": "root",
+      "commit": "historical-commit-023",
+      "release": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+      "workerEntrySha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
+      "launcherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
+      "publicDriverSha256": "749497c41cfb1d56903c3f61ce1955e05e6a50803360aa3c5afd074514b8c610",
+      "testingPrivateMountAndNetwork": true,
+      "modelTurns": 0,
+      "sourceCases": 8,
+      "results": [
+        {
+          "case": "args-only",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4494e7cf7b795a15887d220d059b85324efa83afb64a6fe73ae5ab36aae4ceba"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "enable",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "947bac8358eeae689142850ba132778dce1348e71e27543297508f51d82f4fbe"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "disable",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "4b31b9341591325f01fd9f3f09ef225759f857584e94f978703e91cbab55850d"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "restore-true",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": true,
+              "effectiveEnabled": true,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "9e0e4ef22c6f1038c2d0e829f2bf36a26f86bd4490389ba1adae27f89121098d"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "restore-false",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": false,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "5fb8407451dd675a58a66acd045b06cec6668f1e4e62399c7e1f8ab7bb54c0aa"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-true-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            },
+            {
+              "phase": "lower-false-cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": false,
+              "inheritedEnabled": false,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "a4eada5c2f3193958cd9d84728b168046deeef8fc6261d7009f97c7bb14bfcf6"
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "keep",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "7c08feccc2bfbf1be736b177898b4f717312810c96e1de38e3edcdefc0050270"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "942aed625c5f7e5cf30c751117ef585afc82b883414cdcff863c1b4192a760a3"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "942aed625c5f7e5cf30c751117ef585afc82b883414cdcff863c1b4192a760a3",
+              "childReceivedSyntheticRegion": true,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "942aed625c5f7e5cf30c751117ef585afc82b883414cdcff863c1b4192a760a3",
+              "childReceivedSyntheticRegion": true,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "clear",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": true,
+              "userBytesSha256": "7c08feccc2bfbf1be736b177898b4f717312810c96e1de38e3edcdefc0050270"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "03299ca3c59bf50cbe3c06482b003c5e5c7bbaf1b9131d6d5ad7ba8521930fbe"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "03299ca3c59bf50cbe3c06482b003c5e5c7bbaf1b9131d6d5ad7ba8521930fbe",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "03299ca3c59bf50cbe3c06482b003c5e5c7bbaf1b9131d6d5ad7ba8521930fbe",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        },
+        {
+          "case": "absent-control",
+          "phases": [
+            {
+              "phase": "baseline",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "03299ca3c59bf50cbe3c06482b003c5e5c7bbaf1b9131d6d5ad7ba8521930fbe"
+            },
+            {
+              "phase": "hot",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "618d207b21a9c575051d19b2a75aa998d510b19852c707ea216ca151adf85042"
+            },
+            {
+              "phase": "cold-1",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "618d207b21a9c575051d19b2a75aa998d510b19852c707ea216ca151adf85042",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            },
+            {
+              "phase": "cold-2",
+              "ownEnabled": null,
+              "effectiveEnabled": true,
+              "inheritedEnabled": true,
+              "userForwardsSyntheticRegion": false,
+              "userBytesSha256": "618d207b21a9c575051d19b2a75aa998d510b19852c707ea216ca151adf85042",
+              "childReceivedSyntheticRegion": false,
+              "childIdentityMatches": true
+            }
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "evidenceSha256": {
+    "debian-historical-commit-023-installed-r12-native.json": "68b90389c00a291143ab07e4501bf7adfd8649402417a5683c9803325aa0be55",
+    "debian-historical-commit-023-installed-r12-root.json": "3431d5f15b2974c512fd5c222876c139966f1371e30d597057246028debf30c3"
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "commit": "historical-commit-023",
+  "sourceFiles": 2194,
+  "sourceSha256": "aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28",
+  "platform": "Dedicated Debian 12 arm64 / systemd 252",
+  "scope": "Supplemental actual install, version upgrade and configuration behavior",
+  "checkedAtUtc": "2026-11-21T12:41:38+00:00",
+  "gitFilesIncludingModes": 2521,
+  "packagedApplicationFiles": 1801,
+  "packageMismatches": 0,
+  "sourceArchiveSha256": "03c10deb17e109a9ffda6324896c4496ccf9f66892fad2665e32d06e4dfdfbde",
+  "applicationPackageSha256": "723314d6d663a08e448707db2bace92caa39c6406f09d2d91ceca3f0f0ed81ce",
+  "installedRelease": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+  "installedFilesVerified": 20530,
+  "controlGeneration": "b82f6465e4d80b58cf2ca60dcb73599e8046d3d70c6f9dad76a9051e53861497",
+  "platformTools": {
+    "codex": "0.169.0",
+    "node": "24.22.1",
+    "pnpm": "11.22.0",
+    "python": "3.11.2",
+    "ordinaryUid": 1000,
+    "rootUid": 0,
+    "separatePhysicalToolDistributions": true,
+    "bothSourceSnapshotsMatched": true
+  },
+  "upgrade": {
+    "originalInstanceVersion": "2.4.0",
+    "formalControlAndApplicationUpdate": true,
+    "retainedCandidateLimit": 8,
+    "archivalRestoredServicesAndPreservedFiles": true,
+    "gateway": "active/running",
+    "worker": "active/running",
+    "oldAccountPasswordAndRevision": true,
+    "withinLifetimeBrowserCookie": true,
+    "originalV240UnrememberedCookie": "expired normally after 12 hours; original password still authenticates",
+    "projectRetained": true,
+    "pausedAutomationRetained": true,
+    "acceptedReceipts": 2,
+    "automationRunColumns": 17,
+    "sqliteIntegrityChecksPassed": 2,
+    "realApplicationRollbackAndReturn": {
+      "previous": "90333e8097ae6550f1f8de12d5d67a49450c1a53fd9832eeb58b8f5680d6baf7",
+      "restoredCurrent": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+      "bothHealthyWithRetainedDataAndLogin": true,
+      "controlGenerationHeldDuringApplicationRollback": true
+    },
+    "originalV240ReleaseRetained": true
+  },
+  "realColdLaunches": {
+    "verifiedInstalledLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
+    "verifiedInstalledOfficialCliSha256": "3bb41c9a80187773e2a59278d4fc355b1a163c31bb5a79581e37d4fe428af047",
+    "installedControlPythonFilesMatched": 80,
+    "actualInstalledExecutableInodesVerified": true,
+    "sourceData": "Original audit inputs plus mixed and partially migrated cases",
+    "successfulInitializations": 52,
+    "expectedRefusals": 4,
+    "total": 56,
+    "modelTurns": 0,
+    "networkInterfaces": [
+      "lo"
+    ],
+    "caseGroups": {
+      "cold-process": {
+        "inputCases": [
+          "dotted-inline",
+          "escaped-header",
+          "section"
+        ],
+        "uids": [
+          65534,
+          0
+        ],
+        "startsPerHomeAndEntry": 2,
+        "successfulInitializations": 12,
+        "expectedAuthenticationPolicyRefusals": 0,
+        "unexpectedResults": 0
+      },
+      "native-format": {
+        "inputCases": [
+          "inline-trailing-comma",
+          "multiline-inline-table",
+          "strict-control",
+          "utf8-bom"
+        ],
+        "uids": [
+          65534,
+          0
+        ],
+        "startsPerHomeAndEntry": 2,
+        "successfulInitializations": 32,
+        "expectedAuthenticationPolicyRefusals": 0,
+        "unexpectedResults": 0
+      },
+      "mixed-and-auth": {
+        "inputCases": [
+          "keyring-profile",
+          "mixed",
+          "mixed-partial"
+        ],
+        "uids": [
+          65534,
+          0
+        ],
+        "startsPerHomeAndEntry": 2,
+        "successfulInitializations": 8,
+        "expectedAuthenticationPolicyRefusals": 4,
+        "unexpectedResults": 0
+      }
+    },
+    "originalModelPersonalTransportAndUnassignedFlagPreserved": true,
+    "unmodifiedFilesRetainedBytesInodeMtimeModeAndUid": true,
+    "baseline767ec45": {
+      "officialDirectSuccess": 16,
+      "managedAffectedFailures": 12,
+      "managedStrictControlSuccess": 4
+    }
+  },
+  "evidenceSha256": {
+    "debian-frozen-historical-commit-023-ci-complete.log": "89060c7639fcaa82acab46e574ac01f65f4a17801d234c43e9c5bac1f16271c2",
+    "debian-frozen-historical-commit-023-deploy.log": "71dbd62cb1a0b80c1ea7fcc20d890ae48d3b2e9c0d46090dd24872ccc05f18cc",
+    "debian-frozen-historical-commit-023-business.log": "9097922371ec83dd287952f6aff7167fbdb63ccf9b677b9969e9607f2c216cbb",
+    "debian-historical-commit-023-rollback-return.log": "84c23afcf2fdfe5bbc54f319254fd1d0c2c5eb81069bb0ff661f4f385da8c82c",
+    "debian-historical-commit-023-candidates-pre-update.json": "feb6f4855ff337f72ba6cc7c529eb687628caf91bc2dc66635b129882d75bc3f",
+    "debian-historical-commit-023-candidate-archive.json": "32f1d2b36bf6f762fcac3c422c03d5799c06718a6ecce5aa22499e94acc06c08",
+    "debian-historical-commit-023-cold-process-installed.log": "fd3d9d0f3d96c88c8635f4a1809ddb16f31b140f3a94363901b327153075553d",
+    "debian-historical-commit-023-native-format-installed.log": "e1737860acbfc6d2faca56418e00bebee0f1a838261a7856f6c8c36b4fd9c82b",
+    "debian-historical-commit-023-mixed-and-auth-installed.log": "2dcdf97920d00039cabdb1ab9f30d2c1a4b1b88ddcaf8388bafeeea78bf518de",
+    "debian-historical-commit-062-native-format-prior.log": "12debbb4e5ce4faff03d922422e1ce2eba8bc30c222375395ed2900a036f8562",
+    "debian-historical-commit-023-user-mcp-workspace-native.log": "34c815b5925663741c0899a1c3737e883a2869025d8ba125411d2b1b051a59e8",
+    "debian-historical-commit-023-user-mcp-workspace-root.log": "c5304ffb2c76cb8885f72ca84fe86f8a1f17dd98061c657038d6280d0f9bab24",
+    "final-installed-mcp-workspace.json": "d6309f4ee05ef86a98aa2658e925c9f98ea725fe3a6bed723d849513fb61bd2b",
+    "final-installed-toml-cases.json": "bbccedcc8a9e77e535651713fbaab51c61d16d16c4b80fc8137c0994d93a10fd",
+    "debian-historical-commit-023-installed-r12.json": "965f54759ad2aa87a9ef46959525ab4b170490f88993df2d652b4a9a83a6e58c",
+    "debian-historical-commit-023-workspace-ordinary.log": "511f71d57c9e19391f89a78b0000da9e08f7f9f0fab05ed7a69f95714a04f61b",
+    "debian-historical-commit-023-journal-schema-native.json": "31827b79a7af089c419da3efb69d065e9e9fa90414a97d4c71fb5c22eecba19c",
+    "debian-historical-commit-023-journal-schema-test.log": "91359ff500a9cdce01d9a64458c349ac5d7928ac62a9e740ad88b03db56b9bb2"
+  },
+  "installedWorkerCustomMcpEdits": {
+    "native": {
+      "verifiedInstalledWorkerSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
+      "inputSha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
+      "actualSupervisorUid": 993,
+      "targetFixtureUid": 994,
+      "plainEnabledAfter": false,
+      "literalDottedServerCommandAfter": "printf",
+      "untouchedSiblingCommand": "echo",
+      "exactBytesAtEachStep": true,
+      "retainedBomCrlfAndAdjacentComments": true,
+      "staleWrite": {
+        "error": "config_conflict",
+        "delivery": "not_sent"
+      },
+      "rereadAfterRealWorkerRestart": true,
+      "otherIdentityRejected": true,
+      "otherSyntheticHomeUnchanged": true,
+      "privateOverrideSidecarUnchanged": true
+    },
+    "root": {
+      "verifiedInstalledWorkerSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
+      "inputSha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
+      "actualSupervisorUid": 993,
+      "targetFixtureUid": 0,
+      "plainEnabledAfter": false,
+      "literalDottedServerCommandAfter": "printf",
+      "untouchedSiblingCommand": "echo",
+      "exactBytesAtEachStep": true,
+      "retainedBomCrlfAndAdjacentComments": true,
+      "staleWrite": {
+        "error": "config_conflict",
+        "delivery": "not_sent"
+      },
+      "rereadAfterRealWorkerRestart": true,
+      "otherIdentityRejected": true,
+      "otherSyntheticHomeUnchanged": true,
+      "privateOverrideSidecarUnchanged": true
+    }
+  },
+  "installedWorkerInheritanceAndEnvClear": {
+    "identityModes": [
+      "native",
+      "root"
+    ],
+    "casesPerIdentity": 8,
+    "successfulCases": 16,
+    "modelTurns": 0,
+    "networkInterfaces": [
+      "lo"
+    ],
+    "rawEvidenceSha256": "965f54759ad2aa87a9ef46959525ab4b170490f88993df2d652b4a9a83a6e58c"
+  },
+  "linuxOrdinaryTargeted": {
+    "files": [
+      "tests/deploy/test_workspace.py",
+      "tests/deploy/test_mcp_user_config.py"
+    ],
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fixtureRecovery": {
+    "originalVerifiedSystemDiskSha256": "c5b9150dcff8cf1c9d45fc9eafd28f6b22af22bb0af9bc083eacd5ee967fb188",
+    "originalVerifiedDataVolumeSha256": "398c66c5dbeb458d443b952ecbee85420317ca58c45d49baff0fa5fd1ec2af4d",
+    "wholeFileSha256MatchesBeforeAndAfterZeroBlockReclamation": true,
+    "dataVolumeGiBAtStart": 20,
+    "dataVolumeGiBAfterOnlineGrowth": 24,
+    "isolatedLocalClones": true
+  }
+}
