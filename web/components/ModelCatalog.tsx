@@ -72,8 +72,8 @@ export function ModelCatalog({
     [manual, setManual] = useState(''),
     [query, setQuery] = useState(''),
     [visible, setVisible] = useState(30),
-    [confirmed, setConfirmed] = useState(false),
-    [busy, setBusy] = useState(false),
+    [confirmedScope, setConfirmedScope] = useState<object>(),
+    [busyScope, setBusyScope] = useState<object>(),
     [error, setError] = useState(''),
     [status, setStatus] = useState('');
   const hasDraft = Boolean(manual || rows.length);
@@ -96,11 +96,10 @@ export function ModelCatalog({
   );
   const intent = useRef<CatalogIntent | undefined>(undefined),
     running = useRef<CatalogIntent | undefined>(undefined);
-  useEffect(() => {
-    setConfirmed(false);
-    setBusy(false);
-    running.current = undefined;
-  }, [action.scope]);
+  // A refreshed form can receive input before passive effects run. Consent and
+  // requests belong to the exact scope in which the user interacted.
+  const confirmed = confirmedScope === action.scope;
+  const busy = busyScope === action.scope;
   const current = (request: CatalogIntent) =>
     intent.current === request && request.scope === action.scope && action.isCurrent();
   const accept = (request: CatalogIntent, result: Record<string, unknown>) => {
@@ -120,7 +119,7 @@ export function ModelCatalog({
         throw new Error('目录应用尚未取得明确的应用证明，未刷新供应商配置。');
       request.resolved = true;
       setRows([]);
-      setConfirmed(false);
+      setConfirmedScope(undefined);
       setStatus('已应用确认的模型目录。');
       onApplied();
       return;
@@ -144,7 +143,7 @@ export function ModelCatalog({
       array<unknown>(provider.models).map((v) => [String(object(v).id), v]),
     );
     setRows(result.models.map((v) => row(existing.get(String(object(v).id)) ?? v)));
-    setConfirmed(false);
+    setConfirmedScope(undefined);
     setStatus(`发现 ${result.models.length} 个模型 ID，尚未应用。`);
     request.resolved = true;
   };
@@ -158,7 +157,8 @@ export function ModelCatalog({
         ['pending', 'unknown', 'accepted'].includes(operation.state),
     );
   const run = async (kind: CatalogIntent['kind'], models?: Record<string, unknown>[]) => {
-    if (running.current || action.disabled || recoverable) return;
+    if (running.current?.scope === action.scope || action.disabled || recoverable) return;
+    if (kind === 'apply' && (!confirmed || !models?.length)) return;
     const request: CatalogIntent = {
       kind,
       scope: action.scope,
@@ -167,7 +167,7 @@ export function ModelCatalog({
     };
     intent.current = request;
     running.current = request;
-    setBusy(true);
+    setBusyScope(action.scope);
     setError('');
     setStatus('');
     try {
@@ -185,14 +185,14 @@ export function ModelCatalog({
       if (current(request)) setError(message(e));
     } finally {
       if (running.current === request) running.current = undefined;
-      if (current(request)) setBusy(false);
+      if (current(request)) setBusyScope(undefined);
     }
   };
   const recover = async () => {
     const request = intent.current;
-    if (!request || !operation || !recoverable || running.current || !current(request)) return;
+    if (!request || !operation || !recoverable || running.current?.scope === action.scope || !current(request)) return;
     running.current = request;
-    setBusy(true);
+    setBusyScope(action.scope);
     setError('');
     try {
       const receipt = await api.call('operation/read', { operationId: operation.id });
@@ -215,7 +215,7 @@ export function ModelCatalog({
       if (current(request)) setError(message(e));
     } finally {
       if (running.current === request) running.current = undefined;
-      if (current(request)) setBusy(false);
+      if (current(request)) setBusyScope(undefined);
     }
   };
   const editingDisabled = busy || action.disabled || recoverable,
@@ -224,7 +224,7 @@ export function ModelCatalog({
   const change = (id: string, patch: Partial<CatalogRow>) => {
     if (editingDisabled) return;
     setRows((current) => current.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-    setConfirmed(false);
+    setConfirmedScope(undefined);
   };
   return (
     <section className="stack">
@@ -272,7 +272,7 @@ export function ModelCatalog({
           {busy ? '正在读取…' : '发现模型'}
         </button>
         {hasDraft && <button type="button" className="button" disabled={editingDisabled}
-          onClick={() => { setRows([]); setManual(''); setConfirmed(false); setStatus('未保存的目录编辑已放弃。'); }}>
+          onClick={() => { setRows([]); setManual(''); setConfirmedScope(undefined); setStatus('未保存的目录编辑已放弃。'); }}>
           放弃目录编辑
         </button>}
       </div>
@@ -416,7 +416,7 @@ export function ModelCatalog({
                   disabled={editingDisabled}
                   checked={confirmed}
                   onChange={(e) => {
-                    if (!editingDisabled) setConfirmed(e.target.checked);
+                    if (!editingDisabled) setConfirmedScope(e.target.checked ? action.scope : undefined);
                   }}
                 />
                 我已核对选中模型的能力；应用后将重启运行时。

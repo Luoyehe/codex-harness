@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { Profiler } from 'react';
 import { Api } from '../lib/api';
 import { ProviderSettings } from '../components/ProviderSettings';
 
@@ -108,18 +109,44 @@ it('retains form and catalog ownership when a restored profile replaces the whol
 });
 
 it('pins the initially displayed provider when the default changes in another client', async () => {
-  const fixture = setup(), view = render(<ProviderSettings {...props} api={fixture.api} />);
+  const fixture = setup();
+  const consent = () => screen.getByRole<HTMLInputElement>('checkbox', { name: /我已核对选中模型的能力/ });
+  const apply = () => screen.getByRole<HTMLButtonElement>('button', { name: '应用 1 个确认的模型' });
+  let armed = false;
+  const onCommit = () => {
+    if (!armed || !screen.queryByRole('button', { name: 'b（默认）' })) return;
+    armed = false;
+    // Re-confirm as soon as the refreshed form is interactive, before passive effects.
+    expect(consent().disabled).toBe(false);
+    expect(consent().checked).toBe(false);
+    expect(apply().disabled).toBe(true);
+    apply().click();
+    expect(fixture.api.mutate).not.toHaveBeenCalled();
+    consent().click();
+  };
+  const editor = (epoch: string) => <Profiler id="catalog" onRender={onCommit}>
+    <ProviderSettings {...props} epoch={epoch} api={fixture.api} />
+  </Profiler>;
+  const view = render(editor('one'));
   await editCatalog('a-only-model');
+  expect(apply().disabled).toBe(false);
+  armed = true;
   fixture.replace(registry(['a', 'b'], 'b', 'r2'));
-  view.rerender(<ProviderSettings {...props} epoch="two" api={fixture.api} />);
+  view.rerender(editor('two'));
   await screen.findByRole('button', { name: 'b（默认）' });
+  expect(armed).toBe(false);
   expect(screen.getByRole('button', { name: 'a' }).getAttribute('aria-pressed')).toBe('true');
   expect(screen.getByLabelText('显示名称')).toHaveProperty('value', 'a');
   expect(screen.getByLabelText('a-only-model：允许覆盖的推理强度')).toHaveProperty('value', 'high');
-  fireEvent.click(screen.getByRole('checkbox', { name: /我已核对选中模型的能力/ }));
-  fireEvent.click(screen.getByRole('button', { name: '应用 1 个确认的模型' }));
-  await waitFor(() => expect(fixture.calls.filter(call => call.method === 'system/models/refresh')).toHaveLength(1));
-  expect(fixture.calls.find(call => call.method === 'system/models/refresh')?.params.providerId).toBe('a');
+  await waitFor(() => expect(apply().disabled).toBe(false));
+  fireEvent.click(apply());
+  await act(fixture.settle);
+  const writes = fixture.calls.filter(call => call.operationId);
+  expect(writes).toHaveLength(1);
+  expect(writes[0]).toMatchObject({ method: 'system/models/refresh', params: {
+    providerId: 'a', expectedRevision: 'r2', automatic: true, confirmCapabilities: true,
+    models: [{ id: 'a-only-model', efforts: ['high'] }],
+  } });
 });
 
 it('hides login controls when the selected ChatGPT provider disappears', async () => {
