@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
-  "commit": "historical-commit-032",
-  "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+  "commit": "historical-commit-110",
+  "installedRelease": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
   "platform": "Debian 12 arm64",
   "officialCli": "0.169.0",
   "installedLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
@@ -153,7 +153,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -164,14 +164,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272907544253905",
+            "mtimeNs": "1795276933102335185",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272907544253905",
+            "mtimeNs": "1795276933102335185",
             "mode": "0600",
             "uid": 65534
           },
@@ -179,7 +179,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 2,
-          "sourceLineSha256IncludingNewline": "1314ceab228b47ec0ba09c783be12f5d91643da16f10580437f0ddff59e9c68d"
+          "sourceLineSha256IncludingNewline": "3b1e26d05379170a8ed038c9b659f83b96b706e1fba510f703db1788fc46bb9e"
         },
         {
           "number": 2,
@@ -190,14 +190,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272907544253905",
+            "mtimeNs": "1795276933102335185",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272907544253905",
+            "mtimeNs": "1795276933102335185",
             "mode": "0600",
             "uid": 65534
           },
@@ -205,7 +205,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 3,
-          "sourceLineSha256IncludingNewline": "4ae84453443a062af7d6c08352707f7f961de35dc25f8d3d7d28582c58b95f48"
+          "sourceLineSha256IncludingNewline": "05758a84d55d2198d0ecfeed919e016701ca0f8a939132f5a5e37790ce9ea169"
         }
       ],
       "secondStart": {
@@ -220,7 +220,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -231,14 +231,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272908096236710",
+            "mtimeNs": "1795276933650312373",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272908096236710",
+            "mtimeNs": "1795276933650312373",
             "mode": "0600",
             "uid": 0
           },
@@ -246,7 +246,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 4,
-          "sourceLineSha256IncludingNewline": "1b61bc748ae87a622d006ff019337143706b9098d9b17e61d1bd2a421cdaf197"
+          "sourceLineSha256IncludingNewline": "8b55e9c74d8132a21310d1ae45256418687a57cd9b28b22bc9d2aa2112f45ac4"
         },
         {
           "number": 2,
@@ -257,14 +257,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272908096236710",
+            "mtimeNs": "1795276933650312373",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272908096236710",
+            "mtimeNs": "1795276933650312373",
             "mode": "0600",
             "uid": 0
           },
@@ -272,7 +272,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 5,
-          "sourceLineSha256IncludingNewline": "de8647cb067f04f1f3670ea133e6d52375dd450934c1a6e097efd522fcb83355"
+          "sourceLineSha256IncludingNewline": "5c38b78226855e9c2345f187e00da4d80bd8240b13037fa28d6ff201f011af68"
         }
       ],
       "secondStart": {
@@ -287,7 +287,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -298,14 +298,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272908632220042",
+            "mtimeNs": "1795276934190289906",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272908632220042",
+            "mtimeNs": "1795276934190289906",
             "mode": "0600",
             "uid": 65534
           },
@@ -313,7 +313,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 6,
-          "sourceLineSha256IncludingNewline": "33016d998994a73e4b4264fca4bed7d64130e4cd8c8e132b6a86797f38900618"
+          "sourceLineSha256IncludingNewline": "7768112d0638be3bc1134993273d870fdfe02832079cde6db5025e4e5e6f5860"
         },
         {
           "number": 2,
@@ -324,14 +324,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272908632220042",
+            "mtimeNs": "1795276934190289906",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272908632220042",
+            "mtimeNs": "1795276934190289906",
             "mode": "0600",
             "uid": 65534
           },
@@ -339,7 +339,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 7,
-          "sourceLineSha256IncludingNewline": "33a142d625e5cdeb151199ebb1165c3681814d2ff09c8f638c024529b756ddfe"
+          "sourceLineSha256IncludingNewline": "79e8a97d64b8a97115f49caa6540c37fe537aaa11b60b4002d3f950818cc6ae7"
         }
       ],
       "secondStart": {
@@ -354,7 +354,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -365,14 +365,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272909164203509",
+            "mtimeNs": "1795276934742266965",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272909164203509",
+            "mtimeNs": "1795276934742266965",
             "mode": "0600",
             "uid": 0
           },
@@ -380,7 +380,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 8,
-          "sourceLineSha256IncludingNewline": "ee419eb65b76456ad2a453c81f95bfd2e01beb9909c754d0ecf0fcec27ae54d3"
+          "sourceLineSha256IncludingNewline": "b90bf2b3993597be0100b379ccfd9892a6e9c74136df5d7ec666f7040ed565f4"
         },
         {
           "number": 2,
@@ -391,14 +391,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272909164203509",
+            "mtimeNs": "1795276934742266965",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272909164203509",
+            "mtimeNs": "1795276934742266965",
             "mode": "0600",
             "uid": 0
           },
@@ -406,7 +406,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 9,
-          "sourceLineSha256IncludingNewline": "680b1bcfc0dcd0703903f26bd4d67555fac90bdd89d15bf6a551776698875744"
+          "sourceLineSha256IncludingNewline": "83bbb52c9f0d1c45f234934a8abd45702c3f4a665b2526a06164f78684a33d8d"
         }
       ],
       "secondStart": {
@@ -421,7 +421,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -432,14 +432,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272909752185261",
+            "mtimeNs": "1795276935302243711",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272909752185261",
+            "mtimeNs": "1795276935302243711",
             "mode": "0600",
             "uid": 65534
           },
@@ -447,7 +447,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 10,
-          "sourceLineSha256IncludingNewline": "5d68306a33263b85d32a94c42856e585d6f793c1f9a7e7a00fac9ae2ca6fd3b6"
+          "sourceLineSha256IncludingNewline": "53d3b99a8d876ba2eee9f44c78e9ebc8b00d57e89c9ed7ed737dec00fcce5f0b"
         },
         {
           "number": 2,
@@ -458,14 +458,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272909752185261",
+            "mtimeNs": "1795276935302243711",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272909752185261",
+            "mtimeNs": "1795276935302243711",
             "mode": "0600",
             "uid": 65534
           },
@@ -473,7 +473,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 11,
-          "sourceLineSha256IncludingNewline": "e2fb6640ff69544bfa9af0037977527b9f77464b86c815e3a61e449bc43083de"
+          "sourceLineSha256IncludingNewline": "28a7f7647129b8485ab7abe1ee664ebbdbd2408b97c4af23480b52942d2c93ff"
         }
       ],
       "secondStart": {
@@ -488,7 +488,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-cold-process-installed.log",
+      "sourceLog": "debian-historical-commit-110-cold-process-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -499,14 +499,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272910304168148",
+            "mtimeNs": "1795276935838221471",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272910304168148",
+            "mtimeNs": "1795276935838221471",
             "mode": "0600",
             "uid": 0
           },
@@ -514,7 +514,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 12,
-          "sourceLineSha256IncludingNewline": "1999662bcafa1f9a5933b852a4271af7cbfd46b822bc6d0b24fc3849667187df"
+          "sourceLineSha256IncludingNewline": "fbb7eaec2151b8888a32c67a312486c15c5f821f8f4e814781129982dc7c38c2"
         },
         {
           "number": 2,
@@ -525,14 +525,14 @@
           "configAfter": {
             "sha256": "3c865b0742ccc2a695459e9830f4e7e5ba34b76b91c0b361f2c35a9fe8c40253",
             "inode": "8",
-            "mtimeNs": "1795272910304168148",
+            "mtimeNs": "1795276935838221471",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272910304168148",
+            "mtimeNs": "1795276935838221471",
             "mode": "0600",
             "uid": 0
           },
@@ -540,7 +540,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 13,
-          "sourceLineSha256IncludingNewline": "2204cd399f31c716869e3a3d4e07cb56605be899aabfecc55222e98fdb99b5be"
+          "sourceLineSha256IncludingNewline": "eb21cee897ebb64f6355b0db2849f06f29c8b9844327664cef994c20aa1ac090"
         }
       ],
       "secondStart": {
@@ -555,7 +555,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -566,14 +566,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911200140406",
+            "mtimeNs": "1795276936830180365",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 2,
-          "sourceLineSha256IncludingNewline": "f5222d90c107409dbc352907574cc8eba26930adda94432dd620e984c4188045",
+          "sourceLineSha256IncludingNewline": "cce1b4ad09f07464feed7c708cff0ad7bea4b7901e638fe931d2ba312eeda063",
           "configIdenticalToOriginal": true
         },
         {
@@ -585,14 +585,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911200140406",
+            "mtimeNs": "1795276936830180365",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 3,
-          "sourceLineSha256IncludingNewline": "ef1598aa22f2b2a2430bf2d17e0af81b9ecbaa428f04ad0d22cce846c7fadcee",
+          "sourceLineSha256IncludingNewline": "bd5d95daa8c11ea2ac644b7606d9d172b4400459f4887d1f79b2a4f28dd5b4ae",
           "configIdenticalToOriginal": true
         }
       ],
@@ -609,7 +609,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -620,14 +620,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911200140406",
+            "mtimeNs": "1795276936830180365",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 4,
-          "sourceLineSha256IncludingNewline": "0cb29ccd9eb4a0a15504e856c850a9bd02352c10417da0de5d06bccecbf5e362",
+          "sourceLineSha256IncludingNewline": "86e6d714b1905e6730daaddba7faa9ed79af797cfe7d74bf212f0f5c6bacadb2",
           "configIdenticalToOriginal": true
         },
         {
@@ -639,14 +639,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911200140406",
+            "mtimeNs": "1795276936830180365",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 5,
-          "sourceLineSha256IncludingNewline": "71f201b4926b9b5914e2f1ae55869f384cd8c5a834d3ac5f3c4c31b360539592",
+          "sourceLineSha256IncludingNewline": "f27c359d528f9b5d2f75dcb27f7060914e7c4fa6d158978ca8ebb043bd8b53dd",
           "configIdenticalToOriginal": true
         }
       ],
@@ -663,7 +663,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -674,14 +674,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911940117527",
+            "mtimeNs": "1795276937614147929",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 6,
-          "sourceLineSha256IncludingNewline": "7c4509208fc4c4a1dd659fcf6661455ab5f18c3ee88eaa777771c561a9904473",
+          "sourceLineSha256IncludingNewline": "07cf9622cae0a45c0c3421ac48ce05f337e268b47120077d1cb352e5abda1c06",
           "configIdenticalToOriginal": true
         },
         {
@@ -693,14 +693,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911940117527",
+            "mtimeNs": "1795276937614147929",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 7,
-          "sourceLineSha256IncludingNewline": "3982c9ecccc9681cd918bc62b1f0f6be0193f6df0314c15489a4c9e55bba1e14",
+          "sourceLineSha256IncludingNewline": "d56828f4b71baa65c553275cc19f3fa7f274f2f10f73622b9da99dfb19d01034",
           "configIdenticalToOriginal": true
         }
       ],
@@ -717,7 +717,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -728,14 +728,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911940117527",
+            "mtimeNs": "1795276937614147929",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 8,
-          "sourceLineSha256IncludingNewline": "7cfaf031cc0dd4afd8827426bd9e36609fc44742a7d639af95e4019d3bc7ab38",
+          "sourceLineSha256IncludingNewline": "d692ceedb7fa3de5c351cb8fca16e9a6a805626ca5634331f0c132c2c844f99b",
           "configIdenticalToOriginal": true
         },
         {
@@ -747,14 +747,14 @@
           "configAfter": {
             "sha256": "d9802e8901b5d51f1a378d36f92d5596ef6b7e826e5dc0f9270464d5dc1fa894",
             "inode": "5",
-            "mtimeNs": "1795272911940117527",
+            "mtimeNs": "1795276937614147929",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 9,
-          "sourceLineSha256IncludingNewline": "68dc0273d4b1013182075b1e256ad9365a8ae0af19deded2657e79ef90219e7b",
+          "sourceLineSha256IncludingNewline": "cc66c9930268d5ac59095288d8d35ff9561be97c96147fb6c4236a0d93b8a230",
           "configIdenticalToOriginal": true
         }
       ],
@@ -771,7 +771,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -782,14 +782,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272912668095057",
+            "mtimeNs": "1795276938330118337",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 10,
-          "sourceLineSha256IncludingNewline": "1b149f077e91df65403b7234c495c74ed58951c67784d963f6fc26c1f95b9272",
+          "sourceLineSha256IncludingNewline": "a0dd13302ed4445bdcc2545714ff4fe75441c74a5df3e5ba027169e9d7638962",
           "configIdenticalToOriginal": true
         },
         {
@@ -801,14 +801,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272912668095057",
+            "mtimeNs": "1795276938330118337",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 11,
-          "sourceLineSha256IncludingNewline": "51f62c961f19964d41454503d87dba62a07d6e204f723dee147d9ad33fc3065b",
+          "sourceLineSha256IncludingNewline": "208e1d97a4b3c19cf1828b5fe7ab68e6333149cef11fc3f72b88c58719292fc6",
           "configIdenticalToOriginal": true
         }
       ],
@@ -825,7 +825,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -836,14 +836,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272912668095057",
+            "mtimeNs": "1795276938330118337",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 12,
-          "sourceLineSha256IncludingNewline": "29b9f2686cd4a4cd1bb146396b233530ce5d3419d82597181d51445fbd9b5e1f",
+          "sourceLineSha256IncludingNewline": "96c2fbcc4c4b9556f09a6179d7792fe86c82f27c105ca240420dab1f462014d8",
           "configIdenticalToOriginal": true
         },
         {
@@ -855,14 +855,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272912668095057",
+            "mtimeNs": "1795276938330118337",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 13,
-          "sourceLineSha256IncludingNewline": "2637ce6ea4bc4524f3f3c2a789e00e9aa38fb08b073aae029483baf5bfaaa9b7",
+          "sourceLineSha256IncludingNewline": "d1c3a42a80f6cbb14d1f7829c17103417a224928e0a5e9de6c94ac4b3829fc6d",
           "configIdenticalToOriginal": true
         }
       ],
@@ -879,7 +879,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -890,14 +890,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272913456070763",
+            "mtimeNs": "1795276939038089105",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 14,
-          "sourceLineSha256IncludingNewline": "d0a4868da178a58f27952be4f1d4110f92d3c1ca1b8a4cac1b86e7e4f59f7143",
+          "sourceLineSha256IncludingNewline": "47ac2b784955ac6039d2d53a0c3cc7185ff776592633bc2a539979b06b3580d3",
           "configIdenticalToOriginal": true
         },
         {
@@ -909,14 +909,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272913456070763",
+            "mtimeNs": "1795276939038089105",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 15,
-          "sourceLineSha256IncludingNewline": "af94f5aeedc25b69156ed960c609e269364d9c714ec813651a74685cc24f2359",
+          "sourceLineSha256IncludingNewline": "d9ae37887cc0a2f445b17c91f26b25be0984fa44bbcdd8b1b52957ba966eae76",
           "configIdenticalToOriginal": true
         }
       ],
@@ -933,7 +933,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -944,14 +944,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272913456070763",
+            "mtimeNs": "1795276939038089105",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 16,
-          "sourceLineSha256IncludingNewline": "0ab320f2998f40a3a5528783948b692c0270e82b8eed1de3e02fb741e5747de5",
+          "sourceLineSha256IncludingNewline": "f936d711631c0752104a5d28eafd7780065bd1cbc9e769e8a2156d9dd490a688",
           "configIdenticalToOriginal": true
         },
         {
@@ -963,14 +963,14 @@
           "configAfter": {
             "sha256": "b15ecdfa3694e0ca88c93f0d7f23adf21bb97ade96ee783a65ffd9910ce1727a",
             "inode": "5",
-            "mtimeNs": "1795272913456070763",
+            "mtimeNs": "1795276939038089105",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 17,
-          "sourceLineSha256IncludingNewline": "f691da94e9bbe6c7ce9fb3058d12f0f02fb8f525e6302cfd776f01b4db82bfcf",
+          "sourceLineSha256IncludingNewline": "905d2612f96dd792aea44989db5f084df79d2b43a06b770a37d905644b10e4dc",
           "configIdenticalToOriginal": true
         }
       ],
@@ -987,7 +987,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -998,14 +998,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914184048345",
+            "mtimeNs": "1795276939742060082",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 18,
-          "sourceLineSha256IncludingNewline": "22188ae0984c6c7be0d14084bf6b5e96c40b1d7a08a954dd75694ca262fb70b8",
+          "sourceLineSha256IncludingNewline": "4082aeab7c37967c61ba6bf61e2ad1420c233816e103839d771cd33bcb8d736a",
           "configIdenticalToOriginal": true
         },
         {
@@ -1017,14 +1017,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914184048345",
+            "mtimeNs": "1795276939742060082",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 19,
-          "sourceLineSha256IncludingNewline": "dd5b04977b3b34cc946e7ec2faf7c5dae9b497b9acb38e88d088dd3db6425278",
+          "sourceLineSha256IncludingNewline": "ba5165788aa284de6b7b5e14f2f83074b4e834fb2e82035054f9fa2392785c0e",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1041,7 +1041,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1052,14 +1052,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914184048345",
+            "mtimeNs": "1795276939742060082",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 20,
-          "sourceLineSha256IncludingNewline": "225c89612c45ea3f0827b56c1c2eae07824964f81805488bd9c30730a28ef939",
+          "sourceLineSha256IncludingNewline": "6c6dfa8d80ad8795703c0cc63ce8a6f7846a70a9da1c5c1e0845c316a0e2c639",
           "configIdenticalToOriginal": true
         },
         {
@@ -1071,14 +1071,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914184048345",
+            "mtimeNs": "1795276939742060082",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 21,
-          "sourceLineSha256IncludingNewline": "61be3fd69e525429154ec6d5dac121ed8f03e7d994321e01596cf4890d99d598",
+          "sourceLineSha256IncludingNewline": "35a233ea76929c52d6526afdead9e4aca4fd8706ad5b8ae68edcc9892b65b52e",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1095,7 +1095,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1106,14 +1106,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914908026079",
+            "mtimeNs": "1795276940458030595",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 22,
-          "sourceLineSha256IncludingNewline": "a58358675a1e92572462dd23ebf0a8cc44b01f1479a73a1e51e87d9034393643",
+          "sourceLineSha256IncludingNewline": "3626385f287e5feadeddcf84874793d4f270eb6681414319d197f9ca53d39114",
           "configIdenticalToOriginal": true
         },
         {
@@ -1125,14 +1125,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914908026079",
+            "mtimeNs": "1795276940458030595",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 23,
-          "sourceLineSha256IncludingNewline": "d2f7a9df748c3e296ae48b45279e357849c92601076e7fea6570e9f2a2c46a59",
+          "sourceLineSha256IncludingNewline": "379fa354f2d912e52e02ab874c93d11d0a3a587951e250f24e045e343cb6c8e1",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1149,7 +1149,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1160,14 +1160,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914908026079",
+            "mtimeNs": "1795276940458030595",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 24,
-          "sourceLineSha256IncludingNewline": "6ac9a6d10c68dde8f7a05f76e977ad17518eab9631db54c08981592395ac5231",
+          "sourceLineSha256IncludingNewline": "1ddf094941ea6b48c75c6637ecdea65654b5ae8253e02584a806273d7237c70f",
           "configIdenticalToOriginal": true
         },
         {
@@ -1179,14 +1179,14 @@
           "configAfter": {
             "sha256": "56325290462eb83b15065003affedacaf0ca81d0f9b4f801cfa94c716725722f",
             "inode": "5",
-            "mtimeNs": "1795272914908026079",
+            "mtimeNs": "1795276940458030595",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 25,
-          "sourceLineSha256IncludingNewline": "2af73b13f96a2a8eb8c2470c81873f7f1598055a4eeaeff22b444ab7bde5f9d1",
+          "sourceLineSha256IncludingNewline": "55bf950d5cf9ecc6ae92f1e8b0c6838e6d2b684a2752d975a4ef3fe706a4e875",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1203,7 +1203,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1214,14 +1214,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272915767999670",
+            "mtimeNs": "1795276941158001794",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 26,
-          "sourceLineSha256IncludingNewline": "380cb60f285cbd4cc2dfc0314440540ff31c31e1b3b551f8a8670cda3a60d16c",
+          "sourceLineSha256IncludingNewline": "8d55658837cae8fd113f3aeec7a5dd37332cda943cf85002db522cefe2ea37bf",
           "configIdenticalToOriginal": true
         },
         {
@@ -1233,14 +1233,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272915767999670",
+            "mtimeNs": "1795276941158001794",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 27,
-          "sourceLineSha256IncludingNewline": "1512c055d47490eb3f68436e033f84b2d627cdb49d86b3b72b21d4126923fdc5",
+          "sourceLineSha256IncludingNewline": "9d00c3d23f04af061271b9fc0c3072c3c8b4cd5cf6c04f4af70c4b686b8346d1",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1257,7 +1257,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1268,14 +1268,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272915767999670",
+            "mtimeNs": "1795276941158001794",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 28,
-          "sourceLineSha256IncludingNewline": "a65bb29c6ae91e821023f87fe5536293735d2f3039cd0ba3ef4748667676d143",
+          "sourceLineSha256IncludingNewline": "ed3dde47dc023424d605ab35407ef5d4a54d978bba012b6ea357cb5c00534dac",
           "configIdenticalToOriginal": true
         },
         {
@@ -1287,14 +1287,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272915767999670",
+            "mtimeNs": "1795276941158001794",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 29,
-          "sourceLineSha256IncludingNewline": "3d9b37ce4716413fdb2a81f04c50d10637236543253191bede4ffafb6b8c758c",
+          "sourceLineSha256IncludingNewline": "534907d357a0f2090ec0cc6729624af7ab87c58872e50095bdd670739e00a7ca",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1311,7 +1311,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "official-direct",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1322,14 +1322,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272916507976975",
+            "mtimeNs": "1795276941885971879",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 30,
-          "sourceLineSha256IncludingNewline": "59c35db11bf1c55c4e1d22530ba8d508741006a0af1e1d0c1a01edc88f258551",
+          "sourceLineSha256IncludingNewline": "3f5b2ea65458a2b0e17a5852dbeada4073cdfbf907b16e4b832cd6c9850a872e",
           "configIdenticalToOriginal": true
         },
         {
@@ -1341,14 +1341,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272916507976975",
+            "mtimeNs": "1795276941885971879",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 31,
-          "sourceLineSha256IncludingNewline": "ecb31c30f3ae500ba3178e29b2acb128bf191e5ac2d69e4d5deb9d6f84296ffc",
+          "sourceLineSha256IncludingNewline": "9baedbd7e0a5ed34b3f9b44be3b262ae878c011c9424417817c23d6f7f06f4aa",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1365,7 +1365,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-native-format-installed.log",
+      "sourceLog": "debian-historical-commit-110-native-format-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1376,14 +1376,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272916507976975",
+            "mtimeNs": "1795276941885971879",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 32,
-          "sourceLineSha256IncludingNewline": "369d759d35cad9c2b3c029e59eb2f4ffea0b8a1d9c0ba380dfc7103a497daf98",
+          "sourceLineSha256IncludingNewline": "ff6942c8f7aea235652d93621a7c686ca99e320b3a34ed4b29c04af5363bc63f",
           "configIdenticalToOriginal": true
         },
         {
@@ -1395,14 +1395,14 @@
           "configAfter": {
             "sha256": "d000443f4c950dceb7ca6319c971a563fccc286de89d1b065a7fdba7631d5101",
             "inode": "5",
-            "mtimeNs": "1795272916507976975",
+            "mtimeNs": "1795276941885971879",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 33,
-          "sourceLineSha256IncludingNewline": "16785b787ec5edfe54152b49d1a5494a858c42f12d63cdd688af83592df0dae5",
+          "sourceLineSha256IncludingNewline": "c02bfb325f1e19187c9ca958eb2528b27911432fe963e3abae42559ea3c1a1fb",
           "configIdenticalToOriginal": true
         }
       ],
@@ -1419,7 +1419,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1430,14 +1430,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272917679941081",
+            "mtimeNs": "1795276943101921990",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272917679941081",
+            "mtimeNs": "1795276943101921990",
             "mode": "0600",
             "uid": 65534
           },
@@ -1445,7 +1445,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 2,
-          "sourceLineSha256IncludingNewline": "e1427a0fb8c32aa695f027887361e42e7b1674172f769d849361bc2fe1f4303f",
+          "sourceLineSha256IncludingNewline": "a23df3adf37fb13a3daeab52cfffa33f74f4e026bd3e5ac4a266a71edc95d254",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1459,14 +1459,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272917679941081",
+            "mtimeNs": "1795276943101921990",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272917679941081",
+            "mtimeNs": "1795276943101921990",
             "mode": "0600",
             "uid": 65534
           },
@@ -1474,7 +1474,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 3,
-          "sourceLineSha256IncludingNewline": "97a27eeec786be81239eaf59956b217cfcdcf93a1c74598127da93999aa032e4",
+          "sourceLineSha256IncludingNewline": "5bb9e2d262625b466aa661679ef1e1a862d2f5a310ba92871c011927169821da",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1492,7 +1492,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1503,14 +1503,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272918267923097",
+            "mtimeNs": "1795276943649899543",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272918267923097",
+            "mtimeNs": "1795276943649899543",
             "mode": "0600",
             "uid": 0
           },
@@ -1518,7 +1518,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 4,
-          "sourceLineSha256IncludingNewline": "71d58ba48d8902311a80abbfa3082e66f958e93c58f084100db53fd9602e9219",
+          "sourceLineSha256IncludingNewline": "4e54a6107fdf31ab4f96521b9d41ed8a6b4f433856a31a8b82f460edb135e798",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1532,14 +1532,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272918267923097",
+            "mtimeNs": "1795276943649899543",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
             "inode": "7",
-            "mtimeNs": "1795272918267923097",
+            "mtimeNs": "1795276943649899543",
             "mode": "0600",
             "uid": 0
           },
@@ -1547,7 +1547,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 5,
-          "sourceLineSha256IncludingNewline": "86f4f876e5557d5820dc8cdb81251bacd7a6e4761a53003f04ca8f0237f41cb7",
+          "sourceLineSha256IncludingNewline": "fb09728304eaeba1b6590190d66b5e1a283bff2ce00aa40fee20681f61a7ad4d",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1565,7 +1565,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1576,14 +1576,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272918851905250",
+            "mtimeNs": "1795276944201876946",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8e23c8da7757f13aacb4e35161dd82b8136ca5024607e8cb0b2f0e8d4883cf0c",
             "inode": "6",
-            "mtimeNs": "1795272918795906961",
+            "mtimeNs": "1795276944149879072",
             "mode": "0600",
             "uid": 65534
           },
@@ -1591,7 +1591,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 6,
-          "sourceLineSha256IncludingNewline": "a7b883fd0d723f8a41f04e8f0b6e30fc916709c6e860209d4e30bf528cd4dc81",
+          "sourceLineSha256IncludingNewline": "fef9f6d7116dbeafbdace71ac412cd571fbb8fe68ea40bc391cb76af332f34ea",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1605,14 +1605,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272918851905250",
+            "mtimeNs": "1795276944201876946",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": {
             "sha256": "8e23c8da7757f13aacb4e35161dd82b8136ca5024607e8cb0b2f0e8d4883cf0c",
             "inode": "6",
-            "mtimeNs": "1795272918795906961",
+            "mtimeNs": "1795276944149879072",
             "mode": "0600",
             "uid": 65534
           },
@@ -1620,7 +1620,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 7,
-          "sourceLineSha256IncludingNewline": "628a3d4733c93b38d58b0fa7ba273661350821cae1c82b802ae7bd385f40962d",
+          "sourceLineSha256IncludingNewline": "9145fe895e4667785dff951343cb7989e2d2cd202df37c155190aabbf51dca0d",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1638,7 +1638,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1649,14 +1649,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272919411888154",
+            "mtimeNs": "1795276944769853717",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8e23c8da7757f13aacb4e35161dd82b8136ca5024607e8cb0b2f0e8d4883cf0c",
             "inode": "6",
-            "mtimeNs": "1795272919363889619",
+            "mtimeNs": "1795276944713856007",
             "mode": "0600",
             "uid": 0
           },
@@ -1664,7 +1664,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 8,
-          "sourceLineSha256IncludingNewline": "6320d5e44f72ff5eec40dbf81a23640be8f75a56fe69592a2a0ae33ca0b31e7c",
+          "sourceLineSha256IncludingNewline": "d4fbe8d66b1748242797a72ad668d1c79c4cd35ed8b83d1fd8bfe11893a3b0c3",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1678,14 +1678,14 @@
           "configAfter": {
             "sha256": "fd856481f23cb90516f31942655de61e8683f0a075e0f1c3f82dce4c666daa35",
             "inode": "8",
-            "mtimeNs": "1795272919411888154",
+            "mtimeNs": "1795276944769853717",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": {
             "sha256": "8e23c8da7757f13aacb4e35161dd82b8136ca5024607e8cb0b2f0e8d4883cf0c",
             "inode": "6",
-            "mtimeNs": "1795272919363889619",
+            "mtimeNs": "1795276944713856007",
             "mode": "0600",
             "uid": 0
           },
@@ -1693,7 +1693,7 @@
             "@unassigned:web-reader": false
           },
           "sourceLine": 9,
-          "sourceLineSha256IncludingNewline": "3f34138b1736f5f0cfa7b2abf8f9186540dfc44e5b73e5be2104612b6ea14250",
+          "sourceLineSha256IncludingNewline": "036dbbc04a8f1ce39f3dc42ab1e7154cb5a20269a5d4ed5824242c5bfaf9f4ed",
           "bomPreserved": true,
           "onlyCrlf": true,
           "personalAssignmentBytesPreserved": true
@@ -1711,7 +1711,7 @@
       "uid": 65534,
       "identity": "native test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1722,14 +1722,14 @@
           "configAfter": {
             "sha256": "c6d41d348b365b6085d4c6cfa3c5a7c4c61a7cbadcb6871ca84a06df3ef26500",
             "inode": "5",
-            "mtimeNs": "1795272919923872531",
+            "mtimeNs": "1795276945277832959",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 10,
-          "sourceLineSha256IncludingNewline": "7a430abfefa89868c61e413f011c4c61c6e059c241b37cda635a10a01176eaf3",
+          "sourceLineSha256IncludingNewline": "a2d617f92eedf91cb8b7ac4d21803a199bb17cb8f0ffaa0dc8d3e7893c5a6a91",
           "diagnostic": "shared-login-requires-file-authentication",
           "bomPreserved": true,
           "onlyCrlf": true
@@ -1743,14 +1743,14 @@
           "configAfter": {
             "sha256": "c6d41d348b365b6085d4c6cfa3c5a7c4c61a7cbadcb6871ca84a06df3ef26500",
             "inode": "5",
-            "mtimeNs": "1795272919923872531",
+            "mtimeNs": "1795276945277832959",
             "mode": "0600",
             "uid": 65534
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 11,
-          "sourceLineSha256IncludingNewline": "bd022134defcaf5bad484b9d9fc515f77dd322e3114729f90ad14bd59263ff59",
+          "sourceLineSha256IncludingNewline": "149941b1f055c556d6c6e80003c04b6eb86ffc474557b389808e51e2c4508b59",
           "diagnostic": "shared-login-requires-file-authentication",
           "bomPreserved": true,
           "onlyCrlf": true
@@ -1768,7 +1768,7 @@
       "uid": 0,
       "identity": "root test account",
       "entry": "fixed-native-launcher",
-      "sourceLog": "debian-historical-commit-032-mixed-and-auth-installed.log",
+      "sourceLog": "debian-historical-commit-110-mixed-and-auth-installed.log",
       "attempts": [
         {
           "number": 1,
@@ -1779,14 +1779,14 @@
           "configAfter": {
             "sha256": "c6d41d348b365b6085d4c6cfa3c5a7c4c61a7cbadcb6871ca84a06df3ef26500",
             "inode": "5",
-            "mtimeNs": "1795272920003870090",
+            "mtimeNs": "1795276945405827733",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 12,
-          "sourceLineSha256IncludingNewline": "942d2ad79e5b1780b9c858ebbeb9b170d116a06c071ce7480e3f9f8579bcaa66",
+          "sourceLineSha256IncludingNewline": "c178c89d2dbe9ae2925e27b9ae8e5cbd44afef53017b60fa3b180dade3fdcbb9",
           "diagnostic": "shared-login-requires-file-authentication",
           "bomPreserved": true,
           "onlyCrlf": true
@@ -1800,14 +1800,14 @@
           "configAfter": {
             "sha256": "c6d41d348b365b6085d4c6cfa3c5a7c4c61a7cbadcb6871ca84a06df3ef26500",
             "inode": "5",
-            "mtimeNs": "1795272920003870090",
+            "mtimeNs": "1795276945405827733",
             "mode": "0600",
             "uid": 0
           },
           "sidecarAfter": null,
           "sidecarFlagsAfter": null,
           "sourceLine": 13,
-          "sourceLineSha256IncludingNewline": "039ffa1f75f6a6a0ee68a711725b893e9df50c289b5538c288034976591a4f75",
+          "sourceLineSha256IncludingNewline": "66b40084f6e7c897bdb394ab407ded942024327e712ef6a0be60879a500126a1",
           "diagnostic": "shared-login-requires-file-authentication",
           "bomPreserved": true,
           "onlyCrlf": true
@@ -1822,16 +1822,16 @@
     }
   ],
   "evidence": {
-    "debian-historical-commit-032-cold-process-installed.log": {
-      "sha256": "24270fd7ff14b81cf0d799c0ca2ff79a52dd09086dcca349e87c3ab0fa523382"
+    "debian-historical-commit-110-cold-process-installed.log": {
+      "sha256": "72dcbe77931ec3a52e418426bbabafa23c1bd418051b854bfef9cfeb6aff0e18"
     },
-    "debian-historical-commit-032-native-format-installed.log": {
-      "sha256": "9457afe980da381ec2db9e4f1e191879a1ca7df364d7b77574f2b646285b2f97"
+    "debian-historical-commit-110-native-format-installed.log": {
+      "sha256": "2e40f3d8b70c0b4f29943c888a8d496e7d2e29e4d4c49550c8eb198de5396d34"
     },
-    "debian-historical-commit-032-mixed-and-auth-installed.log": {
-      "sha256": "4313339afe2daf2d9309f1b0a799107a8fab58c2104979357d215ea5004f8789"
+    "debian-historical-commit-110-mixed-and-auth-installed.log": {
+      "sha256": "cef4efb4cab9f4786516a3ee0007d2d0be4b715e33a52f169b9d713fec3a94c4"
     }
   },
-  "validatedAgainstCommit": "historical-commit-032",
-  "measuredAtCommit": "historical-commit-032"
+  "measuredAtCommit": "historical-commit-110",
+  "validatedAgainstCommit": "historical-commit-110"
 }

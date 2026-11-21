@@ -250,3 +250,21 @@ Debian 12 以普通用户实际执行原 139 项，有 137 项通过、两项断
 ## 第二十五轮复审发现的测试兼容性问题
 
 主分支的 Windows 设备码测试等不到首次设备码。使用离线初始设置、原版 React 组件和真实客户端操作记录路径，控制本地账号响应或测试数据库的任务调度后，能在相同位置复现。设备码随后可正常显示，切页和刷新后仍可见。首个修正版本 `historical-commit-061` 把断言同步到登录事务与交接。不过网页 TypeScript 项目明确以 ES2023 为目标，测试的三处 `Promise.withResolvers` 调用只在较新的标准库声明中提供。用项目固定编译器检查该冻结提交，在三个位置确实报 TS2550，退出码为 1。这轮计为有发现。改用项目支持的普通 Promise，保留对原事务、首次交接和切页后同一设备码的检查。[主分支原始失败](../audit-evidence/v250-platform/main-44918614737.json) · [独立操作与数据库时序](../audit-evidence/v250-platform/device-handoff-timing.json) · [原版类型诊断](../audit-evidence/v250-round25/typecheck.json)
+
+修复提交 `historical-commit-110` 保留网页目标 ES2023。在最终整合代码上重跑网页类型检查已通过。受控的两种慢环境中，新测试都能验证原有设备码、原登录身份以及登录与交接次数。七份相关文件 70 项通过。[第 25 轮独立记录](../audit-evidence/v250-round25/independent.json) · [修正后测试与类型检查](../audit-evidence/v250-platform/device-handoff-fix.json)
+
+## 最终候选的连续复审
+
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `30c7d408807ce73c53b70ca1af23a5ce91c673f855293b75b33b16458c1db4e1`。[v250-round26](../audit-evidence/v250-round26/independent.json)、[v250-round27](../audit-evidence/v250-round27/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
+
+最终源码通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](../audit-evidence/v250-platform/release-debian.json)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](../audit-evidence/v250-platform/release-edge.json)
+
+冻结提交为 `historical-commit-110`。v250-round26 和 v250-round27 按顺序完成。专项另在同一源码上使用初次发现时的程序实测。真实 CLI 在 32 个回合后重启，找回了已完成的任务，恢复过程没有额外推理请求。另核对 13 种审批状态、4 种停止请求时序，以及 jsdom 中连续关闭 1,024 条审批后保留编号归零。[自动任务与审批复验](../audit-evidence/v250-platform/release-automations.json)
+
+正式部署工具在专用 Debian 校验 20,530 个安装项（文件与目录）。56 次 MCP 配置冷启动中，52 次正常初始化，4 次按预期拒绝认证配置。另从首次审计原件提取两份 TOML，以正式服务账户和 root 各自使用同一目录连续启动两次。8 次均完成初始化，第二次没有改写配置或开关文件。两种身份的继承专项合计 16 项通过。[56 次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [两份原文 8 次启动](../audit-evidence/v250-platform/release-original-r9-startups.json) · [MCP 编辑](../audit-evidence/v250-platform/release-mcp-workspace.json) · [开关继承](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+
+对本次实际安装、回退及切回，专用 Debian 分别将 HTTP 响应逐个与安装文件和独立构建核对。重新打包的 1,801 个源文件只有设备码测试文件变化，另 1,800 个逐字节一致；独立编译的 210 个服务端文件与 8 个网页文件一致。两套实际安装树中，除测试文件外的 23 项字节差异均来自 pnpm 记录的构建路径和时间。[实测网页的逐文件校验](../audit-evidence/v250-platform/release-web-integrity.json)
+
+第 27 轮首次离线启动已安装的官方视觉 MCP 软件包时，初始化在 15.048 秒后超时。标准错误为空，未观察到网络请求。当时有其他测试同时运行，缺少首次进程采样，原因仍未确定。同一组 116 项复测全通过，另做的 8 次进程采样均在 0.353–0.671 秒内完成握手并列出全部 8 个工具。首次失败保留在案，尚无证据将其与此前商业账号中的调用失败联系起来。[第 27 轮原始记录](../audit-evidence/v250-round27/independent.json)
+
+GitHub 将在发布候选和 main 提交分别运行 Linux、Windows、Linux 特权测试及安全扫描。正式发布须等待 main 对应提交的两项检查成功，并核对逐用例覆盖结果。[GitHub Actions](https://github.com/Luoyehe/codex-harness/actions)

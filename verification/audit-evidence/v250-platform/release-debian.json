@@ -1,18 +1,16 @@
 {
-  "commit": "historical-commit-032",
-  "validatedAgainstCommit": "historical-commit-032",
-  "measuredAtCommit": "historical-commit-032",
+  "commit": "historical-commit-110",
   "sourceFiles": 2194,
-  "sourceSha256": "e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41",
+  "sourceSha256": "30c7d408807ce73c53b70ca1af23a5ce91c673f855293b75b33b16458c1db4e1",
   "platform": "Dedicated Debian 12 arm64 / systemd 252",
-  "scope": "Revalidated the retained release against newly frozen source and the original deployment transaction. Live installation observations and historical upgrade are attributed separately.",
-  "checkedAtUtc": "2026-11-21T14:58:22+00:00",
-  "gitFilesIncludingModes": 2547,
+  "scope": "Supplemental actual install, version upgrade and configuration behavior",
+  "checkedAtUtc": "2026-11-21T16:04:30+00:00",
+  "gitFilesIncludingModes": 2560,
   "packagedApplicationFiles": 1801,
   "packageMismatches": 0,
-  "sourceArchiveSha256": "8a49efd2940fdbcb088a2857ad8b62bdfecfba639f2f9c89d9ade608570051d2",
-  "applicationPackageSha256": "717302eedc68eadd604ce55ad6e7b4b0cb39bf77c4c166409185ea0230297fc6",
-  "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+  "sourceArchiveSha256": "50b9b6f138d7511acaeb0d8a3c3a2a0e81a4c61f93f55d222df49311f5d8b039",
+  "applicationPackageSha256": "41dcb755d3bb593824ff722f8022aad26c7a33fae870d593053671294a9dc500",
+  "installedRelease": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
   "installedFilesVerified": 20530,
   "controlGeneration": "b82f6465e4d80b58cf2ca60dcb73599e8046d3d70c6f9dad76a9051e53861497",
   "platformTools": {
@@ -23,12 +21,7 @@
     "ordinaryUid": 1000,
     "rootUid": 0,
     "separatePhysicalToolDistributions": true,
-    "bothSourceSnapshotsMatched": true,
-    "physicalToolchainsPreviouslyVerifiedAtCommit": "historical-commit-133",
-    "currentFrozenSourceVerifiedByUids": [
-      1000,
-      0
-    ]
+    "bothSourceSnapshotsMatched": true
   },
   "upgrade": {
     "originalInstanceVersion": "2.4.0",
@@ -46,11 +39,10 @@
     "automationRunColumns": 17,
     "sqliteIntegrityChecksPassed": 2,
     "realApplicationRollbackAndReturn": {
-      "previous": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
-      "restoredCurrent": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+      "previous": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+      "restoredCurrent": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
       "bothHealthyWithRetainedDataAndLogin": true,
-      "controlGenerationHeldDuringApplicationRollback": true,
-      "measuredEarlierCommit": "historical-commit-133"
+      "controlGenerationHeldDuringApplicationRollback": true
     },
     "originalV240ReleaseRetained": true,
     "controlUpdateCommand": {
@@ -59,110 +51,16 @@
       "servicesRestored": true
     },
     "controlTreeVerification": {
-      "commit": "historical-commit-032",
+      "commit": "historical-commit-110",
       "controlDigest": "b82f6465e4d80b58cf2ca60dcb73599e8046d3d70c6f9dad76a9051e53861497",
       "expectedAndInstalledMatch": true,
       "managedControlFilesAndDirectories": 92,
       "managedControlFileCount": 89,
       "differences": 0
     },
-    "formalControlAndApplicationUpdateMeasuredAtCommit": "historical-commit-133",
-    "measuredEarlierCommit": "historical-commit-133",
-    "validatedAgainstCommit": "historical-commit-032",
-    "applicationUpdateCommandExecutedThisRound": false,
-    "applicationRollbackExecutedThisRound": false,
-    "controlUpdateCommandExecutedThisRound": true,
-    "currentAccountBusinessAndSqliteMeasuredAtCommit": "historical-commit-032"
-  },
-  "previousPhysicalUpgrade": {
-    "measuredEarlierCommit": "historical-commit-133",
-    "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
-    "debianEvidenceSha256": "5b4ac8432115f73d8c04f93421da392cd06639181c41da94525232c842252bc4",
-    "webEvidenceSha256": "9660b9e0878a7e352a5657d350c096482904819968d4e68a32d33097dd6fa85a",
-    "realApplicationRollbackAndReturn": {
-      "previous": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
-      "restoredCurrent": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
-      "bothHealthyWithRetainedDataAndLogin": true,
-      "controlGenerationHeldDuringApplicationRollback": true,
-      "measuredEarlierCommit": "historical-commit-133"
-    },
-    "formalControlAndApplicationUpdate": true
-  },
-  "currentVerification": {
-    "measuredAtCommit": "historical-commit-032",
-    "formalCommandsThisRound": [
-      "pack-source",
-      "control-update",
-      "verify"
-    ],
-    "applicationUpdateCommandExecuted": false,
-    "reasonForRetainingInstallation": "The complete uncompressed application archive matches the earlier formal build. The installed release manifest and control generation were verified on the dedicated host.",
-    "wholeInstalledRelease": {
-      "filesAndDirectories": 20530,
-      "manifestDigest": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
-      "integrity": true,
-      "permissions": true,
-      "managedUnits": true,
-      "services": {
-        "gateway": [
-          "active",
-          "running"
-        ],
-        "worker": [
-          "active",
-          "running"
-        ]
-      }
-    },
-    "controlUpdateCommand": {
-      "controlUpdated": false,
-      "changed": false,
-      "servicesRestored": true
-    },
-    "softwarePackage": {
-      "previousCompressedSha256": "8b6672468714d2a19d62905b8b4f8f90b81546f7648eb750fa4ef46d2c44488f",
-      "currentCompressedSha256": "717302eedc68eadd604ce55ad6e7b4b0cb39bf77c4c166409185ea0230297fc6",
-      "compressedByteIdentical": false,
-      "previousTarStreamSha256": "2b449a2125e9ed5a0157c98c10863a6460893b54be3cd19b045870b45458198f",
-      "currentTarStreamSha256": "2b449a2125e9ed5a0157c98c10863a6460893b54be3cd19b045870b45458198f",
-      "identicalTarStream": true,
-      "regularMembers": 1801,
-      "pathByteModeOwnerOrTimestampDifferences": 0,
-      "formalInstalledBuildTransactions": [
-        {
-          "transaction": "99c617ea10b2485599a4f0ed4f9d9ef6",
-          "inputDigest": "d4652f8ceace8d61d648a09fe24a4211f628a3d3ee903509eda76e442677d209",
-          "memberCount": 1801,
-          "directoryCount": 19,
-          "exportManifestDigest": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d"
-        }
-      ],
-      "gzipWrapperComparison": {
-        "compressedArchiveBytes": 1612131,
-        "fullCompressedStreamCompared": true,
-        "differingZeroBasedByteOffsets": [
-          4,
-          5
-        ],
-        "gzipHeaderMtimeSeconds": [
-          1795270968,
-          1795272750
-        ],
-        "outsideTimestampFieldByteIdentical": true,
-        "identicalDeflateDataAndTrailer": true
-      },
-      "perFileManifestArtifact": "comparison-and-manifest.json",
-      "perFileManifestEvidenceSha256": "10a75063036e500b243d06951f68b2f2049a496525e0351d93cdf26b3bb311de"
-    },
-    "browserServingEvidenceSha256": "456e6bf3af5d4ea1efe80836c6568b2e46c8c40fb9244a28695838cc3f673561",
-    "sameBrowserSessionAsEarlierFourPhasesAuthenticated": true,
-    "databaseAndBusinessEvidenceSha256": "be4f0ae9aef008c6033e0f45822355719b44f13c49baed80a1ff5332b597a9ee",
-    "journalSchemaTests": 9,
-    "nativeSQLiteLedgerColumns": [
-      16,
-      17
-    ],
-    "zeroModelTurns": true
+    "applicationUpdateCommandExecutedThisRound": true,
+    "applicationRollbackExecutedThisRound": true,
+    "measuredAtCommit": "historical-commit-110"
   },
   "realColdLaunches": {
     "verifiedInstalledLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
@@ -191,8 +89,7 @@
         "startsPerHomeAndEntry": 2,
         "successfulInitializations": 12,
         "expectedAuthenticationPolicyRefusals": 0,
-        "unexpectedResults": 0,
-        "measuredAtCommit": "historical-commit-032"
+        "unexpectedResults": 0
       },
       "native-format": {
         "inputCases": [
@@ -208,8 +105,7 @@
         "startsPerHomeAndEntry": 2,
         "successfulInitializations": 32,
         "expectedAuthenticationPolicyRefusals": 0,
-        "unexpectedResults": 0,
-        "measuredAtCommit": "historical-commit-032"
+        "unexpectedResults": 0
       },
       "mixed-and-auth": {
         "inputCases": [
@@ -224,8 +120,7 @@
         "startsPerHomeAndEntry": 2,
         "successfulInitializations": 8,
         "expectedAuthenticationPolicyRefusals": 4,
-        "unexpectedResults": 0,
-        "measuredAtCommit": "historical-commit-032"
+        "unexpectedResults": 0
       }
     },
     "originalModelPersonalTransportAndUnassignedFlagPreserved": true,
@@ -234,31 +129,38 @@
       "officialDirectSuccess": 16,
       "managedAffectedFailures": 12,
       "managedStrictControlSuccess": 4
-    },
-    "measuredAtCommit": "historical-commit-032"
+    }
   },
   "evidenceSha256": {
-    "comparison-and-manifest.json": "10a75063036e500b243d06951f68b2f2049a496525e0351d93cdf26b3bb311de",
-    "package-wrapper.json": "1ce03b60a6317d14339b53017b71ad911a88a7a3bdcf92d332b6f5497bdb3800",
-    "package-preflight.log": "3c34ba1afb09261668478778330d06a4b10ebbaef2a1dce7028f5945cd41bbe8",
-    "source-snapshots.jsonl": "cbdad4f0dc1bec66b3c30c034ae3822d1a9e64a880479ceee58beabd4f4adb6d",
-    "current-serving.json": "d1d8348a42f2be87406fde0104e99ceee1bb68abf70288809aaac7f5b0da754f",
-    "verify-final.json": "10951e75e58680000aea44668a42ace5e61902ae40682dcbd6b43d280a1103d6",
-    "control-update.json": "e1901d665eb534d02bfc20e1454c0d1169aaa90610f3f66735cff306e39ae7b0",
-    "control-live-after.json": "e342347c02ecd96045ea12cd7ab7065777b17542a85d144e765950690f7015f3",
-    "business.log": "be4f0ae9aef008c6033e0f45822355719b44f13c49baed80a1ff5332b597a9ee",
-    "journal-native.json": "9f67d1ed37be9e4b580d02ce0defbfafb293b13817cdac2bcb8cec57749188ff",
-    "journal-schema-tests.log": "0163159b64f2989e49335984c2e559795fe08404e8f02b1eb219b55fa8831c31",
-    "debian-historical-commit-032-workspace-ordinary.log": "88224d30ee8ab3dbaf8e4190aff1c302db13e538eced94f6280b4ccac70aa8e5",
-    "release-mcp-cases.json": "bd112942c63d8881df3f926c83ea8690d50fef44f26466ab57d27f6f7d631e4d",
-    "release-mcp-workspace.json": "7e59697c8c980c2c1fa69aa0544cf6aebe0b36028ad798332739cc35249bafcc",
-    "release-mcp-inheritance.json": "519986ee76a6f12b4d48a5d8038c1fdf0487108bfc1f6d8f49728688d2218aaa",
-    "release-original-r9-startups.json": "c6bc44ea774992eab81a5150b4dc499b5bb3124ab0168c6d7df78781f871e060",
-    "release-web-integrity.json": "456e6bf3af5d4ea1efe80836c6568b2e46c8c40fb9244a28695838cc3f673561"
+    "debian-frozen-historical-commit-110-ci-complete.log": "2d74256a21c913e1e16dc4bd215cf4f890bc15749e350dfdada79497a0ae7251",
+    "debian-frozen-historical-commit-110-deploy.log": "54edf203c0fd37f438be38ddfbbc64abdb4b3976292d2470516be44e6e2df9b1",
+    "debian-frozen-historical-commit-110-business.log": "c349356bcea6a7537056f25eccb4b3b7599fe33fa44d54f51cc6267caca7f9b6",
+    "debian-historical-commit-110-rollback-return.log": "b6f617b52d55fea520931010e0c78fe8b67b22916f82e68ba3a8e1ca9a9ecf71",
+    "debian-historical-commit-110-candidates-pre-update.json": "cb5ee34ad339e2ef2d6596e5ace36a4ec957929f87cac0557f2fb6141f7ba602",
+    "debian-historical-commit-110-candidate-archive.json": "13a1df7845831caf2a42c1abb1887d4dad08648a69af0adfb656942f49292bc4",
+    "debian-historical-commit-110-cold-process-installed.log": "72dcbe77931ec3a52e418426bbabafa23c1bd418051b854bfef9cfeb6aff0e18",
+    "debian-historical-commit-110-native-format-installed.log": "2e40f3d8b70c0b4f29943c888a8d496e7d2e29e4d4c49550c8eb198de5396d34",
+    "debian-historical-commit-110-mixed-and-auth-installed.log": "cef4efb4cab9f4786516a3ee0007d2d0be4b715e33a52f169b9d713fec3a94c4",
+    "debian-historical-commit-062-native-format-prior.log": "12debbb4e5ce4faff03d922422e1ce2eba8bc30c222375395ed2900a036f8562",
+    "debian-historical-commit-110-user-mcp-workspace-native.log": "6b9ba060d91c5e74bb52f62bc643400c24d8418781a7deae138a15047e57aa48",
+    "debian-historical-commit-110-user-mcp-workspace-root.log": "9a455f6f7ca430dacdcb36cca6791dee4b3c586d324d2d5567fe9a1f3a9c9ff7",
+    "final-installed-mcp-workspace.json": "ed1ceb6ac45e1998372ce0534119c18ffd86284be19313fca76577dbb05c098b",
+    "final-installed-toml-cases.json": "94960815731a027edf2680ad603570a5ceac168e720098f8ded17a0ad79954e9",
+    "debian-historical-commit-110-installed-r12.json": "956c84d053d6964ade19f111c42f34bdf4fc62983fbce0c1c02ac4b15b8ccc07",
+    "release-original-r9-startups.json": "fee31da084021a60ed1408ab0039613e9aaf068069bec003d9e54d1a01738489",
+    "debian-historical-commit-110-workspace-ordinary.log": "151da0350b497af5b99c04e02a2fad5c28d09ad7d4ac4f184bea8654de76831b",
+    "debian-historical-commit-110-journal-schema-native.json": "d61eef8f351f4af362b8fd37a54c42de9f1b3a018c6876c895f0afc1bd8958b2",
+    "debian-historical-commit-110-journal-schema-test.log": "2278a958aeb01d5d9fc9c60dd688eee22c3f0d3a2d295bf6b0534a7016b16e30",
+    "debian-historical-commit-110-control-live.json": "78f415baf7f9239790087463a0523530731f650be7041eb2c6b176a10ffa30e1",
+    "formal-package-delta.json": "c047bf7a320574239d1f923ca4cc7972fff7a6a2185ddd5a4ff117a8f48d1f4d",
+    "managed-manifest-delta.json": "4ecbb291552632552179084d0b05f21ad18677397465169948db5141b3e954d4",
+    "device-login-targeted.log": "bd81a09babc29e7da4ccd68c8b124a551dd14755c8bb3836bb2acafcd3e4427b",
+    "release-web-integrity.json": "ac4d10845975fad91e9f6e04fb632415bb383518ee843a993b16638feab8cd1a",
+    "web-before.json": "ff63c1f7b1ec50ddc14c682d661b6424996a32c491951a38994ab1adedb415c8",
+    "web-candidate.json": "390e821e8895149c07d46694ed41782164bd788ceb481be49e3e52d56bcb9db0"
   },
   "installedWorkerCustomMcpEdits": {
     "native": {
-      "measuredAtCommit": "historical-commit-032",
       "verifiedInstalledWorkerSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
       "inputSha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
       "actualSupervisorUid": 993,
@@ -278,7 +180,6 @@
       "privateOverrideSidecarUnchanged": true
     },
     "root": {
-      "measuredAtCommit": "historical-commit-032",
       "verifiedInstalledWorkerSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
       "inputSha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
       "actualSupervisorUid": 993,
@@ -309,8 +210,7 @@
     "networkInterfaces": [
       "lo"
     ],
-    "rawEvidenceSha256": "519986ee76a6f12b4d48a5d8038c1fdf0487108bfc1f6d8f49728688d2218aaa",
-    "measuredAtCommit": "historical-commit-032"
+    "rawEvidenceSha256": "956c84d053d6964ade19f111c42f34bdf4fc62983fbce0c1c02ac4b15b8ccc07"
   },
   "linuxOrdinaryTargeted": {
     "files": [
@@ -332,8 +232,7 @@
     "total": 8,
     "successfulInitializations": 8,
     "secondStartReadOnly": true,
-    "evidenceSha256": "c6bc44ea774992eab81a5150b4dc499b5bb3124ab0168c6d7df78781f871e060",
-    "measuredAtCommit": "historical-commit-032"
+    "evidenceSha256": "fee31da084021a60ed1408ab0039613e9aaf068069bec003d9e54d1a01738489"
   },
   "fixtureRecovery": {
     "originalVerifiedSystemDiskSha256": "c5b9150dcff8cf1c9d45fc9eafd28f6b22af22bb0af9bc083eacd5ee967fb188",
@@ -341,23 +240,17 @@
     "wholeFileSha256MatchesBeforeAndAfterZeroBlockReclamation": true,
     "originalVolumeGiB": 20,
     "workingVolumeGiB": 24,
-    "isolatedLocalClones": true,
-    "measuredEarlierCommit": "historical-commit-133"
+    "isolatedLocalClones": true
   },
   "installedWebBundle": {
-    "measuredEarlierCommit": "historical-commit-133",
-    "currentServingMeasuredAtCommit": "historical-commit-032",
-    "currentFilesMeasured": 8,
-    "currentIndependentBuildAndHttpMatch": true,
-    "evidenceSha256": "456e6bf3af5d4ea1efe80836c6568b2e46c8c40fb9244a28695838cc3f673561",
     "compiledPreviousFiles": {
-      "assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
+      "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
       "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
-      "assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
+      "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+      "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
       "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
-      "assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
       "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
-      "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
+      "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
       "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
     },
     "compiledFrozenFiles": {
@@ -373,33 +266,509 @@
     "phases": [
       {
         "phase": "before",
-        "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
         "loopbackResponseAndInstalledFilesMatchExpected": true,
-        "verifiedFileCount": 8,
-        "measuredEarlierCommit": "historical-commit-133"
+        "verifiedFileCount": 8
       },
       {
         "phase": "candidate",
-        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+        "release": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
         "loopbackResponseAndInstalledFilesMatchExpected": true,
-        "verifiedFileCount": 8,
-        "measuredEarlierCommit": "historical-commit-133"
+        "verifiedFileCount": 8
       },
       {
         "phase": "previous",
-        "release": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
+        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
         "loopbackResponseAndInstalledFilesMatchExpected": true,
-        "verifiedFileCount": 8,
-        "measuredEarlierCommit": "historical-commit-133"
+        "verifiedFileCount": 8
       },
       {
         "phase": "returned",
-        "release": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+        "release": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
         "loopbackResponseAndInstalledFilesMatchExpected": true,
-        "verifiedFileCount": 8,
-        "measuredEarlierCommit": "historical-commit-133"
+        "verifiedFileCount": 8
       }
     ],
-    "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true
+    "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true,
+    "evidenceSha256": "ac4d10845975fad91e9f6e04fb632415bb383518ee843a993b16638feab8cd1a"
+  },
+  "measuredAtCommit": "historical-commit-110",
+  "validatedAgainstCommit": "historical-commit-110",
+  "formalPackageComparison": {
+    "previousCompressedArchiveSha256": "8b6672468714d2a19d62905b8b4f8f90b81546f7648eb750fa4ef46d2c44488f",
+    "candidateCompressedArchiveSha256": "41dcb755d3bb593824ff722f8022aad26c7a33fae870d593053671294a9dc500",
+    "memberCount": 1801,
+    "unchangedMembers": 1800,
+    "addedMembers": [],
+    "removedMembers": [],
+    "changedMembers": [
+      {
+        "path": "web/tests/device-login.test.tsx",
+        "previous": {
+          "mode": "0644",
+          "uid": 0,
+          "gid": 0,
+          "mtime": 0,
+          "bytes": 17502,
+          "sha256": "e468b0efc80edcdcfb30f54bea0cb34ab8496b3a5fb379fa004f5deda5c8a032"
+        },
+        "candidate": {
+          "mode": "0644",
+          "uid": 0,
+          "gid": 0,
+          "mtime": 0,
+          "bytes": 18823,
+          "sha256": "917901920ff4960ae30cb3f511c6842bfa6df9ecc8826db7fc5ea7654b632a84"
+        }
+      }
+    ],
+    "comparedMetadata": [
+      "mode",
+      "uid",
+      "gid",
+      "mtime",
+      "bytes",
+      "sha256"
+    ],
+    "sourceInputProvedForPhase": "returned",
+    "installedRelease": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
+    "formalBuildTransactions": [
+      {
+        "transaction": "062d9fb201324ee7873fbbbbd07e0fd7",
+        "sourceInputDigest": "fa6d69ef0252b07bb6b70a5d525c58e34d840b0497a5e66541ca119823f4e509",
+        "releaseManifestDigest": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
+        "files": 1801
+      }
+    ]
+  },
+  "installedManifestComparison": {
+    "previousRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+    "installedRelease": "7f580182871449d9c429abe5c454864e20f8732b273204a1219016c314315b9e",
+    "previousEntries": 20530,
+    "installedEntries": 20530,
+    "differenceCount": 24,
+    "differenceGroups": {
+      "packagedTestSource": 1,
+      "packageManagerCommandShims": 21,
+      "packageManagerTimestampMetadata": 2
+    },
+    "allGeneratedDifferencesMatchedAfterReplacingSpecificBuildTransactionPathAndTimestampFields": true,
+    "differences": [
+      {
+        "path": "app/node_modules/.bin/tsc",
+        "previous": {
+          "bytes": 2670,
+          "mode": 493,
+          "sha256": "eadc348cdb8366a04c266c8d24bbf1f38592e41b45958d96df4f82421a824bd6",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2670,
+          "mode": 493,
+          "sha256": "06aec4ba429abd131afdf25af9bf417943c424dc17d0d192978d629440f9857f",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.bin/vite",
+        "previous": {
+          "bytes": 2786,
+          "mode": 493,
+          "sha256": "be1bb533d07ac436d7363f068ccff3c5df9e3369f772479d2c458ceed86c8147",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2786,
+          "mode": 493,
+          "sha256": "3166f464d7cf1068564ad1cc6141d1a687557730fead76373527d46569db4e68",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.bin/vitest",
+        "previous": {
+          "bytes": 3266,
+          "mode": 493,
+          "sha256": "b0c66e9d9c6e87f90e761ee2e4d31b14ee8c69fedb824853520dd467f9e84298",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 3266,
+          "mode": 493,
+          "sha256": "4cb52a2806dfa9c34e8ee16df209535ae388859c54e01fe071d764a5ae3166b0",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.bin/zai-mcp-server",
+        "previous": {
+          "bytes": 2820,
+          "mode": 493,
+          "sha256": "341acad4cff576b7c8e286487b338d5e86d79bd6145ba8576cf738923f6682c0",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2820,
+          "mode": 493,
+          "sha256": "82954b12fac7fa576123ae4fbbba2d93df596d374357f4c04526528ad15eaae3",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.modules.yaml",
+        "previous": {
+          "bytes": 22899,
+          "mode": 420,
+          "sha256": "3283d5bb8bde511b4e25a687e47e9c4c745604174cff98aea883e8b5254419aa",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 22899,
+          "mode": 420,
+          "sha256": "06eea9f14eea8a48e8ace08472d65d540d43d34e63dd45c2a0637fc079ac5a4f",
+          "type": "file"
+        },
+        "classification": "packageManagerTimestampMetadata",
+        "onlyDifference": "build timestamp or candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm-workspace-state-v1.json",
+        "previous": {
+          "bytes": 1667,
+          "mode": 420,
+          "sha256": "f27cdb9431757bd2f4bfab9f94c83241f7de4818ea1591e9f8bda7af43d66da6",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 1667,
+          "mode": 420,
+          "sha256": "b2713fd6fecbef1ce61a59e94e4557037cd2796c486c98c6ea70497935fa3b3d",
+          "type": "file"
+        },
+        "classification": "packageManagerTimestampMetadata",
+        "onlyDifference": "build timestamp or candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/node_modules/.bin/lz-string",
+        "previous": {
+          "bytes": 2715,
+          "mode": 493,
+          "sha256": "95c7268ee49b11f67d52c4b2f126468abcb06af1b4f83a74c1b8127ca7a78ffe",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2715,
+          "mode": 493,
+          "sha256": "26c89002d8a02d8e77cd67b04591054bf6a347c9a80c6ddd684af53222137f68",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/@vitejs+plugin-react@6.1.2_vite@8.3.5_@types+node@24.19.2_/node_modules/@vitejs/plugin-react/node_modules/.bin/vite",
+        "previous": {
+          "bytes": 2831,
+          "mode": 493,
+          "sha256": "b0b0208a59a090557a7732be547550cd81e1d9b0b1cec77665db593726e934d8",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2831,
+          "mode": 493,
+          "sha256": "4a72e8d745e985be7b87d3050597dca71a95232610f8d78aeeeffc3b5162a36a",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/@vitest+mocker@5.0.5_vite@8.3.5_@types+node@24.19.2_/node_modules/@vitest/mocker/node_modules/.bin/vite",
+        "previous": {
+          "bytes": 2831,
+          "mode": 493,
+          "sha256": "b0b0208a59a090557a7732be547550cd81e1d9b0b1cec77665db593726e934d8",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2831,
+          "mode": 493,
+          "sha256": "4a72e8d745e985be7b87d3050597dca71a95232610f8d78aeeeffc3b5162a36a",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/cross-spawn@7.0.6/node_modules/cross-spawn/node_modules/.bin/node-which",
+        "previous": {
+          "bytes": 2652,
+          "mode": 493,
+          "sha256": "d5b8b755f8279ad08fc2201485a754f1769f220a97f01ecc21fe1f3ddb0e2198",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2652,
+          "mode": 493,
+          "sha256": "5f77d8bfdd68f5d86907f12d4e5f3d8f3e736b33bc7c0ab3df2566da6750fc02",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/node_modules/.bin/specificity",
+        "previous": {
+          "bytes": 2880,
+          "mode": 493,
+          "sha256": "e5e89865959b91ea3b3857c4c29b3af7af002b68ef3a954f52772d84492fea3b",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2880,
+          "mode": 493,
+          "sha256": "5025f11f1bb9e9d6a10f45f6be4e3e5dec32ad2cbac43abfa2b5fc48f599cbee",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/lz-string",
+        "previous": {
+          "bytes": 2479,
+          "mode": 493,
+          "sha256": "2fc8a2c9352bd9f175fc8cc271a967381e9414d20b8277d43f3dda425d091a86",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2479,
+          "mode": 493,
+          "sha256": "dd9de1a8cdf269f4f03fa81b16f5f468b86323e633ca1b4e5a0a062c01272612",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/nanoid",
+        "previous": {
+          "bytes": 2471,
+          "mode": 493,
+          "sha256": "007cb0ad581d9a9d5a9838b905f559f3774319ff07b7e886405f1bde2025c9df",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2471,
+          "mode": 493,
+          "sha256": "676d00400c5b1516aec90901ff46107bcb2479007cf603b730090ecf6ad8bafa",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/node-which",
+        "previous": {
+          "bytes": 2455,
+          "mode": 493,
+          "sha256": "6da59e5a520d6008f652927bd0793e51dab505c93c78c37c81c19180d01f2fe9",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2455,
+          "mode": 493,
+          "sha256": "bc7c734b2173d35e364c42d0e1e63914940a4276558502982a23c3d72a6a4ff3",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/rolldown",
+        "previous": {
+          "bytes": 2477,
+          "mode": 493,
+          "sha256": "bac450118792624c7371385d1de4db7ad6db2ef9ba67ef8acbc47b64f07a9339",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2477,
+          "mode": 493,
+          "sha256": "f6032a0245c9454ad575d9224d8ec5b15c27f34796834eadc39b67484a7210f4",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/specificity",
+        "previous": {
+          "bytes": 2599,
+          "mode": 493,
+          "sha256": "65e145e7d52ac853bebf76213549262e2527c3605f7d5c29fe247199c4d24623",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2599,
+          "mode": 493,
+          "sha256": "bb89e31a9ab64da0bb7f4b60632363a034c203d21ed6796f0792a240fd3e74f0",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/tldts",
+        "previous": {
+          "bytes": 2435,
+          "mode": 493,
+          "sha256": "39a037fa17c76e13f5176de882888119bf6a224dc230c0bacbce00dc7601bf11",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2435,
+          "mode": 493,
+          "sha256": "a80b8541ccbbec885b23c6bd237dd097dd0a9567e35c333d535b84218055f487",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/node_modules/.bin/why-is-node-running",
+        "previous": {
+          "bytes": 2575,
+          "mode": 493,
+          "sha256": "d5de1df552ddee850f0d8929a94825b16412e86b952961a69851b6d82c773c3f",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2575,
+          "mode": 493,
+          "sha256": "4739c42c9357cfc0a8b45f3678adc9eb84c6e3b2cc1c5dae247bad0878aaadff",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/postcss@8.5.31/node_modules/postcss/node_modules/.bin/nanoid",
+        "previous": {
+          "bytes": 2680,
+          "mode": 493,
+          "sha256": "b41e0947ddf9df8dccd90f27adf95b5494a12641c6b2369b45afdd32415afa84",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2680,
+          "mode": 493,
+          "sha256": "62ffb70c6e3a47c7c65808c986d90058ec793cd87bcf366f44827110df55bb54",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/tough-cookie@6.0.2/node_modules/tough-cookie/node_modules/.bin/tldts",
+        "previous": {
+          "bytes": 2638,
+          "mode": 493,
+          "sha256": "f71ce6023938afdaab0e3918e239714573a5a2c5a53374e066a8bb3015d0a51b",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2638,
+          "mode": 493,
+          "sha256": "e8639ea2a96400f4fe8ed929b2ccb8bd9cf4cab73b5e961baf84f4079bcfe875",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/vite@8.3.5_@types+node@24.19.2/node_modules/vite/node_modules/.bin/rolldown",
+        "previous": {
+          "bytes": 2698,
+          "mode": 493,
+          "sha256": "48775a2c96d4bfb93288867cec1f037b775e76d12abc0f9c473a037ff9a7ed18",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2698,
+          "mode": 493,
+          "sha256": "43f8440228670e4ba0f8ac065d1b4c689b5736c6be9ccd9451f4f293c1dba972",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/vitest@5.0.5_@types+node@24.19.2_jsdom@30.1.3_vite@8.3.5_@types+node@24.19.2_/node_modules/vitest/node_modules/.bin/vite",
+        "previous": {
+          "bytes": 2816,
+          "mode": 493,
+          "sha256": "131b8b14b1a04a3d89e9384a5c6df53aa031ed805d93a306410e79eba591186f",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2816,
+          "mode": 493,
+          "sha256": "87255306e2f8623b1b3c178cfd8a98af23cfb913b4745c3656aa5adc096b71dc",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/node_modules/.pnpm/vitest@5.0.5_@types+node@24.19.2_jsdom@30.1.3_vite@8.3.5_@types+node@24.19.2_/node_modules/vitest/node_modules/.bin/why-is-node-running",
+        "previous": {
+          "bytes": 2856,
+          "mode": 493,
+          "sha256": "50f17de8247edd3d0d6f668695537b9f7945848e5876677b6413cfd03f7b3422",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 2856,
+          "mode": 493,
+          "sha256": "d758aefb279f5faddc0b9e4774e0fd9a6b7d1b833161c0e166ea37998a756a1f",
+          "type": "file"
+        },
+        "classification": "packageManagerCommandShims",
+        "onlyDifference": "candidate transaction path"
+      },
+      {
+        "path": "app/web/tests/device-login.test.tsx",
+        "previous": {
+          "bytes": 17502,
+          "mode": 420,
+          "sha256": "e468b0efc80edcdcfb30f54bea0cb34ab8496b3a5fb379fa004f5deda5c8a032",
+          "type": "file"
+        },
+        "current": {
+          "bytes": 18823,
+          "mode": 420,
+          "sha256": "917901920ff4960ae30cb3f511c6842bfa6df9ecc8826db7fc5ea7654b632a84",
+          "type": "file"
+        },
+        "classification": "packagedTestSource"
+      }
+    ]
+  },
+  "deviceLoginTestFile": {
+    "execution": "Debian ordinary UID 1000, official targeted runner",
+    "measuredAtCommit": "historical-commit-110",
+    "casesPassed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "rawEvidenceSha256": "bd81a09babc29e7da4ccd68c8b124a551dd14755c8bb3836bb2acafcd3e4427b"
   }
 }
