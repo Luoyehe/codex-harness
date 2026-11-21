@@ -10,10 +10,12 @@ from pathlib import Path
 import re
 import stat
 import tempfile
+import tomllib
 
 from .common import DeployError, fsync_directory, require
 from .mcp_switch_owners import OWNER, origins, retained
 from .provider import CODING_HTTP, ZHIPU_URL
+from .provider_layers import equivalent
 
 
 def version(value: dict) -> str:
@@ -21,55 +23,73 @@ def version(value: dict) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def edited(text: str, name: str, enabled: bool | None, initial: dict) -> str:
-    import tomllib
+# Only locate candidate edits in the original text. tomllib decodes quoted
+# key components and validates the entire result before anything is saved.
+_KEY = r"""(?:[A-Za-z0-9_-]+|'[^'\r\n]*'|"(?:[^"\\\r\n]|\\.)*")"""
+_PATH = rf'{_KEY}(?:[ \t]*\.[ \t]*{_KEY})*'
+_SECTION = re.compile(
+    rf'(?m)^[ \t]*\[(?P<header>[ \t]*{_PATH}[ \t]*)\][ \t]*(?P<comment>#[^\r\n]*)?(?P<eol>\r?\n)'
+    rf'(?P<between>(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*)'
+    rf'[ \t]*(?P<flag>{_KEY})[ \t]*=[ \t]*(?:true|false)[ \t]*(?P<tail>#[^\r\n]*)?(?P<end>\r?\n|$)'
+)
+_ASSIGNMENT = re.compile(
+    rf'(?m)(?:^|(?<=[,{{]))[ \t]*(?P<assignment>(?P<path>{_PATH})[ \t]*=[ \t]*'
+    rf'(?:\{{[ \t]*(?P<flag>{_KEY})[ \t]*=[ \t]*(?:true|false)[ \t]*\}}|true|false))'
+)
+
+
+def _key_path(source):
+    # Basic-quoted keys use the same escape rules as basic strings.
+    try:
+        return tuple(tomllib.loads("v=" + key)["v"] if key.startswith('"') else key.strip("'")
+                     for key in re.findall(_KEY, source))
+    except tomllib.TOMLDecodeError:
+        # A line in a multiline string can look like a header or assignment.
+        return ()
+
+
+def _removals(text, name):
+    for section in _SECTION.finditer(text):
+        if _key_path(section["header"]) != ("mcp_servers", name) or _key_path(section["flag"]) != ("enabled",):
+            continue
+        keep = ((section["comment"] + section["eol"]) if section["comment"] else "") + section["between"]
+        if section["tail"]:
+            keep += section["tail"] + section["end"]
+        yield text[:section.start()] + keep + text[section.end():]
+
+    for assignment in _ASSIGNMENT.finditer(text):
+        path = _key_path(assignment["path"])
+        if assignment["flag"]:
+            if _key_path(assignment["flag"]) != ("enabled",):
+                continue
+        else:
+            if path[-1:] != ("enabled",):
+                continue
+            path = path[:-1]
+        if path not in ((name,), ("mcp_servers", name)):
+            continue
+        start, end = assignment.span("assignment")
+        after = re.match(r'[ \t]*,[ \t]*', text[end:])
+        before = re.search(r',[ \t]*$', text[:start])
+        if after:
+            yield text[:start] + text[end + after.end():]
+        if before:
+            yield text[:before.start()] + text[end:]
+        yield text[:start] + text[end:]
+
+
+def _remove_legacy(text, name, initial):
     wanted = copy.deepcopy(initial)
-    servers = wanted.setdefault("mcp_servers", {})
-    require(isinstance(servers, dict), "Invalid native MCP configuration", "config_conflict")
-    old = servers.get(name)
-    require(old is None or isinstance(old, dict) and set(old) <= {"enabled"}, "Only an inherited server may be overridden", "config_conflict")
-    if enabled is None: servers.pop(name, None)
-    else: servers[name] = {"enabled": enabled}
-    if initial == wanted or enabled is None and old is None: return text
-    key = re.escape(name); quoted = json.dumps(name, ensure_ascii=False)
-    def field(key): return rf'(?:{key}|"{key}"|\'{key}\')'
-    entry = field(key); registry = field("mcp_servers"); flag = field("enabled")
-    nl = "\r\n" if "\r\n" in text else "\n"
-    value = "true" if enabled else "false"
-    def candidates():
-        if enabled is not None and old is None:
-            yield text + (nl if text and not text.endswith("\n") else "") + f"[mcp_servers.{quoted}]{nl}enabled = {value}{nl}"
-            # Inline tables cannot be extended by reopening a TOML section.
-            for match in re.finditer(rf'(?m)^\s*{registry}\s*=\s*\{{', text):
-                at = match.end(); comma = "" if text[at:].lstrip().startswith("}") else ", "
-                yield text[:at] + f"{quoted} = {{enabled = {value}}}" + comma + text[at:]
-            return
-        if enabled is not None:
-            for match in re.finditer(rf'{flag}\s*=\s*(true|false)', text):
-                yield text[:match.start(1)] + value + text[match.end(1):]
-            return
-        # Recognize both Codex-emitted sections and equivalent inline/dotted
-        # forms. Parse the entire candidate before publishing it: strings and
-        # similarly named servers cannot be mistaken for the intended field.
-        for line in re.finditer(rf'(?m)^[ \t]*\[[ \t]*{registry}\s*\.\s*{entry}\s*\][^\n]*(?:\n|$)', text):
-            pos = line.end()
-            for setting in re.finditer(rf'(?m)^[ \t]*{flag}\s*=\s*(true|false)[^\n]*(?:\n|$)', text[pos:]):
-                begin, end = pos + setting.start(), pos + setting.end()
-                yield text[:line.start()] + text[pos:begin] + text[end:]
-        for expr in (rf'{entry}\s*=\s*\{{\s*{flag}\s*=\s*(?:true|false)\s*\}}',
-                     rf'{registry}\s*\.\s*{entry}\s*\.\s*{flag}\s*=\s*(?:true|false)',
-                     rf'{entry}\s*\.\s*{flag}\s*=\s*(?:true|false)'):
-            for match in re.finditer(expr, text):
-                a, b = match.span()
-                yield text[:a] + text[b:]
-                comma = re.match(r'\s*,\s*', text[b:])
-                if comma: yield text[:a] + text[b + comma.end():]
-                comma = re.search(r',\s*$', text[:a])
-                if comma: yield text[:comma.start()] + text[b:]
-    for candidate in candidates():
-        try: actual = tomllib.loads(candidate)
-        except tomllib.TOMLDecodeError: continue
-        if actual == wanted or (not servers and "mcp_servers" not in actual and {**actual, "mcp_servers": {}} == wanted): return candidate
+    del wanted["mcp_servers"][name]
+    for candidate in _removals(text, name):
+        try:
+            actual = tomllib.loads(candidate)
+        except tomllib.TOMLDecodeError:
+            continue
+        # Removing the last dotted key also removes its implicit parent.
+        actual.setdefault("mcp_servers", {})
+        if equivalent(actual, wanted):
+            return candidate
     raise DeployError("config_conflict", "The native MCP flag could not be updated without changing unrelated settings")
 
 
@@ -241,7 +261,6 @@ def _switches(home, document, providers):
 
 
 def read(home, *, system=None, providers=None):
-    import tomllib
     _safe(home.lstat(), True)
     def snapshot():
         data, _ = _read(system or SYSTEM, limit=4 * 1024 * 1024, private=False)
@@ -270,7 +289,6 @@ def _exclusive(home):
 
 
 def _native_layers(home, system):
-    import tomllib
     # Some deployments mount a root-owned base file read-only. Reading it
     # does not grant permission to replace it; migration checks ownership again.
     base = _read(home / "config.toml", limit=1024 * 1024, private=False)
@@ -322,7 +340,6 @@ def launch_arguments(home: Path, *, system=None, providers=None) -> list[str]:
     system = system or SYSTEM
     # No switches and no system layer is the normal development/default setup.
     if not system.exists(): return []
-    import tomllib
     with _exclusive(home):
         base, settings, document = _native_layers(home, system)
         flags, before, identities, servers, history, owners = _switches(home, document, providers)
@@ -340,12 +357,12 @@ def launch_arguments(home: Path, *, system=None, providers=None) -> list[str]:
             imported[key] = imported.get(key, True) and value
         flags = {**imported, **flags}
         require(sum(not key.startswith(UNASSIGNED) for key in flags) <= 128, "Too many MCP switches", "capacity")
+        text = base[0].decode()
+        for key in legacy:
+            text = _remove_legacy(text, key, tomllib.loads(text))
         if flags != (json.loads(before[0]) if before[1] else {}):
             _save(home, flags, before)
         if legacy:
-            text = base[0].decode()
-            for key in legacy:
-                text = edited(text, key, None, tomllib.loads(text))
             _replace(home / "config.toml", text.encode(), base, 1024 * 1024)
             entries = tomllib.loads(text).get("mcp_servers", {})
         active = {name: value for name, value in _state(home, flags, identities, servers)["flags"].items() if name not in entries}

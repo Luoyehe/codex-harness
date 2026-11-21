@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import tomllib
 import unittest
 
 from deploy import mcp_enabled_override as switches
@@ -40,6 +41,54 @@ class McpEnabledOverrides(unittest.TestCase):
         self.assertEqual(switches.launch_arguments(self.home, system=self.system), [])
         self.assertEqual(switches.read(self.home, system=self.system)["flags"], {})
         self.assertEqual(json.loads((self.home / switches.STORE).read_text()), {"zai-other": False})
+
+    def test_old_dotted_inline_and_escaped_section_survive_repeated_launch(self):
+        inputs = {
+            "dotted-inline": b'model = "fixture"\nmcp_servers.web-reader = { enabled = false }\n',
+            "escaped-section": b'model = "fixture"\n[mcp_servers."web\\u002dreader"]\nenabled = false\n',
+        }
+        self.system.write_bytes(b'[mcp_servers.web-reader]\ncommand = "local-fixture"\n')
+        stored = {"@unassigned:web-reader": False}
+        for spelling, original in inputs.items():
+            for partially_migrated in (False, True):
+                with self.subTest(spelling=spelling, partially_migrated=partially_migrated):
+                    home = self.root / f"{spelling}-{partially_migrated}"
+                    home.mkdir(mode=0o700)
+                    config = home / "config.toml"
+                    sidecar = home / switches.STORE
+                    config.write_bytes(original)
+                    if partially_migrated:
+                        sidecar.write_bytes(b'{"@unassigned:web-reader": false}\n')
+                    previous = None
+                    for _ in range(2):
+                        self.assertEqual(switches.launch_arguments(home, system=self.system), [])
+                        self.assertEqual(tomllib.loads(config.read_text()), {"model": "fixture"})
+                        self.assertEqual(json.loads(sidecar.read_bytes()), stored)
+                        snapshot = [(p.stat().st_ino, p.stat().st_mtime_ns, p.read_bytes()) for p in (config, sidecar)]
+                        if previous is not None:
+                            self.assertEqual(snapshot, previous)
+                        previous = snapshot
+
+    def test_escaped_components_comments_and_unrelated_values_are_preserved(self):
+        prefix = (
+            b'model = "keep" # root setting\r\n'
+            b'number = nan\r\n'
+            b"example = '''\r\n"
+            b'["looks\\invalid".server]\r\nenabled = true\r\n'
+            b"'''\r\n"
+        )
+        suffix = b'[mcp_servers.personal]\r\ncommand = "keep" # unrelated server\r\n'
+        section = (b'["mcp\\u005fservers"."one.with\\u002edot"] # header\r\n'
+                   b'# comment between fields\r\n'
+                   b'"enabl\\u0065d" = false # switch\r\n')
+        config = self.home / "config.toml"
+        config.write_bytes(prefix + section + suffix)
+        expected = prefix + b'# header\r\n# comment between fields\r\n# switch\r\n' + suffix
+        for _ in range(2):
+            arguments = switches.launch_arguments(self.home, system=self.system)
+            self.assertEqual(arguments, ["-c", 'mcp_servers={"one.with.dot" = {enabled = false}}'])
+            self.assertEqual(config.read_bytes(), expected)
+            self.assertEqual(json.loads((self.home / switches.STORE).read_bytes()), {"one.with.dot": False})
 
     def test_a_reassigned_system_display_name_does_not_inherit_the_other_providers_boolean(self):
         def write_provider(identity):
