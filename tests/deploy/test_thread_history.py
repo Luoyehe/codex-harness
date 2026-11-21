@@ -1,6 +1,7 @@
 """Real local files/locks; synthetic history only, no native or provider network."""
 import hashlib
 import base64
+from contextlib import closing
 import gzip
 import json
 import os
@@ -315,7 +316,9 @@ class ThreadHistoryTests(unittest.TestCase):
             with patch.object(history, "_decode", observed):
                 self.assertEqual(history.operate(self.home, self.uid, request)["references"][0]["paths"], [one])
             self.assertEqual(len(scanned), 3)
-            self.path.write_bytes(raw.replace(one.encode(), two.encode()))
+            changed = self.save(*(line("event_msg", {"type": "fixture", "value": two}) for _ in rows))
+            self.assertNotEqual(raw, changed)
+            self.assertEqual(len(raw), len(changed))
             self.assertEqual(history.operate(self.home, self.uid, request)["references"][0]["paths"], [two])
 
     def test_independent_rollouts_remain_collectable_when_aggregate_exceeds_per_history_limit(self):
@@ -339,7 +342,7 @@ class ThreadHistoryTests(unittest.TestCase):
         p, j = uri("image/png", png), uri("image/jpeg", jpeg)
         other = "00000000-0000-4000-8000-000000000099"
         queue = self.home / "queue_1.sqlite"
-        with sqlite3.connect(queue) as db:
+        with closing(sqlite3.connect(queue)) as db, db:
             db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT)")
             db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("a", THREAD, json.dumps({"UserInput": {"content": [{"type": "image", "image_url": p}], "client_id": "native-client"}})))
             db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("b", other, json.dumps({"input": [{"type": "image", "url": j}]})))
@@ -355,7 +358,7 @@ class ThreadHistoryTests(unittest.TestCase):
                     {"threadId": THREAD, "paths": [], "images": [evidence("image/png", png)]},
                     {"threadId": other, "paths": [], "images": [evidence("image/jpeg", jpeg)]}])
                 self.assertNotIn("base64", json.dumps(result))
-        with sqlite3.connect(queue) as db:
+        with closing(sqlite3.connect(queue)) as db, db:
             db.execute("DELETE FROM queued_items WHERE thread_id=?", (other,))
             db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("c", other, json.dumps({"input": [{"type": "image", "url": "data:image/png;base64,!"}]})))
         result = history.operate(self.home, self.uid, request)
@@ -404,7 +407,7 @@ class ThreadHistoryTests(unittest.TestCase):
                  {"type": "text", "text": "原始上下文", "text_elements": [{"byte_range": {"start": 0, "end": 15}, "placeholder": "附件来源"}]}]
         def payload(parts, cid): return json.dumps({"UserInput": {"content": parts, "client_id": cid}})
         queue = self.home / "queue_1.sqlite"
-        with sqlite3.connect(queue) as db:
+        with closing(sqlite3.connect(queue)) as db, db:
             db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT,queue_order INTEGER)")
             db.executemany("INSERT INTO queued_items VALUES(?,?,?,?)", [
                 ("large", THREAD, payload(large, "first"), 1), ("small", THREAD, payload(small, "second"), 2),
@@ -439,7 +442,8 @@ class ThreadHistoryTests(unittest.TestCase):
         self.assertEqual(own["queuedImages"], [{"mimeType": "image/png", "sha256": hashlib.sha256(png).hexdigest()}])
         self.assertNotIn("unmatchedQueuedImage", own)
         self.assertIsNone(history.operate(self.home, self.uid, dict(req, action="queue-item", queuedSubmissionId="different"))["queuedSubmission"])
-        with sqlite3.connect(queue) as db: db.execute("DELETE FROM queued_items WHERE id='large'")
+        with closing(sqlite3.connect(queue)) as db, db:
+            db.execute("DELETE FROM queued_items WHERE id='large'")
         self.assertEqual(history.operate(self.home, self.uid, req), {"large": False, "data": [], "complete": True})
 
     def test_queue_only_reference_survives_reopen_and_clear_removes_evidence(self):
@@ -448,13 +452,13 @@ class ThreadHistoryTests(unittest.TestCase):
         item.write_bytes(b"actual queued bytes")
         queue = self.home / "queue_1.sqlite"
         request = {"action": "attachment-index", "attachmentRoot": str(attachment_root)}
-        with sqlite3.connect(queue) as db:
+        with closing(sqlite3.connect(queue)) as db, db:
             db.execute("CREATE TABLE queued_items(id TEXT PRIMARY KEY,thread_id TEXT,payload_json TEXT)")
             db.execute("INSERT INTO queued_items VALUES(?,?,?)", ("a", THREAD, json.dumps({"input": [{"type": "text", "text": 'Attached file "a.txt" is available at ' + json.dumps(str(item)) + "."}]})))
         queue.chmod(0o600)
         self.assertEqual(history.operate(self.home, self.uid, request)["references"], [{"threadId": THREAD, "paths": [str(item)]}])
         self.assertEqual(item.read_bytes(), b"actual queued bytes")
-        with sqlite3.connect(queue) as db:
+        with closing(sqlite3.connect(queue)) as db, db:
             db.execute("DELETE FROM queued_items")
         self.assertEqual(history.operate(self.home, self.uid, request)["references"], [])
 

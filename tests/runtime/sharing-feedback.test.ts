@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { PluginSharing } from '../../src/runtime/plugin-sharing.js';
 import { Feedback } from '../../src/runtime/feedback.js';
 import { object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
@@ -30,11 +31,13 @@ test('share mutations require a fresh existing remote identity and distinct prin
 test('feedback validates conversation scope, explicit logs and fixed unique destination', async () => {
   // Minimal native result is supplied by the fixture schema helper below.
   const { nativeThread } = await import('./fixture-values.js');
-  const feedback = new Feedback(async () => ({ thread: nativeThread({ id: 'thread', cwd: '/project' }) }), async () => ({ directory: '/project/.harness-feedback' })); const context = { clientId: 'owner', operationId: randomUUID() };
-  const params = { cwd: '/project', threadId: 'thread', classification: 'bug', reason: 'Private feedback body', includeLogs: false, confirm: true }; let written: JsonObject | undefined;
+  const cwd = path.resolve('feedback-project');
+  const directory = path.join(cwd, '.harness-feedback');
+  const feedback = new Feedback(async () => ({ thread: nativeThread({ id: 'thread', cwd }) }), async () => ({ directory })); const context = { clientId: 'owner', operationId: randomUUID() };
+  const params = { cwd, threadId: 'thread', classification: 'bug', reason: 'Private feedback body', includeLogs: false, confirm: true }; let written: JsonObject | undefined;
   const write = async (_method: string, body: JsonValue) => { written = object(body); return { savedPath: written.savePath!, threadId: 'thread', promptHash: null }; };
   await expect(feedback.submit('feedback/save', { ...params, savePath: '/secret' }, context, write)).rejects.toHaveProperty('delivery', 'not_sent');
-  await expect(feedback.submit('feedback/save', { ...params, cwd: '/other' }, context, write)).rejects.toHaveProperty('code', 'feedback_scope');
+  await expect(feedback.submit('feedback/save', { ...params, cwd: path.resolve('other-project') }, context, write)).rejects.toHaveProperty('code', 'feedback_scope');
   const result = await feedback.submit('feedback/save', params, context, write); expect(written).toMatchObject({ extraLogFiles: [], includeLogs: false, threadId: 'thread' });
-  expect(String(written!.savePath)).toContain(context.operationId); expect(receiptResult('feedback/save', result)).not.toHaveProperty('reason');
+  expect(written!.savePath).toBe(path.join(directory, context.operationId + '.zip')); expect(receiptResult('feedback/save', result)).not.toHaveProperty('reason');
 });
