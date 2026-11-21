@@ -1,0 +1,52 @@
+{
+  "baselineCommit": "historical-commit-118",
+  "fixCommit": "d11764173d95ce37c6a576a09249c605980c9581",
+  "githubRun": 44914388312,
+  "hostedWindowsAssertion": "The final echo succeeded, then the immediate budget.pending assertion expected zero and got one.",
+  "controlledPipe": "Real native fixture process on macOS ARM64. Only delivery of the chosen echo stdin write completion callback was delayed by 100ms after the actual write. Process stdout was untouched.",
+  "controlledTests": [
+    "Unicode validation then a successful echo",
+    "mcpServer/tool/call times out in isolation",
+    "plugin/install times out in isolation"
+  ],
+  "baselineSameControl": {
+    "passed": 0,
+    "failedBudgetPendingOneInsteadOfZero": 3
+  },
+  "fixedSameControl": {
+    "passed": 3,
+    "failed": 0
+  },
+  "fixedOrdinary": {
+    "files": 7,
+    "total": 96,
+    "passed": 91,
+    "failed": 0,
+    "skipped": [
+      "Windows identity lookup distinguishes absent processes from failed queries",
+      "bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (true)",
+      "bounded native delivery launcher shutdown closes saturated stdin and requires cleanup acknowledgement (false)",
+      "closing before the POSIX controller starts retains its stop request and confirms cleanup",
+      "native shutdown may finish and persist its acknowledgement before forced descendant cleanup"
+    ]
+  },
+  "typechecksPassed": [
+    "tsconfig.tests.json",
+    "tsconfig.server.json"
+  ],
+  "sourceChanged": [
+    "tests/runtime/native-fixture.mjs",
+    "tests/runtime/native.test.ts"
+  ],
+  "normalBehavior": "Slow request deadline, unknown delivery, no replay and live transport are preserved. Explicitly release the timed-out reply before the child acknowledges the release with its method; the subsequent normal echo must succeed with both retained bytes and pending entries drained after its write completion.",
+  "hashes": {
+    "old-controlled.log": "ffa0312eef932638dc74ba5123261596a921d82bab5873ae0dca6b41bf4b1c42",
+    "old-trace.jsonl": "53ae5a91ae39e310b7c15aa1b715d1bbf7399a0fdefc21c78aa685d4cf0be2ad",
+    "new-controlled.log": "7237ab7b4f12ea6d0ad05e978876a9ba6a15326ae4115b3db4b8de85e9ca0e0f",
+    "new-trace.jsonl": "af8f687ae2e04c83dd73d82fae4b73a6d629233afb95ddff2b58beebcd5fdb39",
+    "hold-fixture-write.cjs": "1105702807aa146fda55cc8bf17cf26471305dee4cb83efdb62fb27dd2b4591e",
+    "affected.json": "19cce1c4ada5b61ba2720477aeab9cdb449276f7275eead328795fd78a48e76f",
+    "ts-server.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ts-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

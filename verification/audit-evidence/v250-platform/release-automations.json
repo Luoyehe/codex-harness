@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "commit": "historical-commit-133",
+  "commit": "historical-commit-032",
   "sourceVerification": {
     "files": 2194,
-    "digest": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
+    "digest": "e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41",
     "mismatches": []
   },
   "compiledFromFrozenSource": true,
@@ -11,7 +11,7 @@
   "node": "v24.22.1",
   "cli": "0.169.0",
   "result": "passed",
-  "generatedAt": "2026-11-21T14:17:15.575286+00:00",
+  "generatedAt": "2026-11-21T14:49:36.327291+00:00",
   "coverage": "Original R13 and R14 scripts and R15 observations on an isolated checkout. CLI workflows used loopback Responses. Approval ordering and approval protocol frames were controlled by a local relay. Stop and reconnect probes used real local transport and simulated worker actions. Web retention was measured in jsdom with the production hook.",
   "notExercised": [
     "External paid inference or real account",
@@ -45,12 +45,12 @@
   "publicReportHashes": {
     "historyBefore": "1d9f91ab23b1d3c1d0fe253e861303dc884567b935548cb41cedcff173ded2a0",
     "historyPreviousFix": "a8f2b5fa5a5b170b0fb4e1b8cfcd12348d9daa94e7fe1aa120897501501948e2",
-    "historyCurrent": "da22d9fc9b2c3032c5c95f58883318f1510f8ee08d26757f18fbc5e69a8bb11f",
+    "historyCurrent": "f3264ce833d0a2fff6e4cafb017b0a29c5b883da4e4741109e46275e1b58aa12",
     "approvalsBefore": "58d94b40d5b4b0266807258b886e6c66d93b3808d9a04c2504701983ec647cfd",
-    "approvalsCurrent": "8cfbbd49f6487117c461894c7369da316537baadad784a0d70b8d83c8b065752",
+    "approvalsCurrent": "ba7d2bbb65ad1e26828ca48c5dc57c2fdc1739e1505afaae7777d89bd223d0d4",
     "stopBefore": "25a029e2f962eb4353215aa49bf1c69d16cf6897e7c0f96c8274d98f0b6d9378",
-    "stopCurrent": "e1f5c7798fc9833039e4beb0d3814013a32e7c4e2c7ca27e9eef47f94b2af81b",
-    "workerServerControl": "5e9b59ee5ab64c9cd36ff4791ac68c6c5343ebbc8e6ec472167202f2f687026a",
+    "stopCurrent": "114fbe834e762731b2c795d7277172c1d4e288e1b3c78a158a82f4c6c51c0131",
+    "workerServerControl": "81ef6969206d5ad9fd2805ee8fa1f50cb7e2e8fe6a1af21135226e22a70ce67d",
     "r15Baseline": "f3b67359f077620ccb4f9b73803110ae69d5ac8c935eb173960f5761cfec8449"
   },
   "history": {
@@ -69,7 +69,7 @@
     ],
     "currentEvidence": {
       "schema": 1,
-      "candidate": "historical-commit-133",
+      "candidate": "historical-commit-032",
       "expectedBehavior": "after",
       "supplier": "Loopback Responses fixture",
       "cli": "0.169.0",

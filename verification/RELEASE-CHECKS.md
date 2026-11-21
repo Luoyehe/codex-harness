@@ -356,4 +356,4 @@ Limits: no new paid inference or real external MCP tool task; builtin MCP status
 
 ## v2.5.0 发布候选核验
 
-在 v2.4.0 的 169 项修复基础上对最终源码进行独立审计，保留了早期有发现的轮次、修复以及复验。用户为本次发布指定连续两轮，已在同一份 2,194 文件源码上完成（`v250-round21`、`v250-round22`）。两轮的审阅原件、官方 MCP 新鲜度检查及其校验值均在授权记录中。项目的完整测试仍包含全部 303 个文件，由 Linux、Windows 和 Linux 特权三组分别运行并核对用例覆盖。[审计和验收](reports/v250-release-audit.md) · [逐项底稿](reports/v240-remediation-acceptance.md) · [历史 CI 复盘](reports/v250-historical-checks.md)
+在 v2.4.0 的 169 项修复基础上对最终源码进行独立审计，保留了早期有发现的轮次、修复以及复验。用户为本次发布指定连续两轮，已在同一份 2,194 文件源码上完成（`v250-round23`、`v250-round24`）。两轮的审阅原件、官方 MCP 新鲜度检查及其校验值均在授权记录中。项目的完整测试仍包含全部 303 个文件，由 Linux、Windows 和 Linux 特权三组分别运行并核对用例覆盖。[审计和验收](reports/v250-release-audit.md) · [逐项底稿](reports/v240-remediation-acceptance.md) · [历史 CI 复盘](reports/v250-historical-checks.md)

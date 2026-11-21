@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "commit": "historical-commit-118",
+  "node": "v24.22.1",
+  "platform": "darwin",
+  "arch": "arm64",
+  "method": "Real production NativeRpc with the original repository child process. Cases gate delivery of its final echo write completion and/or release of the original fixture 60 ms timer. Timings in the GitHub runner were not instrumented.",
+  "hashes": {
+    "product": "621791b194ecdf662dbbb831387d16c8dbfca0cb32f3f2769a097f8973ef96e0",
+    "fixture": "d8e0061dc743c3799fbc61e21b243d39bdc91a789533d45febb41d7196aed67b",
+    "test": "bb6c7b175bb4038342492ac87891c016ac2080419caea849fb42045fc8bc0d06",
+    "trace": "2cd39c0fa162e5a220e9855e72167fe5b8443458584fc827f0110aeb3e6fd82d",
+    "timerGate": "13029b10f77f83ba7bc129e5d09e50e7149de7d0a60a98b6de1c89d1eaaf9b3e"
+  },
+  "samples": [
+    {
+      "method": "mcpServer/tool/call",
+      "gateWrite": false,
+      "gateTimer": false,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        3,
+        5
+      ],
+      "before": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "pending": [],
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "mcpServer/tool/call",
+      "gateWrite": true,
+      "gateTimer": false,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        3,
+        5
+      ],
+      "before": {
+        "budget": {
+          "pending": 1,
+          "retainedBytes": 58
+        },
+        "pending": [
+          {
+            "id": 5,
+            "resolved": true,
+            "flushed": false
+          }
+        ],
+        "endFlushed": false,
+        "slowReplySeen": true
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "mcpServer/tool/call",
+      "gateWrite": false,
+      "gateTimer": true,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        5,
+        3,
+        6
+      ],
+      "before": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "pending": [],
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "mcpServer/tool/call",
+      "gateWrite": true,
+      "gateTimer": true,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        5,
+        3,
+        6
+      ],
+      "before": {
+        "budget": {
+          "pending": 1,
+          "retainedBytes": 58
+        },
+        "pending": [
+          {
+            "id": 5,
+            "resolved": true,
+            "flushed": false
+          }
+        ],
+        "endFlushed": false,
+        "slowReplySeen": false
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "plugin/install",
+      "gateWrite": false,
+      "gateTimer": false,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        3,
+        5
+      ],
+      "before": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "pending": [],
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "plugin/install",
+      "gateWrite": true,
+      "gateTimer": false,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        3,
+        5
+      ],
+      "before": {
+        "budget": {
+          "pending": 1,
+          "retainedBytes": 58
+        },
+        "pending": [
+          {
+            "id": 5,
+            "resolved": true,
+            "flushed": false
+          }
+        ],
+        "endFlushed": false,
+        "slowReplySeen": true
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": true
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "plugin/install",
+      "gateWrite": false,
+      "gateTimer": true,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        5,
+        3,
+        6
+      ],
+      "before": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "pending": [],
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    },
+    {
+      "method": "plugin/install",
+      "gateWrite": true,
+      "gateTimer": true,
+      "toolId": 3,
+      "endId": 5,
+      "slowWrites": 1,
+      "outputIds": [
+        4,
+        5,
+        3,
+        6
+      ],
+      "before": {
+        "budget": {
+          "pending": 1,
+          "retainedBytes": 58
+        },
+        "pending": [
+          {
+            "id": 5,
+            "resolved": true,
+            "flushed": false
+          }
+        ],
+        "endFlushed": false,
+        "slowReplySeen": false
+      },
+      "afterWrite": {
+        "budget": {
+          "pending": 0,
+          "retainedBytes": 0
+        },
+        "connected": true,
+        "endFlushed": true,
+        "slowReplySeen": false
+      },
+      "afterClose": {
+        "pending": 0,
+        "retainedBytes": 0
+      }
+    }
+  ]
+}

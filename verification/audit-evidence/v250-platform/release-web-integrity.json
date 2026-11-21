@@ -1,7 +1,7 @@
 {
-  "commit": "historical-commit-133",
+  "commit": "historical-commit-032",
   "sourceFiles": 2194,
-  "sourceSha256": "927c1a310b40ee32d38a6c550f87380a846ead0468719babb679939d7539a5c9",
+  "sourceSha256": "e65ddf1317b4073117025d3b96675142b522c1b613ca65345523606d46458b41",
   "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
   "previousCommit": "historical-commit-108",
   "previousRelease": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
@@ -64,7 +64,8 @@
         "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
         "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
       },
-      "preUpgradeAccountAuthenticated": true
+      "preUpgradeAccountAuthenticated": true,
+      "measuredEarlierCommit": "historical-commit-133"
     },
     {
       "phase": "candidate",
@@ -89,7 +90,8 @@
         "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
         "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
       },
-      "preUpgradeAccountAuthenticated": true
+      "preUpgradeAccountAuthenticated": true,
+      "measuredEarlierCommit": "historical-commit-133"
     },
     {
       "phase": "previous",
@@ -114,7 +116,8 @@
         "index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
         "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
       },
-      "preUpgradeAccountAuthenticated": true
+      "preUpgradeAccountAuthenticated": true,
+      "measuredEarlierCommit": "historical-commit-133"
     },
     {
       "phase": "returned",
@@ -139,8 +142,56 @@
         "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
         "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
       },
-      "preUpgradeAccountAuthenticated": true
+      "preUpgradeAccountAuthenticated": true,
+      "measuredEarlierCommit": "historical-commit-133"
     }
   ],
-  "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true
+  "samePreUpgradeBrowserSessionAuthenticatedInAllFourPhases": true,
+  "validatedAgainstCommit": "historical-commit-032",
+  "measuredEarlierCommit": "historical-commit-133",
+  "historicalFourPhaseEvidenceSha256": "9660b9e0878a7e352a5657d350c096482904819968d4e68a32d33097dd6fa85a",
+  "currentServingVerification": {
+    "commit": "historical-commit-032",
+    "validatedAgainstCommit": "historical-commit-032",
+    "measuredAtCommit": "historical-commit-032",
+    "installedRelease": "669aafd5bce6fd80815e32d5fe85537abf7ed79cf7ed106943a530bb8b0b768d",
+    "offlineBuiltFrozenFiles": {
+      "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+      "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+      "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+      "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+      "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+      "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+      "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+      "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+    },
+    "servedFiles": {
+      "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+      "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+      "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+      "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+      "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+      "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+      "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+      "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+    },
+    "installedWebFiles": {
+      "assets/Settings-LaRNkEIx.js": "b962253249e57cbc59f9aaf3a38bd2d8875f8f5afea3c29d662de5f1f3714b29",
+      "assets/TerminalPanel-BrP-ENHg.css": "0e5386f16cb4be78a2fe911e014a810da76ea2db47d8c8b2a966516b2fd5270b",
+      "assets/TerminalPanel-DjKz1n_Y.js": "2d9eb0974964ab63134ffff70fc228e4a185c3c54acba08681bf38d85ffd8ba6",
+      "assets/index-B8-yzBI-.js": "8d3f9a9b9d6414d3e25fdf02bd0172e58fd304bbdb545430a00704c634e1b7d9",
+      "assets/index-DjN2xjfs.css": "77b191e40d98d824722473ed0958cd82729b589817c27f9c517bab4d818585e2",
+      "favicon.svg": "55ae962c125d768aac4f15f23d3b3c165a03c89f633970143467b38a0da4a07b",
+      "index.html": "8ba5c07054997257222aab52c1a31b9a541ac73822d170fd8570debae6e2f9ca",
+      "theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba"
+    },
+    "standaloneFrozenServerBuild": {
+      "files": 210,
+      "previousIndependentFrozenBuildMatches": true,
+      "installedFilesMatchAll": true,
+      "manifestSha256": "7b44503caca017ad8aff57ae79da2e20f0d034080c849d23ba4a425c2a65967f"
+    },
+    "sameBrowserSessionAsFourPhasesAuthenticated": true,
+    "previousFourPhaseMeasurementCommit": "historical-commit-133"
+  }
 }
