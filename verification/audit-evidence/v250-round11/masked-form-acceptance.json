@@ -1,0 +1,95 @@
+[
+  {
+    "kind": "http",
+    "writes": [
+      {
+        "type": "upsert",
+        "transport": "http",
+        "enabled": false
+      },
+      {
+        "type": "upsert",
+        "transport": "http",
+        "enabled": false,
+        "url": "http://127.0.0.1:9/replacement"
+      }
+    ],
+    "privateReadback": {
+      "url": true,
+      "enabled": true
+    },
+    "replacementReadback": {
+      "url": true,
+      "enabled": true
+    },
+    "clearedArgs": null,
+    "displayMasked": true,
+    "rawSecretInWeb": false
+  },
+  {
+    "kind": "legacy-http",
+    "writes": [
+      {
+        "type": "upsert",
+        "transport": "http",
+        "enabled": false
+      },
+      {
+        "type": "upsert",
+        "transport": "http",
+        "enabled": false,
+        "url": "http://127.0.0.1:9/replacement"
+      }
+    ],
+    "privateReadback": {
+      "url": true,
+      "enabled": true
+    },
+    "replacementReadback": {
+      "url": true,
+      "enabled": true
+    },
+    "clearedArgs": null,
+    "displayMasked": true,
+    "rawSecretInWeb": false
+  },
+  {
+    "kind": "stdio",
+    "writes": [
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": false
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": false,
+        "command": "local-program"
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": false,
+        "args": []
+      }
+    ],
+    "privateReadback": {
+      "command": true,
+      "args": true,
+      "enabled": true
+    },
+    "replacementReadback": {
+      "command": true,
+      "args": true,
+      "enabled": true
+    },
+    "clearedArgs": {
+      "command": true,
+      "args": true,
+      "enabled": true
+    },
+    "displayMasked": true,
+    "rawSecretInWeb": false
+  }
+]
