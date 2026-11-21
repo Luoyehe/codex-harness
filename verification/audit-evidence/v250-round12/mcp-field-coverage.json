@@ -96,11 +96,14 @@
       "transport": "shared",
       "normal": "Existing user layer keeps absence or its explicit value unless user changes the switch. Checkbox shows effective inherited value when absent.",
       "clear": "Preserve",
-      "conversion": "Preserve"
+      "conversion": "Preserve",
+      "restore": "For existing user overrides the explicit restore choice sends null. The editor removes only enabled; later lower-layer changes take effect. Canceling the choice within the draft retains the earlier switch edit."
     }
   ],
   "observations": {
     "preserved": {
+      "userSwitch": false,
+      "effectiveSwitch": false,
       "forwarded": 2,
       "headerHelper": true,
       "oauthClient": true,
@@ -111,6 +114,8 @@
       "effectiveHeaderHelper": true
     },
     "hot": {
+      "userSwitch": false,
+      "effectiveSwitch": false,
       "forwarded": 0,
       "headerHelper": false,
       "oauthClient": true,
@@ -121,6 +126,8 @@
       "effectiveHeaderHelper": false
     },
     "cold": {
+      "userSwitch": false,
+      "effectiveSwitch": false,
       "forwarded": 0,
       "headerHelper": false,
       "oauthClient": true,
@@ -131,6 +138,8 @@
       "effectiveHeaderHelper": false
     },
     "converted": {
+      "userSwitch": false,
+      "effectiveSwitch": false,
       "forwarded": 0,
       "headerHelper": false,
       "oauthClient": false,
@@ -163,6 +172,40 @@
         "transport": "stdio",
         "command": "converted-inert",
         "args": []
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": true
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": null
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": false
+      },
+      {
+        "type": "upsert",
+        "transport": "stdio",
+        "enabled": null
+      }
+    ],
+    "overrides": [
+      {
+        "explicit": true,
+        "hotUserOverride": null,
+        "coldUserOverride": null,
+        "coldEffective": true
+      },
+      {
+        "explicit": false,
+        "hotUserOverride": null,
+        "coldUserOverride": null,
+        "coldEffective": true
       }
     ]
   }

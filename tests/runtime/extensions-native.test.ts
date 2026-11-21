@@ -272,5 +272,13 @@ test('cold-reloads MCP environment forwarding, header helpers and HTTP-only sett
     const converted = (await nativeRows()).private;
     expect(converted.convert_http).toEqual({ enabled: false, command: 'new-inert-fixture', scopes: ['read'], required: false, future_setting: 'unrelated' });
     expect(converted.convert_stdio).toEqual({ enabled: false, url: 'http://127.0.0.1:9/new', future_setting: 'unrelated' });
+    for (const explicit of [true, false]) {
+      await save('stdio', { type: 'upsert', transport: 'stdio', enabled: explicit });
+      expect(object((await nativeRows()).private.stdio).enabled).toBe(explicit);
+      await save('stdio', { type: 'upsert', transport: 'stdio', enabled: null });
+      await restart();
+      expect(object((await nativeRows()).private.stdio)).not.toHaveProperty('enabled');
+      expect((await read()).servers).toContainEqual(expect.objectContaining({ name: 'stdio', enabled: true, hasEnabledOverride: false }));
+    }
   } finally { await runtime.close(); expectNativeClosed(runtime.native); }
 });

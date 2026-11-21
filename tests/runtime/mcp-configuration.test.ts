@@ -69,19 +69,36 @@ describe('per-server MCP configuration preserves unrelated credentials', () => {
     await f.update('first', { type: 'upsert', transport: 'stdio', clearSecrets: true }); expect(object(f.servers().first).env).toBeUndefined();
     await f.update('second', { type: 'upsert', transport: 'stdio', command: 'python', args: [] }); expect(object(f.servers().second)).toEqual({ enabled: false, command: 'python', args: [] });
   });
-  it('reads the effective switch for an owned row with no saved override as lower layers change', async () => {
-    let lower = false;
-    const local = { command: 'inert' };
+  it('restores both saved switch values and follows subsequent lower-layer changes', async () => {
+    const local: JsonObject = { command: 'inert' };
+    let generation = 0, lower = false;
     const config = new McpConfiguration(async () => ({
-      config: { mcp_servers: { local: { ...local, enabled: lower } } }, origins: {}, layers: [
-        { name: { type: 'user', file: '/native/config.toml', profile: null }, config: { mcp_servers: { local } },
-          version: 'user', disabledReason: null },
+      config: { mcp_servers: { local: { enabled: lower, ...local } } }, origins: {}, layers: [
+        { name: { type: 'user', file: '/native/config.toml', profile: null }, config: { mcp_servers: { local: { ...local } } },
+          version: String(generation), disabledReason: null },
         { name: { type: 'system', file: '/system/config.toml' }, config: { mcp_servers: { local: { enabled: lower } } },
           version: 'system', disabledReason: null },
       ],
-    }));
-    for (lower of [false, true, false])
-      expect(await config.read('/project')).toMatchObject({ servers: [{ enabled: lower, effectiveEnabled: lower, hasEnabledOverride: false }] });
+    }), async () => ({ userConfigEdits: 1, fileVersion: String(generation) }));
+    const row = async () => (object(await config.read('/project')).servers as JsonObject[])[0]!;
+    for (const enabled of [true, false]) {
+      lower = !enabled;
+      local.enabled = enabled;
+      expect(await row()).toMatchObject({ enabled, effectiveEnabled: enabled, hasEnabledOverride: true, inheritedEnabled: lower });
+      const version = object(await config.read('/project')).userVersion!;
+      await config.write({ name: 'local', expectedVersion: version, change: { type: 'upsert', transport: 'stdio', enabled: null } },
+        '/project', async (method, input) => {
+          if (method === 'harness/mcp/user-edit') {
+            expect(object(input).changes).toEqual({ enabled: null });
+            delete local.enabled;
+            return { fileVersion: String(++generation) };
+          }
+          expect(method).toBe('config/batchWrite');
+          return { status: 'ok', filePath: '/native/config.toml', version: String(generation), overriddenMetadata: null };
+        });
+      for (lower of [!enabled, enabled, !enabled])
+        expect(await row()).toMatchObject({ enabled: lower, effectiveEnabled: lower, inheritedEnabled: lower, hasEnabledOverride: false });
+    }
   });
   it('reports, preserves and explicitly clears forwarded environment and HTTP credential sources', async () => {
     const f = setup();

@@ -70,20 +70,22 @@ export class McpConfiguration {
     // Native lists layers in decreasing precedence. Session flags supplied by
     // this adapter contain only booleans, so the next lower explicit value
     // determines what restoring inheritance will do.
-    const withoutSession = (name: string): boolean => {
+    const enabledExcept = (name: string, skip: (layer: JsonObject) => boolean): boolean => {
       for (const layer of layers) {
-        if (layer.disabledReason || object(layer.name).type === 'sessionFlags') continue;
+        if (layer.disabledReason || skip(layer)) continue;
         const entries = object(object(layer.config).mcp_servers ?? {});
         const enabled = Object.hasOwn(entries, name) ? object(entries[name]).enabled : undefined;
         if (typeof enabled === 'boolean') return enabled;
       }
       return true;
     };
+    const withoutSession = (name: string) => enabledExcept(name, layer => object(layer.name).type === 'sessionFlags');
+    const withoutUser = (name: string) => enabledExcept(name, layer => layer === users[0]);
     const codingPlanDefaults = new Set(Array.isArray(state.codingPlanHttpDefaults) ? state.codingPlanHttpDefaults : []);
-    return { version, baseVersion, helperVersion, flagsVersion, flags, codingPlanDefaults, unassigned: object(state.unassigned ?? {}), managedOwners: object(state.managedOwners ?? {}), file: state.filePath, servers, effective, systemServers, locked, withoutSession };
+    return { version, baseVersion, helperVersion, flagsVersion, flags, codingPlanDefaults, unassigned: object(state.unassigned ?? {}), managedOwners: object(state.managedOwners ?? {}), file: state.filePath, servers, effective, systemServers, locked, withoutSession, withoutUser };
   }
   async read(cwd: string): Promise<JsonValue> {
-    const { version, servers, effective, flags, codingPlanDefaults, unassigned, managedOwners, systemServers, locked, withoutSession } = await this.source(cwd);
+    const { version, servers, effective, flags, codingPlanDefaults, unassigned, managedOwners, systemServers, locked, withoutSession, withoutUser } = await this.source(cwd);
     const inheritedDetails = Object.entries(effective).filter(([name]) => !Object.hasOwn(servers, name)).map(([name, row]) => {
       const effectiveEnabled = object(row).enabled !== false, overridden = Object.hasOwn(flags, name);
       const overrideAllowed = Object.hasOwn(systemServers, name) && !locked.has(name);
@@ -96,7 +98,7 @@ export class McpConfiguration {
       const effectiveEnabled = Object.hasOwn(effective, name) ? object(effective[name]).enabled !== false : null;
       const hasEnabledOverride = typeof value.enabled === 'boolean';
       const result: JsonObject = { name, transport: transport(value), hasEnabledOverride,
-        enabled: hasEnabledOverride ? value.enabled! : effectiveEnabled ?? true, effectiveEnabled,
+        enabled: hasEnabledOverride ? value.enabled! : effectiveEnabled ?? true, effectiveEnabled, inheritedEnabled: withoutUser(name),
         hasEnv: stdioEnv.some(key => present(value, key)), hasForwardedEnv: present(value, 'env_vars'),
         hasHttpHeaders: httpHeaders.some(key => present(value, key)), hasHeaderHelper: present(value, 'http_headers_helper'),
         hasBearerTokenEnvVar: bearer.some(key => present(value, key)), hasEnvHttpHeaders: present(value, 'env_http_headers'), hasOAuthConfig: present(value, 'oauth') };
@@ -111,7 +113,7 @@ export class McpConfiguration {
     // between these reads or before publication will fail the helper's compare.
     const userEdit = change.type === 'upsert' || change.type === 'remove';
     const editor = userEdit ? await this.userEditor(cwd) : undefined;
-    const { version, helperVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd, editor);
+    const { version, helperVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession, withoutUser } = await this.source(cwd, editor);
     if (version !== expectedVersion) throw new DeliveryError('config_conflict', 'User configuration changed; reload before saving');
     const original = Object.hasOwn(servers, name) ? object(servers[name]) : undefined;
     const next: JsonObject = { ...servers };
@@ -145,7 +147,8 @@ export class McpConfiguration {
     } else if (change.type === 'upsert') {
       if (change.legacyName !== undefined) throw new DeliveryError('invalid_params', 'Choose an inherited server to restore this switch');
       if (!['stdio', 'http'].includes(String(change.transport))) throw new DeliveryError('invalid_params', 'Choose stdio or HTTP transport');
-      if (change.enabled !== undefined && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'enabled must be boolean');
+      if (change.enabled !== undefined && typeof change.enabled !== 'boolean' && !(original && change.enabled === null))
+        throw new DeliveryError('invalid_params', 'Choose a boolean switch, or restore inheritance for an existing user service');
       if (change.clearSecrets !== undefined && change.clearSecrets !== true) throw new DeliveryError('invalid_params', 'Only an explicit clearSecrets:true clears saved values');
       const value: JsonObject = { ...(original ?? {}) };
       const switching = original && transport(original) !== change.transport;
@@ -153,7 +156,8 @@ export class McpConfiguration {
         for (const key of change.transport === 'stdio' ? httpOnly : stdioOnly) delete value[key];
       if (change.clearSecrets === true || switching)
         for (const key of [...stdioEnv, ...httpCredentials]) delete value[key];
-      if (change.enabled !== undefined) value.enabled = change.enabled;
+      if (change.enabled === null) delete value.enabled;
+      else if (change.enabled !== undefined) value.enabled = change.enabled;
       if (change.transport === 'stdio') {
         if (change.url !== undefined || change.httpHeaders !== undefined || change.bearerTokenEnvVar !== undefined || change.envHttpHeaders !== undefined) throw new DeliveryError('invalid_params', 'stdio cannot include HTTP fields');
         if (change.command !== undefined) { const command = string(change.command, 'command', 4096); if (!command.trim() || command.includes('\0') || command.includes('[redacted]')) throw new DeliveryError('invalid_params', 'Command must be a program name or path'); value.command = command; }
@@ -167,7 +171,7 @@ export class McpConfiguration {
         // Disabling a legacy credential-bearing URL must remain possible. Its
         // bytes are preserved only in the private layer; enabling still requires
         // migrating to the supported secret fields.
-        const disabled = change.enabled === false || (change.enabled === undefined &&
+        const disabled = change.enabled === false || (change.enabled === null && !withoutUser(name)) || (change.enabled === undefined &&
           (original?.enabled === false || (Object.hasOwn(effective, name) && object(effective[name]).enabled === false)));
         if (!(original && disabled && change.url === undefined && Object.keys(change).every(key => ['type', 'transport', 'enabled'].includes(key)))) httpUrl(value.url);
         if (change.httpHeaders !== undefined) value.http_headers = map(change.httpHeaders, false);

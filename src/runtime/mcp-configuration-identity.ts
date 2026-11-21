@@ -33,7 +33,7 @@ export class McpConfigurationIdentity {
     const rows = (source: JsonObject[], keys: Entry[]) => source.map((row, i) => {
       const key = keys[i]!;
       const result: JsonObject = { name: this.redactor.text(key.name), id: key.id, transport: row.transport! };
-      for (const field of ['enabled', 'effectiveEnabled', 'hasEnabledOverride', 'hasEnv', 'hasForwardedEnv', 'hasHttpHeaders', 'hasHeaderHelper', 'hasBearerTokenEnvVar', 'hasEnvHttpHeaders', 'hasOAuthConfig',
+      for (const field of ['enabled', 'effectiveEnabled', 'hasEnabledOverride', 'inheritedEnabled', 'hasEnv', 'hasForwardedEnv', 'hasHttpHeaders', 'hasHeaderHelper', 'hasBearerTokenEnvVar', 'hasEnvHttpHeaders', 'hasOAuthConfig',
         'restartRequired', 'overrideAllowed', 'overridden', 'codingPlanHttpDefaultOff'])
         if (row[field] !== undefined) result[field] = row[field]!;
       for (const field of ['command', 'args', 'url', 'managedOwner'])

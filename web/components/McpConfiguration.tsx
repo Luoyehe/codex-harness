@@ -15,6 +15,7 @@ type ServerConfig = ConfigEntry & {
   enabled: boolean;
   effectiveEnabled: boolean | null;
   hasEnabledOverride?: boolean;
+  inheritedEnabled?: boolean;
   command?: string;
   args?: string[];
   url?: string;
@@ -57,6 +58,7 @@ type Edit = {
   args?: string[];
   url?: string;
   enabled?: boolean;
+  restoreEnabled?: true;
   env?: Pair[];
   headers?: Pair[];
   envNames?: string[];
@@ -292,7 +294,7 @@ function McpConfigurationForm({
       const change = {
         type: 'upsert',
         transport: edit.transport,
-        ...(edit.enabled !== undefined || !original ? { enabled: edit.enabled ?? true } : {}),
+        ...(edit.restoreEnabled ? { enabled: null } : edit.enabled !== undefined || !original ? { enabled: edit.enabled ?? true } : {}),
         ...(edit.clearSecrets ? { clearSecrets: true } : {}),
         ...(edit.transport === 'stdio'
           ? {
@@ -476,7 +478,8 @@ function McpConfigurationForm({
                     if (!canCompare || !compared || !comparedVersion) return;
                     const baseline = startEdit(comparedVersion, currentServer);
                     editBaseline.current = JSON.stringify(baseline);
-                    patch({ baseVersion: baseline.baseVersion, source: currentServer });
+                    patch({ baseVersion: baseline.baseVersion, source: currentServer,
+                      ...(edit.restoreEnabled && currentServer?.hasEnabledOverride === false ? { restoreEnabled: undefined, enabled: undefined } : {}) });
                     setComparedVersion(undefined);
                   }}
                 >
@@ -522,11 +525,18 @@ function McpConfigurationForm({
             <label className="check-row">
               <input
                 type="checkbox"
-                checked={edit.enabled ?? savedEnabled}
+                disabled={edit.restoreEnabled}
+                checked={edit.restoreEnabled ? Boolean(original?.inheritedEnabled) : edit.enabled ?? savedEnabled}
                 onChange={(event) => patch({ enabled: event.target.checked === savedEnabled ? undefined : event.target.checked })}
               />
               启用用户配置中的此服务
             </label>
+            {original?.hasEnabledOverride && <label className="check-row">
+              <input type="checkbox" checked={edit.restoreEnabled === true}
+                onChange={event => patch({ restoreEnabled: event.target.checked ? true : undefined })} />
+              恢复继承（移除已保存的用户层开关）
+            </label>}
+            {edit.restoreEnabled && <p className="small muted">其他配置层当前为{original?.inheritedEnabled ? '启用' : '停用'}。保存后，此服务会跟随其他配置层的开关。</p>}
             {edit.source?.hasEnabledOverride === false && <p className="small muted">{edit.source.effectiveEnabled === null
               ? '此服务的有效状态尚未确认。' : '此开关当前采用有效配置。'}修改开关会保存用户层设置。</p>}
             {edit.transport === 'stdio' ? (

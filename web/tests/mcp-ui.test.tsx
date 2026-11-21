@@ -528,6 +528,25 @@ it.each(['untouched', 'enable', 'undo'] as const)('keeps an inherited disabled s
   expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', args: ['new'],
     ...(action === 'enable' ? { enabled: true } : {}) });
 });
+it.each([true, false])('lets the user restore a saved %s switch and undo that choice within the draft', async saved => {
+  const server = { ...ownedStdio, enabled: saved, effectiveEnabled: saved, inheritedEnabled: !saved,
+    hasEnabledOverride: true, command: 'local', args: [] };
+  const { calls } = await openOwned(() => ({ ...config, servers: [server] }));
+  const toggle = screen.getByLabelText('启用用户配置中的此服务');
+  const restore = screen.getByRole('checkbox', { name: /恢复继承（移除/ });
+  fireEvent.click(restore);
+  expect(toggle).toHaveProperty('disabled', true);
+  expect(toggle).toHaveProperty('checked', !saved);
+  fireEvent.click(restore);
+  expect(toggle).toHaveProperty('disabled', false);
+  expect(toggle).toHaveProperty('checked', saved);
+  fireEvent.click(toggle);
+  fireEvent.click(restore);
+  fireEvent.click(restore);
+  expect(toggle).toHaveProperty('checked', !saved);
+  fireEvent.click(restore);
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: null });
+});
 it('omits an ordinary field edited and restored to its original value', async () => {
   const initial = { ...ownedStdio, command: 'plain-command', args: ['first', 'second'] };
   const { calls } = await openOwned(() => ({ ...config, servers: [initial] }));
