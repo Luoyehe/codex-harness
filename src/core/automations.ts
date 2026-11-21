@@ -138,8 +138,14 @@ export class Automations {
     if (!['completed', 'failed', 'interrupted', 'unknown', 'closed_unknown', 'not_sent', 'canceled'].includes(state)) throw new Error('Invalid final automation state');
     this.db.prepare("UPDATE automation_runs SET state=?,code=?,finished_at=? WHERE id=? AND state IN ('queued','dispatching','running','needs_attention','stopping','unknown')").run(state, code, this.now(), id);
   }
-  attention(threadId: string): void {
-    this.db.prepare("UPDATE automation_runs SET state=CASE state WHEN 'running' THEN 'needs_attention' ELSE state END,attention_before_stop=1 WHERE thread_id=? AND state IN ('running','stopping')").run(threadId);
+  setAttention(threadId: string, turnId: string, pending: boolean): boolean {
+    const state = pending ? 'needs_attention' : 'running';
+    const update = this.db.prepare(`UPDATE automation_runs
+      SET state=CASE WHEN state IN ('running','needs_attention') THEN ? ELSE state END,attention_before_stop=?
+      WHERE thread_id=? AND turn_id=? AND (state IN ('running','needs_attention','stopping')
+        OR (state='unknown' AND code='gateway_restarted'))
+        AND (attention_before_stop<>? OR (state IN ('running','needs_attention') AND state<>?))`);
+    return Number(update.run(state, Number(pending), threadId, turnId, Number(pending), state).changes) > 0;
   }
   restoreActive(id: string, threadId: string, turnId: string): boolean {
     const update = this.db.prepare("UPDATE automation_runs SET state=CASE WHEN attention_before_stop=1 THEN 'needs_attention' ELSE 'running' END,finished_at=NULL,code=NULL WHERE id=? AND thread_id=? AND turn_id=? AND state='unknown' AND code='gateway_restarted' AND stop_sent=0").run(id, threadId, turnId);

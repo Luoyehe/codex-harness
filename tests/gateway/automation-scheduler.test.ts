@@ -378,7 +378,7 @@ it('admits another repository while an earlier project start is suspended, witho
 it('restores pending approval when a stop is explicitly not sent', async () => {
   const f = setup(); await f.create(); f.advance(60_000); await f.scheduler.tick();
   const run = f.ledger.automations.outstanding()[0]!;
-  f.ledger.automations.attention(run.threadId!);
+  f.ledger.automations.setAttention(run.threadId!, run.turnId!, true);
   f.behavior(async method => {
     if (method === 'turn/interrupt') throw new HarnessError('busy', '请稍后再试', 'not_sent');
     return { threadId: run.threadId, turns: [{ id: run.turnId, status: 'inProgress' }], complete: true, nextCursor: null };
@@ -552,4 +552,52 @@ it('polls the matched older page for an active recovered turn until that exact t
   expect(f.calls.filter(call => call.method === 'thread/history').slice(-3).map(call => call.params.cursor)).toEqual([undefined, 'older', 'older']);
   expect(f.ledger.automations.getRun(run.id).state).toBe('interrupted');
   expect(f.ledger.automationCursor(run.id)).toBeNull();
+});
+
+it('uses only current approvals for the exact accepted turn, including requests received before the start reply', async () => {
+  const f = setup(); f.scheduler.start(); await f.create();
+  const pending = new Map<string, { threadId: string; turnId: string | null }>();
+  const open = (id: string, turnId: string | null) => {
+    const target = { threadId: 'thread', turnId };
+    pending.set(id, target);
+    f.dispatcher.event({ type: 'prompt', data: { promptId: id, ...target } });
+  };
+  const close = (id: string) => {
+    const target = pending.get(id)!;
+    pending.delete(id);
+    f.dispatcher.event({ type: 'prompt-closed', data: { promptId: id, ...target,
+      pendingForTurn: [...pending.values()].some(other => other.turnId === target.turnId) } });
+  };
+  let hold: (() => void) | undefined; let holdLists = false;
+  f.behavior(async (method, _params, context) => {
+    context.beforeWrite?.();
+    if (method === 'conversation/start') {
+      open('early', 'turn');
+      return { thread: { id: 'thread' }, turn: { id: 'turn', status: 'inProgress' } };
+    }
+    if (method === 'prompt/list') {
+      const snapshot = [...pending.values()];
+      if (holdLists) await new Promise<void>(resolve => { hold = resolve; });
+      return { epoch: 'current', prompts: snapshot };
+    }
+    return { threadId: 'thread', turns: [{ id: 'turn', status: 'inProgress' }], nextCursor: null };
+  });
+  f.advance(60_000); await f.scheduler.tick();
+  const run = f.ledger.automations.outstanding()[0]!;
+  const state = () => f.ledger.automations.getRun(run.id).state;
+  expect(state()).toBe('needs_attention');
+  open('second', 'turn'); open('different', 'next-turn'); open('unattributed', null);
+  close('early'); expect(state()).toBe('needs_attention');
+  close('second'); expect(state()).toBe('running');
+  holdLists = true; f.advance(31_000); const tick = f.scheduler.tick();
+  await vi.waitFor(() => expect(hold).toBeDefined());
+  open('late', 'turn'); hold!(); await tick;
+  expect(state()).toBe('needs_attention');
+  holdLists = false; close('late'); expect(state()).toBe('running');
+  open('will-close-offline', 'turn');
+  f.worker.connected = false; f.dispatcher.disconnected(); pending.delete('will-close-offline');
+  f.worker.connected = true; f.advance(31_000); await f.scheduler.tick();
+  expect(state()).toBe('running');
+  expect(f.calls.filter(call => call.method === 'conversation/start')).toHaveLength(1);
+  expect(f.calls.some(call => call.method === 'prompt/answer')).toBe(false);
 });

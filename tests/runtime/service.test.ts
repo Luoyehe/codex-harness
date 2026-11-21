@@ -690,6 +690,21 @@ describe('RuntimeService admission and recovery', () => {
     expect(object(await service.call('prompt/list', {}, context)).prompts).toHaveLength(1); expect(native.responses).toHaveLength(0);
     await service.call('prompt/answer', { promptId: id, response: { decision: 'accept' } }, context); expect(native.responses).toEqual([{ id: 'native-request', result: { decision: 'accept' } }]); expect(object(await service.call('prompt/list', {}, context)).prompts).toHaveLength(0);
   });
+  test('publishes exact remaining prompt ownership and limits the scheduler view to correlation fields', async () => {
+    const { service, native, events } = setup();
+    for (const [id, turnId] of [['first', 'one'], ['second', 'one'], ['foreign', 'two']]) {
+      native.emit('request', { id, method: 'item/commandExecution/requestApproval', params: { threadId: 't', turnId, itemId: id, command: 'example text' } });
+    }
+    const metadata = object(await service.call('prompt/list', { view: 'turns' }, context));
+    expect(metadata.prompts).toEqual([{ threadId: 't', turnId: 'one' }, { threadId: 't', turnId: 'one' }, { threadId: 't', turnId: 'two' }]);
+    expect(object(await service.call('prompt/list', {}, context)).prompts).toEqual(expect.arrayContaining([expect.objectContaining({ params: expect.any(Object) })]));
+    for (const requestId of ['first', 'second']) native.emit('notification', { method: 'serverRequest/resolved', params: { requestId } });
+    expect(events.filter(event => event.type === 'prompt-closed').map(event => event.data)).toEqual([
+      expect.objectContaining({ threadId: 't', turnId: 'one', pendingForTurn: true }),
+      expect.objectContaining({ threadId: 't', turnId: 'one', pendingForTurn: false }),
+    ]);
+    expect(native.responses).toHaveLength(0);
+  });
   test('incomplete permission restrictions remain pending without dispatching a response', async () => {
     const { service, native, events } = setup();
     const entries = [{ path: { type: 'path', path: '/fixture' }, access: 'write' }, { path: { type: 'path', path: '/fixture/reference' }, access: 'read' }, { path: { type: 'path', path: '/fixture/private' }, access: 'deny' }];

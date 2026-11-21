@@ -354,3 +354,14 @@ test('derives deployment impact from nested and relative Python imports without 
   expect(graph).toEqual({'tests/deploy/test_shared.py':['tests/deploy/root/test_child.py'],
     'tests/deploy/root/test_child.py':['tests/deploy/root/test_grandchild.py']});
 });
+
+test('includes real worker, scheduler and browser consumers of automation approvals', () => {
+  const inventory = testInventory();
+  const required = ['tests/gateway/automation-scheduler.test.ts', 'tests/runtime/service.test.ts', 'tests/runtime/automation-native.test.ts',
+    'tests/runtime/approval-native.test.ts', 'web/tests/automations.test.tsx', 'web/tests/prompts.test.tsx'];
+  for (const source of ['src/core/automations.ts', 'src/gateway/automation-scheduler.ts', 'src/runtime/service.ts']) {
+    expect(Object.values(selectTests([source], inventory).groups).flat()).toEqual(expect.arrayContaining(required));
+    expect(selectTests([source], inventory.filter(path => path !== required[2])).requiresFullAudit)
+      .toContainEqual({ path: required[2], reason: 'missing-automation-approval-consumer' });
+  }
+});

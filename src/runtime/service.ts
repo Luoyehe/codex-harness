@@ -351,7 +351,13 @@ export class RuntimeService extends EventEmitter {
     this.prompts.set(prompt.promptId, prompt); this.promptBytes += bytes; this.emitEvent('prompt', this.publicPrompt(prompt));
   }
   private publicPrompt(prompt: Prompt): JsonObject { return { promptId: prompt.promptId, epoch: prompt.epoch, method: prompt.method, params: prompt.params, threadId: prompt.threadId, turnId: prompt.turnId }; }
-  private closePrompt(prompt: Prompt, reason: string): void { if (!this.prompts.delete(prompt.promptId)) return; this.promptBytes -= prompt.bytes; this.emitEvent('prompt-closed', { promptId: prompt.promptId, reason }); }
+  private closePrompt(prompt: Prompt, reason: string): void {
+    if (!this.prompts.delete(prompt.promptId)) return;
+    this.promptBytes -= prompt.bytes;
+    const { promptId, threadId, turnId, epoch } = prompt;
+    const pendingForTurn = [...this.prompts.values()].some(other => other.threadId === threadId && other.turnId === turnId);
+    this.emitEvent('prompt-closed', { promptId, reason, epoch, threadId, turnId, pendingForTurn });
+  }
   private repositoryActivity(): (string | undefined)[] {
     this.admit();
     const roots: (string | undefined)[] = [...this.processes.activeRoots(), ...[...this.terminals.values()].map(entry => entry.cwd)];
@@ -433,7 +439,11 @@ export class RuntimeService extends EventEmitter {
         return { ...snapshot, requiresContinuationConfirmation: (await this.continuationForLoad(threadId)).required };
       }
       case 'thread/convert': return this.convert(params, context);
-      case 'prompt/list': return { epoch: this.epoch, prompts: [...this.prompts.values()].map(prompt => this.publicPrompt(prompt)) };
+      case 'prompt/list': {
+        const prompts = [...this.prompts.values()];
+        if (params.view === 'turns') return { epoch: this.epoch, prompts: prompts.map(({ threadId, turnId }) => ({ threadId, turnId })) };
+        return { epoch: this.epoch, prompts: prompts.map(prompt => this.publicPrompt(prompt)) };
+      }
       case 'prompt/answer': return this.answer(params, context);
       case 'attachment/upload': return this.attachments.upload(params, context.clientId);
       case 'attachment/read': return this.attachments.read(params);

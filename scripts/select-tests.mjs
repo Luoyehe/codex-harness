@@ -205,6 +205,12 @@ export function selectTests(changed, available) {
     for (const required of checks) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
     add(name, checks, 'deployment-repair-regression');
   }
+  for (const name of plan.changed.filter(name => ['src/core/automations.ts', 'src/gateway/automation-scheduler.ts', 'src/runtime/service.ts'].includes(name))) {
+    const consumers = ['tests/gateway/automation-scheduler.test.ts', 'tests/runtime/service.test.ts', 'tests/runtime/automation-native.test.ts',
+      'tests/runtime/approval-native.test.ts', 'web/tests/automations.test.tsx', 'web/tests/prompts.test.tsx'];
+    for (const test of consumers) if (!inventory.has(test)) plan.requiresFullAudit.push({ path: test, reason: 'missing-automation-approval-consumer' });
+    add(name, consumers, 'scheduled-run-lifecycle-and-approval');
+  }
   for (const name of plan.changed.filter(name => mcpEditSources.has(name) || name.startsWith('deploy/_tomli/'))) {
     for (const test of mcpEditTests) if (!inventory.has(test)) plan.requiresFullAudit.push({ path: test, reason: 'missing-mcp-edit-consumer' });
     add(name, mcpEditTests, 'user-mcp-edit-and-native-readback');

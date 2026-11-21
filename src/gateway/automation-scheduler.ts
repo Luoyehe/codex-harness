@@ -17,6 +17,7 @@ export class AutomationScheduler {
   private nextStop = new Map<string, number>();
   private controls = new Map<string, Promise<void>>();
   private readCursor = 0;
+  private promptGeneration = 0;
   // Detect even long cursor cycles with one checkpoint per outstanding run.
   private scans = new Map<string, { anchor: string; span: number; distance: number }>();
   private launches = new Map<string, Promise<void>>();
@@ -177,8 +178,31 @@ export class AutomationScheduler {
     // A continuation competes for a normal rotation slot on the next tick.
     this.nextRead.set(id, this.now() + 2000);
   }
+  private setAttention(threadId: string, turnId: string, pending: boolean): void {
+    const changed = this.ledger.transaction(() => this.ledger.automations.setAttention(threadId, turnId, pending));
+    if (changed) this.publish();
+  }
+  private async refreshAttention(run: AutomationRun): Promise<void> {
+    if (!run.threadId || !run.turnId) return;
+    const generation = this.promptGeneration;
+    try {
+      const list = await this.dispatcher.call({ method: 'prompt/list', params: { view: 'turns' } }, this.context(run.clientId));
+      object(list);
+      if (this.closed || !this.worker.connected || generation !== this.promptGeneration ||
+          typeof list.epoch !== 'string' || !list.epoch || !Array.isArray(list.prompts)) return;
+      let waiting = false;
+      for (const prompt of list.prompts) {
+        object(prompt);
+        if ((prompt.threadId !== null && typeof prompt.threadId !== 'string') ||
+            (prompt.turnId !== null && typeof prompt.turnId !== 'string')) return;
+        if (prompt.threadId === run.threadId && prompt.turnId === run.turnId) waiting = true;
+      }
+      this.setAttention(run.threadId, run.turnId, waiting);
+    } catch { /* Preserve the last known state until a complete, current list is available. */ }
+  }
   private async reconcile(original: AutomationRun): Promise<void> {
     let cursor: string | null = null;
+    let attention: Promise<void> | undefined;
     try {
       let run = original;
       if (run.state === 'unknown' && (!run.threadId || !run.turnId)) {
@@ -189,6 +213,7 @@ export class AutomationScheduler {
       if (finalStates.has(run.state) || !run.threadId || !run.turnId) return;
       await this.lease(run.clientId);
       const generation = this.connectionGeneration;
+      if (run.state === 'running' || run.state === 'needs_attention' || run.state === 'stopping') attention = this.refreshAttention(run);
       cursor = this.ledger.automationCursor(run.id);
       const history = await this.dispatcher.call({ method: 'thread/history', params: { intent: 'turnStatus', threadId: run.threadId, turnId: run.turnId, limit: 25, ...(cursor === null ? {} : { cursor }) } }, this.context(run.clientId));
       object(history);
@@ -200,6 +225,7 @@ export class AutomationScheduler {
           this.ledger.transaction(() => this.ledger.automations.restoreActive(run.id, run.threadId!, run.turnId!))) {
         this.publish(run.id);
         const active = this.ledger.automations.getRun(run.id);
+        attention = this.refreshAttention(active);
         if (active.stopRequested || (active.startedAt !== null && this.now() - active.startedAt >= active.spec.maxRunMinutes * 60_000)) {
           this.ledger.transaction(() => this.ledger.automations.requestStop(active.id));
           await this.stopWhenDue(active);
@@ -214,6 +240,7 @@ export class AutomationScheduler {
       }
     }
     finally {
+      await attention;
       await this.releaseSettled(original);
     }
   }
@@ -221,11 +248,22 @@ export class AutomationScheduler {
     try {
       object(event.data);
       if (event.type === 'state' && event.data.connected === false) {
-        this.connectionGeneration++; this.leases.clear(); this.ledger.transaction(() => this.ledger.automations.recover()); return;
+        this.connectionGeneration++;
+        this.promptGeneration++;
+        this.leases.clear();
+        this.ledger.transaction(() => this.ledger.automations.recover());
+        return;
       }
-      if (event.type === 'prompt') {
-        const threadId = event.data.threadId;
-        if (typeof threadId === 'string') this.ledger.transaction(() => this.ledger.automations.attention(threadId));
+      if (event.type === 'prompt' || event.type === 'prompt-closed') {
+        this.promptGeneration++;
+        const { threadId, turnId, pendingForTurn } = event.data;
+        if (typeof threadId === 'string' && typeof turnId === 'string' &&
+            (event.type === 'prompt' || typeof pendingForTurn === 'boolean')) {
+          this.setAttention(threadId, turnId, event.type === 'prompt' || pendingForTurn === true);
+        } else if (event.type === 'prompt-closed' && pendingForTurn === undefined) {
+          // Older workers only identify the closed prompt. Refresh their list on the next tick.
+          this.nextRead.clear();
+        }
         return;
       }
       if (event.type !== 'notification' || event.data.method !== 'turn/completed') return;
