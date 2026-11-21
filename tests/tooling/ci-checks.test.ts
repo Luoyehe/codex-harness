@@ -325,3 +325,36 @@ test('an old unchanged closeout permits a narrow new change while malformed hist
   writeFileSync(path.join(base, approval.name), JSON.stringify({ ...approval.value, approvedAt: 'invalid' }));
   expect(() => buildCiPlan(base, { GITHUB_SHA: next }, event)).toThrow();
 });
+
+test('the retired privacy export allows only ordinary incremental selection and cannot authorize a run', () => {
+  const { base, baseCommit } = fixture();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const commitAll = () => { git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
+  const name = 'verification/audit-evidence/release-closeout/authorization.json';
+  const marker = JSON.stringify({
+    schemaVersion: 1, kind: 'historical-privacy-export', authorizesRelease: false, status: 'superseded',
+    notice: 'The authorization applied to the original source only. A new audit and explicit release authorization are required for these exported bytes.',
+  }, null, 2) + '\n';
+  mkdirSync(path.dirname(path.join(base, name)), { recursive: true });
+  writeFileSync(path.join(base, name), marker);
+  const retired = commitAll();
+  writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// one incremental change');
+  const next = commitAll();
+  const env = { GITHUB_SHA: next };
+  const push = { before: retired };
+  const pr = { pull_request: { base: { sha: retired }, head: { sha: next } } };
+  for (const entry of [push, pr]) {
+    const plan = buildCiPlan(base, env, entry);
+    expect(plan).toMatchObject({ mode: 'selected', files: ['tests/core/example.test.ts'] });
+    expect(plan.authorization).toBeUndefined();
+  }
+  expect(() => buildCiPlan(base, env, { before: baseCommit })).toThrow(/Changed authorization/);
+  expect(() => buildCiPlan(base, { ...env, GITHUB_REF: 'refs/tags/v2.0.1' }, push)).toThrow(/Authorization/);
+  expect(() => buildCiPlan(base, { ...env, HARNESS_AUTHORIZATION_SHA: checksum(marker) }, push)).toThrow(/Authorization/);
+  expect(() => buildCiPlan(base, env, { before: '0'.repeat(40) })).toThrow(/explicit nonzero base/);
+  writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.1.0' }));
+  const broad = commitAll();
+  expect(() => buildCiPlan(base, { GITHUB_SHA: broad }, { before: next })).toThrow(/complete review/);
+  writeFileSync(path.join(base, name), marker.replace('false', 'true'));
+  expect(() => buildCiPlan(base, { GITHUB_SHA: broad }, { before: next })).toThrow(/Authorization/);
+});

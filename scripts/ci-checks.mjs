@@ -6,12 +6,16 @@ import { fileURLToPath } from 'node:url';
 import { snapshot, root } from './snapshot.mjs';
 import { gitChanges, nativePrerequisite, nativeTestFiles, runPythonTests, selectTests, testInventory } from './select-tests.mjs';
 import { prepareRun, runVitest } from './run-tests.mjs';
+import { ordinaryFile } from './audit-rounds.mjs';
 import { releaseAuthorization } from './release-authorization.mjs';
 import { isolateTestProcess } from './test-environment.mjs';
 import { goTestPattern, runGoTests, validateGoResult } from './go-tests.mjs';
 export { isolatedPaths } from './test-environment.mjs';
 
 const authorizationPath = 'verification/audit-evidence/release-closeout/authorization.json';
+// The public privacy export retired its old authorization at this path. Only
+// this immutable notice means "no approval"; every other record is validated.
+const retiredNoticeSha256 = '3dc8f04caa2e8351aed35147f3aa382059616d872756e29565fd368540bcafa5';
 const commit = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value) && !/^0+$/.test(value);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = file => JSON.parse(readFileSync(file, 'utf8'));
@@ -55,11 +59,13 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   const current = snapshot(base);
   const onTag = env.GITHUB_REF?.startsWith('refs/tags/');
   if ((onTag || explicitChecksum) && !hasAuthorizationFile) throw Error('Release authorization is missing');
-  let historical;
   if (hasAuthorizationFile) {
-    const actualHash = hash(readFileSync(file));
-    historical = releaseAuthorization(base, authorizationPath, actualHash, { allowHistorical: true });
-    const matching = historical.sourceDigest === current.digest && historical.sourceFiles === current.files;
+    const actualHash = hash(readFileSync(ordinaryFile(base, authorizationPath)));
+    let matching = false;
+    if (actualHash !== retiredNoticeSha256) {
+      const historical = releaseAuthorization(base, authorizationPath, actualHash, { allowHistorical: true });
+      matching = historical.sourceDigest === current.digest && historical.sourceFiles === current.files;
+    }
     if (explicitChecksum || onTag || (matching && (!event.pull_request || actualHash === expectedChecksum))) {
       authorization = releaseAuthorization(base, authorizationPath, expectedChecksum || actualHash);
     }
