@@ -12,6 +12,15 @@ import { nativeTestEnvironment } from '../fixtures/native-env.js';
 
 const binary = process.env.HARNESS_TEST_CODEX_BIN;
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAI0lEQVR4nGPsn7+RgRTARJJqhlENxAEmItXBwagGYgDJoQQA62sB/85+iZAAAAAASUVORK5CYII=', 'base64');
+function referencedPath(text: string, filename: string): string {
+  const prefix = `Attached file ${JSON.stringify(filename)} is available at `;
+  // The optional tool guidance follows on a new line; the path is a JSON string literal.
+  const [line] = text.split('\n', 1);
+  if (!line?.startsWith(prefix) || !line.endsWith('.')) throw new Error('Missing attachment reference');
+  const decoded: unknown = JSON.parse(line.slice(prefix.length, -1));
+  if (typeof decoded !== 'string' || !path.isAbsolute(decoded)) throw new Error('Invalid attachment path');
+  return decoded;
+}
 function answer(res: ServerResponse, item: JsonObject, n: number): void {
   const response = { id: 'rsp_' + n, object: 'response', status: 'completed', created_at: 1, model: 'fixture', output: [item], usage: { input_tokens: 8, output_tokens: 3, total_tokens: 11 } };
   res.writeHead(200, { 'Content-Type': 'text/event-stream' });
@@ -46,7 +55,11 @@ test('official CLI routes native images and tool references, including a model-s
       const tools = body.tools as JsonObject[], namespace = tools.find(row => JSON.stringify(row).includes('analyze_image') && row.type === 'namespace');
       const named = tools.find(row => typeof row.name === 'string' && row.name.endsWith('analyze_image'));
       const tool = namespace ? { namespace: namespace.name!, name: 'analyze_image' } : { name: named?.name ?? 'mcp__vision__analyze_image' };
-      answer(res, { id: 'fc_' + n, type: 'function_call', call_id: 'call_' + n, ...tool, arguments: JSON.stringify({ image_source: attachmentPath, prompt: 'Describe this local fixture.' }) }, n);
+      const userText = (body.input as JsonObject[]).filter(row => row.role === 'user')
+        .flatMap(row => row.content as JsonObject[]).find(part => part.type === 'input_text' && String(part.text).startsWith('Attached file '));
+      const source = referencedPath(String(userText?.text), 'sample.png');
+      expect(source).toBe(attachmentPath);
+      answer(res, { id: 'fc_' + n, type: 'function_call', call_id: 'call_' + n, ...tool, arguments: JSON.stringify({ image_source: source, prompt: 'Describe this local fixture.' }) }, n);
     } else answer(res, { id: 'msg_' + n, type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: 'Fixture reply.', annotations: [] }] }, n);
   })().catch(error => { errors.push(String(error)); res.destroy(); }); });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -143,8 +156,9 @@ test('official CLI routes native images and tool references, including a model-s
           delete index.entries[0].fileName; index.entries[0].mimeType='application/octet-stream'; writeFileSync(indexFile,JSON.stringify(index));
           const restored=new Attachments(legacyRoot);
           const part=object(restored.prepare([bare],String(activeThread)).input[0]);
-          file=path.join(dir,bare+'.mov');
-          expect(part.text).toContain(file); expect(readFileSync(file)).toEqual(readFileSync(path.join(dir,bare)));
+          file = referencedPath(String(part.text), 'old-record');
+          expect(file).toBe(path.join(dir, bare + '.mov'));
+          expect(readFileSync(file)).toEqual(readFileSync(path.join(dir, bare)));
         } else {
           const upload = object(await service.call('attachment/upload', { name: 'clipboard', mimeType: declared, base64: bytes.toString('base64') }, context));
           expect(upload.mimeType).toBe(mime);

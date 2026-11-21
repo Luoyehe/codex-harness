@@ -11,6 +11,10 @@ import { object, type JsonObject, type JsonValue } from '../../src/runtime/types
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
 const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+// Each scenario verifies several real CLI round trips and native-identity helper processes.
+// Keep each operation's own deadline and allow a minute for the complete sequence.
+const scenarioTimeout = 60_000;
+
 test('official CLI updates isolated user configuration with version conflicts, resolves skill toggles, and reports capabilities without inference', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temp = path.join(home, 'tmp');
@@ -107,7 +111,7 @@ test('official CLI updates isolated user configuration with version conflicts, r
     await expect(runtime.call('feedback/save', { cwd: project, threadId: feedbackThread.id!, classification: 'bug', includeLogs: false, confirm: true }, context)).rejects.toMatchObject({ delivery: 'not_sent' });
     expect(await runtime.call('rollout/compress', { confirm: true }, context)).toEqual({ triggered: true, completionConfirmed: false });
     expect(modelRequests).toBe(0);
-}), 60000);
+}), scenarioTimeout);
 
 test('custom MCP changes preserve native TOML and reload the selected literal server', async () => {
   const { nativeTestEnvironment } = await import('../fixtures/native-env.js');
@@ -163,7 +167,7 @@ test('custom MCP changes preserve native TOML and reload the selected literal se
     expect(Object.keys(await rawRead())).toEqual(expect.arrayContaining(['personal', name]));
     expect(Object.keys(await rawRead())).not.toContain('toString');
   } finally { await service.close(); expectNativeClosed(service.native); }
-});
+}, scenarioTimeout);
 
 test('locates disabled user MCP servers with colliding display names through the pinned CLI', async () => {
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
@@ -206,7 +210,7 @@ test('locates disabled user MCP servers with colliding display names through the
     await update({ name: 'new-local', expectedVersion: (await read()).userVersion!, change: { type: 'remove' } });
     expect(Object.keys(await privateServers())).toEqual(['notes-lilac']);
   } finally { await runtime.close(); expectNativeClosed(runtime.native); }
-});
+}, scenarioTimeout);
 
 test('cold-reloads MCP environment forwarding, header helpers and HTTP-only settings after selective edits', async () => {
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
@@ -281,4 +285,4 @@ test('cold-reloads MCP environment forwarding, header helpers and HTTP-only sett
       expect((await read()).servers).toContainEqual(expect.objectContaining({ name: 'stdio', enabled: true, hasEnabledOverride: false }));
     }
   } finally { await runtime.close(); expectNativeClosed(runtime.native); }
-});
+}, scenarioTimeout);
