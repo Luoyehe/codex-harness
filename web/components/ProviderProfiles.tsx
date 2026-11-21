@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSettingsDraft } from '../hooks/useSettingsDraft';
 import { array, object } from '../lib/types';
 import type { useExtensionAction } from './ExtensionControls';
@@ -31,13 +31,17 @@ export function ProviderProfiles({
     retention = object(provider.retention);
   const [name, setName] = useState(''),
     [selected, setSelected] = useState(''),
-    [confirm, setConfirm] = useState('');
+    [consent, setConsent] = useState<{ owner: object; target: string }>();
   useSettingsDraft(Boolean(name));
   const profile = profiles.find((profile) => profile.id === selected);
-  useEffect(() => setConfirm(''), [action.scope, confirmationScope]);
   const trimmedName = name.trim(),
     nameTooLong = Array.from(trimmedName).length > 64;
   const disabled = action.disabled || hasDraft || typeof provider.revision !== 'string';
+  // Refreshes retain the old preview. Consent belongs to one uninterrupted
+  // editable view of the registry, including the displayed removal list.
+  const owner = useMemo(() => ({}), [action.scope, confirmationScope, provider.revision, disabled]);
+  const confirm = consent?.owner === owner ? consent.target : '';
+  const setConfirm = (target: string) => setConsent(target && !disabled ? { owner, target } : undefined);
   const run = async (params: Record<string, string>, notice: string) => {
     if (disabled) return;
     if (
@@ -127,6 +131,7 @@ export function ProviderProfiles({
           <label className="check-row">
             <input
               type="checkbox"
+              disabled={disabled}
               checked={confirm === `restore:${profile.id}`}
               onChange={(event) => setConfirm(event.target.checked ? `restore:${profile.id}` : '')}
             />
@@ -144,6 +149,7 @@ export function ProviderProfiles({
           <label className="check-row">
             <input
               type="checkbox"
+              disabled={disabled}
               checked={confirm === `delete:${profile.id}`}
               onChange={(event) => setConfirm(event.target.checked ? `delete:${profile.id}` : '')}
             />

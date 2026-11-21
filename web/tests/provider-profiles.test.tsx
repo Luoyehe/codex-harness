@@ -2,6 +2,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ProviderSettings } from '../components/ProviderSettings';
+import { ProviderProfiles } from '../components/ProviderProfiles';
+import { useExtensionAction } from '../components/ExtensionControls';
 import type { Api } from '../lib/api';
 
 afterEach(cleanup);
@@ -127,4 +129,78 @@ it('clears unsubmitted profile confirmation after hiding while keeping the authe
   await waitFor(() => expect((screen.getByRole('checkbox', { name: label }) as HTMLInputElement).checked).toBe(false));
   expect(screen.getByRole('button', { name: '恢复所选配置档' }).hasAttribute('disabled')).toBe(true);
   expect(api.mutate).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['我已核对目标，恢复此配置并重启原生服务', '恢复所选配置档', 'profileId'],
+  ['删除此配置档；当前生效配置保持不变', '删除所选配置档', 'deleteProfileId'],
+])('requires fresh profile consent after a delayed registry read for %s', async (label, button, field) => {
+  const connection = (id: string) => ({ id, name: id, kind: 'responses', enabled: true });
+  const profile = { ...profiles[0]!, connections: [connection('a')], defaultProviderId: 'a' };
+  const registry = (revision: string, ids: string[]) => ({
+    revision, kind: 'responses', defaultProviderId: 'a', connections: ids.map(connection), profiles: [profile],
+  });
+  const old = registry('r1', ['a']), latest = registry('r2', ['a', 'new-connection']);
+  let deliver!: (value: typeof latest) => void;
+  const call = vi.fn().mockResolvedValueOnce(old)
+    .mockImplementationOnce(() => new Promise<typeof latest>(resolve => { deliver = resolve; }))
+    .mockResolvedValue(latest);
+  const mutate = vi.fn().mockResolvedValue({});
+  const props = { api: { call, mutate } as unknown as Api, onChanged: vi.fn() };
+  const view = render(<ProviderSettings {...props} epoch="one" />);
+  await screen.findByRole('button', { name: 'a（默认）' });
+  fireEvent.click(screen.getByText('配置备份', { selector: 'summary' }));
+  fireEvent.change(screen.getByLabelText('选择已保存配置'), { target: { value: profile.id } });
+  const check = () => screen.getByRole('checkbox', { name: label }) as HTMLInputElement;
+  const submit = () => screen.getByRole('button', { name: button }) as HTMLButtonElement;
+  expect(screen.getByText('将移出的当前连接：无')).toBeTruthy();
+  fireEvent.click(check());
+  expect(submit().disabled).toBe(false);
+
+  view.rerender(<ProviderSettings {...props} epoch="two" />);
+  await screen.findByText('读取配置中…');
+  expect(check().checked).toBe(false);
+  expect(check().disabled).toBe(true);
+  fireEvent.click(check());
+  fireEvent.click(submit());
+  expect(mutate).not.toHaveBeenCalled();
+
+  await act(async () => deliver(latest));
+  await screen.findByText('将移出的当前连接：new-connection');
+  expect(check().disabled).toBe(false);
+  expect(check().checked).toBe(false);
+  expect(submit().disabled).toBe(true);
+  fireEvent.click(submit());
+  expect(mutate).not.toHaveBeenCalled();
+  fireEvent.click(check());
+  fireEvent.click(submit());
+  await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
+  expect(mutate).toHaveBeenCalledWith('system/provider/write', { expectedRevision: 'r2', [field]: profile.id });
+});
+
+it('invalidates confirmation when the registry revision changes in an otherwise editable view', async () => {
+  const mutate = vi.fn().mockResolvedValue({});
+  const api = { mutate } as unknown as Api;
+  const changed = vi.fn();
+  function ProfileView({ revision }: { revision: string }) {
+    const action = useExtensionAction(api, true, changed);
+    return <ProviderProfiles provider={{ revision, profiles }} action={action} hasDraft={false} onUpdated={changed} />;
+  }
+  const view = render(<ProfileView revision="r1" />);
+  const id = profiles[0]!.id;
+  fireEvent.change(screen.getByLabelText('选择已保存配置'), { target: { value: id } });
+  const check = screen.getByLabelText('我已核对目标，恢复此配置并重启原生服务') as HTMLInputElement;
+  const apply = screen.getByRole('button', { name: '恢复所选配置档' }) as HTMLButtonElement;
+  fireEvent.click(check);
+  expect(apply.disabled).toBe(false);
+  view.rerender(<ProfileView revision="r2" />);
+  expect(check.disabled).toBe(false);
+  expect(check.checked).toBe(false);
+  expect(apply.disabled).toBe(true);
+  fireEvent.click(apply);
+  expect(mutate).not.toHaveBeenCalled();
+  fireEvent.click(check);
+  fireEvent.click(apply);
+  await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
+  expect(mutate).toHaveBeenCalledWith('system/provider/write', { expectedRevision: 'r2', profileId: id });
 });
