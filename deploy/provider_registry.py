@@ -4,8 +4,8 @@ from __future__ import annotations
 import copy
 import re
 import secrets
-import tomllib
 
+from . import native_toml
 from .common import require
 from .provider import KINDS, _single_native_config, redacted, small_text, validate_provider
 
@@ -162,7 +162,7 @@ def runtime_registry(current: dict, layout) -> dict:
 
 def configuration(current: dict, layout) -> dict:
     selected_row = selected(current)
-    selected_config = tomllib.loads(_single_native_config(selected_row["settings"], layout).decode())
+    selected_config = native_toml.loads(_single_native_config(selected_row["settings"], layout).decode())
     # Catalogs are selected per thread. A global file would replace ChatGPT's
     # live directory and mix capability records of equal IDs on other services.
     selected_config.pop("model_catalog_json", None)
@@ -172,7 +172,7 @@ def configuration(current: dict, layout) -> dict:
         if not row["enabled"]:
             continue
         value = row["settings"]
-        config = tomllib.loads(_single_native_config(value, layout).decode())
+        config = native_toml.loads(_single_native_config(value, layout).decode())
         if value["kind"] == "chatgpt":
             definition = {"name": row["name"], "base_url": "https://chatgpt.com/backend-api/codex",
                           "wire_api": "responses", "requires_openai_auth": True, "supports_websockets": True}

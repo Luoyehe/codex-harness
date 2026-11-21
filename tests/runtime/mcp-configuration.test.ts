@@ -10,6 +10,28 @@ function setup() {
   return { config, update, calls, servers: () => servers };
 }
 describe('per-server MCP configuration preserves unrelated credentials', () => {
+  it('binds inherited switch writes to the observed TOML bytes and rejects intervening comment edits', async () => {
+    const servers = { inherited: { command: 'echo' } };
+    let fileVersion = 'original-file', flagsVersion = 'flags-before', enabled = true;
+    const config = new McpConfiguration(async () => ({ config: { mcp_servers: servers }, origins: {}, layers: [
+      { name: { type: 'user', file: '/user/config.toml', profile: null }, version: 'native-user-version', config: {}, disabledReason: null },
+      { name: { type: 'system', file: '/etc/codex/config.toml' }, version: 'system-version', config: { mcp_servers: servers }, disabledReason: null },
+    ] }), async () => ({ fileVersion, version: flagsVersion, flags: { inherited: enabled } }));
+    const request = async () => ({ cwd: '/project', name: 'inherited', expectedVersion: object(await config.read('/project')).userVersion!, change: { type: 'inherit', enabled: false } });
+    const old = await request();
+    fileVersion = 'edited-file';
+    let writes = 0;
+    const write = async (_method: string, input: JsonValue) => {
+      writes++;
+      expect(object(input).expectedVersion).toBe('edited-file');
+      enabled = false; flagsVersion = 'flags-after';
+      return { written: true, version: flagsVersion, filePath: '/user/switches.json', effective: enabled };
+    };
+    await expect(config.write(old, '/project', write)).rejects.toMatchObject({ code: 'config_conflict' });
+    expect(writes).toBe(0);
+    await expect(config.write(await request(), '/project', write)).resolves.toMatchObject({ status: 'ok', effective: false });
+    expect(writes).toBe(1);
+  });
   it('reads safe fields and presence without secret values, and keeps other servers and omitted secrets on edit', async () => {
     const f = setup(); const visible = await f.config.read('/project');
     expect(JSON.stringify(visible)).not.toContain('first-secret'); expect(JSON.stringify(visible)).not.toContain('second-secret'); expect(visible).toMatchObject({ userVersion: 'first', inheritedServers: ['inherited'], servers: [{ name: 'first', hasEnv: true }, { name: 'second', hasHttpHeaders: true }] });

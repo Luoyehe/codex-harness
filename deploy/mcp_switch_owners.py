@@ -4,8 +4,8 @@ from __future__ import annotations
 import os
 import re
 import time
-import tomllib
 
+from . import native_toml
 from .common import read_json, require, write_json
 from .provider_lifecycle import MAX_PROFILES, PROVIDER_JSON_LIMIT, Profiles
 from .provider_registry import MAX_CONNECTIONS, entries
@@ -48,7 +48,7 @@ def capture_origins(layout):
         if not view.exists():
             view = directory / "config.toml"
         with view.open("rb") as stream:
-            servers = tomllib.load(stream).get("mcp_servers", {})
+            servers = native_toml.load(stream).get("mcp_servers", {})
         for name, entry in servers.items():
             if not DISPLAY.fullmatch(name):
                 continue
@@ -79,7 +79,7 @@ def initial_origins(root):
         source = root / selected / "config.toml"
         with source.open("rb") as handle:
             created = os.fstat(handle.fileno()).st_mtime_ns
-            document = tomllib.load(handle)
+            document = native_toml.load(handle)
     except FileNotFoundError:
         return None
     model = document.get("model_providers", {}).get("harness_responses", {})

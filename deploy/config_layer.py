@@ -62,7 +62,7 @@ def user_layer(manager) -> None:
     # redirect or hang the root reader. Never write or normalize user bytes.
     descriptors = []
     limit = 1024 * 1024
-    import tomllib
+    from . import native_toml
     try:
         fd = os.open(manager.layout.state, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         descriptors.append(fd)
@@ -89,7 +89,7 @@ def user_layer(manager) -> None:
         after = os.fstat(fd)
         require(len(data) <= limit and (before.st_size, before.st_mtime_ns, before.st_ctime_ns) ==
                 (after.st_size, after.st_mtime_ns, after.st_ctime_ns), "Native user configuration changed during inspection", "configuration_conflict")
-        tomllib.loads(bytes(data).decode("utf-8"))
+        native_toml.loads(bytes(data).decode("utf-8"))
     except OSError as exc:
         raise DeployError("configuration_conflict", "Native user configuration cannot be read safely; bytes were preserved") from exc
     except (ValueError, UnicodeError) as exc:

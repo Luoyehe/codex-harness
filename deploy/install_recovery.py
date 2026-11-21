@@ -347,8 +347,9 @@ def build_plan(layout: Layout, state: dict, material: dict) -> CreationPlan:
     plan.json(layout.config / "installation.json", {"format": 1, "phase": "pending", "release": None})
     plan.json(layout.config / "native.json", {"uid": worker["uid"], "gid": worker["gid"], "cwd": str(layout.state / "worker"),
               "home": str(layout.state / "worker/codex"), "bin": str(layout.app / "current/codex" / config["codexRelative"])}, 0o644)
-    if any(name.startswith("deploy/caddy_dns_source/") for name in material):
-        plan.directory(layout.control / "deploy/caddy_dns_source", 0o755)
+    for parent in sorted({Path(name).parent for name in material}):
+        if parent not in (Path("."), Path("deploy")):
+            plan.directory(layout.control / parent, 0o755)
     for name, (data, mode) in material.items(): plan.file(layout.control / name, data, mode)
     plan.file(layout.config / "sudoers.pending", sudo_rule(layout).encode(), 0o440)
     plan.file(layout.root / "etc/sudoers.d" / ("codex-harness-" + layout.instance), sudo_rule(layout).encode(), 0o440)

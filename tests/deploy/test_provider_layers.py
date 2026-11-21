@@ -66,6 +66,16 @@ class ProviderLayerCompositionTests(unittest.TestCase):
                   "float": 1.5, "nan": float("nan"), "positive": float("inf"), "negative": -float("inf")}
         self.assertTrue(equivalent(source, tomllib.loads(serialize_toml(source).decode())))
 
+    def test_native_dates_and_fractional_precision_survive_host_layer_composition(self):
+        from deploy import native_toml
+        raw = '\ufeffcustom = {\r\n first=0000-02-29, leap=23:59:60, precise=10:30:12.123456789, short=07:20, \r\n}'
+        self.host["config.toml"] = native_toml.loads(raw)
+        output = compose_layers(self.defaults, self.required, self.host)["system-config.toml"].decode()
+        self.assertIn("0000-02-29", output)
+        self.assertIn("23:59:60", output)
+        self.assertIn("10:30:12.123456789", output)
+        self.assertEqual(native_toml.loads(output)["custom"], self.host["config.toml"]["custom"])
+
     def test_complete_provider_definition_is_mandatory(self):
         for required in ({}, {"model_provider": "harness_responses"}, {"model_provider": "harness_responses", "model_providers": {}}):
             with self.assertRaises(DeployError):

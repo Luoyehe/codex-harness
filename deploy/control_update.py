@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 
 from .common import DeployError, Layout, atomic_write, digest, fsync_directory, mkdir, read_json, require, write_json
-from .install import stage_control, trusted_ancestors, write_control_launchers
+from .install import control_source_files, stage_control, trusted_ancestors, write_control_launchers
 from .journal import recover_as_owner
 from .safe_fs import inspect_tree, snapshot
 from .system import System, run
@@ -71,7 +71,8 @@ def assert_reviewed_checkout(layout: Layout) -> None:
     from .dns_caddy_build import source_material
     recipe = source / "caddy_dns_source"
     trusted_ancestors(recipe)
-    paths = [*source.glob("*.py"), source / "build_tool.mjs", *(recipe / name for name in source_material())]
+    trusted_ancestors(source / "_tomli")
+    paths = [*control_source_files(source), *(recipe / name for name in source_material())]
     for path in paths:
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022 and info.st_nlink == 1,

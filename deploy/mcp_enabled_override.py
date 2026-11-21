@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import contextlib
-import copy
 import hashlib
 import json
 import os
@@ -10,87 +9,16 @@ from pathlib import Path
 import re
 import stat
 import tempfile
-import tomllib
 
-from .common import DeployError, fsync_directory, require
+from . import native_toml
+from .common import fsync_directory, require
 from .mcp_switch_owners import OWNER, origins, retained
 from .provider import CODING_HTTP, ZHIPU_URL
-from .provider_layers import equivalent
 
 
 def version(value: dict) -> str:
     canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=lambda item: item.isoformat())
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
-
-
-# Only locate candidate edits in the original text. tomllib decodes quoted
-# key components and validates the entire result before anything is saved.
-_KEY = r"""(?:[A-Za-z0-9_-]+|'[^'\r\n]*'|"(?:[^"\\\r\n]|\\.)*")"""
-_PATH = rf'{_KEY}(?:[ \t]*\.[ \t]*{_KEY})*'
-_SECTION = re.compile(
-    rf'(?m)^[ \t]*\[(?P<header>[ \t]*{_PATH}[ \t]*)\][ \t]*(?P<comment>#[^\r\n]*)?(?P<eol>\r?\n)'
-    rf'(?P<between>(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*)'
-    rf'[ \t]*(?P<flag>{_KEY})[ \t]*=[ \t]*(?:true|false)[ \t]*(?P<tail>#[^\r\n]*)?(?P<end>\r?\n|$)'
-)
-_ASSIGNMENT = re.compile(
-    rf'(?m)(?:^|(?<=[,{{]))[ \t]*(?P<assignment>(?P<path>{_PATH})[ \t]*=[ \t]*'
-    rf'(?:\{{[ \t]*(?P<flag>{_KEY})[ \t]*=[ \t]*(?:true|false)[ \t]*\}}|true|false))'
-)
-
-
-def _key_path(source):
-    # Basic-quoted keys use the same escape rules as basic strings.
-    try:
-        return tuple(tomllib.loads("v=" + key)["v"] if key.startswith('"') else key.strip("'")
-                     for key in re.findall(_KEY, source))
-    except tomllib.TOMLDecodeError:
-        # A line in a multiline string can look like a header or assignment.
-        return ()
-
-
-def _removals(text, name):
-    for section in _SECTION.finditer(text):
-        if _key_path(section["header"]) != ("mcp_servers", name) or _key_path(section["flag"]) != ("enabled",):
-            continue
-        keep = ((section["comment"] + section["eol"]) if section["comment"] else "") + section["between"]
-        if section["tail"]:
-            keep += section["tail"] + section["end"]
-        yield text[:section.start()] + keep + text[section.end():]
-
-    for assignment in _ASSIGNMENT.finditer(text):
-        path = _key_path(assignment["path"])
-        if assignment["flag"]:
-            if _key_path(assignment["flag"]) != ("enabled",):
-                continue
-        else:
-            if path[-1:] != ("enabled",):
-                continue
-            path = path[:-1]
-        if path not in ((name,), ("mcp_servers", name)):
-            continue
-        start, end = assignment.span("assignment")
-        after = re.match(r'[ \t]*,[ \t]*', text[end:])
-        before = re.search(r',[ \t]*$', text[:start])
-        if after:
-            yield text[:start] + text[end + after.end():]
-        if before:
-            yield text[:before.start()] + text[end:]
-        yield text[:start] + text[end:]
-
-
-def _remove_legacy(text, name, initial):
-    wanted = copy.deepcopy(initial)
-    del wanted["mcp_servers"][name]
-    for candidate in _removals(text, name):
-        try:
-            actual = tomllib.loads(candidate)
-        except tomllib.TOMLDecodeError:
-            continue
-        # Removing the last dotted key also removes its implicit parent.
-        actual.setdefault("mcp_servers", {})
-        if equivalent(actual, wanted):
-            return candidate
-    raise DeployError("config_conflict", "The native MCP flag could not be updated without changing unrelated settings")
 
 
 SYSTEM = (Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "OpenAI" / "Codex" / "config.toml"
@@ -260,12 +188,18 @@ def _switches(home, document, providers):
     return flags, before, identities, servers, history, owners
 
 
+def _file_version(base):
+    return "sha256:" + hashlib.sha256(base[0]).hexdigest() if base[1] is not None else None
+
+
 def read(home, *, system=None, providers=None):
     _safe(home.lstat(), True)
     def snapshot():
         data, _ = _read(system or SYSTEM, limit=4 * 1024 * 1024, private=False)
-        flags, before, identities, servers, _, _ = _switches(home, tomllib.loads(data.decode()), providers)
-        return _state(home, flags, identities, servers), flags, before
+        flags, before, identities, servers, _, _ = _switches(home, native_toml.loads(data.decode()), providers)
+        state = _state(home, flags, identities, servers)
+        base = _read(home / "config.toml", limit=1024 * 1024, private=False)
+        return {**state, "fileVersion": _file_version(base)}, flags, before
 
     state, flags, before = snapshot()
     if not before[1] or flags == json.loads(before[0]):
@@ -292,9 +226,9 @@ def _native_layers(home, system):
     # Some deployments mount a root-owned base file read-only. Reading it
     # does not grant permission to replace it; migration checks ownership again.
     base = _read(home / "config.toml", limit=1024 * 1024, private=False)
-    settings = tomllib.loads(base[0].decode())
+    settings = native_toml.loads(base[0].decode())
     system_bytes, _ = _read(system, limit=4 * 1024 * 1024, private=False)
-    return base, settings, tomllib.loads(system_bytes.decode())
+    return base, settings, native_toml.loads(system_bytes.decode())
 
 
 def apply(home: Path, params: dict, *, system=None, providers=None) -> dict:
@@ -307,7 +241,7 @@ def apply(home: Path, params: dict, *, system=None, providers=None) -> dict:
         base, settings, document = _native_layers(home, system or SYSTEM)
         flags, before, identities, system_servers, _, _ = _switches(home, document, providers)
         require(params["expectedFlags"] == _state(home, flags, identities, system_servers)["version"] and
-                (params["expectedVersion"] == version(settings) or base[1] is None and params["expectedVersion"] is None),
+                (params["expectedVersion"] == _file_version(base) or params["expectedVersion"] == version(settings)),
                 "User configuration changed; reload before saving", "config_conflict")
         if params.get("discardLegacy"):
             require(DISPLAY.fullmatch(name) and type(enabled) is bool and flags.get(UNASSIGNED + name) is enabled,
@@ -358,13 +292,13 @@ def launch_arguments(home: Path, *, system=None, providers=None) -> list[str]:
         flags = {**imported, **flags}
         require(sum(not key.startswith(UNASSIGNED) for key in flags) <= 128, "Too many MCP switches", "capacity")
         text = base[0].decode()
-        for key in legacy:
-            text = _remove_legacy(text, key, tomllib.loads(text))
+        if legacy:
+            text = native_toml.remove_switches(text, legacy, settings)
         if flags != (json.loads(before[0]) if before[1] else {}):
             _save(home, flags, before)
         if legacy:
             _replace(home / "config.toml", text.encode(), base, 1024 * 1024)
-            entries = tomllib.loads(text).get("mcp_servers", {})
+            entries = native_toml.loads(text).get("mcp_servers", {})
         active = {name: value for name, value in _state(home, flags, identities, servers)["flags"].items() if name not in entries}
         if not active: return []
         # A single TOML inline table preserves literal server names containing dots.

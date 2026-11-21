@@ -12,9 +12,9 @@ import json
 import math
 import os
 import stat
-import tomllib
 from pathlib import Path
 
+from . import native_toml
 from .common import DeployError, Layout, durable_directory, fsync_directory, read_json, require
 
 HOST_NAMES = ("config.toml", "requirements.toml", "managed_config.toml")
@@ -25,7 +25,7 @@ LAYER_MODE = "system-v1"
 
 def provider_documents(value: dict, layout: Layout) -> tuple[dict, dict]:
     from .provider import native_config
-    defaults = tomllib.loads(native_config(value, layout).decode())
+    defaults = native_toml.loads(native_config(value, layout).decode())
     if "connections" in value:
         # Every managed definition remains complete and immutable. Selection is
         # per thread; an exact model_provider requirement would force all
@@ -112,7 +112,7 @@ def toml_value(value, depth: int = 0) -> str:
         return "true" if value else "false"
     if type(value) in (int, float):
         return repr(value)
-    if isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
+    if isinstance(value, (datetime.datetime, datetime.date, datetime.time, native_toml.NativeDateTime)):
         return value.isoformat()
     if isinstance(value, list):
         return "[" + ", ".join(toml_value(item, depth + 1) for item in value) + "]"
@@ -136,7 +136,7 @@ def serialize_toml(value: dict) -> bytes:
         toml_value(key) + " = " + toml_value(item) for key, item in value.items()) + "\n"
     data = text.encode()
     require(len(data) <= LAYER_LIMIT, "Merged system layer exceeds budget", "budget")
-    require(equivalent(value, tomllib.loads(text)), "Host TOML could not be preserved", "configuration_conflict")
+    require(equivalent(value, native_toml.loads(text)), "Host TOML could not be preserved", "configuration_conflict")
     return data
 
 
@@ -245,7 +245,7 @@ def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = Fal
         require(len(data) <= HOST_LIMIT and (before.st_size, before.st_mtime_ns, before.st_ctime_ns) ==
                 (after.st_size, after.st_mtime_ns, after.st_ctime_ns), "Host configuration changed or exceeded budget", "configuration_conflict")
         try:
-            documents[name] = tomllib.loads(bytes(data).decode("utf-8"))
+            documents[name] = native_toml.loads(bytes(data).decode("utf-8"))
         except (ValueError, UnicodeError) as exc:
             raise DeployError("configuration_conflict", "Host Codex TOML is invalid in " + name) from exc
         records[name] = {"exists": True, "sha256": hashlib.sha256(data).hexdigest(), "mode": stat.S_IMODE(after.st_mode),

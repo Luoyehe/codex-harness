@@ -46,7 +46,11 @@ export class McpConfiguration {
     const systemServers = object(system ? object(system.config).mcp_servers ?? {} : {});
     const state = this.controls && system ? await this.controls(cwd) : {};
     const flags = object(state.flags ?? {}), flagsVersion = state.version ?? null;
-    const version = flagsVersion ? String(baseVersion ?? '') + '|' + String(flagsVersion) : baseVersion;
+    // The fixed helper owns the private switch file. Bind its writes to the exact
+    // user TOML bytes, including native types that JSON cannot represent.
+    const hasFileVersion = Object.hasOwn(state, 'fileVersion');
+    const helperVersion = hasFileVersion ? (state.fileVersion ?? null) : baseVersion;
+    const version = flagsVersion ? [baseVersion ?? '', flagsVersion, ...(hasFileVersion ? [helperVersion ?? ''] : [])].join('|') : baseVersion;
     // Native lists layers in decreasing precedence. Session flags supplied by
     // this adapter contain only booleans, so the next lower explicit value
     // determines what restoring inheritance will do.
@@ -60,7 +64,7 @@ export class McpConfiguration {
       return true;
     };
     const codingPlanDefaults = new Set(Array.isArray(state.codingPlanHttpDefaults) ? state.codingPlanHttpDefaults : []);
-    return { version, baseVersion, flagsVersion, flags, codingPlanDefaults, unassigned: object(state.unassigned ?? {}), managedOwners: object(state.managedOwners ?? {}), file: state.filePath, servers, effective, systemServers, locked, withoutSession };
+    return { version, baseVersion, helperVersion, flagsVersion, flags, codingPlanDefaults, unassigned: object(state.unassigned ?? {}), managedOwners: object(state.managedOwners ?? {}), file: state.filePath, servers, effective, systemServers, locked, withoutSession };
   }
   async read(cwd: string): Promise<JsonValue> {
     const { version, servers, effective, flags, codingPlanDefaults, unassigned, managedOwners, systemServers, locked, withoutSession } = await this.source(cwd);
@@ -81,7 +85,7 @@ export class McpConfiguration {
   async write(params: JsonObject, cwd: string, write: Call): Promise<JsonValue> {
     onlyKeys(params, ['cwd', 'expectedVersion', 'name', 'change']); const expectedVersion = params.expectedVersion === null ? null : string(params.expectedVersion, 'expectedVersion'), name = serverName(params.name), change = object(params.change);
     onlyKeys(change, ['type', 'transport', 'command', 'args', 'url', 'enabled', 'env', 'httpHeaders', 'bearerTokenEnvVar', 'envHttpHeaders', 'clearSecrets', 'legacyName']);
-    const { version, baseVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd);
+    const { version, baseVersion, helperVersion, servers, effective, systemServers, flagsVersion, unassigned, locked, withoutSession } = await this.source(cwd);
     if (version !== expectedVersion) throw new DeliveryError('config_conflict', 'User configuration changed; reload before saving');
     const original = Object.hasOwn(servers, name) ? object(servers[name]) : undefined;
     const next: JsonObject = { ...servers };
@@ -90,7 +94,7 @@ export class McpConfiguration {
       if (!Object.hasOwn(unassigned, name) || typeof change.enabled !== 'boolean' || unassigned[name] !== change.enabled || typeof flagsVersion !== 'string')
         throw new DeliveryError('config_conflict', '旧开关记录已变化，请重新读取。');
       const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled,
-        expectedVersion: baseVersion, expectedFlags: flagsVersion, discardLegacy: true }));
+        expectedVersion: helperVersion, expectedFlags: flagsVersion, discardLegacy: true }));
       const state = await this.source(cwd);
       if (saved.written !== true || saved.version !== state.flagsVersion || Object.hasOwn(state.unassigned, name))
         throw new DeliveryError('config_readback_unknown', '旧开关记录的移除结果未确认。', 'unknown');
@@ -103,7 +107,7 @@ export class McpConfiguration {
         throw new DeliveryError('mcp_missing', '该继承服务已变化，请重新读取有效配置。');
       if (change.enabled !== null && typeof change.enabled !== 'boolean') throw new DeliveryError('invalid_params', 'Choose an enabled override or restore inheritance');
       const desired = change.enabled ?? withoutSession(name);
-      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled!, expectedVersion: baseVersion, expectedFlags: flagsVersion, ...recovery }));
+      const saved = object(await write('harness/mcp/enabled-override', { cwd, name, enabled: change.enabled!, expectedVersion: helperVersion, expectedFlags: flagsVersion, ...recovery }));
       const state = await this.source(cwd);
       if (saved.written !== true || saved.version !== state.flagsVersion || saved.effective !== desired ||
           (recovery.legacyName !== undefined && Object.hasOwn(state.unassigned, recovery.legacyName)) ||

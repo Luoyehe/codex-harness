@@ -356,14 +356,12 @@ def _queue_store(home: Path, uid: int):
     configured = os.environ.get("CODEX_SQLITE_HOME")
     native_config = home / "config.toml"
     if not configured and native_config.exists():
-        # Native configuration may redirect the durable stores. Parse only when
-        # the setting is present, so older Python installations remain usable.
+        # The sqlite_home key may be quoted or use native TOML escapes.
         with native_config.open("rb") as stream:
             raw_config = stream.read(2 * 1024 * 1024 + 1)
         check(len(raw_config) <= 2 * 1024 * 1024, "Native configuration exceeds the queue lookup budget")
-        if b"sqlite_home" in raw_config:
-            from tomllib import loads
-            configured = loads(raw_config.decode("utf-8")).get("sqlite_home")
+        from .native_toml import loads
+        configured = loads(raw_config.decode("utf-8")).get("sqlite_home")
     dbroot = _local_path(configured) if configured else home
     check(dbroot.is_absolute() and ".." not in dbroot.parts, "Cannot establish the native queue location")
     _safe(dbroot.lstat(), uid, directory=True)

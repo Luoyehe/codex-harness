@@ -90,6 +90,54 @@ class McpEnabledOverrides(unittest.TestCase):
             self.assertEqual(config.read_bytes(), expected)
             self.assertEqual(json.loads((self.home / switches.STORE).read_bytes()), {"one.with.dot": False})
 
+    def test_native_toml_11_is_left_intact_across_launch_and_switch_save(self):
+        path = self.home / "config.toml"
+        data = (b'\xef\xbb\xbfmodel = "fixture"\r\ncustom = {\r\n date = 0000-02-29, '
+                b'leap = 23:59:60, precise = 04:05:06.123456789, x = "\\x41\\e", n = 1e-5,\r\n}\r\n'
+                b'mcp_servers.personal = {command = "echo",}\r\n')
+        path.write_bytes(data)
+        for _ in range(2):
+            self.assertEqual(switches.launch_arguments(self.home, system=self.system), [])
+            self.assertEqual(path.read_bytes(), data)
+            self.assertFalse((self.home / switches.STORE).exists())
+        state = switches.read(self.home, system=self.system)
+        params = {"name": "one.with.dot", "enabled": False, "expectedVersion": state["fileVersion"], "expectedFlags": state["version"]}
+        path.write_bytes(data + b'# edited\r\n')
+        with self.assertRaises(DeployError):
+            switches.apply(self.home, params, system=self.system)
+        fresh = switches.read(self.home, system=self.system)
+        switches.apply(self.home, {**params, "expectedVersion": fresh["fileVersion"]}, system=self.system)
+        for _ in range(2):
+            self.assertEqual(switches.launch_arguments(self.home, system=self.system), ["-c", 'mcp_servers={"one.with.dot" = {enabled = false}}'])
+            self.assertEqual(path.read_bytes(), data + b'# edited\r\n')
+
+    def test_multiline_legacy_entries_keep_bom_sibling_bytes_and_comments(self):
+        prefix = b'\xef\xbb\xbfmodel = "fixture"\r\nmcp_servers = {\r\n # keep\r\n'
+        entries = b' "web\\x2dreader" = {\r\n # inside\r\n enabled=false,\r\n }, # after\r\n'
+        sibling = b' personal = {command="echo", args=["# literal",],},\n'
+        last = b' "one.with.dot".enabled=false,\r\n'
+        suffix = b'}\r\n[[custom]]\r\ntext = """mcp_servers.web-reader.enabled=false"""\r\n'
+        expected = prefix + b' # inside\r\n # after\r\n' + sibling + b' \r\n' + suffix
+        path = self.home / "config.toml"
+        path.write_bytes(prefix + entries + sibling + last + suffix)
+        for _ in range(2):
+            self.assertEqual(switches.launch_arguments(self.home, system=self.system), ["-c", 'mcp_servers={"one.with.dot" = {enabled = false}}'])
+            self.assertEqual(path.read_bytes(), expected)
+            self.assertEqual(json.loads((self.home / switches.STORE).read_bytes()), {"@unassigned:web-reader": False, "one.with.dot": False})
+
+    def test_removing_final_inline_members_keeps_toml_10_readable(self):
+        entries = ('personal = {command="echo"}', 'web-reader={enabled=false}', 'zread.enabled=false')
+        from itertools import permutations
+        for order in permutations(entries):
+            with self.subTest(order=order):
+                config = self.home / "config.toml"
+                config.write_text("mcp_servers={" + ", ".join(order) + "} # keep\n")
+                for _ in range(2):
+                    self.assertEqual(switches.launch_arguments(self.home, system=self.system), [])
+                    self.assertEqual(tomllib.loads(config.read_text()), {"mcp_servers": {"personal": {"command": "echo"}}})
+                    self.assertIn('personal = {command="echo"}', config.read_text())
+                    self.assertIn("# keep\n", config.read_text())
+
     def test_a_reassigned_system_display_name_does_not_inherit_the_other_providers_boolean(self):
         def write_provider(identity):
             self.system.write_text('[mcp_servers.vision]\ncommand="/opt/native"\nargs=["zai-server", "' + identity + '"]\n')

@@ -283,6 +283,12 @@ class ControlBoundaryTests(unittest.TestCase):
                 self.assertEqual((destination / "deploy/caddy_dns_source" / name).read_bytes(), data)
             helper = destination / "deploy/build_tool.mjs"
             self.assertEqual(helper.read_bytes(), (Path(__file__).resolve().parents[2] / "deploy/build_tool.mjs").read_bytes())
+            import sys
+            result = subprocess.run([sys.executable, "-B", "-c",
+                                     'from deploy.native_toml import loads; assert loads("t={x=1,}") == {"t":{"x":1}}'],
+                                    cwd=destination, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((destination / "deploy/_tomli/LICENSE").is_file())
             self.assertTrue((destination / "deploy/control_update.py").is_file())
             self.assertEqual(list(destination.rglob("*.pyc")), [])
             self.assertFalse((destination / "deploy/README.md").exists())
@@ -299,7 +305,7 @@ class ControlBoundaryTests(unittest.TestCase):
                                 for index, name in enumerate(("gateway", "worker", "control"))},
                  "config": {"codexRelative": "vendor/fixture/codex"}, "token": "fixture-token",
                  "providerRevision": "a" * 32, "account": None}
-        material = {"deploy/caddy_dns_source/main.go": (b"package main\n", 0o644)}
+        material = {"deploy/caddy_dns_source/main.go": (b"package main\n", 0o644), "deploy/_tomli/__init__.py": (b"", 0o644)}
         with patch("deploy.provider.native_config", return_value=b""), \
              patch("deploy.provider_layers.prepare_host_targets"), \
              patch("deploy.provider_layers.generation_layers", return_value=({}, {})), \
@@ -308,6 +314,7 @@ class ControlBoundaryTests(unittest.TestCase):
         parent = layout.control / "deploy/caddy_dns_source"
         self.assertEqual(plan.entries[parent], {"kind": "directory", "mode": 0o755, "uid": 0, "gid": 0})
         self.assertEqual(plan.content[parent / "main.go"], b"package main\n")
+        self.assertEqual(plan.entries[layout.control / "deploy/_tomli"], plan.entries[parent])
 
     def test_selected_dns_blocks_legacy_control_and_accepts_capable_control(self):
         with tempfile.TemporaryDirectory() as folder:

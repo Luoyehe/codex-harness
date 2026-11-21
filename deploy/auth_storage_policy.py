@@ -4,9 +4,9 @@ from __future__ import annotations
 import os
 import re
 import stat
-import tomllib
 from pathlib import Path
 
+from . import native_toml
 from .common import DeployError, require
 from .provider_layers import LAYER_LIMIT
 
@@ -50,7 +50,7 @@ def check_file(path, uid, limit=LIMIT):
             (after.st_size, after.st_mtime_ns, after.st_ctime_ns),
             "Authentication configuration changed or exceeded budget", "configuration_conflict")
     try:
-        document = tomllib.loads(data.decode("utf-8"))
+        document = native_toml.loads(data.decode("utf-8"))
     except (ValueError, UnicodeError) as error:
         raise DeployError("configuration_conflict", "Authentication storage TOML is invalid; file contents were not changed") from error
     validate_document(document)

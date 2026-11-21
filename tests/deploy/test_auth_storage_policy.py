@@ -28,10 +28,11 @@ class AuthenticationStoragePolicyTests(unittest.TestCase):
             for path in (home / "config.toml", layout.root / "etc/codex/requirements.toml",
                          layout.config / "providers/current/system-config.toml", home.parent / ".codex/config.toml"):
                 path.parent.mkdir(parents=True, exist_ok=True)
-                data = b'[profiles.work]\ncli_auth_credentials_store = "keyring"\n'
+                data = b'\xef\xbb\xbfprofiles.work = {\r\n "cli_auth_credentials_\\x73tore" = "keyring",\r\n}\r\n'
                 path.write_bytes(data)
-                with self.assertRaises(DeployError):
+                with self.assertRaises(DeployError) as caught:
                     require_file_store(layout, home, os.getuid() if os.name == "posix" else 0)
+                self.assertEqual(caught.exception.code, "auth_store_unsupported")
                 self.assertEqual(path.read_bytes(), data)
                 path.unlink()
 

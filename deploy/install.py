@@ -62,10 +62,17 @@ def ensure_reserved_account(name: str, home: Path, reserved: tuple[set[int], set
     return account.pw_uid, group.gr_gid
 
 
+def control_source_files(source: Path):
+    require(stat.S_ISDIR((source / "_tomli").lstat().st_mode), "Unsafe native TOML parser source", "unsafe_path")
+    parser_files = ("__init__.py", "_parser.py", "_re.py", "_types.py", "LICENSE")
+    return [*source.glob("*.py"), source / "build_tool.mjs", *(source / "_tomli" / name for name in parser_files)]
+
+
 def stage_control(layout: Layout, destination: Path) -> None:
     require(not destination.exists() and not destination.is_symlink(), "Management helper already exists", "collision")
     mkdir(destination, 0o755)
     mkdir(destination / "deploy", 0o755)
+    mkdir(destination / "deploy/_tomli", 0o755)
     mkdir(destination / "deploy/caddy_dns_source", 0o755)
     for name, (data, mode) in control_material(layout).items():
         atomic_write(destination / name, data, mode)
@@ -77,14 +84,14 @@ def control_material(layout: Layout) -> dict[str, tuple[bytes, int]]:
     result = {}
     # Never import cached bytecode from the checkout, or copy documentation and
     # unrelated files into the sudo-authorized Python package.
-    for path in sorted([*source.glob("*.py"), source / "build_tool.mjs"]):
+    for path in sorted(control_source_files(source)):
         details = path.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= 1024 * 1024,
                 "Unsafe trusted deployment source", "unsafe_path")
         data = path.read_bytes()
         if path.suffix == ".py":
             compile(data, str(path), "exec")
-        result["deploy/" + path.name] = (data, 0o644)
+        result["deploy/" + path.relative_to(source).as_posix()] = (data, 0o644)
     from .dns_caddy_build import source_material
     for name, data in source_material().items():
         result["deploy/caddy_dns_source/" + name] = (data, 0o644)

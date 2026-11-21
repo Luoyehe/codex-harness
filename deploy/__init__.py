@@ -1,1 +1,1 @@
-"""Codex Harness deployment. Python 3.11+, no third party Python packages."""
+"""Codex Harness deployment. Python 3.11+, with the native TOML parser bundled."""
