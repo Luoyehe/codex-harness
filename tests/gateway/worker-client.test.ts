@@ -49,14 +49,14 @@ it.each([
   } finally { await f.close(); }
 });
 
-async function fixture(response: JsonValue | (() => JsonValue) = { ok: true, result: {} }) {
+async function fixture(response: JsonValue | ((request: http.IncomingMessage) => JsonValue | Promise<JsonValue>) = { ok: true, result: {} }) {
   const requests: { path: string; channel: unknown; body: Record<string, unknown> }[] = [];
   let loseRegistration = false;
   const server = http.createServer((req, res) => { void (async () => {
     const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
     requests.push({ path: req.url!, channel: req.headers['x-harness-event-channel'], body: JSON.parse(Buffer.concat(chunks).toString()) });
     if (loseRegistration && req.url === '/connect') { res.destroy(); return; }
-    res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(typeof response === 'function' ? response() : response));
+    res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(typeof response === 'function' ? await response(req) : response));
   })().catch(() => res.destroy()); });
   const wss = new WebSocketServer({ server, path: '/events' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -68,6 +68,50 @@ async function fixture(response: JsonValue | (() => JsonValue) = { ok: true, res
   const socket = await connect();
   return { worker, socket, requests, events, connect, handshake, loseRegistration: () => { loseRegistration = true; }, close: async () => { worker.close(); for (const socket of wss.clients) socket.terminate(); await new Promise<void>(resolve => wss.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); } };
 }
+it.each(['/connect', '/disconnect'])('ignores a retired channel’s delayed %s result when releasing a replacement owner', async delayed => {
+  const old = randomUUID(), fresh = randomUUID(), owner = randomUUID();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const f = await fixture(async req => {
+    if (req.headers['x-harness-event-channel'] === old && req.url === delayed) {
+      await gate;
+      if (delayed === '/connect') return { ok: false, error: { code: 'capacity', message: 'Not registered', delivery: 'not_sent' } };
+    }
+    return { ok: true, result: {} };
+  });
+  try {
+    await f.handshake(f.socket, old);
+    if (delayed === '/disconnect') await f.worker.clientConnected(owner);
+    const earlier = delayed === '/disconnect' ? f.worker.clientDisconnected(owner)
+      : expect(f.worker.clientConnected(owner)).rejects.toMatchObject({ delivery: 'not_sent' });
+    await vi.waitFor(() => expect(f.requests.at(-1)?.path).toBe(delayed));
+    const offline = once(f.worker, 'disconnect'); f.socket.terminate(); await offline;
+    await f.handshake(await f.connect(), fresh); await f.worker.clientConnected(owner);
+    release(); await earlier; await f.worker.clientDisconnected(owner);
+    expect(f.requests.filter(row => row.channel === fresh).map(row => row.path)).toEqual(['/connect', '/disconnect']);
+  } finally { release(); await f.close(); }
+});
+
+it('orders release and subsequent registrations of a reused owner on one event channel', async () => {
+  const owner = randomUUID();
+  let resume!: () => void;
+  const gate = new Promise<void>(resolve => { resume = resolve; });
+  const f = await fixture(async req => {
+    if (req.url === '/disconnect') await gate;
+    return { ok: true, result: {} };
+  });
+  try {
+    await f.handshake(f.socket, randomUUID());
+    await Promise.all([f.worker.clientConnected(owner), f.worker.clientConnected(owner)]);
+    const firstRelease = f.worker.clientDisconnected(owner);
+    await vi.waitFor(() => expect(f.requests.at(-1)?.path).toBe('/disconnect'));
+    const reconnect = f.worker.clientConnected(owner), again = f.worker.clientConnected(owner);
+    const finalRelease = f.worker.clientDisconnected(owner);
+    resume(); await Promise.all([firstRelease, reconnect, again, finalRelease]);
+    expect(f.requests.map(row => row.path)).toEqual(['/connect', '/disconnect', '/connect', '/disconnect']);
+  } finally { resume(); await f.close(); }
+});
+
 it('uses the longest supported duty only for explicit manual MCP calls', async () => {
   const f = await fixture();
   try {

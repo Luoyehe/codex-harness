@@ -9,11 +9,12 @@ import { LIMITS } from '../core/contracts.js';
 import { object, safeJson, uuid } from '../core/validation.js';
 
 export interface WorkerAddress { socketPath?: string; port?: number; token?: string }
+interface OwnerRegistration { channel: string; connected: Promise<void>; disconnecting?: Promise<void> }
 export class WorkerClient extends EventEmitter implements WorkerPort {
   connected = false;
   #closed = false; #socket: WebSocket | undefined; #retry: NodeJS.Timeout | undefined;
   #eventChannelId: string | undefined;
-  #clientChannels = new Map<string, string>();
+  #clientChannels = new Map<string, OwnerRegistration>();
   #ping: NodeJS.Timeout | undefined; #alive = false;
   constructor(readonly address: WorkerAddress) { super(); }
   connect(): void {
@@ -68,26 +69,44 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
       context.requireAuthorization?.(); context.requireConnection?.(); context.beforeWrite?.();
     });
   }
-  async clientDisconnected(clientId: string): Promise<void> {
-    const channelId = this.#clientChannels.get(clientId);
-    if (!channelId || channelId !== this.#eventChannelId) { this.#clientChannels.delete(clientId); return; }
-    try { await this.request('/disconnect', { clientId }); }
-    catch (error) { if (this.#eventChannelId === channelId) this.invalidateConnection(); throw error; }
-    finally { this.#clientChannels.delete(clientId); }
+  clientDisconnected(clientId: string): Promise<void> {
+    const owner = this.#clientChannels.get(clientId);
+    if (!owner || owner.channel !== this.#eventChannelId) return Promise.resolve();
+    if (owner.disconnecting) return owner.disconnecting;
+    owner.disconnecting = owner.connected.then(async () => {
+      if (owner.channel !== this.#eventChannelId) return;
+      try { await this.request('/disconnect', { clientId }); }
+      catch (error) {
+        if (owner.channel === this.#eventChannelId) this.invalidateConnection();
+        throw error;
+      }
+    }, () => { /* Registration was refused or its original channel was already fenced. */ }).finally(() => {
+      if (this.#clientChannels.get(clientId) === owner) this.#clientChannels.delete(clientId);
+    });
+    return owner.disconnecting;
   }
-  async clientConnected(clientId: string): Promise<void> {
-    const channelId = this.#eventChannelId;
-    if (channelId) this.#clientChannels.set(clientId, channelId);
-    try {
+  clientConnected(clientId: string): Promise<void> {
+    const channel = this.#eventChannelId;
+    if (!channel || !this.connected) return Promise.reject(new HarnessError('worker_unavailable', '后台连接尚未就绪。'));
+    const previous = this.#clientChannels.get(clientId);
+    if (previous?.channel === channel && !previous.disconnecting) return previous.connected;
+    // Reusing the same owner on the same channel must wait for its previous release.
+    // A replacement channel has its own server-side leases and can proceed immediately.
+    const released = previous?.channel === channel ? previous.disconnecting : undefined;
+    const connected = Promise.resolve(released).then(async () => {
+      if (channel !== this.#eventChannelId) throw new HarnessError('worker_unavailable', '后台连接已更换。');
       await this.request('/connect', { clientId });
-      if (!this.connected || !channelId || channelId !== this.#eventChannelId) throw new HarnessError('worker_unavailable', '后台连接已更换，请重新连接。');
-    } catch (error) {
-      // A lost registration response cannot prove the lease was never registered.
-      // Closing that exact channel fences a delayed /connect without tombstones.
-      if (error instanceof HarnessError && error.delivery === 'not_sent') this.#clientChannels.delete(clientId);
-      else if (channelId && this.#eventChannelId === channelId) this.invalidateConnection();
+      if (channel !== this.#eventChannelId || !this.connected) throw new HarnessError('worker_unavailable', '后台连接已更换。');
+    }).catch(error => {
+      if (this.#clientChannels.get(clientId) === owner) this.#clientChannels.delete(clientId);
+      if (channel === this.#eventChannelId && !(error instanceof HarnessError && error.delivery === 'not_sent')) {
+        this.invalidateConnection();
+      }
       throw error;
-    }
+    });
+    const owner: OwnerRegistration = { channel, connected };
+    this.#clientChannels.set(clientId, owner);
+    return connected;
   }
   invalidateConnection(): void { this.connected = false; this.#eventChannelId = undefined; this.#clientChannels.clear(); this.#socket?.terminate(); }
   request(path: string, body: JsonValue, beforeWrite?: () => void): Promise<JsonValue> {
