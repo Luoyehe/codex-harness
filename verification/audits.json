@@ -8352,6 +8352,64 @@
         "path": "verification/audit-evidence/v250-round9/builtin-mcp.json",
         "sha256": "9cd43c0b330b57ba0137e58572abd2345d52ddf7d790eda5406ef2794474372d"
       }
+    },
+    {
+      "id": "v250-round10",
+      "sequence": 91,
+      "digest": "5592e3fda2ce54c3483148731ba64e5b982d08daa66cf847bf150e0ee89f7d87",
+      "complete": true,
+      "startedAt": "2026-11-21T03:29:19.012Z",
+      "completedAt": "2026-11-21T04:21:35.375Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R10-01",
+          "severity": "P1",
+          "title": "Managed native cold start rejects user TOML understood by the pinned CLI before initialize",
+          "locations": [
+            "deploy/native_launcher.py:401",
+            "deploy/auth_storage_policy.py:53",
+            "deploy/native_launcher.py:403",
+            "deploy/mcp_enabled_override.py:295"
+          ],
+          "conditions": "An existing native user config uses a UTF-8 BOM, a trailing comma in an inline table or a multiline inline table. Each example only sets a model and a personal echo MCP server. No prior builtin switch or stored login is required.",
+          "actual": "Codex 0.169.0 lists the configured local server in all four samples and directly initializes twice per sample. Storage-policy validation rejects all three variants as configuration_conflict, and the subsequent switch helper independently raises TOMLDecodeError. On the switch-helper-then-exec path, the three variants repeatedly fail before initialize (6/6 attempts), while both strict-syntax controls initialize. Neither config nor switch store changed in these trials.",
+          "impact": "A previously working native configuration can prevent startup and catalog access after migration into the managed launcher. This is a repeatable availability regression, independent of the previous round’s legacy-switch spellings.",
+          "remediation": "Use a single bounded reader compatible with the pinned native CLI for user/host input across authentication-storage checks, host-layer handling and MCP migration. Preserve validation of disallowed auth stores and unrelated TOML values and byte content. Recheck standalone valid configurations and mixed legacy switch files twice after migration.",
+          "evidence": [
+            ".work/v250/round10/clean-toml-first/format-parity.json",
+            ".work/v250/round10/clean-toml-first/format-handshake.json",
+            ".work/v250/round10/clean-toml-first/format-storage-precheck.json",
+            ".work/v250/round10/clean-toml-first/format/utf8-bom/config.toml",
+            ".work/v250/round10/clean-toml-first/format/inline-trailing-comma/config.toml",
+            ".work/v250/round10/clean-toml-first/format/multiline-inline-table/config.toml",
+            ".work/v250/round10/clean-toml-first/format/strict-control/config.toml"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "clean-toml-first",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round10/independent.json",
+          "sha256": "14528b83c91e6161420298c05795a58920cc4926639a5548ec16824aed00c6ce"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round10/builtin-mcp.json",
+        "sha256": "5c2f33eb47944998a9dd5db3d46f0f981ebf939e788198e27389b5ba3e180e44"
+      }
     }
   ],
   "fullTests": {

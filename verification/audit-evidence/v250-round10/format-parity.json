@@ -1,0 +1,22 @@
+{
+  "utf8-bom": {
+    "nativeExit": 0,
+    "nativeListsFixture": true,
+    "launcherConfig": "TOMLDecodeError: Invalid statement (at line 1, column 1)"
+  },
+  "inline-trailing-comma": {
+    "nativeExit": 0,
+    "nativeListsFixture": true,
+    "launcherConfig": "TOMLDecodeError: Invalid initial character for a key part (at line 2, column 38)"
+  },
+  "multiline-inline-table": {
+    "nativeExit": 0,
+    "nativeListsFixture": true,
+    "launcherConfig": "TOMLDecodeError: Invalid initial character for a key part (at line 2, column 23)"
+  },
+  "strict-control": {
+    "nativeExit": 0,
+    "nativeListsFixture": true,
+    "launcherConfig": "accepted"
+  }
+}
