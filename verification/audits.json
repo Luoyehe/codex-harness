@@ -8687,6 +8687,90 @@
         "path": "verification/audit-evidence/v250-round14/builtin-mcp.json",
         "sha256": "e1237d1eab8d23f8863d67c0b1d097c9ae12846c50ed0a9558d9f980a2dc7b96"
       }
+    },
+    {
+      "id": "v250-round15",
+      "sequence": 96,
+      "digest": "91c7919326e3e5a28a389c6b92cbf86504b4687c48fcea130d07846fcb5b715c",
+      "complete": true,
+      "startedAt": "2026-11-21T11:57:21.549Z",
+      "completedAt": "2026-11-21T12:10:54.156Z",
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "findings": [
+        {
+          "id": "V250-R15-01",
+          "severity": "P2",
+          "scope": "gateway-core",
+          "relatedScopes": [
+            "runtime-protocol"
+          ],
+          "title": "A late worker-owner cleanup receipt discards the replacement registration and prevents its release",
+          "paths": [
+            "src/gateway/worker-client.ts:71",
+            "src/gateway/worker-client.ts:76",
+            "src/gateway/worker-client.ts:78",
+            "src/gateway/automation-scheduler.ts:43",
+            "src/gateway/automation-scheduler.ts:54",
+            "src/runtime/main.ts:59",
+            "src/runtime/main.ts:64"
+          ],
+          "description": "The scheduler reuses a persisted owner UUID after reconnect. WorkerClient indexes registrations by client ID and clears the entry unconditionally when an earlier disconnect finishes. After a replacement registration, the next release returns locally. The worker retains that owner on the replacement channel. Distinct retained owners can consume its 64-entry limit and prevent later registrations.",
+          "observation": "An actual scheduler, dispatcher, SQLite ledger and WorkerClient used loopback HTTP and WebSocket. One scheduled run started, its stop reply was uncertain, the old unregister response was delayed, the replacement channel registered the same owner and read its exact turn. Receipt of the old response prevented the final unregister. Replacement channel counts were one registration and zero removals. A separate transport-only control reproduced the same result.",
+          "expected": "Apply each asynchronous cleanup and failed registration to its own registration identity. Preserve newer same-ID registration across reconnect or same-channel overlap, release the intended owner, and retain channel fencing on genuine failures.",
+          "evidence": [
+            ".work/v250/round15/independent-observations.json",
+            ".work/v250/round15/independent-scheduler-cleanup.log",
+            ".work/v250/round15/independent-reconnect.log",
+            ".work/v250/round15/independent-src/tests/gateway/round15-scheduler-cleanup.test.ts",
+            ".work/v250/round15/independent-src/tests/gateway/round15-owner-cleanup.test.ts"
+          ]
+        },
+        {
+          "id": "V250-R15-02",
+          "severity": "P3",
+          "scope": "web-ux",
+          "title": "A continuously connected approvals view retains every resolved prompt identity",
+          "paths": [
+            "web/hooks/usePrompts.ts:10",
+            "web/hooks/usePrompts.ts:19",
+            "web/hooks/usePrompts.ts:49",
+            "web/hooks/usePrompts.ts:59",
+            "web/Workspace.tsx:335",
+            "src/runtime/service.ts:350"
+          ],
+          "description": "The browser saves each resolved prompt UUID in a Set on close or successful answer. The Set resets only when a list refreshes, resyncs or the epoch changes. A connected stable tab retains every historical identifier despite having no pending list or approvals. The runtime creates a distinct UUID for every approval, so retention grows with lifetime activity.",
+          "observation": "Mounted the real React usePrompts hook and production Events with a settled initial list. Processing 1024 open/close pairs in a stable epoch left zero visible prompts, one list read and all 1024 resolved identities in the Set.",
+          "expected": "Retain only closure information required to suppress outstanding asynchronous answers and stale snapshots. Keep memory bounded even for a slow pending list and preserve the guarantees against resurrecting a closed approval.",
+          "evidence": [
+            ".work/v250/round15/independent-observations.json",
+            ".work/v250/round15/independent-prompt-retention.log",
+            ".work/v250/round15/independent-src/web/tests/round15-closed-prompt-retention.test.tsx"
+          ]
+        }
+      ],
+      "skipped": [],
+      "reviewers": [
+        {
+          "id": "whole-audit-fifteen",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/v250-round15/independent.json",
+          "sha256": "cb14aa3a3bb8c73fb5eb6390b0121bb24a9d4a04bec16a317f30b8a792f1bbdc"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/v250-round15/builtin-mcp.json",
+        "sha256": "9632b15854dc05c1e46ecde00f28b6a29b02d86de17801ceade5476d33042039"
+      }
     }
   ],
   "fullTests": {
