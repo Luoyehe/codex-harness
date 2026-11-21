@@ -5,13 +5,19 @@ import path from 'node:path';
 import { QueueReplyIdentity } from '../../src/runtime/queue-reply-identity.js';
 import { createHash } from 'node:crypto';
 import { NativeRpc } from '../../src/runtime/native.js';
-import { DeliveryError } from '../../src/runtime/types.js';
+import { DeliveryError, type JsonValue } from '../../src/runtime/types.js';
 import { validateOfficial } from '../../src/runtime/validation.js';
 import * as nativeLaunch from '../../src/runtime/native-launch.js';
 
 const roots = path.resolve('.work/runtime-tests'); mkdirSync(roots, { recursive: true });
 const natives: NativeRpc[] = [];
 async function native(): Promise<NativeRpc> { const cwd = mkdtempSync(path.join(roots, 'native-')); const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/native-fixture.mjs')], home: cwd, cwd, env: {}, requestTimeoutMs: 2000 }); natives.push(rpc); await rpc.initialize(); return rpc; }
+// A reply on stdout may arrive before the stdin write callback. Budget covers both.
+async function flushedEcho(rpc: NativeRpc, params: JsonValue) {
+  const written = Promise.withResolvers<void>();
+  const [reply] = await Promise.all([rpc.call('echo', params, { onWritten: written.resolve }), written.promise]);
+  return reply;
+}
 afterEach(async () => { await Promise.all(natives.splice(0).map(rpc => rpc.close())); });
 describe('bounded native delivery', () => {
   test('initialization requests explicit gateway authorization under the pinned schema', async () => {
@@ -22,7 +28,9 @@ describe('bounded native delivery', () => {
     const rpc = await native(); let writes = 0;
     await expect(rpc.call('echo', { ['bad\ud800']: 'x' }, { beforeWrite: () => writes++ })).rejects.toMatchObject({ delivery: 'not_sent', code: 'invalid_unicode' });
     await expect(rpc.call('echo', { nested: ['\udfff'] })).rejects.toMatchObject({ delivery: 'not_sent' });
-    expect(writes).toBe(0); await expect(rpc.call('echo', { emoji: '🙂' })).resolves.toEqual({ emoji: '🙂' }); expect(rpc.budget.pending).toBe(0);
+    expect(writes).toBe(0);
+    expect(await flushedEcho(rpc, { emoji: '🙂' })).toEqual({ emoji: '🙂' });
+    expect(rpc.budget).toEqual({ pending: 0, retainedBytes: 0 });
   });
   test('beforeWrite rejection is not_sent and does not reject unrelated requests', async () => {
     const rpc = await native();
@@ -39,12 +47,14 @@ describe('bounded native delivery', () => {
   });
   test.each(['mcpServer/tool/call', 'plugin/install'])('sent %s times out in isolation and ignores its late reply', async method => {
     const rpc = await native(); let writes = 0;
-    await expect(rpc.call(method, { delayReply: true }, { timeoutMs: 15, beforeWrite: () => writes++ }))
+    await expect(rpc.call(method, { holdReply: true }, { timeoutMs: 15, beforeWrite: () => writes++ }))
       .rejects.toMatchObject({ code: 'timeout', delivery: 'unknown' });
     expect(await rpc.call('echo', { otherThread: true })).toEqual({ otherThread: true });
-    await new Promise(resolve => setTimeout(resolve, 75));
-    expect(await rpc.call('echo', { afterLateReply: true })).toEqual({ afterLateReply: true });
-    expect(rpc.budget.pending).toBe(0); expect(writes).toBe(1);
+    // The child emits the timed-out reply before acknowledging this fixture command.
+    expect(await rpc.call('fixture/releaseReplies', {})).toEqual({ released: [method] });
+    expect(await flushedEcho(rpc, { afterLateReply: true })).toEqual({ afterLateReply: true });
+    expect(rpc.budget).toEqual({ pending: 0, retainedBytes: 0 });
+    expect(writes).toBe(1);
   });
   test('queued timeout under actual pipe backpressure is not_sent and retains sent work budget', async () => {
     const rpc = await native(); await rpc.call('pause', {});

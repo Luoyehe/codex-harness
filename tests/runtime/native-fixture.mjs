@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 const send = value => process.stdout.write(JSON.stringify(value) + '\n');
 const lines = readline.createInterface({ input: process.stdin });
 let initialization;
+const heldReplies = [];
 lines.on('line', line => {
   const m = JSON.parse(line);
   if (m.method === 'initialized' || !m.method) return;
@@ -12,8 +13,14 @@ lines.on('line', line => {
   if (['thread/queue/list','thread/queue/update','thread/queue/add'].includes(m.method) && m.params.threadId === 'large') {
     send({ id: m.id, result: { data: [{ input: [{ type: 'text', text: 'x'.repeat(13 * 1024 * 1024), text_elements: [] }] }], nextCursor: null } }); return;
   }
-  if (['mcpServer/tool/call', 'plugin/install'].includes(m.method) && m.params.delayReply) {
-    setTimeout(() => send({ id: m.id, result: {} }), 60);
+  if (['mcpServer/tool/call', 'plugin/install'].includes(m.method) && m.params.holdReply) {
+    heldReplies.push({ id: m.id, method: m.method });
+    return;
+  }
+  if (m.method === 'fixture/releaseReplies') {
+    const held = heldReplies.splice(0);
+    for (const request of held) send({ id: request.id, result: { late: request.method } });
+    send({ id: m.id, result: { released: held.map(request => request.method) } });
     return;
   }
   if (m.method === 'hold') return;
