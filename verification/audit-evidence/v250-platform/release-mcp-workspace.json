@@ -1,6 +1,6 @@
 {
-  "commit": "historical-commit-023",
-  "installedRelease": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+  "commit": "historical-commit-108",
+  "installedRelease": "d0369023377ae4164924b8b21ca842dff989c2c21baed52d32b4159f0ec95b11",
   "debian": "12 arm64",
   "actualWorkerEntrypointSha256": "a8b2cdb4734cbd61306220ff399c20838fd1e895dcda85103af7ba8d92551ca2",
   "actualInstalledLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
@@ -25,21 +25,21 @@
       "readInitial": {
         "sha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
         "inode": "5",
-        "mtimeNs": "1795264733231419702",
+        "mtimeNs": "1795266931287738456",
         "uid": 994,
         "mode": "0600"
       },
       "afterCompatibilityNameToggle": {
         "sha256": "fad94dbd9b49538c8374bf4b6c3619aaa89382184857e33b4e5df99f99de62a4",
         "inode": "130",
-        "mtimeNs": "1795264734763340163",
+        "mtimeNs": "1795266933043636591",
         "uid": 994,
         "mode": "0600"
       },
       "afterLiteralDottedNameLabeledByOpaqueId": {
         "sha256": "c79bcef2e87e5fe7513a627d936b2dc34ac931a8ccb2c84c9495baaa3ce5e95a",
         "inode": "131",
-        "mtimeNs": "1795264736539247728",
+        "mtimeNs": "1795266935031521228",
         "uid": 994,
         "mode": "0600"
       },
@@ -77,21 +77,21 @@
       "readInitial": {
         "sha256": "629a7196039d184f75a23f1b6d2567c78a6716d8e2d3878806f7697d72132c3d",
         "inode": "5",
-        "mtimeNs": "1795264738479146483",
+        "mtimeNs": "1795266936999406983",
         "uid": 0,
         "mode": "0600"
       },
       "afterCompatibilityNameToggle": {
         "sha256": "fad94dbd9b49538c8374bf4b6c3619aaa89382184857e33b4e5df99f99de62a4",
         "inode": "130",
-        "mtimeNs": "1795264739987067593",
+        "mtimeNs": "1795266938527318251",
         "uid": 0,
         "mode": "0600"
       },
       "afterLiteralDottedNameLabeledByOpaqueId": {
         "sha256": "c79bcef2e87e5fe7513a627d936b2dc34ac931a8ccb2c84c9495baaa3ce5e95a",
         "inode": "131",
-        "mtimeNs": "1795264741774973817",
+        "mtimeNs": "1795266940335213229",
         "uid": 0,
         "mode": "0600"
       },
@@ -133,8 +133,8 @@
     "skipped": 0
   },
   "evidenceSha256": {
-    "debian-historical-commit-023-user-mcp-workspace-native.log": "34c815b5925663741c0899a1c3737e883a2869025d8ba125411d2b1b051a59e8",
-    "debian-historical-commit-023-user-mcp-workspace-root.log": "c5304ffb2c76cb8885f72ca84fe86f8a1f17dd98061c657038d6280d0f9bab24",
-    "debian-historical-commit-023-workspace-ordinary.log": "511f71d57c9e19391f89a78b0000da9e08f7f9f0fab05ed7a69f95714a04f61b"
+    "debian-historical-commit-108-user-mcp-workspace-native.log": "4686c2704b2d0b5e043d3989e147a37e721b2643ca67ef68668ebed4c9dd5303",
+    "debian-historical-commit-108-user-mcp-workspace-root.log": "dda42f77db6af3a04a077692b9ec2c81cc38887b1d5053bb9cd3cbc261a8ec9e",
+    "debian-historical-commit-108-workspace-ordinary.log": "267f74859c68c03b1a97deca2676b0abc039cd81b8c5e65953dab691670fa92b"
   }
 }

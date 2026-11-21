@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "commit": "historical-commit-023",
+  "commit": "historical-commit-108",
   "platform": "desktop Edge with mobile touch viewport, controlled loopback responses",
   "physicalHandset": false,
   "result": {
     "browser": "152.0.4191.53",
-    "commit": "historical-commit-023",
+    "commit": "historical-commit-108",
     "viewport": {
       "width": 390,
       "height": 740,
@@ -33,7 +33,7 @@
       },
       "action": {
         "x": 205.5,
-        "y": 623,
+        "y": 592,
         "inViewport": true,
         "hit": true
       },
@@ -201,12 +201,12 @@
     "calledMethods": [
       "project/list",
       "thread/list",
-      "collaborationMode/list",
+      "thread/session",
       "prompt/list",
       "model/list",
+      "collaborationMode/list",
       "thread/read",
       "thread/history",
-      "thread/session",
       "thread/delete",
       "process/list",
       "thread/searchOccurrences",
@@ -214,14 +214,14 @@
     ]
   },
   "evidenceDigests": {
-    "confirm.png": "977280c48fdfb8f39f6bd20278e210ef509805ac63511b851728cbd3992882f6",
+    "confirm.png": "cad24c0a7564798d85ed3a008ad8bc22e1b62e4d640456e978e49da4493dfa4b",
     "dist/assets/Settings-DYQtGYpJ.js": "1c2ef9759d4a79272bdcd7b56dc9556f470ae84cd8558b43fcae613bc27dcd86",
     "dist/assets/TerminalPanel-D_ECyAJa.js": "6a46d4b08c8a64ae6cabba94a9ba0df558506d085f0acfe56eb39653dc4f4e52",
     "dist/assets/index-G9iu5wC7.js": "df6bd37878fa0ae81ddc0173df29b96513458d6711e6e91f4993aa7c28224806",
     "dist/index.html": "7c80a31d9f829331915993b63f7e59224b74b0457bca8ba0b0a934c4cffc0ade",
     "dist/theme.js": "395ffb3a035d479054cd321e938a13961ebee97fa4e89962212f68cec21153ba",
-    "drawer.png": "268ad076c106857fb3a0ab288e4c8a586bb3cb2f92d312f918ca659b4f341d75",
+    "drawer.png": "54775672c08e7f7f62f2e19eca8ab49072c8d69b39606c348f4a9466e6b640b7",
     "locate.png": "03a17284b0e190ef3e801ca0e716e0f85d917f9ef492d04635e5c8f47397ab71",
-    "observations.json": "4c8480ec621754dc412981b053c5e26129c13a99f855c9a002b62b5fb6535dda"
+    "observations.json": "be5f246ee7732664cbb3536e845ca8e06d803a66ed88918666a942b5420761b8"
   }
 }

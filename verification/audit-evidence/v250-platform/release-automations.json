@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "commit": "historical-commit-023",
+  "commit": "historical-commit-108",
   "sourceVerification": {
     "files": 2194,
-    "digest": "aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28",
+    "digest": "c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1",
     "mismatches": []
   },
   "compiledFromFrozenSource": true,
-  "platform": "macOS arm64",
+  "platform": "Darwin arm64",
   "node": "v24.22.1",
   "cli": "0.169.0",
   "result": "passed",
-  "generatedAt": "2026-11-21T12:32:17.423857+00:00",
-  "coverage": "Original R13 and R14 fixtures and R15 observations were run on an independent clone. Two real CLI workflows made local Responses calls. Approval frames and order were locally controlled. Transport controls used actual loopback sockets, production gateway classes, and simulated worker actions. Browser retention used the actual hook and Events in jsdom.",
+  "generatedAt": "2026-11-21T13:08:07.448474+00:00",
+  "coverage": "Original R13 and R14 scripts and R15 observations on an isolated checkout. CLI workflows used loopback Responses. Approval ordering and approval protocol frames were controlled by a local relay. Stop and reconnect probes used real local transport and simulated worker actions. Web retention was measured in jsdom with the production hook.",
   "notExercised": [
-    "External inference or real account",
+    "External paid inference or real account",
     "Live external MCP approval and destructive operations",
     "Production deployment, on-device browser and systemd lifecycle"
   ],
@@ -45,12 +45,12 @@
   "publicReportHashes": {
     "historyBefore": "1d9f91ab23b1d3c1d0fe253e861303dc884567b935548cb41cedcff173ded2a0",
     "historyPreviousFix": "a8f2b5fa5a5b170b0fb4e1b8cfcd12348d9daa94e7fe1aa120897501501948e2",
-    "historyCurrent": "00e74d3d74c9b047d42dfe27e3f148e97789559c7f195f8f30bb14236d924876",
+    "historyCurrent": "97634f0a7580a45349a8575b9db95438226e308a45f6bad94605ba3fe3dad04a",
     "approvalsBefore": "58d94b40d5b4b0266807258b886e6c66d93b3808d9a04c2504701983ec647cfd",
-    "approvalsCurrent": "3cb4d1e75b34d102175459b221152dacb95b81dcf8397aac1923a1221f25f397",
+    "approvalsCurrent": "a84a32fee68a6376590f70a09a5fc0e3681c864dee0e11c4be6f882b5881fb92",
     "stopBefore": "25a029e2f962eb4353215aa49bf1c69d16cf6897e7c0f96c8274d98f0b6d9378",
-    "stopCurrent": "f8cf065962fe843f3ed0f3ebc7972615d1d244d383d2ec257373ce0ec9d93ea2",
-    "workerServerControl": "7c5f9802d07532f091b4e58686e2451c88349ae2705c625ea84de1b76307bd4a",
+    "stopCurrent": "b40450064d59adf96c22ec520750796b8909a324bc88d2b16121debbceae5080",
+    "workerServerControl": "3b9fc830a686e37f60322576ebccbcacb5133eec7bcc4b3bb869b39871ff020f",
     "r15Baseline": "f3b67359f077620ccb4f9b73803110ae69d5ac8c935eb173960f5761cfec8449"
   },
   "history": {
@@ -69,7 +69,7 @@
     ],
     "currentEvidence": {
       "schema": 1,
-      "candidate": "historical-commit-023",
+      "candidate": "historical-commit-108",
       "expectedBehavior": "after",
       "supplier": "Loopback Responses fixture",
       "cli": "0.169.0",
@@ -539,8 +539,8 @@
       }
     },
     "currentTestsPassed": 3,
-    "method": "Original scenarios with corrected-state expectations. Both transport fixtures delay an old registration cleanup response across a replacement connection. A stable jsdom hook receives 1024 unique open/close pairs and reports zero if no Set retained closed IDs.",
-    "frozenSourceUnchanged": true
+    "frozenSourceUnchanged": true,
+    "method": "Three original scenarios with fixed-state expectations. Delayed unregister receipts cross replacement connections. The browser hook sees 1024 distinct open/close pairs after its first list settles."
   },
   "reconnectWitness": {
     "workerClientFileSha256": "41dcbb6ff2e900b80611c00fcac222a2680c437aaef4ac2542280267b2f40c7b",
@@ -599,7 +599,6 @@
         "case": "fences unknown lease registration by closing its channel and ignores cleanup from retired channels",
         "result": "passed"
       }
-    ],
-    "initialSupplementalAttempt": "21 of 23 passed. Two conversion tests could not create a temporary folder because the fresh checkout had no .work parent. Created the ignored scratch directory and reran the entire supplemental suite with the same source and assertions."
+    ]
   }
 }

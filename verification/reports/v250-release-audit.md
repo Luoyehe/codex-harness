@@ -75,11 +75,13 @@
 
 两种合法的 TOML 写法触发同一项启动缺陷。一种用点号键为服务赋内联表，另一种在表头的双引号名称内使用 Unicode 转义。Python 可以把两种写法解析成正确的服务和开关值。旧迁移代码仍按文本拼写查找待删除的设置，写入待确认区后无法移除原设置，后续启动反复失败。
 
-在原始配置的副本上分别以 Debian 普通服务身份和 root 运行正式启动器，每例在同一 HOME 连续启动两次。修复前异常写法的八次启动全部失败，规范表头的四次对照成功。修复后十二次均收到官方 Codex CLI 0.169.0 的初始化响应。原模型设置保留，旧开关保存在待确认区，没有指向其他连接；每组第二次启动前后两份持久文件的内容、inode、权限和修改时间均一致。另对点号键、引号、内联表及相邻字段的 216 种组合做了定向验证。[原配置](../audit-evidence/v250-round9/original-config-retries.json) · [实际启动记录](../audit-evidence/v250-platform/toml-startup.json)
+Debian 启动对照复用了两种故障写法，以普通服务身份和 root 分别在同一用户目录连续启动两次。这里使用的模型名为 `fixture`；首次审计记录的模型名为 `test-model`，转义表头样本的赋值空格也不同。修复前异常写法的八次启动全部失败，规范表头的四次对照成功。修复后十二次均收到官方 Codex CLI 0.169.0 的初始化响应。原模型设置保留，旧开关保存在待确认区，没有指向其他连接；每组第二次启动前后两份持久文件的内容、inode、权限和修改时间均一致。另对点号键、引号、内联表及相邻字段的 216 种组合做了定向验证。[原配置](../audit-evidence/v250-round9/original-config-retries.json) · [实际启动记录](../audit-evidence/v250-platform/toml-startup.json)
+
+随后在已安装的 `historical-commit-023` 上直接提取首次审计 JSON 两个 input 字段的 UTF-8 字节，分别为 66 和 67 字节，保留原模型名及原有空格。以真实普通服务身份和 root 分别使用同一目录连续启动两次，8 次均收到固定 CLI 的初始化响应，未发起模型回合。模型仍为 `test-model`，未归属开关仍为 false，第二次启动未再次改写文件。[首次审计原文逐字节重放](../audit-evidence/v250-platform/original-r9-historical-commit-023.json)
 
 ## 第十轮复审
 
-对第九轮修复后的 2,183 个源文件重新审阅，119 项 TypeScript 与 103 项 Python 定向用例通过。上一轮两份原始故障配置和规范对照再次通过连续启动验证。另有一项新的 P1 兼容性问题。固定的官方 CLI 支持配置文件起始的 UTF-8 BOM、内联表的尾逗号和多行内联表。用户仅定义一个普通自有 MCP 服务，未设置旧开关，也会在正式托管启动器检查认证存储时被 Python TOML 读取器拒绝。即使越过该入口，旧的 MCP 开关读取器仍会拒绝同一份配置。
+对第九轮修复后的 2,183 个源文件重新审阅，119 项 TypeScript 与 103 项 Python 定向用例通过。上一轮 Debian 的两份同写法样本和规范对照再次通过连续启动验证。另有一项新的 P1 兼容性问题。固定的官方 CLI 支持配置文件起始的 UTF-8 BOM、内联表的尾逗号和多行内联表。用户仅定义一个普通自有 MCP 服务，未设置旧开关，也会在正式托管启动器检查认证存储时被 Python TOML 读取器拒绝。即使越过该入口，旧的 MCP 开关读取器仍会拒绝同一份配置。
 
 专用 Debian 上使用同一份 Codex CLI 0.169.0、两种账户和四份配置，每份各冷启动两次。直接运行 CLI 的 16 次均完成初始化。走托管入口时，三份特殊写法的 12 次启动全部失败，规范对照的 4 次成功。失败时文件保持原样。最初官方来源因网络中断暂时不可达，复审结束前已成功取得全部六项来源。第十轮有新发现，未计入连续清洁轮次。[独立审阅](../audit-evidence/v250-round10/independent.json) · [同一 CLI 的握手对照](../audit-evidence/v250-round10/format-handshake.json) · [认证存储入口](../audit-evidence/v250-round10/format-storage-precheck.json)
 
@@ -185,14 +187,26 @@ Debian 12 以普通用户实际执行原 139 项，有 137 项通过、两项断
 
 整合提交 `historical-commit-023` 在 Debian 普通用户下 141 项全部通过，root 下另外两项全部通过，均无跳过。macOS 普通用户对同一批 143 项有 37 项通过、106 项按实际前提跳过，退出码 3 明确表示该平台单独运行无法覆盖全部项目。[平台、运行身份、逐组结果及原始记录摘要](../audit-evidence/v250-platform/workspace-platform-conditions.json)
 
+## 首次提交 GitHub 的候选和第十七、十八轮复审
+
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28`。[v250-round17](../audit-evidence/v250-round17/independent.json)、[v250-round18](../audit-evidence/v250-round18/independent.json)。[本次发布授权](https://github.com/Luoyehe/codex-harness)
+
+冻结提交 `historical-commit-023` 通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](https://github.com/Luoyehe/codex-harness)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](https://github.com/Luoyehe/codex-harness)
+
+同一冻结提交再次用真实 CLI 产生 32 个回合，重启后找到原任务终态，额外模型请求为零。另验证 13 个审批状态、四种停止投递时序、新旧连接的登记和释放，以及连续关闭 1,024 项审批后的内存回收。对 MCP 配置还独立执行了 400 组本地编辑、语义与重复保存对照，全部通过。[自动任务和浏览器状态复验](https://github.com/Luoyehe/codex-harness)
+
+专用 Debian 在最终安装后核对了 20,530 个文件。两种历史 TOML 写法的 Debian 对照、规范表头、其它合法格式及认证政策对照共做 56 次冷启动，52 次初始化成功、4 次按预期拒绝。普通用户和 root 的 MCP 工作区写入与继承也分别实测，继承专项合计 16 项通过。实际回退再切回候选版后，原登录、项目、暂停任务、操作回执与两个数据库均通过核验。[逐次启动](https://github.com/Luoyehe/codex-harness) · [双身份读写](https://github.com/Luoyehe/codex-harness) · [开关继承](https://github.com/Luoyehe/codex-harness)
+
+首次提交 GitHub 的候选为 `historical-commit-122`，与两轮审阅的源文件完全一致。GitHub 安全检查通过，全量测试失败，候选未进入 main。记录保存了三个平台的逐项结果、完整日志压缩包的校验值，以及会影响项目可信状态和测试可信度的问题。[首次全量检查结果](../audit-evidence/v250-platform/candidate-44905367136.json) · [完整复盘](v250-historical-checks.md)
+
 ## 最终候选的连续复审
 
-本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28`。[v250-round17](../audit-evidence/v250-round17/independent.json)、[v250-round18](../audit-evidence/v250-round18/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
+本次发布按用户最后指定的连续两轮执行。两位审阅者在相同源码上先后完成全库审阅，各自覆盖 2,194 个文件和四个领域。两轮均无新增需修问题和跳过的审阅领域，分别重新访问官方 MCP 公开来源并校验了协议与配置。精确记录包含逐文件清单、所运行的定向测试、平台边界和完成时间。源码 SHA-256 为 `c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1`。[v250-round19](../audit-evidence/v250-round19/independent.json)、[v250-round20](../audit-evidence/v250-round20/independent.json)。[本次发布授权](../audit-evidence/release-closeout/authorization.json)
 
 最终源码通过专用 Debian 12 的正式升级流程。应用包、Git 源码、控制工具、数据库与原业务的核验结果列入[本版升级证据](../audit-evidence/v250-platform/release-debian.json)。另在最终网页生产构建中复测侧栏删除、搜索定位、阅读焦点和草稿恢复。[Edge 验收](../audit-evidence/v250-platform/release-edge.json)
 
-同一冻结提交再次用真实 CLI 产生 32 个回合，重启后找到原任务终态，额外模型请求为零。另验证 13 个审批状态、四种停止投递时序、新旧连接的登记和释放，以及连续关闭 1,024 项审批后的内存回收。对 MCP 配置还独立执行了 400 组本地编辑、语义与重复保存对照，全部通过。[自动任务和浏览器状态复验](../audit-evidence/v250-platform/release-automations.json)
+最终安装核对 20,530 个文件。控制工具已与候选相符，运行正式更新命令后，另将受管控制树 92 项和冻结材料逐一核对。应用从源码重装，随后实际回退并切回新版本。此前的有效登录、项目、暂停任务、操作回执及两个数据库均保留。56 次配置冷启动中 52 次完成初始化，4 次按预期拒绝不兼容的认证配置。另用首次审计记录里的 66、67 字节两份输入，在实际服务身份和 root 下逐字节重放，8 次全部完成初始化，第二次均未改写持久文件。两种身份的 MCP 设置继承专项合计 16 项通过。[56 次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [首次原文与 8 次重放](../audit-evidence/v250-platform/release-original-r9-startups.json) · [MCP 读写](../audit-evidence/v250-platform/release-mcp-workspace.json) · [继承专项](../audit-evidence/v250-platform/release-mcp-inheritance.json)
 
-专用 Debian 在最终安装后核对了 20,530 个文件。两种原始 TOML、规范对照、其它合法格式及认证政策对照共做 56 次冷启动，52 次初始化成功、4 次按预期拒绝。普通用户和 root 的 MCP 工作区写入与继承也分别实测，继承专项合计 16 项通过。实际回退再切回候选版后，原登录、项目、暂停任务、操作回执与两个数据库均通过核验。[逐次启动](../audit-evidence/v250-platform/release-mcp-cases.json) · [双身份读写](../audit-evidence/v250-platform/release-mcp-workspace.json) · [开关继承](../audit-evidence/v250-platform/release-mcp-inheritance.json)
+同一冻结源码另复跑了 32 个真实 CLI 回合后的任务恢复、13 种审批状态、4 种停止回执时序、重连资源释放以及 jsdom 下连续关闭 1,024 条审批的回收对照。[自动任务与网页状态专项](../audit-evidence/v250-platform/release-automations.json)
 
 GitHub 将在发布候选和 main 提交分别运行 Linux、Windows、Linux 特权测试及安全扫描。正式发布须等待 main 对应提交的两项检查成功，并核对逐用例覆盖结果。[GitHub Actions](https://github.com/Luoyehe/codex-harness/actions)

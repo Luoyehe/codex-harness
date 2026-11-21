@@ -611,4 +611,4 @@ Reviewed the available workflow history through run 59 at base `historical-commi
 
 ## v2.5.0 独立修复和候选验收
 
-从原版 v2.4.0 的独立修复仓库整合了 169 个编号、51 个工作包。继续处理发布审计发现的长历史、时间线操作、移动端草稿、会话排序、Linux 安装恢复及依赖和持续集成问题。以 `aa76340e876ec26f5ad3a897fbabcb0eae7d3e5a1528b23b1b9b95e15e514a28` 冻结发布源码，经用户指定的连续两轮全库复审，保留每个发现和后续修复的验证证据。手机浏览器验收使用 Edge 触屏视口，升级验收使用专用 Debian 12。GitHub 全量测试与正式发布由此候选提交触发。[发布审计](reports/v250-release-audit.md) · [验收依据](RELEASE-CHECKS.md)
+从原版 v2.4.0 的独立修复仓库整合了 169 个编号、51 个工作包。继续处理发布审计发现的长历史、时间线操作、移动端草稿、会话排序、Linux 安装恢复及依赖和持续集成问题。以 `c06092ca171429756f073f2be0d4e2e194c171aafae4bc3c3c1748ef5ba68ef1` 冻结发布源码，经用户指定的连续两轮全库复审，保留每个发现和后续修复的验证证据。手机浏览器验收使用 Edge 触屏视口，升级验收使用专用 Debian 12。GitHub 全量测试与正式发布由此候选提交触发。[发布审计](reports/v250-release-audit.md) · [验收依据](RELEASE-CHECKS.md)

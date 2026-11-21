@@ -1,0 +1,376 @@
+{
+  "commit": "historical-commit-023",
+  "installedRelease": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+  "source": {
+    "originalArtifact": "verification/audit-evidence/v250-round9/original-config-retries.json",
+    "canonicalTree": "historical-commit-122",
+    "canonicalBlob": "c861097630169eed68ea69bf7057b10a6bb2ba3d",
+    "artifactSha256": "c5c58875340e4fe6a8ae745fb9996bceb41d8f81df76cda57a85ae908630e5a8",
+    "cases": {
+      "dotted-inline": {
+        "input": "model = \"test-model\"\nmcp_servers.web-reader = { enabled = false }\n",
+        "inputBytes": 66,
+        "inputSha256": "aeaaebfe7aacc2b2bf83850fbab25a0da3563c1f4739a48014f748c90105791a"
+      },
+      "quoted-escape": {
+        "input": "model = \"test-model\"\n[mcp_servers.\"web\\u002dreader\"]\nenabled=false\n",
+        "inputBytes": 67,
+        "inputSha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3"
+      }
+    }
+  },
+  "systemLayer": "[mcp_servers.web-reader]\ncommand = \"local-fixture\"\n",
+  "platform": "Debian 12 arm64",
+  "officialCli": "0.169.0",
+  "installation": {
+    "commit": "historical-commit-023",
+    "release": "6f258e3c3147eda6269fc6e461cccce47797eaa1657c9775f9dbc976ecde35ca",
+    "installedControlPythonFilesMatched": 80,
+    "fixedLauncherSha256": "8863e82555196699c44bc94ee6f071ddcba343f8561d983e1e7c8cdbf02d3360",
+    "installedCliSha256": "3bb41c9a80187773e2a59278d4fc355b1a163c31bb5a79581e37d4fe428af047",
+    "actualInstalledMounts": true,
+    "testSamplesNeverUseRealApplicationHomes": true
+  },
+  "networkInterfaces": [
+    "lo"
+  ],
+  "modelTurns": 0,
+  "serviceUid": 994,
+  "serviceGid": 993,
+  "initializations": 8,
+  "rawLogSha256": "958c8fe00ed06a259c408f949b2c5069047d3a6a9493ae138a5a6c8e81280039",
+  "observations": [
+    {
+      "input": "dotted-inline",
+      "uid": 994,
+      "initialConfig": {
+        "sha256": "aeaaebfe7aacc2b2bf83850fbab25a0da3563c1f4739a48014f748c90105791a",
+        "inode": "5",
+        "mtimeNs": "1795265395072652652",
+        "mode": "0600",
+        "uid": 994
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265395120649282",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265395120649282",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 21785,
+          "verifiedCliUid": 994
+        },
+        {
+          "attempt": 2,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265395120649282",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265395120649282",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 21854,
+          "verifiedCliUid": 994
+        }
+      ],
+      "sameHome": true,
+      "secondConfigAndSidecarUnchanged": true
+    },
+    {
+      "input": "dotted-inline",
+      "uid": 0,
+      "initialConfig": {
+        "sha256": "aeaaebfe7aacc2b2bf83850fbab25a0da3563c1f4739a48014f748c90105791a",
+        "inode": "5",
+        "mtimeNs": "1795265395640612770",
+        "mode": "0600",
+        "uid": 0
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265395700608557",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265395700608557",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 21929,
+          "verifiedCliUid": 0
+        },
+        {
+          "attempt": 2,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265395700608557",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265395700608557",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 21995,
+          "verifiedCliUid": 0
+        }
+      ],
+      "sameHome": true,
+      "secondConfigAndSidecarUnchanged": true
+    },
+    {
+      "input": "quoted-escape",
+      "uid": 994,
+      "initialConfig": {
+        "sha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3",
+        "inode": "5",
+        "mtimeNs": "1795265396208572887",
+        "mode": "0600",
+        "uid": 994
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265396264568954",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265396264568954",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 22073,
+          "verifiedCliUid": 994
+        },
+        {
+          "attempt": 2,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265396264568954",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265396264568954",
+            "mode": "0600",
+            "uid": 994
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 22139,
+          "verifiedCliUid": 994
+        }
+      ],
+      "sameHome": true,
+      "secondConfigAndSidecarUnchanged": true
+    },
+    {
+      "input": "quoted-escape",
+      "uid": 0,
+      "initialConfig": {
+        "sha256": "6c61c8853d532994f08f26b2d7a02ab7ec6c69b53c0d270b8e98e6e278e313b3",
+        "inode": "5",
+        "mtimeNs": "1795265396820529912",
+        "mode": "0600",
+        "uid": 0
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265396888525137",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265396888525137",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 22211,
+          "verifiedCliUid": 0
+        },
+        {
+          "attempt": 2,
+          "initialize": true,
+          "response": {
+            "id": 1,
+            "result": {
+              "userAgent": "harness_cold_config/0.169.0 (Debian 12.0.0; aarch64) xterm-256color (harness_cold_config; 1.0.0)",
+              "platformFamily": "unix",
+              "platformOs": "linux"
+            }
+          },
+          "modelAfter": "test-model",
+          "exit": 0,
+          "postMigrationUserTomlUtf8": "model = \"test-model\"\n",
+          "config": {
+            "sha256": "f377bcc68d70f9387d36b2d709ed7bb631ed9073ac163dc76351d42bdf61dc17",
+            "inode": "8",
+            "mtimeNs": "1795265396888525137",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecar": {
+            "sha256": "8b44ff4ae88fc2e4a23fc71f16c2d8f175df2575295153c1898334c849c7d3b9",
+            "inode": "7",
+            "mtimeNs": "1795265396888525137",
+            "mode": "0600",
+            "uid": 0
+          },
+          "sidecarFlags": {
+            "@unassigned:web-reader": false
+          },
+          "verifiedCliPid": 22282,
+          "verifiedCliUid": 0
+        }
+      ],
+      "sameHome": true,
+      "secondConfigAndSidecarUnchanged": true
+    }
+  ]
+}
