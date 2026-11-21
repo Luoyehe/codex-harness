@@ -38,7 +38,11 @@ class HttpsConfigurationTests(unittest.TestCase):
         layout = Layout("fixture")
         units = render_edge_units(layout, builtin=True)
         self.assertEqual(set(units), {layout.unit("caddy")})
-        self.assertIn("After=" + layout.unit("gateway"), units[layout.unit("caddy")])
+        unit_header = units[layout.unit("caddy")].split("\n[Service]", 1)[0]
+        after = [dependency for line in unit_header.splitlines() if line.startswith("After=")
+                 for dependency in line.removeprefix("After=").split()]
+        self.assertCountEqual(after, ["network-online.target", layout.unit("gateway")])
+        self.assertIn("Wants=network-online.target", unit_header.splitlines())
 
     def test_internal_and_provided_tls_use_explicit_ports_and_paths(self):
         internal = render_caddy("work.example.test", "auth.example.test", 3000, 9091, tls="internal", http_port=18080, https_port=18443)
