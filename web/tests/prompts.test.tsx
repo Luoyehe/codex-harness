@@ -631,3 +631,25 @@ it('requires the actual matching full file change from a timeline-only window be
   fireEvent.click(allow());
   await waitFor(() => expect(onAnswer).toHaveBeenCalledExactlyOnceWith('approval', { decision: 'accept' }));
 });
+
+it('drops a delayed open for an answered snapshot-only prompt and refreshes after excess closes during a list read', async () => {
+  const old = { promptId: 'early', method: 'item/fileChange/requestApproval', params: {} };
+  const next = { ...old, promptId: 'next' };
+  const events = new Events();
+  let release!: (value: unknown) => void;
+  const api = { call: vi.fn().mockResolvedValueOnce({ prompts: [old] })
+    .mockImplementationOnce(() => new Promise(resolve => { release = resolve; })).mockResolvedValueOnce({ prompts: [next] }),
+    mutate: vi.fn().mockResolvedValue({}) };
+  const view = renderHook(() => usePrompts(api as unknown as Api, events, 'epoch'));
+  await waitFor(() => expect(view.result.current.prompts).toEqual([old]));
+  await act(async () => view.result.current.answer('early', {}));
+  act(() => events.publish({ type: 'prompt', data: old }));
+  expect(view.result.current.prompts).toEqual([]);
+  act(() => view.result.current.refresh());
+  act(() => {
+    for (let i = 0; i < 1024; i++) events.publish({ type: 'prompt-closed', data: { promptId: 'resolved-' + i } });
+  });
+  await act(async () => release({ prompts: [old] }));
+  await waitFor(() => expect(view.result.current.prompts).toEqual([next]));
+  expect(api.call).toHaveBeenCalledTimes(3);
+});
