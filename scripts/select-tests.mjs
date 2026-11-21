@@ -32,6 +32,18 @@ const recoveryCoverageSources = new Set(['deploy/https.py', 'deploy/units.py', '
 const deploymentRecoveryTest = 'tests/deploy/root/test_v240_deploy_recovery.py';
 const systemMcpTest = 'tests/deploy/root/test_mcp_native_configuration.py';
 const overrideTests = ['tests/deploy/test_mcp_enabled_override.py', systemMcpTest, 'tests/runtime/mcp-configuration.test.ts', 'tests/runtime/mcp-native.test.ts'];
+// Editing an existing private server crosses the browser, runtime, and installed
+// or local control helper. Domain-only selection misses the other consumers.
+const mcpEditSources = new Set([
+  'web/components/McpConfiguration.tsx', 'src/runtime/mcp-configuration.ts', 'src/runtime/extensions.ts',
+  'src/runtime/mcp-configuration-identity.ts', 'src/runtime/redaction.ts', 'src/runtime/service.ts',
+  'src/runtime/workspace.ts', 'src/runtime/thread-history-compatibility.ts', 'deploy/workspace.py',
+  'deploy/thread_history.py', 'deploy/native_toml.py', 'deploy/mcp_user_toml.py',
+  'deploy/mcp_user_config.py', 'deploy/mcp_enabled_override.py',
+]);
+const mcpEditTests = ['web/tests/mcp-ui.test.tsx', 'tests/runtime/mcp-configuration.test.ts',
+  'tests/runtime/extensions.test.ts', 'tests/runtime/extensions-native.test.ts', 'tests/deploy/test_mcp_user_config.py',
+  'tests/deploy/test_mcp_user_toml.py', systemMcpTest];
 const nativeHistoryConsumers = ['tests/deploy/test_thread_history.py', 'tests/runtime/attachments.test.ts',
   'tests/runtime/queue-handoff-store.test.ts', 'tests/runtime/queue-handoff-native.test.ts', 'tests/runtime/provider-switch-native.test.ts',
   'tests/runtime/workflows-native.test.ts', 'tests/runtime/visual-routing-native.test.ts'];
@@ -192,6 +204,10 @@ export function selectTests(changed, available) {
     if (!checks.length) continue;
     for (const required of checks) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-deployment-identity-coverage' });
     add(name, checks, 'deployment-repair-regression');
+  }
+  for (const name of plan.changed.filter(name => mcpEditSources.has(name) || name.startsWith('deploy/_tomli/'))) {
+    for (const test of mcpEditTests) if (!inventory.has(test)) plan.requiresFullAudit.push({ path: test, reason: 'missing-mcp-edit-consumer' });
+    add(name, mcpEditTests, 'user-mcp-edit-and-native-readback');
   }
   for (const name of plan.changed.filter(name => codeqlGoInputs.includes(name))) {
     if (!inventory.has(codeqlGoTest)) plan.requiresFullAudit.push({ path: codeqlGoTest, reason: 'missing-codeql-entry-regression' });

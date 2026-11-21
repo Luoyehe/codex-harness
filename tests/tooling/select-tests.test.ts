@@ -309,6 +309,22 @@ test('requires the specific deployment recovery, workspace acknowledgement and M
   }
 });
 
+test('MCP form, native editor and installed helper changes select each side of the save', () => {
+  const inventory = testInventory();
+  const required = ['web/tests/mcp-ui.test.tsx', 'tests/runtime/extensions-native.test.ts',
+    'tests/deploy/root/test_mcp_native_configuration.py', 'tests/deploy/test_mcp_user_toml.py',
+    'tests/deploy/test_mcp_user_config.py'];
+  for (const source of ['web/components/McpConfiguration.tsx', 'src/runtime/mcp-configuration.ts',
+    'deploy/mcp_user_config.py', 'deploy/mcp_user_toml.py', 'deploy/_tomli/_parser.py']) {
+    const plan = selectTests([source], inventory);
+    expect(plan.status).toBe('selected');
+    expect(Object.values(plan.groups).flat()).toEqual(expect.arrayContaining(required));
+    const absent = required[0]!;
+    expect(selectTests([source], inventory.filter(name => name !== absent)).requiresFullAudit)
+      .toContainEqual({ path: absent, reason: 'missing-mcp-edit-consumer' });
+  }
+});
+
 test('selects all actual Python importers, including transitive dependencies across ordinary and root jobs', () => {
   const inventory = testInventory();
   const binary = process.env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
