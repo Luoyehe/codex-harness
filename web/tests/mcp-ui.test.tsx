@@ -523,6 +523,85 @@ it('omits an ordinary field edited and restored to its original value', async ()
   fireEvent.click(screen.getByLabelText('启用用户配置中的此服务'));
   expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: false });
 });
+it('addresses each matching display name by its selected opaque ID for edit and removal', async () => {
+  const name = 'notes-[redacted]', first = 'a'.repeat(64), second = 'b'.repeat(64);
+  const servers = [first, second].map(id => ({ ...ownedStdio, name, id, command: 'local' }));
+  const { calls } = await openOwned(() => ({ ...config, servers }), name + ' · ' + first.slice(0, 12));
+  fireEvent.click(screen.getByRole('button', { name: '编辑 ' + name + ' · ' + second.slice(0, 12) }));
+  fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'second-command' } });
+  expect(await saveOwned(calls)).toEqual({ projectId: 'project', expectedVersion: 'v1', id: second,
+    change: { type: 'upsert', transport: 'stdio', enabled: true, command: 'second-command' } });
+  fireEvent.click(await screen.findByRole('button', { name: '移除 ' + name + ' · ' + first.slice(0, 12) + ' 用户配置' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: '确认移除此用户服务定义' }));
+  fireEvent.click(screen.getByRole('button', { name: '确认移除服务配置' }));
+  await waitFor(() => expect(calls.filter(row => row.method === 'mcp/config/write')).toHaveLength(2));
+  expect(calls.filter(row => row.method === 'mcp/config/write')[1]!.params).toEqual({
+    projectId: 'project', expectedVersion: 'v1', id: first, change: { type: 'remove' },
+  });
+});
+it.each(['edit', 'remove'])('requires reselection for a pending %s when the worker rotates IDs at the same version', async mode => {
+  let id = 'a'.repeat(64);
+  const { api, calls } = setup(c => c.method === 'mcp/config/read' ? { ...config, servers: [{ ...ownedStdio, id }] } : {});
+  const props = { api, projectId: 'project', epoch: 'one', enabled: true, onChanged: vi.fn() };
+  const view = render(<McpConfiguration {...props} />);
+  if (mode === 'edit') {
+    fireEvent.click(await screen.findByRole('button', { name: '编辑 owned' }));
+    fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'preserved-draft' } });
+  } else fireEvent.click(await screen.findByRole('button', { name: '移除 owned 用户配置' }));
+  id = 'b'.repeat(64);
+  view.rerender(<McpConfiguration {...props} epoch="restarted" />);
+  if (mode === 'edit') {
+    await screen.findByText(/服务标识已失效/);
+    expect(screen.getByLabelText('程序名或路径')).toHaveProperty('value', 'preserved-draft');
+    expect(screen.getByRole('button', { name: '采用当前服务配置版本' })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('checkbox', { name: /确认保存此服务配置/ }));
+    expect(screen.getByRole('button', { name: '保存此服务配置' })).toHaveProperty('disabled', true);
+  } else {
+    await screen.findByText(/配置版本或服务标识已变化/);
+    fireEvent.click(screen.getByRole('checkbox', { name: '确认移除此用户服务定义' }));
+    expect(screen.getByRole('button', { name: '确认移除服务配置' })).toHaveProperty('disabled', true);
+  }
+  expect(calls.some(c => c.method === 'mcp/config/write')).toBe(false);
+});
+it('uses distinct selection IDs for masked inherited and legacy entries', async () => {
+  const first = 'a'.repeat(64), second = 'b'.repeat(64), legacy = 'c'.repeat(64);
+  const inheritedDetails = [first, second].map(id => ({ name: '[redacted]', id, enabled: true, overridden: false,
+    transport: 'http', overrideAllowed: true }));
+  const { api, calls } = setup(c => c.method === 'mcp/config/read' ? { ...config, inheritedDetails,
+    legacySwitches: [{ id: legacy, name: '[redacted]', enabled: false, targetIds: [second] }] } : {});
+  render(<McpConfiguration api={api} projectId="project" epoch="one" enabled onChanged={vi.fn()} />);
+  const select = await screen.findByRole('combobox', { name: '将旧开关应用到' });
+  expect(Array.from((select as HTMLSelectElement).options).map(option => option.value)).toEqual(['', second]);
+  fireEvent.change(select, { target: { value: second } });
+  fireEvent.click(screen.getByRole('button', { name: '应用原设置' }));
+  await waitFor(() => expect(calls.some(c => c.method === 'mcp/config/write')).toBe(true));
+  expect(calls.find(c => c.method === 'mcp/config/write')!.params).toEqual({ projectId: 'project', expectedVersion: 'v1',
+    id: second, legacyId: legacy, change: { type: 'inherit', enabled: false } });
+  const toggle = await waitFor(() => {
+    const current = screen.getByRole('button', { name: '停用 [redacted] · ' + first.slice(0, 12) });
+    expect(current).toHaveProperty('disabled', false);
+    return current;
+  });
+  fireEvent.click(toggle);
+  await waitFor(() => expect(calls.filter(c => c.method === 'mcp/config/write')).toHaveLength(2));
+  expect(calls.filter(c => c.method === 'mcp/config/write')[1]!.params).toMatchObject({ id: first, change: { type: 'inherit', enabled: false } });
+});
+it('clears a pending legacy target when the worker rotates IDs at the same version', async () => {
+  let targetId = 'a'.repeat(64), legacyId = 'b'.repeat(64);
+  const { api, calls } = setup(c => c.method === 'mcp/config/read' ? { ...config,
+    inheritedDetails: [{ id: targetId, name: 'remote', enabled: true, overridden: false, transport: 'http', overrideAllowed: true }],
+    legacySwitches: [{ id: legacyId, name: 'remote', enabled: false, targetIds: [targetId] }] } : {});
+  const props = { api, projectId: 'project', epoch: 'one', enabled: true, onChanged: vi.fn() };
+  const view = render(<McpConfiguration {...props} />);
+  const choose = () => screen.findByRole('combobox', { name: '将旧开关应用到' });
+  fireEvent.change(await choose(), { target: { value: targetId } });
+  expect(screen.getByRole('button', { name: '应用原设置' })).toHaveProperty('disabled', false);
+  targetId = 'c'.repeat(64); legacyId = 'd'.repeat(64);
+  view.rerender(<McpConfiguration {...props} epoch="restarted" />);
+  expect(await choose()).toHaveProperty('value', '');
+  expect(screen.getByRole('button', { name: '应用原设置' })).toHaveProperty('disabled', true);
+  expect(calls.some(c => c.method === 'mcp/config/write')).toBe(false);
+});
 it('drops masked replacements on hide and leaves the saved URL out of an unrelated change', async () => {
   const { calls, props, view } = await openOwned(undefined, 'remote');
   const url = () => screen.getByLabelText('HTTP(S) 服务地址');
@@ -558,7 +637,7 @@ it.each(['removed', 'replaced'])('requires reselection when the original server 
     servers: !changed ? [ownedStdio] : kind === 'removed' ? [] : [{ ...ownedHttp, name: ownedStdio.name }] }));
   changed = true;
   fireEvent.click(screen.getByRole('button', { name: '重新读取服务配置' }));
-  await screen.findByText(/原服务已移除或传输方式已变化/);
+  await screen.findByText(/原服务已移除、传输方式已变化/);
   expect(screen.getByRole('button', { name: '采用当前服务配置版本' })).toHaveProperty('disabled', true);
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存此服务配置/ }));
   expect(screen.getByRole('button', { name: '保存此服务配置' })).toHaveProperty('disabled', true);

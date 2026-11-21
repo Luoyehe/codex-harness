@@ -4,8 +4,13 @@ import { useResource } from '../hooks/useResource';
 import { useSettingsDraft, useSettingsNavigation } from '../hooks/useSettingsDraft';
 import { SettingsDraftDialog } from './SettingsDraftDialog';
 import { useExtensionAction, ExtensionStatus, ReadState } from './ExtensionControls';
-type ServerConfig = {
-  name: string;
+type ConfigEntry = { id?: string; name: string };
+const entryKey = (entry: ConfigEntry) => entry.id ?? entry.name;
+const selector = (entry: ConfigEntry) => entry.id ? { id: entry.id } : { name: entry.name };
+const entryLabel = (entry: ConfigEntry) => entry.id && entry.name.includes('[redacted]')
+  ? `${entry.name} · ${entry.id.slice(0, 12)}` : entry.name;
+
+type ServerConfig = ConfigEntry & {
   transport: 'stdio' | 'http' | 'unsupported';
   enabled: boolean;
   effectiveEnabled: boolean | null;
@@ -17,21 +22,22 @@ type ServerConfig = {
   hasBearerTokenEnvVar: boolean;
   hasEnvHttpHeaders: boolean;
 };
-type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; unassigned?: Record<string, boolean>; inheritedDetails?: { name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; managedOwner?: string; transport: string; overridden: boolean }[] };
+type Catalog = { userVersion: string | null; servers: ServerConfig[]; inheritedServers: string[]; unassigned?: Record<string, boolean>; legacySwitches?: (ConfigEntry & { enabled: boolean; targetIds: string[] })[]; inheritedDetails?: { id?: string; name: string; enabled: boolean; effectiveEnabled?: boolean; restartRequired?: boolean; overrideAllowed?: boolean; codingPlanHttpDefaultOff?: boolean; managedOwner?: string; transport: string; overridden: boolean }[] };
 function LegacySwitch({ name, value, targets, disabled, restore, discard }: {
-  name: string; value: boolean; targets: { name: string; managedOwner?: string }[]; disabled: boolean; restore: (target: string) => void; discard: () => void;
+  name: string; value: boolean; targets: (ConfigEntry & { managedOwner?: string })[]; disabled: boolean; restore: (target: ConfigEntry) => void; discard: () => void;
 }) {
   const [target, setTarget] = useState('');
+  const selected = targets.find(row => entryKey(row) === target);
   return <div className="info-card">
     <p>原服务 {name} · 原设置为{value ? '启用' : '停用'}</p>
     <label>将旧开关应用到
-      <select value={targets.some(row => row.name === target) ? target : ''} disabled={disabled || !targets.length}
+      <select value={selected ? target : ''} disabled={disabled || !targets.length}
         onChange={event => setTarget(event.target.value)}>
         <option value="">选择已核对的服务</option>
-        {targets.map(row => <option key={row.name} value={row.name}>{row.name} · {row.managedOwner ? `连接 ${row.managedOwner}` : '继承服务'}</option>)}
+        {targets.map(row => <option key={entryKey(row)} value={entryKey(row)}>{entryLabel(row)} · {row.managedOwner ? `连接 ${row.managedOwner}` : '继承服务'}</option>)}
       </select>
     </label>
-    <button className="button small" disabled={disabled || !targets.some(row => row.name === target)} onClick={() => restore(target)}>应用原设置</button>
+    <button className="button small" disabled={disabled || !selected} onClick={() => selected && restore(selected)}>应用原设置</button>
     <button className="button small" disabled={disabled} onClick={discard}>放弃这条旧设置</button>
   </div>;
 }
@@ -205,7 +211,7 @@ function McpConfigurationForm({
       visible && Boolean(projectId),
     );
   const [edit, setEdit] = useState<Edit>(),
-    [remove, setRemove] = useState<{ name: string; version: string }>(),
+    [remove, setRemove] = useState<ConfigEntry & { version: string }>(),
     [confirm, setConfirm] = useState(false),
     [comparedVersion, setComparedVersion] = useState<string>(),
     [error, setError] = useState('');
@@ -232,11 +238,12 @@ function McpConfigurationForm({
       }
     }
   }, [epoch, visible, enabled]);
-  const conflict = Boolean(edit && catalog.data && catalog.data.userVersion !== edit.baseVersion),
-    removalConflict = Boolean(remove && catalog.data && catalog.data.userVersion !== remove.version);
   const original = edit?.source;
-  const currentServer = original && catalog.data?.servers.find(server => server.name === original.name);
+  const currentServer = original && catalog.data?.servers.find(server => entryKey(server) === entryKey(original));
   const sameIdentity = !original || currentServer?.transport === original.transport;
+  const conflict = Boolean(edit && catalog.data && (catalog.data.userVersion !== edit.baseVersion || !sameIdentity));
+  const removalConflict = Boolean(remove && catalog.data && (catalog.data.userVersion !== remove.version ||
+    !catalog.data.servers.some(server => entryKey(server) === entryKey(remove))));
   const source = original?.transport === edit?.transport ? original : undefined;
   const hiddenCommand = masked(source?.command), hiddenUrl = masked(source?.url), hiddenArgs = source?.args?.some(masked);
   const savedCommand = hiddenCommand ? '' : source?.command ?? '';
@@ -256,7 +263,7 @@ function McpConfigurationForm({
   const begin = (server?: ServerConfig) => {
     const baseVersion = catalog.data?.userVersion;
     if (typeof baseVersion !== 'string') return;
-    if (edit && edit.source?.name === server?.name) return;
+    if (edit && (edit.source && server ? entryKey(edit.source) === entryKey(server) && sameIdentity : !edit.source && !server)) return;
     navigation.request(() => {
       setRemove(undefined);
       setConfirm(false);
@@ -274,7 +281,7 @@ function McpConfigurationForm({
     ) return;
     setError('');
     try {
-      if (!edit.source && catalog.data?.servers.some((server) => server.name === edit.name))
+      if (!edit.source && catalog.data?.servers.some((server) => !masked(server.name) && server.name === edit.name))
         throw new Error('此用户服务名称已存在，请从列表选择编辑。');
       if (edit.transport === 'stdio' ? masked(edit.command) || edit.args?.some(masked) : masked(edit.url))
         throw new Error('请填写完整的新值，或撤销该字段的替换以保留原值。');
@@ -302,7 +309,7 @@ function McpConfigurationForm({
       if (
         await action.run(
           'mcp/config/write',
-          { projectId, expectedVersion: edit.baseVersion, name: edit.name, change },
+          { projectId, expectedVersion: edit.baseVersion, ...(edit.source ? selector(edit.source) : { name: edit.name, createOnly: true }), change },
           '用户服务配置已受理。请读取有效状态；配置保存不表示 MCP 已连接，空闲时可单独重载。',
         )
       ) {
@@ -313,6 +320,8 @@ function McpConfigurationForm({
       setError(e instanceof Error ? e.message : '配置无效。');
     }
   };
+  const legacySwitches = catalog.data?.legacySwitches ?? Object.entries(catalog.data?.unassigned ?? {})
+    .map(([name, enabled]) => ({ name, enabled, id: undefined, targetIds: undefined }));
   return (
     <section className="stack">
       <div className="section-heading">
@@ -335,24 +344,26 @@ function McpConfigurationForm({
           <p className="small muted">
             仅修改选中的用户层服务。未填写的敏感字段保持原值，其他服务保持原样。切换设置类别会清除新填敏感值及其替换选择，并清除授权勾选；其他未保存编辑仍保留。
           </p>
-          {catalog.data.unassigned && Object.keys(catalog.data.unassigned).length > 0 && <section className="stack">
+          {legacySwitches.length > 0 && <section className="stack">
             <h4>待确认归属的旧开关</h4>
             <p>旧配置只记录了服务名，无法确认当时的连接。请选择对应服务以恢复原设置。若连接已停用，可以先重新启用该连接。</p>
-            {Object.entries(catalog.data.unassigned).map(([name, value]) => {
-              const logical = (server: string) => server.replace(/-(?:default|[0-9a-f]{32})$/, '');
-              const targets = (catalog.data?.inheritedDetails ?? []).filter(row => row.overrideAllowed && logical(row.name) === logical(name));
-              return <LegacySwitch key={name + catalog.data!.userVersion} name={name} value={value} targets={targets}
+            {legacySwitches.map(entry => {
+              const logical = (name: string) => name.replace(/-(?:default|[0-9a-f]{32})$/, '');
+              const targets = (catalog.data?.inheritedDetails ?? []).filter(row => row.overrideAllowed &&
+                (entry.targetIds ? !!row.id && entry.targetIds.includes(row.id) : logical(row.name) === logical(entry.name)));
+              return <LegacySwitch key={entryKey(entry) + catalog.data!.userVersion} name={entryLabel(entry)} value={entry.enabled} targets={targets}
                 disabled={!enabled || action.busy || catalog.loading || !!edit}
                 discard={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion,
-                  name, change: { type: 'discardLegacy', enabled: value } }, '旧设置已放弃。')}
+                  ...selector(entry), change: { type: 'discardLegacy', enabled: entry.enabled } }, '旧设置已放弃。')}
                 restore={target => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion,
-                  name: target, change: { type: 'inherit', enabled: value, legacyName: name } }, '旧设置已恢复到所选服务。')} />;
+                  ...selector(target), ...(entry.id ? { legacyId: entry.id } : {}),
+                  change: { type: 'inherit', enabled: entry.enabled, ...(entry.id ? {} : { legacyName: entry.name }) } }, '旧设置已恢复到所选服务。')} />;
             })}
           </section>}
           {catalog.data.inheritedServers.length > 0 && <p className="small muted">来自其他配置层：{catalog.data.inheritedServers.join('、')}</p>}
           {catalog.data.inheritedDetails?.map(server => (
-            <div className="info-card" key={server.name}>
-              <strong>{server.name}</strong>
+            <div className="info-card" key={entryKey(server)}>
+              <strong>{entryLabel(server)}</strong>
               <p>{server.transport} · {server.overridden ? '用户覆盖' : '继承配置'}</p>
               {server.overrideAllowed !== true && <p className="small muted">此继承项的来源未授权用户级开关，请在其所属配置层管理。</p>}
               {server.overrideAllowed === true && server.codingPlanHttpDefaultOff === true && server.transport === 'http' && <p className="small muted">智谱 Coding Plan 集成默认关闭此远程服务，以兼容当前 Codex 的 MCP 握手。如需使用，可单独启用并核对实际连接状态。</p>}
@@ -362,17 +373,17 @@ function McpConfigurationForm({
                 {onServiceSettings && <button className="button small" onClick={onServiceSettings}>前往服务管理</button>}
               </div>}
               <button className="button small" disabled={server.overrideAllowed !== true || !enabled || action.busy || catalog.loading || !!edit}
-                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, name: server.name, change: { type: 'inherit', enabled: !server.enabled } }, '单项设置已保存，请核对有效配置。')}>
-                {server.enabled ? '停用' : '启用'} {server.name}
+                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, ...selector(server), change: { type: 'inherit', enabled: !server.enabled } }, '单项设置已保存，请核对有效配置。')}>
+                {server.enabled ? '停用' : '启用'} {entryLabel(server)}
               </button>
               {server.overridden && <button className="button small" disabled={server.overrideAllowed !== true || !enabled || action.busy || catalog.loading || !!edit}
-                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, name: server.name, change: { type: 'inherit', enabled: null } }, '已恢复继承配置。')}>恢复继承设置</button>}
+                onClick={() => void action.run('mcp/config/write', { projectId, expectedVersion: catalog.data!.userVersion, ...selector(server), change: { type: 'inherit', enabled: null } }, '已恢复继承配置。')}>恢复继承设置</button>}
             </div>
           ))}
           {catalog.data.servers.map((server) => (
-            <article className="info-card stack" key={server.name}>
+            <article className="info-card stack" key={entryKey(server)}>
               <div className="section-heading">
-                <strong>{server.name}</strong>
+                <strong>{entryLabel(server)}</strong>
                 <span className="badge">
                   {server.transport} · 用户层{server.enabled ? '启用' : '停用'}
                 </span>
@@ -404,7 +415,7 @@ function McpConfigurationForm({
                   disabled={action.disabled || !catalog.data?.userVersion}
                   onClick={() => begin(server)}
                 >
-                  编辑 {server.name}
+                  编辑 {entryLabel(server)}
                 </button>
                 <button
                   className="button danger small"
@@ -412,10 +423,10 @@ function McpConfigurationForm({
                   onClick={() => navigation.request(() => {
                     setEdit(undefined);
                     setConfirm(false);
-                    setRemove({ name: server.name, version: catalog.data!.userVersion! });
+                    setRemove({ id: server.id, name: server.name, version: catalog.data!.userVersion! });
                   }, '放弃编辑并准备移除')}
                 >
-                  移除 {server.name} 用户配置
+                  移除 {entryLabel(server)} 用户配置
                 </button>
               </div>
             </article>
@@ -438,11 +449,11 @@ function McpConfigurationForm({
           }}
         >
           <fieldset disabled={action.busy || !visible} className="stack">
-            <h4>{edit.source ? `编辑 ${edit.source.name}` : '新增服务'}</h4>
+            <h4>{edit.source ? `编辑 ${entryLabel(edit.source)}` : '新增服务'}</h4>
             {conflict && (
               <div className="workspace-conflict stack">
-                <p>用户配置版本已变化。输入仍保留，请比较上方重新读取的服务状态。</p>
-                {!sameIdentity && <p>原服务已移除或传输方式已变化，请关闭表单并从最新列表重新选择。</p>}
+                <p>{catalog.data?.userVersion !== edit.baseVersion ? '用户配置版本已变化。' : '服务标识已失效。'}输入仍保留，请比较上方重新读取的服务状态。</p>
+                {!sameIdentity && <p>原服务已移除、传输方式已变化或后台已重启，请从最新列表重新选择。</p>}
                 <label className="check-row">
                   <input
                     type="checkbox"
@@ -641,8 +652,8 @@ function McpConfigurationForm({
       )}
       {remove && (
         <div className="workspace-warning stack">
-          <p>确认只移除 {remove.name} 的用户层定义。来自其他配置层的同名服务仍可能生效。</p>
-          {removalConflict && <p className="error">版本已变化，请取消后从最新列表重新选择移除。</p>}
+          <p>确认只移除 {entryLabel(remove)} 的用户层定义。来自其他配置层的同名服务仍可能生效。</p>
+          {removalConflict && <p className="error">配置版本或服务标识已变化，请取消后从最新列表重新选择移除。</p>}
           <label className="check-row">
             <input
               type="checkbox"
@@ -662,7 +673,7 @@ function McpConfigurationForm({
                 if (
                   await action.run('mcp/config/write', {
                     projectId,
-                    name: remove.name,
+                    ...selector(remove),
                     expectedVersion: remove.version,
                     change: { type: 'remove' },
                   })

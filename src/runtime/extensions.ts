@@ -6,6 +6,7 @@ import type { NativeOptions } from './native.js';
 import type { DiagnosticRedactor } from './redaction.js';
 import { extensionMethods } from '../core/extension-methods.js';
 import { McpConfiguration } from './mcp-configuration.js';
+import { McpConfigurationIdentity } from './mcp-configuration-identity.js';
 import { Imports } from './imports.js';
 import { PluginSharing } from './plugin-sharing.js';
 import { Feedback } from './feedback.js';
@@ -64,7 +65,7 @@ function rejectRedacted(value: JsonValue): void {
 
 /** Extension discovery supplies identity and policy. Browser strings never become arbitrary native paths. */
 export class Extensions {
-  private mcpConfiguration: McpConfiguration;
+  private mcpConfiguration: McpConfigurationIdentity;
   private imports: Imports;
   private sharing: PluginSharing;
   private feedback: Feedback;
@@ -72,7 +73,10 @@ export class Extensions {
   private trust: ProjectTrust;
   private accounts: AccountTools;
   constructor(private host: ExtensionHost) {
-    this.mcpConfiguration = new McpConfiguration(host.native, host.resource ? (cwd, fileOnly) => this.resource(cwd, fileOnly ? 'mcp/user-state' : 'mcp/enabled-read', {}) : undefined); this.imports = new Imports(host.native); this.feedback = new Feedback(host.native, cwd => this.resource(cwd, 'feedback/path', {}));
+    const config = new McpConfiguration(host.native, host.resource
+      ? (cwd, fileOnly) => this.resource(cwd, fileOnly ? 'mcp/user-state' : 'mcp/enabled-read', {}) : undefined);
+    this.mcpConfiguration = new McpConfigurationIdentity(config, host.redactor);
+    this.imports = new Imports(host.native); this.feedback = new Feedback(host.native, cwd => this.resource(cwd, 'feedback/path', {}));
     this.trust = new ProjectTrust(host.native, cwd => this.resource(cwd, 'project/trust-roots', {}));
     this.accounts = new AccountTools(host);
     this.sharing = new PluginSharing({ native: host.native, select: params => this.selectPlugin(params), preview: (cwd, relative) => this.resource(cwd, 'resource/plugin/preview', { path: relative }) });
@@ -107,7 +111,7 @@ export class Extensions {
       case 'plugin/share/preview': this.host.cwd(params.cwd); return this.sharing.preview(params);
       case 'import/preview': this.host.cwd(params.cwd); return this.host.redactor.value(await this.imports.preview(params));
       case 'import/history': this.host.cwd(params.cwd); return this.host.redactor.value(await this.imports.history(params));
-      case 'mcp/config/read': onlyKeys(params, ['cwd']); return this.host.redactor.value(await this.mcpConfiguration.read(this.host.cwd(params.cwd)));
+      case 'mcp/config/read': onlyKeys(params, ['cwd']); return this.mcpConfiguration.read(this.host.cwd(params.cwd));
       case 'skills/list': {
         onlyKeys(params, ['cwd', 'forceReload']); const cwd = this.host.cwd(params.cwd);
         const result = await this.request(method, { cwds: [cwd], ...(params.forceReload !== undefined ? { forceReload: params.forceReload } : {}) }, 'SkillsListParams', 'SkillsListResponse');

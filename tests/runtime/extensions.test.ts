@@ -77,3 +77,43 @@ describe('extension workflows', () => {
     await expect(service.call('settings/write', { expectedVersion: 'v', changes: [{ key: 'model_reasoning_effort', value: 'high' }] }, context)).rejects.toMatchObject({ delivery: 'unknown' });
   });
 });
+
+test('keeps masked inherited switches and legacy recovery targets distinct across refreshes', async () => {
+  const rows = { 'web-reader': { command: 'first' }, zread: { command: 'second' } };
+  const state = { config: { mcp_servers: rows }, origins: {}, layers: [
+    { name: { type: 'user', file: '/native/config.toml', profile: null }, config: {}, version: 'user', disabledReason: null },
+    { name: { type: 'system', file: '/system/config.toml' }, config: { mcp_servers: rows }, version: 'system', disabledReason: null },
+  ] };
+  const { host } = setup({ 'config/read': state });
+  host.redactor.addSecret('web-reader'); host.redactor.addSecret('zread');
+  let version = 1;
+  const flags: Record<string, boolean> = {}, unassigned: Record<string, boolean> = { 'web-reader': false, zread: true };
+  host.resource = async () => ({ flags, unassigned, version: String(version) });
+  const saved: JsonObject[] = [];
+  host.configure = fn => fn(async (method, input) => {
+    expect(method).toBe('harness/mcp/enabled-override');
+    const request = object(input), name = String(request.name); saved.push(request);
+    if (request.discardLegacy === true) delete unassigned[name];
+    else {
+      if (typeof request.legacyName === 'string') delete unassigned[request.legacyName];
+      if (request.enabled === null) delete flags[name]; else flags[name] = request.enabled === true;
+    }
+    return { written: true, version: String(++version), filePath: '/native/flags.json', effective: request.enabled ?? true };
+  });
+  const service = new Extensions(host);
+  const read = async () => object(await service.call('mcp/config/read', { cwd: '/project' }, context));
+  const call = async (params: JsonObject) => service.call('mcp/config/write', {
+    cwd: '/project', expectedVersion: (await read()).userVersion!, ...params }, context);
+  const catalog = await read(), old = catalog.legacySwitches as JsonObject[];
+  expect(JSON.stringify(catalog)).not.toMatch(/web-reader|zread/);
+  expect(old.map(row => row.name)).toEqual(['[redacted]', '[redacted]']);
+  expect(old[0]!.id).not.toBe(old[1]!.id);
+  const target = (old[0]!.targetIds as string[])[0]!;
+  expect(old[0]!.targetIds).toHaveLength(1); expect(old[1]!.targetIds).not.toContain(target);
+  await call({ id: target, legacyId: old[0]!.id!, change: { type: 'inherit', enabled: false } });
+  await call({ id: target, change: { type: 'inherit', enabled: null } });
+  await call({ id: old[1]!.id!, change: { type: 'discardLegacy', enabled: true } });
+  expect(saved.map(row => [row.name, row.legacyName, row.enabled])).toEqual([
+    ['web-reader', 'web-reader', false], ['web-reader', undefined, null], ['zread', undefined, true],
+  ]);
+});

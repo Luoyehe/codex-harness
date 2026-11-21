@@ -6,7 +6,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
-import { object, type JsonValue } from '../../src/runtime/types.js';
+import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
 const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
@@ -162,4 +163,47 @@ test('custom MCP changes preserve native TOML and reload the selected literal se
     expect(Object.keys(await rawRead())).toEqual(expect.arrayContaining(['personal', name]));
     expect(Object.keys(await rawRead())).not.toContain('toString');
   } finally { await service.close(); expectNativeClosed(service.native); }
+});
+
+test('locates disabled user MCP servers with colliding display names through the pinned CLI', async () => {
+  const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
+  const root = mkdtempSync(path.join(parent, 'mcp-names-')), home = path.join(root, 'codex');
+  const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: path.join(root, 'tmp') });
+  env.HARNESS_PROVIDER_KEY_DEFAULT = 'lilac';
+  env.HARNESS_PROVIDER_API_KEY = 'amber';
+  writeFileSync(path.join(home, 'config.toml'), [
+    'check_for_update_on_startup=false', '[mcp_servers.notes-lilac]', 'command="first-local"', 'enabled=false',
+    '[mcp_servers.notes-amber]', 'command="second-local"', 'enabled=false',
+  ].join('\n'));
+  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true });
+  const context = { clientId: 'mcp-names', beforeWrite: () => {} };
+  const read = async () => object(await runtime.call('mcp/config/read', { cwd: root }, context));
+  const update = (params: JsonObject) => runtime.call('mcp/config/write', { ...params, cwd: root }, context);
+  const privateServers = async () => {
+    const state = object(await runtime.native.call('config/read', { cwd: root, includeLayers: true }));
+    const user = (state.layers as JsonObject[]).find(layer => object(layer.name).type === 'user')!;
+    return object(object(user.config).mcp_servers);
+  };
+  try {
+    const before = await read(), rows = before.servers as JsonObject[];
+    expect(rows.map(row => row.name)).toEqual(['notes-[redacted]', 'notes-[redacted]']);
+    expect(JSON.stringify(before)).not.toMatch(/lilac|amber/);
+    const first = rows.find(row => row.command === 'first-local')!.id!, second = rows.find(row => row.command === 'second-local')!.id!;
+    expect(new Set([first, second]).size).toBe(2);
+    const change = { type: 'upsert', transport: 'stdio', command: 'changed-local', enabled: false };
+    await expect(update({ name: 'notes-lilac', createOnly: true, expectedVersion: before.userVersion!, change }))
+      .rejects.toMatchObject({ code: 'config_conflict', delivery: 'not_sent' });
+    await expect(update({ name: 'notes-[redacted]', expectedVersion: before.userVersion!, change: { type: 'remove' } }))
+      .rejects.toMatchObject({ code: 'config_conflict', delivery: 'not_sent' });
+    await update({ id: first, expectedVersion: before.userVersion!, change });
+    expect(await privateServers()).toMatchObject({ 'notes-lilac': { command: 'changed-local', enabled: false },
+      'notes-amber': { command: 'second-local', enabled: false } });
+    await expect(update({ id: second, expectedVersion: before.userVersion!, change: { type: 'remove' } }))
+      .rejects.toMatchObject({ code: 'config_conflict', delivery: 'not_sent' });
+    await update({ id: second, expectedVersion: (await read()).userVersion!, change: { type: 'remove' } });
+    expect(Object.keys(await privateServers())).toEqual(['notes-lilac']);
+    await update({ name: 'new-local', createOnly: true, expectedVersion: (await read()).userVersion!, change });
+    await update({ name: 'new-local', expectedVersion: (await read()).userVersion!, change: { type: 'remove' } });
+    expect(Object.keys(await privateServers())).toEqual(['notes-lilac']);
+  } finally { await runtime.close(); expectNativeClosed(runtime.native); }
 });
