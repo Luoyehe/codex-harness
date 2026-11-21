@@ -448,45 +448,122 @@ it('retains accepted result identity, sibling text and raw download when media p
     click.mockRestore();
   }
 });
-it('merges only one service and preserves omitted secrets without storing configuration in receipts', async () => {
-  const existing = {
-    ...config,
-    servers: [
-      {
-        name: 'http-server',
-        transport: 'http',
-        enabled: true,
-        effectiveEnabled: true,
-        url: 'https://example.invalid/mcp',
-        hasEnv: false,
-        hasHttpHeaders: true,
-        hasBearerTokenEnvVar: true,
-        hasEnvHttpHeaders: false,
-      },
-    ],
-  };
-  const { api, calls } = setup((call) => (call.method === 'mcp/config/read' ? existing : {}));
-  render(
-    <McpConfiguration api={api} projectId="project" epoch="one" enabled onChanged={vi.fn()} />,
-  );
-  fireEvent.click(await screen.findByRole('button', { name: '编辑 http-server' }));
-  fireEvent.click(screen.getByRole('checkbox', { name: '启用用户配置中的此服务' }));
+const ownedStdio = { name: 'owned', transport: 'stdio', enabled: true, effectiveEnabled: true,
+  command: 'worker-[redacted]', args: ['--token', '[redacted]'],
+  hasEnv: true, hasHttpHeaders: false, hasBearerTokenEnvVar: false, hasEnvHttpHeaders: false };
+const ownedHttp = { ...ownedStdio, name: 'remote', transport: 'http',
+  url: 'http://127.0.0.1:9/mcp?token=[redacted]', command: undefined, args: undefined };
+async function openOwned(catalog = () => ({ ...config, servers: [ownedStdio, ownedHttp] }), name = 'owned') {
+  const { api, calls } = setup(call => call.method === 'mcp/config/read' ? catalog() : {});
+  const props = { api, projectId: 'project', epoch: 'one', enabled: true, onChanged: vi.fn() };
+  const view = render(<McpConfiguration {...props} />);
+  fireEvent.click(await screen.findByRole('button', { name: '编辑 ' + name }));
+  return { calls, props, view };
+}
+async function saveOwned(calls: Call[]) {
   fireEvent.click(screen.getByRole('checkbox', { name: /确认保存此服务配置/ }));
   fireEvent.click(screen.getByRole('button', { name: '保存此服务配置' }));
-  await waitFor(() => expect(calls.some((call) => call.method === 'mcp/config/write')).toBe(true));
-  const sent = calls.find((call) => call.method === 'mcp/config/write')!;
-  expect(sent.params).toEqual({
-    projectId: 'project',
-    expectedVersion: 'v1',
-    name: 'http-server',
-    change: {
-      type: 'upsert',
-      transport: 'http',
-      url: 'https://example.invalid/mcp',
-      enabled: false,
-    },
-  });
-  expect(JSON.stringify(localStorage)).not.toContain('example.invalid');
+  await waitFor(() => expect(screen.queryByRole('button', { name: '保存此服务配置' })).toBeNull());
+  return calls.find(call => call.method === 'mcp/config/write')!.params;
+}
+it.each([ownedHttp, ownedStdio])('disables $transport without submitting its redacted transport fields', async server => {
+  const { calls } = await openOwned(undefined, server.name);
+  const field = screen.getByLabelText(server.transport === 'http' ? 'HTTP(S) 服务地址' : '程序名或路径');
+  expect(field).toHaveProperty('value', '');
+  fireEvent.change(field, { target: { value: 'temporary' } });
+  fireEvent.change(field, { target: { value: '' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: '启用用户配置中的此服务' }));
+  expect(await saveOwned(calls)).toEqual({ projectId: 'project', expectedVersion: 'v1', name: server.name,
+    change: { type: 'upsert', transport: server.transport, enabled: false } });
+  expect(JSON.stringify(await listOperations())).not.toContain('[redacted]');
+});
+it.each(['clear', 'replace', 'undo'] as const)('allows explicit %s of a masked argument group independently of command', async mode => {
+  const { calls } = await openOwned();
+  expect(screen.getByRole('button', { name: '添加参数' })).toHaveProperty('disabled', true);
+  const replace = screen.getByRole('checkbox', { name: /替换全部命令参数/ });
+  fireEvent.click(replace);
+  if (mode !== 'clear') {
+    fireEvent.click(screen.getByRole('button', { name: '添加参数' }));
+    fireEvent.change(screen.getByLabelText('命令参数 1'), { target: { value: 'fixture-argument' } });
+  }
+  if (mode === 'undo') fireEvent.click(replace);
+  fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'replacement-command' } });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: true,
+    command: 'replacement-command', ...(mode === 'undo' ? {} : { args: mode === 'clear' ? [] : ['fixture-argument'] }) });
+  expect(JSON.stringify(await listOperations())).not.toContain('fixture-argument');
+});
+it('sends a new address only after deliberate replacement and rejects a display placeholder', async () => {
+  const { calls } = await openOwned(undefined, 'remote');
+  const url = screen.getByLabelText('HTTP(S) 服务地址');
+  fireEvent.change(url, { target: { value: 'http://127.0.0.1:9/[redacted]' } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存此服务配置/ }));
+  fireEvent.click(screen.getByRole('button', { name: '保存此服务配置' }));
+  await screen.findByText(/请填写完整的新值/);
+  expect(calls.some(c => c.method === 'mcp/config/write')).toBe(false);
+  fireEvent.change(url, { target: { value: 'http://127.0.0.1:9/updated' } });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', enabled: true, url: 'http://127.0.0.1:9/updated' });
+  expect(JSON.stringify(await listOperations())).not.toContain('127.0.0.1');
+});
+it('keeps untouched transport fields after switching back, and sends the new transport on conversion', async () => {
+  const { calls } = await openOwned(undefined, 'remote');
+  const transport = screen.getByLabelText('传输方式');
+  fireEvent.change(transport, { target: { value: 'stdio' } });
+  fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'local-fixture' } });
+  fireEvent.change(transport, { target: { value: 'http' } });
+  expect(screen.getByLabelText('HTTP(S) 服务地址')).toHaveProperty('value', '');
+  fireEvent.change(transport, { target: { value: 'stdio' } });
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: true, command: 'local-fixture', args: [] });
+});
+it('omits an ordinary field edited and restored to its original value', async () => {
+  const initial = { ...ownedStdio, command: 'plain-command', args: ['first', 'second'] };
+  const { calls } = await openOwned(() => ({ ...config, servers: [initial] }));
+  const arg = screen.getByLabelText('命令参数 1');
+  fireEvent.change(arg, { target: { value: 'draft' } });
+  fireEvent.change(arg, { target: { value: 'first' } });
+  fireEvent.click(screen.getByLabelText('启用用户配置中的此服务'));
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'stdio', enabled: false });
+});
+it('drops masked replacements on hide and leaves the saved URL out of an unrelated change', async () => {
+  const { calls, props, view } = await openOwned(undefined, 'remote');
+  const url = () => screen.getByLabelText('HTTP(S) 服务地址');
+  fireEvent.change(url(), { target: { value: 'http://127.0.0.1:9/replacement' } });
+  view.rerender(<McpConfiguration {...props} visible={false} />);
+  view.rerender(<McpConfiguration {...props} visible />);
+  await screen.findByRole('button', { name: '编辑 remote' });
+  expect(url()).toHaveProperty('value', '');
+  fireEvent.click(screen.getByRole('checkbox', { name: /清除已保存的环境变量/ }));
+  expect((await saveOwned(calls)).change).toEqual({ type: 'upsert', transport: 'http', enabled: true, clearSecrets: true });
+});
+it('requires a fresh comparison and carries only the edited command onto the latest same-transport version', async () => {
+  let version = 'v1', server = ownedStdio;
+  const { calls } = await openOwned(() => ({ ...config, userVersion: version, servers: [server] }));
+  fireEvent.change(screen.getByLabelText('程序名或路径'), { target: { value: 'replacement-command' } });
+  const reread = () => fireEvent.click(screen.getByRole('button', { name: '重新读取服务配置' }));
+  version = 'v2'; reread();
+  const compare = () => screen.getByRole('checkbox', { name: /已核对当前配置/ });
+  await screen.findByText(/用户配置版本已变化/);
+  fireEvent.click(compare());
+  version = 'v3'; server = { ...server, enabled: false, args: ['latest-argument'] }; reread();
+  await screen.findByText(/用户配置版本已变化/);
+  expect(compare()).toHaveProperty('checked', false);
+  fireEvent.click(compare());
+  fireEvent.click(screen.getByRole('button', { name: '采用当前服务配置版本' }));
+  expect(screen.getByLabelText('命令参数 1')).toHaveProperty('value', 'latest-argument');
+  expect(await saveOwned(calls)).toEqual({ projectId: 'project', expectedVersion: 'v3', name: 'owned',
+    change: { type: 'upsert', transport: 'stdio', enabled: false, command: 'replacement-command' } });
+});
+it.each(['removed', 'replaced'])('requires reselection when the original server was %s at another version', async kind => {
+  let changed = false;
+  const { calls } = await openOwned(() => ({ ...config, userVersion: changed ? 'v2' : 'v1',
+    servers: !changed ? [ownedStdio] : kind === 'removed' ? [] : [{ ...ownedHttp, name: ownedStdio.name }] }));
+  changed = true;
+  fireEvent.click(screen.getByRole('button', { name: '重新读取服务配置' }));
+  await screen.findByText(/原服务已移除或传输方式已变化/);
+  expect(screen.getByRole('button', { name: '采用当前服务配置版本' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('checkbox', { name: /确认保存此服务配置/ }));
+  expect(screen.getByRole('button', { name: '保存此服务配置' })).toHaveProperty('disabled', true);
+  fireEvent.click(screen.getByRole('button', { name: '关闭表单并清除未保存输入' }));
+  expect(calls.some(call => call.method === 'mcp/config/write')).toBe(false);
 });
 it('preserves MCP config input during a version change until explicit rebase', async () => {
   let version = 'v1';

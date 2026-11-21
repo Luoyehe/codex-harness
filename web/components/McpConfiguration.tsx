@@ -38,15 +38,15 @@ function LegacySwitch({ name, value, targets, disabled, restore, discard }: {
 
 type Pair = { name: string; value: string };
 type Edit = {
-  baseName?: string;
+  source?: ServerConfig;
   baseVersion: string;
-  originalTransport?: string;
   name: string;
   transport: 'stdio' | 'http';
-  command: string;
-  args: string[];
-  url: string;
-  enabled: boolean;
+  // Undefined keeps the native value. Read-side placeholders never enter these overrides.
+  command?: string;
+  args?: string[];
+  url?: string;
+  enabled?: boolean;
   env?: Pair[];
   headers?: Pair[];
   envNames?: string[];
@@ -55,6 +55,25 @@ type Edit = {
   bearer: string;
   clearSecrets: boolean;
 };
+
+function startEdit(baseVersion: string, source?: ServerConfig): Edit {
+  return {
+    baseVersion, source, name: source?.name ?? '',
+    transport: source?.transport === 'http' ? 'http' : 'stdio',
+    bearer: '', clearSecrets: false,
+  };
+}
+const masked = (text?: string) => text?.includes('[redacted]') === true;
+function clearPrivateDraft(edit: Edit): Edit {
+  return { ...edit,
+    envNames: edit.env?.map(row => row.name) ?? edit.envNames,
+    headerNames: edit.headers?.map(row => row.name) ?? edit.headerNames,
+    env: undefined, headers: undefined, clearSecrets: false,
+    ...(masked(edit.source?.url) ? { url: undefined } : {}),
+    ...(masked(edit.source?.command) ? { command: undefined } : {}),
+    ...(edit.source?.args?.some(masked) ? { args: undefined } : {}),
+  };
+}
 function pairs(rows: Pair[]) {
   const result: Record<string, string> = {};
   for (const row of rows) {
@@ -188,7 +207,7 @@ function McpConfigurationForm({
   const [edit, setEdit] = useState<Edit>(),
     [remove, setRemove] = useState<{ name: string; version: string }>(),
     [confirm, setConfirm] = useState(false),
-    [compared, setCompared] = useState(false),
+    [comparedVersion, setComparedVersion] = useState<string>(),
     [error, setError] = useState('');
   const editBaseline = useRef('');
   const editRef = useRef(edit);
@@ -201,43 +220,49 @@ function McpConfigurationForm({
   const [secretNotice, setSecretNotice] = useState('');
   useEffect(() => {
     setConfirm(false);
-    setCompared(false);
+    setComparedVersion(undefined);
     if (!visible) {
-      if (editRef.current?.env || editRef.current?.headers) setSecretNotice('已离开配置面板，新填的敏感值已清除。');
-      setEdit(current => current ? { ...current,
-        envNames: current.env?.map(row => row.name) ?? current.envNames,
-        headerNames: current.headers?.map(row => row.name) ?? current.headerNames,
-        env: undefined, headers: undefined, clearSecrets: false } : current);
+      const current = editRef.current;
+      if (current) {
+        const cleared = clearPrivateDraft(current);
+        if (current.env || current.headers || current.command !== cleared.command ||
+            current.url !== cleared.url || current.args !== cleared.args)
+          setSecretNotice('已离开配置面板，新填的敏感值已清除。');
+        setEdit(cleared);
+      }
     }
   }, [epoch, visible, enabled]);
   const conflict = Boolean(edit && catalog.data && catalog.data.userVersion !== edit.baseVersion),
     removalConflict = Boolean(remove && catalog.data && catalog.data.userVersion !== remove.version);
+  const original = edit?.source;
+  const currentServer = original && catalog.data?.servers.find(server => server.name === original.name);
+  const sameIdentity = !original || currentServer?.transport === original.transport;
+  const source = original?.transport === edit?.transport ? original : undefined;
+  const hiddenCommand = masked(source?.command), hiddenUrl = masked(source?.url), hiddenArgs = source?.args?.some(masked);
+  const savedCommand = hiddenCommand ? '' : source?.command ?? '';
+  const savedUrl = hiddenUrl ? '' : source?.url ?? '';
+  const savedArgs = hiddenArgs ? [] : source?.args ?? [];
+  const args = edit?.args ?? savedArgs;
+  const savedEnabled = original?.enabled ?? true;
+  const compared = Boolean(comparedVersion && comparedVersion === catalog.data?.userVersion);
+  const canCompare = sameIdentity && !catalog.loading && !catalog.error;
   const patch = (change: Partial<Edit>) => {
     setEdit((current) => (current ? { ...current, ...change } : current));
     setConfirm(false);
   };
+  const setArgs = (next: string[]) => patch({
+    args: !hiddenArgs && next.length === savedArgs.length && next.every((arg, i) => arg === savedArgs[i]) ? undefined : next,
+  });
   const begin = (server?: ServerConfig) => {
     const baseVersion = catalog.data?.userVersion;
     if (typeof baseVersion !== 'string') return;
-    if (edit && edit.baseName === server?.name) return;
+    if (edit && edit.source?.name === server?.name) return;
     navigation.request(() => {
       setRemove(undefined);
       setConfirm(false);
-      setCompared(false);
+      setComparedVersion(undefined);
       setError('');
-      const next: Edit = {
-        baseName: server?.name,
-        baseVersion,
-        originalTransport: server?.transport,
-        name: server?.name ?? '',
-        transport: server?.transport === 'http' ? 'http' : 'stdio',
-        command: server?.command ?? '',
-        args: server?.args ?? [],
-        url: server?.url ?? '',
-        enabled: server?.enabled ?? true,
-        bearer: '',
-        clearSecrets: false,
-      };
+      const next = startEdit(baseVersion, server);
       editBaseline.current = JSON.stringify(next);
       setEdit(next);
     }, '放弃编辑并切换服务');
@@ -249,35 +274,30 @@ function McpConfigurationForm({
     ) return;
     setError('');
     try {
-      if (!edit.baseName && catalog.data?.servers.some((server) => server.name === edit.name))
+      if (!edit.source && catalog.data?.servers.some((server) => server.name === edit.name))
         throw new Error('此用户服务名称已存在，请从列表选择编辑。');
+      if (edit.transport === 'stdio' ? masked(edit.command) || edit.args?.some(masked) : masked(edit.url))
+        throw new Error('请填写完整的新值，或撤销该字段的替换以保留原值。');
       const change = {
         type: 'upsert',
         transport: edit.transport,
-        enabled: edit.enabled,
+        enabled: edit.enabled ?? savedEnabled,
         ...(edit.clearSecrets ? { clearSecrets: true } : {}),
         ...(edit.transport === 'stdio'
           ? {
-              command: edit.command,
-              args: edit.args,
+              ...(edit.command !== undefined || !source ? { command: edit.command ?? '' } : {}),
+              ...(edit.args !== undefined || !source ? { args } : {}),
               ...(edit.env !== undefined ? { env: pairs(edit.env) } : {}),
             }
           : {
-              url: edit.url,
+              ...(edit.url !== undefined || !source ? { url: edit.url ?? '' } : {}),
               ...(edit.headers !== undefined ? { httpHeaders: pairs(edit.headers) } : {}),
               ...(edit.envHeaders !== undefined ? { envHttpHeaders: pairs(edit.envHeaders) } : {}),
               ...(edit.bearer ? { bearerTokenEnvVar: edit.bearer } : {}),
             }),
       };
       // An uncertain receipt must not leave newly supplied secrets available for replay.
-      setEdit((current) => current
-        ? {
-            ...current,
-            envNames: current.env?.map((row) => row.name) ?? current.envNames,
-            headerNames: current.headers?.map((row) => row.name) ?? current.headerNames,
-            env: undefined, headers: undefined, clearSecrets: false,
-          }
-        : current);
+      setEdit(current => current && clearPrivateDraft(current));
       setConfirm(false);
       if (
         await action.run(
@@ -418,25 +438,30 @@ function McpConfigurationForm({
           }}
         >
           <fieldset disabled={action.busy || !visible} className="stack">
-            <h4>{edit.baseName ? `编辑 ${edit.baseName}` : '新增服务'}</h4>
+            <h4>{edit.source ? `编辑 ${edit.source.name}` : '新增服务'}</h4>
             {conflict && (
               <div className="workspace-conflict stack">
                 <p>用户配置版本已变化。输入仍保留，请比较上方重新读取的服务状态。</p>
+                {!sameIdentity && <p>原服务已移除或传输方式已变化，请关闭表单并从最新列表重新选择。</p>}
                 <label className="check-row">
                   <input
                     type="checkbox"
+                    disabled={!canCompare}
                     checked={compared}
-                    onChange={(event) => setCompared(event.target.checked)}
+                    onChange={(event) => setComparedVersion(event.target.checked ? catalog.data?.userVersion ?? undefined : undefined)}
                   />
                   已核对当前配置，保留本表单修改
                 </label>
                 <button
                   type="button"
                   className="button"
-                  disabled={!compared || !catalog.data?.userVersion}
+                  disabled={!canCompare || !compared}
                   onClick={() => {
-                    patch({ baseVersion: catalog.data!.userVersion! });
-                    setCompared(false);
+                    if (!canCompare || !compared || !comparedVersion) return;
+                    const baseline = startEdit(comparedVersion, currentServer);
+                    editBaseline.current = JSON.stringify(baseline);
+                    patch({ baseVersion: baseline.baseVersion, source: currentServer });
+                    setComparedVersion(undefined);
                   }}
                 >
                   采用当前服务配置版本
@@ -447,7 +472,7 @@ function McpConfigurationForm({
               服务名称
               <input
                 value={edit.name}
-                readOnly={Boolean(edit.baseName)}
+                readOnly={Boolean(edit.source)}
                 maxLength={128}
                 required
                 onChange={(event) => patch({ name: event.target.value })}
@@ -473,7 +498,7 @@ function McpConfigurationForm({
                 <option value="http">HTTP 服务</option>
               </select>
             </label>
-            {edit.originalTransport && edit.transport !== edit.originalTransport && (
+            {edit.source && edit.transport !== edit.source.transport && (
               <p className="workspace-warning">
                 变更传输方式会清除原传输方式的专属字段和已保存敏感值。
               </p>
@@ -481,8 +506,8 @@ function McpConfigurationForm({
             <label className="check-row">
               <input
                 type="checkbox"
-                checked={edit.enabled}
-                onChange={(event) => patch({ enabled: event.target.checked })}
+                checked={edit.enabled ?? savedEnabled}
+                onChange={(event) => patch({ enabled: event.target.checked === savedEnabled ? undefined : event.target.checked })}
               />
               启用用户配置中的此服务
             </label>
@@ -491,32 +516,34 @@ function McpConfigurationForm({
                 <label className="field">
                   程序名或路径
                   <input
-                    value={edit.command}
-                    required
+                    value={edit.command ?? savedCommand}
+                    placeholder={hiddenCommand ? '已隐藏，留空保留原值' : undefined}
+                    required={!hiddenCommand}
                     maxLength={4096}
-                    onChange={(event) => patch({ command: event.target.value })}
+                    onChange={(event) => patch({ command: event.target.value === savedCommand ? undefined : event.target.value })}
                   />
                 </label>
                 <fieldset className="stack">
                   <legend>命令参数（每行一个参数，原样传递）</legend>
-                  {edit.args.map((arg, index) => (
+                  {hiddenArgs && <label className="check-row">
+                    <input type="checkbox" checked={edit.args !== undefined}
+                      onChange={event => patch({ args: event.target.checked ? [] : undefined })} />
+                    替换全部命令参数（含隐藏值，取消勾选可保留原参数，勾选后无行表示清空）
+                  </label>}
+                  {args.map((arg, index) => (
                     <div className="inline" key={index}>
                       <input
                         aria-label={`命令参数 ${index + 1}`}
                         value={arg}
                         maxLength={8192}
                         onChange={(event) =>
-                          patch({
-                            args: edit.args.map((old, i) =>
-                              i === index ? event.target.value : old,
-                            ),
-                          })
+                          setArgs(args.map((old, i) => i === index ? event.target.value : old))
                         }
                       />
                       <button
                         type="button"
                         className="button small"
-                        onClick={() => patch({ args: edit.args.filter((_, i) => i !== index) })}
+                        onClick={() => setArgs(args.filter((_, i) => i !== index))}
                       >
                         删除参数
                       </button>
@@ -525,8 +552,8 @@ function McpConfigurationForm({
                   <button
                     type="button"
                     className="button small"
-                    disabled={edit.args.length >= 256}
-                    onClick={() => patch({ args: [...edit.args, ''] })}
+                    disabled={args.length >= 256 || Boolean(hiddenArgs && edit.args === undefined)}
+                    onClick={() => setArgs([...args, ''])}
                   >
                     添加参数
                   </button>
@@ -541,10 +568,11 @@ function McpConfigurationForm({
                 <label className="field">
                   HTTP(S) 服务地址
                   <input
-                    value={edit.url}
-                    required
+                    value={edit.url ?? savedUrl}
+                    placeholder={hiddenUrl ? '已隐藏，留空保留原值' : undefined}
+                    required={!hiddenUrl}
                     maxLength={4096}
-                    onChange={(event) => patch({ url: event.target.value })}
+                    onChange={(event) => patch({ url: event.target.value === savedUrl ? undefined : event.target.value })}
                   />
                 </label>
                 <PairFields
@@ -576,7 +604,7 @@ function McpConfigurationForm({
                 checked={edit.clearSecrets}
                 onChange={(event) => patch({ clearSecrets: event.target.checked })}
               />
-              明确清除该服务所有原有敏感字段，再应用本次填写的值
+              清除已保存的环境变量、请求头及 Bearer Token 设置，再应用本次填写的值
             </label>
             <label className="check-row">
               <input
