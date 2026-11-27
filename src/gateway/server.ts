@@ -69,8 +69,12 @@ export class GatewayServer {
   readonly #revoke = () => {
     for (const connection of this.#browsers.values()) if (!this.auth.session(connection.cookie)) connection.socket.close(4001, 'session revoked');
   };
+  readonly #hsts?: string;
   #closing = false;
-  constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string, private readonly options: { trustedProxyToken?: string } = {}) {
+  constructor(readonly auth: Authentication, readonly dispatcher: Dispatcher, readonly worker: WorkerClient, readonly staticDir?: string, private readonly options: { trustedProxyToken?: string; strictTransportSecurity?: boolean | string } = {}) {
+    const hsts = options.strictTransportSecurity;
+    if (typeof hsts === 'string' && (!/^max-age=\d+(?:; *(?:includeSubDomains|preload))*$/i.test(hsts) || /[\x00-\x1f\x7f]/.test(hsts))) throw new Error('Invalid HSTS policy');
+    if (hsts && auth.origin.protocol === 'https:') this.#hsts = typeof hsts === 'string' ? hsts : 'max-age=63072000; includeSubDomains';
     auth.on('revoked', this.#revoke);
     this.server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 20000, headersTimeout: 10000, keepAliveTimeout: 5000 }, (req, res) => { void this.handle(req, res); });
     this.server.maxRequestsPerSocket = 500;
@@ -191,7 +195,9 @@ export class GatewayServer {
     };
   }
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    security(res); let release: (() => void) | undefined;
+    security(res);
+    if (this.#hsts) res.setHeader('Strict-Transport-Security', this.#hsts);
+    let release: (() => void) | undefined;
     let authenticationMutationStarted = false, authenticationMutationCompleted = false, rpcCompleted = false;
     let backendSettled = false, responseSettled = false;
     let unwatch = () => {};

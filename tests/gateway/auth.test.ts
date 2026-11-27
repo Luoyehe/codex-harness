@@ -251,6 +251,30 @@ it('normalizes IPv6 peer buckets and validates a path-bound signature for both l
   } finally { auth.close(); }
 });
 
+it('cleans expired devices, pending setup and attempt buckets during read-only traffic, once per minute', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const directory = mkdtempSync(path.join(tmpdir(), 'auth-read-')), database = path.join(directory, 'db.sqlite');
+  let now = 1000;
+  const token = randomBytes(32).toString('hex'), auth = new Authentication({ database, bootstrapToken: token }, 'https://harness.example', () => now);
+  const seed = new DatabaseSync(database);
+  try {
+    const primary = await auth.setup({ token, ...credentials }, 'first');
+    const secondary = await auth.login(credentials, 'second');
+    seed.prepare('UPDATE auth_sessions SET expires_at=2000 WHERE id=?').run(secondary.session.id);
+    seed.prepare('INSERT INTO auth_attempts VALUES(?,1,2000)').run('anonymous:stale');
+    seed.prepare('INSERT INTO auth_pending VALUES(?,?,?,?)').run(secondary.session.id, randomUUID(), 'fixture', 100_000);
+    const count = (sql: string) => seed.prepare(sql).get()!.n;
+    now += 59_999;
+    expect(auth.session(cookieOf(primary.cookie))?.id).toBe(primary.session.id);
+    expect(count('SELECT count(*) AS n FROM auth_attempts')).toBe(1);
+    now++;
+    expect(auth.session(cookieOf(primary.cookie))?.id).toBe(primary.session.id);
+    expect(count('SELECT count(*) AS n FROM auth_sessions')).toBe(1);
+    expect(count('SELECT count(*) AS n FROM auth_pending')).toBe(0);
+    expect(count('SELECT count(*) AS n FROM auth_attempts')).toBe(0);
+  } finally { seed.close(); auth.close(); rmSync(directory, { recursive: true, force: true }); }
+});
+
 it('reclaims an old one-attempt bucket while keeping repeated attempts and the persisted table bounded', async () => {
   const { DatabaseSync } = await import('node:sqlite');
   const directory = mkdtempSync(path.join(tmpdir(), 'auth-bucket-')), database = path.join(directory, 'db.sqlite'), token = randomBytes(32).toString('hex');
@@ -260,13 +284,16 @@ it('reclaims an old one-attempt bucket while keeping repeated attempts and the p
     await auth.setup({ token, ...credentials }, 'first');
     seed.exec("DELETE FROM auth_attempts; BEGIN");
     const insert = seed.prepare('INSERT INTO auth_attempts(peer,count,reset) VALUES(?,?,?)');
-    for (let i = 0; i < 1024; i++) insert.run('anonymous:fixture-' + i, i === 1 ? 1 : 2, 2000 + i);
+    for (let i = 0; i < 1024; i++) insert.run('anonymous:fixture-' + i, i === 9 || i === 10 ? 1 : 2, 2000);
     seed.exec('COMMIT');
     await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:1::a')).rejects.toMatchObject({ code: 'unauthorized' });
     expect(seed.prepare('SELECT count(*) AS total FROM auth_attempts').get()?.total).toBe(1024);
-    expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-1'").get()).toBeUndefined();
+    expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-9'").get()).toBeUndefined();
+    expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-10'").get()?.count).toBe(1);
     expect(seed.prepare("SELECT count FROM auth_attempts WHERE peer='anonymous:fixture-0'").get()?.count).toBe(2);
     await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:1::ffff')).rejects.toMatchObject({ code: 'unauthorized' });
-    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:2::1')).rejects.toMatchObject({ code: 'rate_limited' });
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:2::1')).rejects.toMatchObject({ code: 'unauthorized' });
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:2::2')).rejects.toMatchObject({ code: 'unauthorized' });
+    await expect(auth.login({ ...credentials, username: 'other' }, '2001:db8:3::1')).rejects.toMatchObject({ code: 'rate_limited' });
   } finally { seed.close(); auth.close(); rmSync(directory, { recursive: true, force: true }); }
 });

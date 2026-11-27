@@ -105,7 +105,7 @@ test('main and manual plans ignore stale PR approval while explicit manual check
   // The workflow must preserve the two independent trust sources at the call boundary.
   const workflow = readFileSync('.github/workflows/affected.yml', 'utf8');
   expect(workflow).toContain('HARNESS_AUTHORIZATION_SHA: ${{ inputs.authorization_sha256 }}');
-  expect(workflow).toContain("HARNESS_PR_AUTHORIZATION_SHA: ${{ github.event_name == 'pull_request' && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}");
+  expect(workflow).toContain("HARNESS_PR_AUTHORIZATION_SHA: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}");
   expect(workflow).not.toContain('inputs.authorization_sha256 || vars.HARNESS_RELEASE_AUTHORIZATION_SHA256');
 });
 
@@ -120,9 +120,14 @@ test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects
   const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
   const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
   const env = { GITHUB_SHA: currentHead };
+  const queue = { merge_group: { base_sha: baseCommit, head_sha: currentHead } };
+  expect(() => buildCiPlan(base, env, queue)).toThrow(/trusted checksum/);
+  expect(() => buildCiPlan(base, { GITHUB_SHA: baseCommit }, queue)).toThrow(/head mismatch/);
+  expect(() => buildCiPlan(base, env, { merge_group: { base_sha: '0'.repeat(40), head_sha: currentHead } })).toThrow(/valid base/);
   // Merely committing an approval into a PR never makes it trusted.
   expect(() => buildCiPlan(base, env, event)).toThrow(/trusted checksum/);
   const plans = [
+    buildCiPlan(base, { HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, queue),
     buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main', HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, { before: baseCommit }),
     buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'workflow_dispatch', HARNESS_CI_BASE: baseCommit, HARNESS_AUTHORIZATION_SHA: approval.sha256 }, {}),
     buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: approval.sha256 }, event),
@@ -280,7 +285,7 @@ test('CI Go diagnostics retain fixed phases and known reasons without leaking or
 
 test('hosted root work is scoped and every matrix result is reconciled before the coverage gate passes', () => {
   const workflow = readFileSync('.github/workflows/affected.yml', 'utf8');
-  expect(workflow).toContain('branches: [main]'); expect(workflow).toContain('pull_request:'); expect(workflow).toContain('workflow_dispatch:');
+  expect(workflow).toContain('branches: [main]'); expect(workflow).toContain('pull_request:'); expect(workflow).toContain('merge_group:'); expect(workflow).toContain('workflow_dispatch:');
   expect(workflow).not.toContain("branches: ['**']");
   expect(workflow).toContain('scripts/ci-checks.mjs plan'); expect(workflow).toContain('scripts/ci-checks.mjs reconcile');
   expect(workflow).toContain('test "$RUNNER_ENVIRONMENT" = github-hosted');

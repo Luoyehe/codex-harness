@@ -6,6 +6,12 @@ import { message, object } from '../lib/types';
 import { useResource } from '../hooks/useResource';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
 
+const statusLabels = new Map(Object.entries({
+  ready: '已就绪', pending: '等待就绪', active: '已启用', inactive: '未启用', unknown: '未知',
+  disabled: '未启用', connecting: '连接中', starting: '启动中', connected: '已连接', disconnected: '未连接',
+  errored: '异常', error: '异常', failed: '失败',
+}));
+
 type Environment = {
   environmentId: string;
   name: string;
@@ -124,7 +130,7 @@ function Executor({
           <ReadState {...status} />
           {status.data && (
             <p>
-              状态：{status.data.status}
+              状态：{statusLabels.get(status.data.status) ?? status.data.status}
               {status.data.error ? ` · ${status.data.error}` : ''}
             </p>
           )}
@@ -408,7 +414,7 @@ function RemoteControl({
       <ReadState {...status} />
       {status.data && (
         <p>
-          状态：{status.data.status} · {status.data.serverName}
+          状态：{statusLabels.get(status.data.status) ?? status.data.status} · {status.data.serverName}
         </p>
       )}
       <label className="check-row">

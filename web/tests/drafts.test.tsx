@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearDraftSnapshot, draftChanged, emptyDraft, readDraft, writeDraft } from '../lib/drafts';
+import { clearDraftSnapshot, discardDamagedDraft, draftChanged, emptyDraft, readDraft, writeDraft } from '../lib/drafts';
 import { useDraft } from '../hooks/useDraft';
 import { Api } from '../lib/api';
 import { acknowledgeOperation, createOperation, listOperations, reconcileOperation, updateOperation } from '../lib/operations';
@@ -502,4 +502,31 @@ it('saves during continuous typing even when the page stays visible', () => {
     act(() => vi.advanceTimersByTime(20));
     expect(readDraft('continuous').text).toBe('abc');
   } finally { vi.useRealTimers(); }
+});
+
+it('caches other drafts between checkpoints and invalidates size accounting on remote changes and removal', () => {
+  const other = 'harness.draft.v1.other', active = 'harness.draft.v1.active';
+  sessionStorage.setItem(other, 'a'.repeat(80_000));
+  const draft = { ...emptyDraft('active'), text: 'typed' };
+  const read = vi.spyOn(Storage.prototype, 'getItem');
+  writeDraft(draft);
+  read.mockClear();
+  writeDraft({ ...draft, text: 'typed again' });
+  expect(read.mock.calls.map(([key]) => key)).toEqual([active]);
+  const changed = 'b'.repeat(999_999);
+  sessionStorage.setItem(other, changed);
+  window.dispatchEvent(new StorageEvent('storage', { key: other, storageArea: sessionStorage }));
+  expect(() => writeDraft(draft)).toThrow(/容量上限/);
+  discardDamagedDraft(other, changed);
+  expect(() => writeDraft(draft)).not.toThrow();
+  expect(readDraft('active').text).toBe('typed');
+});
+
+it('rechecks the storage budget if a successful replacement could not be verified', () => {
+  for (let i = 0; i < 9; i++) writeDraft({ ...emptyDraft(String(i)), text: 'a'.repeat(95_000) });
+  const growing = emptyDraft('growing');
+  writeDraft(growing);
+  vi.spyOn(Storage.prototype, 'getItem').mockImplementationOnce(() => { throw new Error('read failed'); });
+  expect(() => writeDraft({ ...growing, text: 'x'.repeat(99_995) })).toThrow(/read failed/);
+  expect(() => writeDraft({ ...emptyDraft('another'), text: 'z'.repeat(80_000) })).toThrow(/容量上限/);
 });

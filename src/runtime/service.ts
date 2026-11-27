@@ -174,13 +174,12 @@ export class RuntimeService extends EventEmitter {
       }, failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.cliDiagnostics = new CliDiagnostics({ bin: config.bin, cwd: config.nativeHome ?? config.workerHome, native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor, configure: async (operation, context) => {
       if (!context.beforeWrite) throw new DeliveryError('operation_required', 'Diagnostic execution requires an operation receipt');
-      this.admit(); this.pendingStarts++; this.emitState();
-      try { return await operation((method, body, opts = {}) => this.native.call(method, body, { ...opts, beforeWrite: () => { this.admit(); context.beforeWrite!(); opts.beforeWrite?.(); } })); }
-      finally { this.pendingStarts--; this.emitState(); }
-    }, available: () => this.admit(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
+      this.admit();
+      return operation((method, body, opts = {}) => this.native.call(method, body, { ...opts, beforeWrite: () => { this.admit(); context.beforeWrite!(); opts.beforeWrite?.(); } }));
+    }, changed: () => this.emitState(), available: () => this.admit(), failEpoch: async () => { this.unknown = true; this.emitState(); this.emit('fatal'); await this.close(); } });
     this.deviceLogin = new DeviceLogin({ native: (method, params, options) => this.native.call(method, params, options), redactor: this.redactor });
     this.mcpOauth = new McpOauth({ epoch: this.epoch, redactor: this.redactor, serverStatus: params => this.mcp.list(params), notify: (params, channel) => this.emitEvent('mcp', { type: 'oauth-completed', ...params }, channel) });
-    this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState(), unknown: id => { this.track(id).unknown = true; this.emitState(); } });
+    this.predictions = new Predictions({ native: (method, params) => this.native.call(method, params), mutate: (operation, context) => this.workflowMutation(operation, context), revision: threadId => this.track(threadId).revision, emit: (data, channel) => this.emitEvent('prediction', data, channel), changed: () => this.emitState() });
     native.on('notification', (message: JsonObject) => {
       try { this.notification(message); }
       catch (error) {
@@ -250,8 +249,10 @@ export class RuntimeService extends EventEmitter {
   }
   status(): JsonValue {
     const activeThreads = new Set([...this.activity].filter(([, value]) => hasTurnActivity(value) || value.pending || value.unknown || value.goalActive || value.queued || value.checkingContinuation || value.continuationUnverified).map(([id]) => id));
+    const unknownThreads = new Set([...this.activity].filter(([, state]) => state.unknown).map(([id]) => id));
+    for (const id of this.predictions.uncertainThreads()) { unknownThreads.add(id); activeThreads.add(id); }
     for (const id of this.realtime.activeThreads()) activeThreads.add(id);
-    return { repositoryScopes: 1, epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, ...(this.executionMode ? { executionMode: { ...this.executionMode } } : {}), activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + (this.predictions?.activeThreads().length ?? 0), terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || [...this.activity.values()].some(value => value.unknown) }, budget: this.native.budget, predictionBudget: this.predictions.budget(), prompts: this.prompts.size };
+    return { repositoryScopes: 1, epoch: this.epoch, connected: this.native.connected && !this.closed, restarting: this.restarting, ...(this.executionMode ? { executionMode: { ...this.executionMode } } : {}), activity: { activeThreads: [...activeThreads], pendingStarts: this.pendingStarts + Number(this.cliDiagnostics.active) + this.predictions.pendingCount, terminals: this.terminals.size + (this.cliTerminals?.active ?? 0), subscriptions: this.mcp.subscriptions, processes: this.processes.active, unknown: this.unknown || unknownThreads.size > 0, globalUnknown: this.unknown, unknownThreads: [...unknownThreads] }, budget: this.native.budget, predictionBudget: this.predictions.budget(), prompts: this.prompts.size };
   }
   private emitEvent(type: RuntimeEvent['type'], data: JsonValue, eventChannelId?: string): void { jsonBytes({ type, data }, LIMITS.eventBytes); this.emit('event', { type, data, ...(eventChannelId ? { eventChannelId } : {}) } satisfies RuntimeEvent); }
   private ownerKey(clientId: string, eventChannelId?: string): string { return canonical([eventChannelId ?? null, clientId]); }
@@ -265,7 +266,7 @@ export class RuntimeService extends EventEmitter {
     if (this.unknown) throw new DeliveryError('activity_unknown', 'Runtime activity is unknown; recovery is required');
     if (!ownCli && this.cliTerminals?.active) throw new DeliveryError('native_cli_busy', '请先关闭 Codex CLI 终端；后台会自动刷新后恢复其他操作。');
     if (this.configurationPending && !ownConfiguration) throw new DeliveryError('configuration_busy', 'Runtime configuration is changing');
-    if (threadId) { const state = this.track(threadId); if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown'); if (hasTurnActivity(state) || state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified || this.realtime.has(threadId) || (state.pending && !ownPending)) throw new DeliveryError('thread_busy', 'Thread already has active or pending work'); }
+    if (threadId) { const state = this.track(threadId); if (state.unknown || this.predictions.isUncertain(threadId)) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown'); if (hasTurnActivity(state) || state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified || this.realtime.has(threadId) || (state.pending && !ownPending)) throw new DeliveryError('thread_busy', 'Thread already has active or pending work'); }
   }
   private observeThread(value: JsonValue, revision?: number): void {
     const response = object(value); const thread = object(response.thread); const id = string(thread.id, 'native thread id'); const state = this.track(id);
@@ -298,6 +299,8 @@ export class RuntimeService extends EventEmitter {
     }
     if (typeof params.threadId === 'string') {
       const state = this.track(params.threadId); state.revision++;
+      // Any change to the source revision also retires its pending suggestion timer.
+      this.predictions.invalidate(params.threadId);
       if (['thread/status/changed', 'turn/started', 'turn/completed', 'thread/goal/updated', 'thread/goal/cleared', 'thread/queue/changed', 'thread/closed', 'thread/deleted'].includes(method)) state.continuationRevision = (state.continuationRevision ?? 0) + 1;
       if (method === 'thread/status/changed') { state.status = string(object(params.status).type, 'thread status'); if (state.status === 'active') state.fresh = false; }
       if (method === 'turn/started') {
@@ -364,8 +367,7 @@ export class RuntimeService extends EventEmitter {
     if (this.pendingStarts > this.workspace.pendingWrites || this.defaultsPending || this.cliTerminals.active) roots.push(undefined);
     const threads = new Set([...this.mcp.subscriptionThreads(), ...this.realtime.activeThreads(), ...this.predictions.activeThreads()]);
     for (const [id, state] of this.activity) {
-      if (state.unknown) { roots.push(undefined); continue; }
-      if (hasTurnActivity(state) || state.pending || state.goalActive || state.queued ||
+      if (state.unknown || hasTurnActivity(state) || state.pending || state.goalActive || state.queued ||
           state.checkingContinuation || state.continuationUnverified) threads.add(id);
     }
     for (const id of threads) roots.push(this.track(id).cwd);
@@ -375,7 +377,7 @@ export class RuntimeService extends EventEmitter {
     const params = object(input), feature = featureMethod(method);
     const cwd = typeof params.cwd === 'string' ? params.cwd :
       typeof params.threadId === 'string' ? this.track(params.threadId).cwd : undefined;
-    const scoped = context.beforeWrite && feature?.activity !== 'repository' &&
+    const scoped = context.beforeWrite && method !== 'diagnostics/cli/run' && feature?.activity !== 'repository' &&
       (feature?.access === 'write' || ['conversation/start', 'thread/start', 'turn/start', 'thread/compact', 'terminal/open'].includes(method));
     const result = scoped ? await this.repositories.run(cwd, false, () => this.dispatch(method, input, context)) :
       await this.dispatch(method, input, context);
@@ -475,6 +477,16 @@ export class RuntimeService extends EventEmitter {
           mediaInput,
             preflight: async (thread: JsonObject) => {
               previousThread = thread;
+              if (selection && selection.modelProvider === undefined) {
+                // No registry exists. Recheck the entire native directory before resuming
+                // without a provider override, including later pages and duplicate aliases.
+                const rows = await readNativeCatalog((_method, params) =>
+                  this.providers.list(params, (name, args) => this.native.call(name, args)), false);
+                if (rows.some(row => row.modelProvider != null || row.providerId != null || Array.isArray(row.providerAliases) && row.providerAliases.length > 0) ||
+                    rows.filter(row => (row.model ?? row.id) === selection.model).length !== 1)
+                  throw new DeliveryError('provider_unavailable', '旧版模型目录无法唯一确认所选模型，请重新读取。');
+                if (typeof thread.modelProvider === 'string') p.modelProvider = thread.modelProvider;
+              }
               if (selection && !['idle', 'notLoaded'].includes(String(object(thread.status).type)))
                 throw new DeliveryError('thread_busy', '请先结束当前任务，再使用其它模型加载会话。');
               if (params.automatic === true) {
@@ -494,7 +506,7 @@ export class RuntimeService extends EventEmitter {
             },
           ...(selection ? { project: (value: JsonValue) => {
             const resumed = object(value), thread = object(resumed.thread);
-            if (resumed.modelProvider !== selection.modelProvider || thread.modelProvider !== selection.modelProvider || resumed.model !== selection.model ||
+            if (resumed.modelProvider !== thread.modelProvider || (p.modelProvider !== undefined && resumed.modelProvider !== p.modelProvider) || resumed.model !== selection.model ||
                 resumed.cwd !== previousThread?.cwd || thread.cwd !== previousThread?.cwd ||
                 previousThread?.environments != null && canonical(thread.environments ?? null) !== canonical(previousThread.environments))
               throw new DeliveryError('provider_switch_unconfirmed', '会话加载已受理，但所选模型或原工作环境未得到确认；本次未发送消息。', 'unknown', { inputSent: false });
@@ -732,7 +744,7 @@ export class RuntimeService extends EventEmitter {
     const guard = (own = false): void => {
       this.admit(undefined, false, own && operation.idle === true, ownCli);
       for (const { id } of states) { this.admit(id, own, own && operation.idle === true); this.admitHistory(id, context); }
-      if (operation.idle && (this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending || this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length || [...this.activity].some(([id, state]) => hasTurnActivity(state) || state.unknown || state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified || (state.pending && !(own && locked.has(id)))))) throw new DeliveryError('activity_busy', 'Finish active work before importing thread organization');
+      if (operation.idle && (this.pendingStarts > (own ? 1 : 0) || this.cliDiagnostics.active || this.predictions.activeThreads().length || this.defaultsPending || this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length || [...this.activity].some(([id, state]) => hasTurnActivity(state) || state.unknown || state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified || (state.pending && !(own && locked.has(id)))))) throw new DeliveryError('activity_busy', 'Finish active work before importing thread organization');
     };
     guard(); if (operation.idle) this.configurationPending = true; this.pendingStarts++; for (const { state } of states) state.pending = true; this.emitState(); let accepted = false;
     try {
@@ -747,7 +759,7 @@ export class RuntimeService extends EventEmitter {
   }
   private assertIdle(own = false): void {
     this.admit(undefined, false, own);
-    if (this.repositories.writing || this.pendingStarts > (own ? 1 : 0) || this.predictions.activeThreads().length || this.defaultsPending ||
+    if (this.repositories.writing || this.pendingStarts > (own ? 1 : 0) || this.cliDiagnostics.active || this.predictions.activeThreads().length || this.defaultsPending ||
         this.terminals.size || this.mcp.subscriptions || this.processes.active || this.realtime.activeThreads().length ||
         [...this.activity.values()].some(state => hasTurnActivity(state) || state.pending || state.unknown ||
           state.goalActive || state.queued || state.checkingContinuation || state.continuationUnverified)) {
@@ -808,7 +820,7 @@ export class RuntimeService extends EventEmitter {
   }
   private async workflowMutation(operation: WorkflowMutation, context: CallContext, resumeSelection?: JsonObject): Promise<JsonValue> {
     const { threadId } = operation; this.admit(); const state = this.track(threadId);
-    if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
+    if (state.unknown || this.predictions.isUncertain(threadId)) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
     if (state.pending) throw new DeliveryError('thread_busy', 'Thread already has a pending mutation');
     if (operation.history) this.admitHistory(threadId, context, ['thread/fork', 'thread/revert', 'thread/rollback', 'thread/resume'].includes(operation.method));
     const releaseListing = operation.newThread ? this.liveThreads.reserve() : undefined;
@@ -819,7 +831,7 @@ export class RuntimeService extends EventEmitter {
     const goalMutation = operation.method === 'thread/goal/set' || operation.method === 'thread/goal/clear';
     let goalRevision: number | undefined; let modelRevision: number | undefined; let modelTurnId: string | null | undefined;
     const guard = (): void => {
-      this.admit(); if (state.unknown) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
+      this.admit(); if (state.unknown || this.predictions.isUncertain(threadId)) throw new DeliveryError('activity_unknown', 'Thread outcome is unknown');
       if (operation.method !== 'thread/realtime/start' && this.realtime.has(threadId)) throw new DeliveryError('voice_busy', 'Stop voice before changing this thread');
       if (operation.history) this.admitHistory(threadId, context, ['thread/fork', 'thread/revert', 'thread/rollback', 'thread/resume'].includes(operation.method));
       if (operation.mode === 'idle' && (hasTurnActivity(state) || state.goalActive || state.checkingContinuation || state.continuationUnverified || (state.queued && operation.method !== 'thread/queue/start'))) throw new DeliveryError('thread_busy', 'Thread has active or continuing work');
@@ -953,7 +965,7 @@ export class RuntimeService extends EventEmitter {
       }
       if (notSent) { try { this.attachments.finishCopy(attachmentCopy); } catch { this.emit('diagnostic', '未发送复制的附件保护待重启核对。'); } }
       try { operation.prepared?.settle(!notSent); } catch { this.emit('diagnostic', 'Workflow attachment reservation could not be released'); }
-      if (!notSent) { state.unknown = true; if (operation.newThread) this.unknown = true; }
+      if (!notSent && operation.method !== 'thread/prediction/request') { state.unknown = true; if (operation.newThread) this.unknown = true; }
       if (accepted) throw new DeliveryError('invalid_native_response', 'Native workflow returned an invalid result', 'unknown'); throw error;
     } finally { releaseListing?.(); if (goalMutation) state.goalPending = false; state.pending = false; if (operation.newThread) this.pendingStarts--; this.emitState(); }
   }
@@ -1111,7 +1123,13 @@ export class RuntimeService extends EventEmitter {
       const timeout = (): number => Math.max(1, Math.min(this.config.requestTimeoutMs || 30000, remaining()));
       probe = new NativeRpc({ ...this.config, cwd, isolatedGroup: true, requestTimeoutMs: timeout() }); this.defaultsProbe = probe; probe.on('fatal', () => {});
       await probe.initialize();
-      const overrides = { ...object(selected.config ?? {}), ...Object.fromEntries(servers.map(name => [`mcp_servers.${name}.enabled`, false])) };
+      const base = object(selected.config ?? {}), selectedServers = object(base.mcp_servers ?? {});
+      // A server name is a literal map key, even when it contains TOML path separators.
+      const names = new Set([...servers, ...Object.keys(selectedServers)]);
+      const disabled = Object.fromEntries([...names].map(name => [name, {
+        ...(Object.hasOwn(selectedServers, name) ? object(selectedServers[name]) : {}), enabled: false,
+      }]));
+      const overrides = { ...base, ...(names.size ? { mcp_servers: disabled } : {}) };
       const result = object(await probe.call('thread/start', { cwd, ...selected, config: overrides, ephemeral: true }, { timeoutMs: timeout() }));
       const defaults: JsonObject = {}; for (const name of ['model', 'modelProvider', 'reasoningEffort', 'approvalPolicy', 'sandbox', 'activePermissionProfile', 'cwd']) defaults[name] = result[name] ?? null;
       // Closing the entire dedicated process is the cleanup acknowledgement; unsubscribe is not sufficient.

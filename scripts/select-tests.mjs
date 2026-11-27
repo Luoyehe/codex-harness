@@ -74,6 +74,7 @@ const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md',
 
 const sharedConsumers = new Map([
   ['tests/runtime/history-window-fixture.ts', ['tests/runtime/history-references.test.ts', 'web/tests/conversation-recovery.test.tsx']],
+  ['src/shared/activity-scope.ts', ['tests/runtime/predictions.test.ts', 'tests/gateway/dispatch.test.ts', 'web/tests/events.test.tsx']],
   ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'web/tests/prompt-fields.test.tsx', 'tests/runtime/service.test.ts', 'tests/runtime/mcp-schema.test.ts']],
   ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/attachments.test.ts', 'tests/runtime/visual-routing-native.test.ts',
     'tests/runtime/workflows-native.test.ts', 'tests/runtime/queue-handoff-native.test.ts']],
@@ -192,7 +193,8 @@ export function selectTests(changed, available) {
     add(name, required, 'source-bound-release-authority');
   }
   for (const name of plan.changed) {
-    const checks = recoveryCoverageSources.has(name) ? [deploymentRecoveryTest] :
+    const checks = ['src/core/ledger.ts', 'src/core/automations.ts'].includes(name) ? ['tests/deploy/test_journal_schema.py', 'tests/deploy/root/test_journal_recovery.py'] :
+      recoveryCoverageSources.has(name) ? [deploymentRecoveryTest] :
       name === 'deploy/workspace_store.py' ? ['tests/deploy/test_workspace_ack.py'] :
       ['deploy/mcp_enabled_override.py', 'deploy/mcp_switch_owners.py', 'src/runtime/mcp-configuration.ts', 'src/runtime/service.ts'].includes(name) ? overrideTests :
       ['deploy/thread_history.py', 'src/runtime/thread-history-compatibility.ts', 'src/runtime/queue-reply-identity.ts',

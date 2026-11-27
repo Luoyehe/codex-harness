@@ -1008,7 +1008,7 @@ it('retains an accepted owner pairing through ordinary configuration revision ch
   fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
   await act(async () => { await import('../components/Settings'); });
   fireEvent.click(await screen.findByRole('button', { name: '远端环境与连接' }));
-  await screen.findByText('状态：connected · fixture');
+  await screen.findByText('状态：已连接 · fixture');
   await waitFor(() => expect(f.count('remoteControl/client/list')).toBe(1));
   fireEvent.click(screen.getByText('配对新的客户端', { selector: 'summary' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '确认创建用于授权新客户端的配对码' }));
@@ -1109,6 +1109,22 @@ it.each(['sidebar', 'settings'])('refuses removing the current project from %s w
   expect((screen.getByRole('textbox', { name: '给 Codex 的消息' }) as HTMLTextAreaElement).value).toBe('unsaved current draft');
 });
 
+
+it('offers unique unlabelled models for an old thread and resumes without inventing a provider', async () => {
+  const thread = { id: 't', name: 'Current thread', cwd: '/p', status: { type: 'notLoaded' } };
+  const f = await fixture(false, true, undefined, true, call => {
+    if (call.method === 'thread/read') return { thread };
+    if (call.method === 'model/list') return { data: [{ id: 'legacy-choice', supportedReasoningEfforts: [] },
+      { id: 'a1', model: 'ambiguous' }, { id: 'a2', model: 'ambiguous' }], nextCursor: null };
+    return undefined;
+  }, false, false);
+  fireEvent.click(screen.getByLabelText('选择模型与思考强度'));
+  await screen.findByRole('option', { name: 'legacy-choice' });
+  expect(screen.queryByRole('option', { name: 'ambiguous' })).toBeNull();
+  fireEvent.change(screen.getByRole('combobox', { name: '模型' }), { target: { value: 'legacy-choice' } });
+  fireEvent.click(await enabledButton({ name: '加载并继续（可能恢复待执行任务）' }));
+  await waitFor(() => expect(f.calls.find(call => call.method === 'thread/resume')?.params.options).toEqual({ model: 'legacy-choice' }));
+});
 
 it('retains a paged alias draft until its provider is confirmed, then sends normally on that provider', async () => {
   writeDraft({ ...emptyDraft('t'), text: 'alias draft', options: { model: 'fixture-model', modelProvider: 'harness_chatgpt', effort: 'medium', sandbox: 'workspace-write' } });

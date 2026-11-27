@@ -477,6 +477,22 @@ function remoteRoute(call: Call) {
   if (call.method === 'remoteControl/client/list') return { data: [], nextCursor: null };
   return {};
 }
+it('shows native remote-control and selected environment status in Chinese', async () => {
+  const { api } = routed(call => {
+    if (call.method === 'environment/list') return { data: [
+      { environmentId: 'env', name: 'Example', endpoint: 'wss://example.invalid/', selectionReady: false, requiresRestartToDisconnect: false },
+    ] };
+    if (call.method === 'environment/status') return { status: 'ready' };
+    if (call.method === 'remoteControl/status/read') return { ...status, status: 'errored' };
+    return remoteRoute(call);
+  });
+  render(<RemoteSettings {...base()} api={api} />);
+  await screen.findByText('状态：异常 · fixture');
+  await screen.findByRole('option', { name: /Example/ });
+  fireEvent.change(screen.getByRole('combobox', { name: '已注册执行环境' }), { target: { value: 'env' } });
+  await screen.findByText('状态：已就绪');
+});
+
 it('environment registration clears its credential and never selects a session implicitly', async () => {
   const { api, calls } = routed((call) =>
     call.method === 'environment/add'
@@ -511,7 +527,7 @@ it('remote access defaults to ephemeral and requires explicit independent-channe
       : remoteRoute(call),
   );
   render(<RemoteSettings {...base()} api={api} />);
-  await screen.findByText('状态：disabled · fixture');
+  await screen.findByText('状态：未启用 · fixture');
   const enable = screen.getByRole('button', { name: '启用原生远程控制' });
   expect((enable as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole('checkbox', { name: '确认开放独立于网页登录的原生远程访问' }));
@@ -552,7 +568,7 @@ it('pairing secrets are owner reads, survive status refresh, never persist, and 
   expect(calls.some(call => call.method === 'remoteControl/pairing/start')).toBe(false);
   // Commit the environment identity and its consent-reset effect before authorizing it.
   await act(async () => { initialStatus.resolve(status); await initialStatus.promise; });
-  await screen.findByText('状态：connected · fixture');
+  await screen.findByText('状态：已连接 · fixture');
   expect(consent).toHaveProperty('checked', false);
   fireEvent.click(consent);
   fireEvent.click(await enabledButton({ name: '创建一次配对' }));
@@ -566,7 +582,7 @@ it('pairing secrets are owner reads, survive status refresh, never persist, and 
   await waitFor(() => expect(statusReads).toBeGreaterThan(readsBeforeRefresh));
   expect(screen.getByDisplayValue(pair.pairingCode)).toBeTruthy();
   await act(async () => { refreshedStatus.resolve(status); await refreshedStatus.promise; });
-  await screen.findByText('状态：connected · fixture');
+  await screen.findByText('状态：已连接 · fixture');
   expect(screen.getByDisplayValue(pair.pairingCode)).toBeTruthy();
   expect(JSON.stringify(localStorage)).not.toContain(pair.pairingCode);
   expect(calls.filter((call) => call.method === 'remoteControl/pairing/start')).toHaveLength(1);

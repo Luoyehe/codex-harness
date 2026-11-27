@@ -1,2 +1,6 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,interactive-widget=resizes-content"/><meta name="color-scheme" content="light dark"/><link rel="icon" type="image/svg+xml" href="/favicon.svg"/><title>Codex Harness</title><script src="/theme.js"></script></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>
+<html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,interactive-widget=resizes-content"/><meta name="color-scheme" content="light dark"/><link rel="icon" type="image/svg+xml" href="/favicon.svg"/><title>Codex Harness</title><style>
+:root{background:#fff;color:#252b29;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){background:#1c201f;color:#dbe1dc;color-scheme:dark}}
+:root[data-theme="dark"]{background:#1c201f;color:#dbe1dc;color-scheme:dark}
+</style><script src="/theme.js"></script></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>

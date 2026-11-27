@@ -43,13 +43,16 @@ export function selectCiPlan({ changed, available, head, sourceDigest, authoriza
 
 export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   const event = suppliedEvent ?? (env.GITHUB_EVENT_PATH ? json(env.GITHUB_EVENT_PATH) : {});
-  const head = env.HARNESS_CI_HEAD || env.GITHUB_SHA || event.pull_request?.head?.sha;
-  let baseCommit = env.HARNESS_CI_BASE || event.pull_request?.base?.sha || event.before;
+  const mergeGroup = event.merge_group;
+  if (mergeGroup && (!commit(mergeGroup.base_sha) || !commit(mergeGroup.head_sha))) throw Error('Merge group requires valid base and head commits');
+  const head = env.HARNESS_CI_HEAD || env.GITHUB_SHA || mergeGroup?.head_sha || event.pull_request?.head?.sha;
+  if (mergeGroup && (head !== mergeGroup.head_sha || (env.HARNESS_CI_BASE && env.HARNESS_CI_BASE !== mergeGroup.base_sha))) throw Error('Merge group base/head mismatch');
+  let baseCommit = env.HARNESS_CI_BASE || mergeGroup?.base_sha || event.pull_request?.base?.sha || event.before;
   const pullRequestBase = !env.HARNESS_CI_BASE && event.pull_request?.base?.sha;
   // Repository approval is only a PR trust anchor. Its previous-release value
   // must not override trusted main's committed source-bound authorization.
   const explicitChecksum = env.HARNESS_AUTHORIZATION_SHA;
-  const expectedChecksum = explicitChecksum || (event.pull_request ? env.HARNESS_PR_AUTHORIZATION_SHA : undefined);
+  const expectedChecksum = explicitChecksum || ((event.pull_request || mergeGroup) ? env.HARNESS_PR_AUTHORIZATION_SHA : undefined);
   let authorization;
   const file = path.join(base, authorizationPath);
   const hasAuthorizationFile = existsSync(file);
@@ -66,7 +69,7 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
       const historical = releaseAuthorization(base, authorizationPath, actualHash, { allowHistorical: true });
       matching = historical.sourceDigest === current.digest && historical.sourceFiles === current.files;
     }
-    if (explicitChecksum || onTag || (matching && (!event.pull_request || actualHash === expectedChecksum))) {
+    if (explicitChecksum || onTag || (matching && (!(event.pull_request || mergeGroup) || actualHash === expectedChecksum))) {
       authorization = releaseAuthorization(base, authorizationPath, expectedChecksum || actualHash);
     }
   }

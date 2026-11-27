@@ -13,13 +13,14 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .common import DeployError, canonical, require
+from .workspace_errors import WorktreePathError, display_fields
 from .workspace_git import git, repository_paths
 from .workspace_git_view import directory, read_index
 from .workspace_paths import Root, read_file, relative, rename_absent, revision
 from .workspace_store import Record, operation_id, private_directory, regular, write_new, pending_state, read_record
 
 MAX_WORKTREES = 32
-MAX_TREE_ENTRIES = 10000
+MAX_TREE_ENTRIES = 100_000
 MAX_TREE_DEPTH = 32
 MAX_TREE_BYTES = 128 * 1024 * 1024
 MAX_BLOB = 8 * 1024 * 1024
@@ -96,64 +97,83 @@ def storage(workspace, *, create: bool = False):
         home.close()
 
 
+def require_entry(condition, code, message, path):
+    if not condition:
+        raise WorktreePathError(code, message, path)
+
+
 def tree(root: Root, metadata: int, head: str) -> str:
-    entries, total = [], 0
+    # Keep the canonical v1 manifest byte-for-byte compatible with saved revisions.
+    digest = hashlib.sha256(b'{"entries":[')
+    count = total = 0
+    first = True
+
+    def append(entry):
+        nonlocal first
+        if not first:
+            digest.update(b",")
+        first = False
+        digest.update(canonical(entry))
+
     def visit(parent: int, prefix: str, depth: int):
-        nonlocal total
-        require(depth <= MAX_TREE_DEPTH, "Worktree nesting exceeds budget", "budget")
+        nonlocal count, total
+        require_entry(depth <= MAX_TREE_DEPTH, "budget", "Worktree nesting exceeds budget", prefix.rstrip("/"))
         with os.scandir(parent) as listing:
             names = []
             for entry in listing:
+                if entry.name == ".git" and not prefix:
+                    continue
+                count += 1
+                require_entry(count <= MAX_TREE_ENTRIES, "budget", "Worktree entry budget reached", prefix + entry.name)
                 names.append(entry.name)
-                require(len(names) + len(entries) <= MAX_TREE_ENTRIES + 1, "Worktree entry budget reached", "budget")
-            names.sort()
+        names.sort()
         for name in names:
-            if name == ".git" and not prefix:
-                continue
-            require(name != ".git", "Nested repositories or initialized submodules cannot be archived", "worktree_nested")
             path = prefix + name
+            require_entry(name != ".git", "worktree_nested", "Nested repository or initialized submodule cannot be archived", path)
             relative(path)
             info = os.stat(name, dir_fd=parent, follow_symlinks=False)
             if stat.S_ISLNK(info.st_mode):
                 target = os.readlink(name, dir_fd=parent)
-                require(not os.path.isabs(target) and len(os.fsencode(target)) <= 4096,
-                        "Worktree symbolic link is not a bounded relative target", "unsafe_path")
+                require_entry(not os.path.isabs(target) and len(os.fsencode(target)) <= 4096,
+                              "unsafe_path", "Worktree symbolic link is not a bounded relative target", path)
                 location = root.path / path
                 try:
                     resolved = (location.parent / target).resolve(strict=True)
                 except (OSError, RuntimeError) as error:
-                    raise DeployError("unsafe_path", "Worktree symbolic link target cannot be verified") from error
-                require(resolved.is_relative_to(root.path) and not ({".git", ".harness-workspace"} & set(resolved.relative_to(root.path).parts)),
-                        "Worktree symbolic link leaves the managed files", "unsafe_path")
+                    raise WorktreePathError("unsafe_path", "Worktree symbolic link has an unverifiable target", path) from error
+                require_entry(resolved.is_relative_to(root.path) and not ({".git", ".harness-workspace"} & set(resolved.relative_to(root.path).parts)),
+                              "unsafe_path", "Worktree symbolic link leaves the managed files", path)
                 after = os.stat(name, dir_fd=parent, follow_symlinks=False)
-                require(identity(info) == identity(after) and info.st_ctime_ns == after.st_ctime_ns,
-                        "Worktree symbolic link changed during inspection", "conflict")
-                entries.append([path, "symlink", target, revision(after)])
-                require(len(entries) <= MAX_TREE_ENTRIES, "Worktree entry budget reached", "budget")
+                require_entry(identity(info) == identity(after) and info.st_ctime_ns == after.st_ctime_ns,
+                              "conflict", "Worktree symbolic link changed during inspection", path)
+                append([path, "symlink", target, revision(after)])
                 continue
-            require(stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
-                    "Worktree contains a symlink, hardlink or special file; no files were discarded", "unsafe_path")
+            require_entry(stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
+                          "unsafe_path", "Worktree contains a hardlink or special file", path)
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | (os.O_DIRECTORY if stat.S_ISDIR(info.st_mode) else 0), dir_fd=parent)
             try:
                 actual = os.fstat(fd)
-                require(identity(info) == identity(actual), "Worktree entry changed during inspection", "conflict")
+                require_entry(identity(info) == identity(actual), "conflict", "Worktree entry changed during inspection", path)
                 if stat.S_ISDIR(actual.st_mode):
-                    entries.append([path, "directory", stat.S_IMODE(actual.st_mode), revision(actual)])
-                    require(len(entries) <= MAX_TREE_ENTRIES, "Worktree entry budget reached", "budget")
+                    append([path, "directory", stat.S_IMODE(actual.st_mode), revision(actual)])
                     visit(fd, path + "/", depth + 1)
                 else:
-                    data, actual = read_file(fd, MAX_BLOB)
+                    try:
+                        data, actual = read_file(fd, min(MAX_BLOB, MAX_TREE_BYTES - total))
+                    except DeployError as exc:
+                        raise WorktreePathError(exc.code, str(exc), path) from exc
                     total += len(data)
-                    require(total <= MAX_TREE_BYTES, "Worktree byte budget reached; files remain intact", "budget")
-                    entries.append([path, "file", stat.S_IMODE(actual.st_mode), revision(actual, data)])
-                    require(len(entries) <= MAX_TREE_ENTRIES, "Worktree entry budget reached", "budget")
+                    append([path, "file", stat.S_IMODE(actual.st_mode), revision(actual, data)])
             finally:
                 os.close(fd)
     visit(root.fd, "", 0)
     index = read_index(metadata, "index")
-    encoded = canonical({"head": head, "index": hashlib.sha256(index).hexdigest(), "entries": entries})
-    require(len(encoded) <= 8 * 1024 * 1024, "Worktree manifest exceeds budget", "budget")
-    return hashlib.sha256(encoded).hexdigest()
+    digest.update(b'],"head":')
+    digest.update(canonical(head))
+    digest.update(b',"index":')
+    digest.update(canonical(hashlib.sha256(index).hexdigest()))
+    digest.update(b'}')
+    return digest.hexdigest()
 
 
 def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creating: bool = False, lightweight: bool = False, identity_only: bool = False) -> dict:
@@ -209,8 +229,8 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
         except DeployError as exc:
             if not lightweight or exc.code not in ("budget", "unsafe_path", "worktree_nested"):
                 raise
-            result.update(revision=None, mutationUnavailable={"code": exc.code,
-                "message": "工作树身份已验证；生成目录或特殊文件超出完整保护范围，请在终端整理后重新检查。文件未改动。"})
+            detail = display_fields(exc.code, getattr(exc, "worktree_path", None))
+            result.update(revision=None, mutationUnavailable={"code": exc.code, "message": "工作树身份已验证。文件未改动。" + detail["message"]})
         return result
     finally:
         if metadata is not None:
@@ -221,7 +241,7 @@ def inspect(workspace, home: Path, identity_value: str, binding: dict, *, creati
 
 
 def checkout_data(workspace, head: str) -> tuple[list, bytes]:
-    listing = git(workspace.root, ["ls-tree", "-r", "-l", "-z", "--full-tree", head], output_limit=8 * 1024 * 1024)
+    listing = git(workspace.root, ["ls-tree", "-r", "-l", "-z", "--full-tree", head], output_limit=32 * 1024 * 1024)
     files, directories, total = [], set(), 0
     for line in listing.split(b"\0"):
         if not line:
@@ -231,22 +251,21 @@ def checkout_data(workspace, head: str) -> tuple[list, bytes]:
         require(mode in (b"100644", b"100755") and kind == b"blob" and size.isdigit(), "Worktree creation does not materialize symlinks or submodules", "unsupported_path")
         name = raw_path.decode("utf-8", "strict")
         parts = relative(name)
-        require(len(parts) - 1 <= MAX_TREE_DEPTH, "Worktree nesting exceeds budget", "budget")
+        require_entry(len(parts) - 1 <= MAX_TREE_DEPTH, "budget", "Worktree nesting exceeds budget", name)
         for end in range(1, len(parts)):
             parent = tuple(parts[:end])
             if parent not in directories:
                 # Reserve this implicit directory and the current file before
                 # retaining the prefix; shared parents consume only one entry.
-                require(len(files) + len(directories) + 1 < MAX_TREE_ENTRIES,
-                        "Worktree entry budget reached", "budget")
+                require_entry(len(files) + len(directories) + 1 < MAX_TREE_ENTRIES, "budget", "Worktree entry budget reached", name)
                 directories.add(parent)
-        require(len(files) + len(directories) < MAX_TREE_ENTRIES, "Worktree entry budget reached", "budget")
+        require_entry(len(files) + len(directories) < MAX_TREE_ENTRIES, "budget", "Worktree entry budget reached", name)
         length = int(size)
         total += length
-        require(length <= MAX_BLOB and total <= MAX_TREE_BYTES and len(files) < MAX_TREE_ENTRIES, "Worktree checkout exceeds file or byte budget", "budget")
+        require_entry(length <= MAX_BLOB and total <= MAX_TREE_BYTES, "budget", "Worktree checkout exceeds file or byte budget", name)
         files.append((name, object_id, length, 0o755 if mode == b"100755" else 0o644))
     data = git(workspace.root, ["cat-file", "--batch"], input_bytes=b"".join(ident + b"\n" for _, ident, _, _ in files),
-               output_limit=MAX_TREE_BYTES + MAX_TREE_ENTRIES * 128, seconds=45)
+               input_limit=MAX_TREE_ENTRIES * 65, output_limit=MAX_TREE_BYTES + MAX_TREE_ENTRIES * 128, seconds=45)
     offset = 0
     for _, object_id, length, _ in files:
         end = data.find(b"\n", offset)

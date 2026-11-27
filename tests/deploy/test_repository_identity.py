@@ -40,3 +40,45 @@ class RepositoryIdentityTests(unittest.TestCase):
                     workspace.dispatch({"action": "git/commit", "params": {}, "repositoryIdentity": ids[1]})
             finally:
                 root.close()
+
+    def test_standalone_and_nested_projects_follow_only_verified_git_metadata(self):
+        # The runner's normal TMPDIR is inside the source checkout and therefore a Git project.
+        with tempfile.TemporaryDirectory(dir="/tmp") as tmp:
+            base = Path(tmp)
+            primary, linked, first, second = (base / name for name in ("primary", "linked", "plain-a", "plain-b"))
+            first.mkdir()
+            second.mkdir()
+            subprocess.run(["git", "init", "-q", str(primary)], check=True)
+            subprocess.run(["git", "-C", str(primary), "-c", "user.name=test", "-c", "user.email=test@example.org",
+                            "commit", "--allow-empty", "-qm", "initial"], check=True)
+            subprocess.run(["git", "-C", str(primary), "worktree", "add", "-q", "--detach", str(linked), "HEAD"], check=True)
+            nested = linked / "deep" / "child"
+            nested.mkdir(parents=True)
+
+            def identity(path, forbidden=None):
+                blocked = forbidden or []
+                root = Root(str(path), blocked)
+                try:
+                    return Workspace(root, blocked, base / "state").dispatch({
+                        "action": "repository/identity", "params": {}})["result"]["identity"]
+                finally:
+                    root.close()
+
+            self.assertEqual(identity(primary), identity(nested))
+            standalone = identity(first)
+            self.assertNotIn(standalone, [identity(primary), identity(second)])
+            first.rename(base / "renamed")
+            self.assertEqual(identity(base / "renamed"), standalone)
+            with self.assertRaisesRegex(DeployError, "protected storage"):
+                identity(nested, [primary / ".git"])
+            child = second / "child"
+            child.mkdir()
+            marker = second / ".git"
+            marker.symlink_to(primary / ".git")
+            for path in (second, child):
+                with self.assertRaisesRegex(DeployError, "ordinary directory or worktree pointer"):
+                    identity(path)
+            marker.unlink()
+            marker.write_text("gitdir: missing\n")
+            with self.assertRaises(DeployError):
+                identity(child)

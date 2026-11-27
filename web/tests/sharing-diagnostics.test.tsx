@@ -61,6 +61,22 @@ function sharingRoute(call: Call) {
     };
   return {};
 }
+it('labels sharing principals and preserves future protocol values for inspection', async () => {
+  const principals = [
+    { principalId: 'a', name: 'Alice', principalType: 'workspace', role: 'owner' },
+    { principalId: 'b', name: 'Team', principalType: 'group', role: 'reader' },
+    { principalId: 'c', name: 'Future', principalType: 'other', role: 'reviewer' },
+  ];
+  const { api } = routed(call => call.method === 'plugin/share/list'
+    ? { data: [{ plugin: { ...plugin, shareContext: { ...plugin.shareContext, sharePrincipals: principals } }, localPluginPath: '/project/plugin', previewHash: hash }] }
+    : sharingRoute(call));
+  render(<PluginSharing {...base} api={api} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Plugin · 私有' }));
+  expect(screen.getByText('Alice · 工作区 · 所有者')).toBeTruthy();
+  expect(screen.getByText('Team · 用户组 · 只读')).toBeTruthy();
+  expect(screen.getByText('Future · other · reviewer')).toBeTruthy();
+});
+
 it('publishes only after reviewing a project-scoped inventory and exact audience', async () => {
   const { api, calls } = routed(sharingRoute);
   render(<PluginSharing {...base} api={api} />);

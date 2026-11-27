@@ -4,7 +4,7 @@
 @media (max-width: 420px) {
   .topbar { gap: 4px; padding-inline: 8px; }
   .topbar .icon-button { width: 32px; height: 36px; }
-  .topbar .token-usage { font-size: 10px; }
+  .topbar .token-usage { font-size: 11px; }
   .topbar .token-usage > summary { padding: 4px; }
   .topbar .root-execution-notice button { padding-inline: 4px; }
 }
@@ -71,7 +71,7 @@
   .composer-send-actions > .stop-button { min-width: 40px; min-height: 40px; padding: 6px 8px; }
   .composer-send-mode select { min-height: 40px; padding: 6px 8px; }
   .composer-extras .composer-options { max-height: none; overflow: visible; }
-  .composer-note { font-size: 10px; }
+  .composer-note { font-size: 11px; }
 }
 
 /* iOS zooms focused text controls below 16px. Keep form text readable on

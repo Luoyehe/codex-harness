@@ -327,7 +327,7 @@
   border-radius: 6px;
   background: var(--surface);
   color: var(--danger);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -342,7 +342,7 @@
 }
 @media (max-width: 600px) {
   .topbar .breadcrumb { overflow: hidden; }
-  .topbar .connection { font-size: 10px; gap: 3px; flex-shrink: 0; }
+  .topbar .connection { font-size: 11px; gap: 3px; flex-shrink: 0; }
   .topbar .desktop-header-action { display: none; }
   .topbar .workspace-menu { display: block; }
   .menu-popover .mobile-header-action { display: block; }

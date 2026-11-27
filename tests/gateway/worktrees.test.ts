@@ -38,6 +38,28 @@ test('worktree creation, archive and restore register exact projects atomically 
     expect(f.ledger.project(f.id).path).toBe(f.result.path);
   } finally { f.ledger.close(); }
 });
+test.each([false, true])('notifies browsers and scheduler after a committed archive (lost reply: %s)', async lost => {
+  const f = setup(), context = { clientId: 'owner' }, operationId = randomUUID();
+  const method = 'workspace/worktree/archive', params = { projectId: f.origin.id, worktreeId: f.id, expectedRevision: f.result.revision!, confirm: true };
+  const result = { ...f.result, archived: true, phase: 'archived', path: '/native/worktree-state/' + f.id + '/checkout', worktreeVersion: 2 };
+  const notifications: string[] = [];
+  try {
+    await f.dispatcher.call(f.create, context);
+    f.dispatcher.on('automation-changed', () => notifications.push('scheduler:' + f.ledger.read(operationId)?.state));
+    f.dispatcher.on('event', event => { if (event.type === 'automation' && event.data.changed) notifications.push('browser'); });
+    f.set(async (called, _p, c) => {
+      if (called === 'workspace/witness/read') return { operationId, state: 'completed', method, projectId: f.origin.id, gatewayRequestDigest: digest({ method, params }), result };
+      if (called === 'workspace/witness/ack') return { operationId, acknowledged: true, removed: true };
+      c.beforeWrite?.(); if (lost) throw new HarnessError('lost', 'lost', 'unknown'); return result;
+    });
+    const request = f.dispatcher.call({ method, params, operationId }, context);
+    if (lost) { await expect(request).rejects.toMatchObject({ delivery: 'unknown' }); expect(notifications).toEqual([]); }
+    else await request;
+    for (let index = 0; index < 2; index++) await f.dispatcher.call({ method: 'operation/read', params: { operationId } }, context);
+    expect(notifications).toEqual(['scheduler:accepted', 'browser']);
+    expect(() => f.ledger.project(f.id)).toThrow();
+  } finally { f.ledger.close(); }
+});
 test('lost creation acknowledgement registers only matching positive witness and never repeats creation', async () => {
   const f = setup(); let sent = 0; let proof: JsonObject = {};
   f.set(async (method, _params, c) => { if (method === 'workspace/witness/read') return proof; if (method === 'workspace/witness/ack') return { acknowledged: true, operationId: f.id, removed: true }; sent++; c.beforeWrite?.(); throw new HarnessError('lost', 'lost', 'unknown'); });

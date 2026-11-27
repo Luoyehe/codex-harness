@@ -1,11 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { Ajv, type ValidateFunction } from 'ajv';
+import { Ajv2019 } from 'ajv/dist/2019.js';
+import { Ajv2020 } from 'ajv/dist/2020.js';
 import { createRequire } from 'node:module';
 import type { FormatsPlugin } from 'ajv-formats';
 import { canonical, DeliveryError, jsonBytes, object, type JsonObject, type JsonValue } from './types.js';
 import { outputSchema } from './structured-output.js';
 import { permissionsWithinRequest } from './permission-grants.js';
-import { supportsFormDialect } from '../shared/form-formats.js';
+import { isFormMultiple, parseFormDialect, validFormDivisor, type FormDialect } from '../shared/form-formats.js';
 import { validDateTime } from '../shared/date-time.js';
 
 const schemaRelative = 'protocol/json/codex_app_server_protocol.v2.schemas.json';
@@ -77,19 +79,22 @@ const responseSchemas: Record<string, string> = {
 export const supportedPrompt = (method: string): boolean => Object.hasOwn(responseSchemas, method);
 const formKeywords = new Set(['type', 'properties', 'required', 'additionalProperties', 'title', 'description', 'enum', 'enumNames', 'const', 'oneOf', 'anyOf', 'items', 'minItems', 'maxItems', 'uniqueItems', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'format', 'default', '$schema']);
 const formats = new Set(['email', 'uri', 'date', 'date-time']);
-function formSchema(schema: JsonValue, depth = 0): void {
+function formSchema(schema: JsonValue, depth = 0): FormDialect {
   if (depth > 16) throw new DeliveryError('unsupported_schema', 'Form schema is too deep');
-  if (typeof schema === 'boolean') return;
+  if (typeof schema === 'boolean') return 'draft-07';
   const value = object(schema, 'requestedSchema');
-  if (!supportsFormDialect(value.$schema)) throw new DeliveryError('unsupported_schema', 'Unsupported form schema dialect');
-  if (Object.hasOwn(value, '$schema')) value.$schema = 'http://json-schema.org/draft-07/schema#';
+  const dialect = parseFormDialect(value.$schema);
+  if (!dialect) throw new DeliveryError('unsupported_schema', 'Unsupported form schema dialect');
+  delete value.$schema;
   for (const [key, entry] of Object.entries(value)) {
     if (!formKeywords.has(key)) throw new DeliveryError('unsupported_schema', `Unsupported form keyword ${key}`);
+    if (key === 'multipleOf' && !validFormDivisor(entry)) throw new DeliveryError('unsupported_schema', 'Invalid form multipleOf');
     if (key === 'format' && (typeof entry !== 'string' || !formats.has(entry))) throw new DeliveryError('unsupported_schema', 'Unsupported form format');
     if (key === 'properties') for (const child of Object.values(object(entry))) formSchema(child, depth + 1);
     if (key === 'items' || key === 'additionalProperties') formSchema(entry, depth + 1);
     if (key === 'oneOf' || key === 'anyOf') { if (!Array.isArray(entry) || entry.length > 32) throw new DeliveryError('unsupported_schema', 'Invalid form union'); for (const child of entry) formSchema(child, depth + 1); }
   }
+  return dialect;
 }
 export function validatePrompt(method: string, params: JsonObject, response: JsonValue): void {
   const schemaName = responseSchemas[method]; if (!schemaName) throw new DeliveryError('unsupported_prompt', 'This prompt is unsupported');
@@ -119,8 +124,11 @@ export function validatePrompt(method: string, params: JsonObject, response: Jso
     if (params.mode !== 'form') throw new DeliveryError('unsupported_schema', 'This elicitation extension is not supported');
     jsonBytes(params.requestedSchema, 64 * 1024); const requested = structuredClone(object(params.requestedSchema, 'requestedSchema'));
     if (requested.type !== 'object' || !requested.properties || typeof requested.properties !== 'object' || Array.isArray(requested.properties)) throw new DeliveryError('unsupported_schema', 'MCP forms require an object schema with properties');
-    formSchema(requested);
-    const formAjv = new Ajv({ strict: true, allErrors: false, ownProperties: true, validateFormats: true });
+    const dialect = formSchema(requested);
+    const Validator = dialect === '2020-12' ? Ajv2020 : dialect === '2019-09' ? Ajv2019 : Ajv;
+    const formAjv = new Validator({ strict: true, allErrors: false, ownProperties: true, validateFormats: true });
+    formAjv.removeKeyword('multipleOf');
+    formAjv.addKeyword({ keyword: 'multipleOf', type: 'number', schemaType: 'number', validate: isFormMultiple, errors: false });
     formAjv.addKeyword({ keyword: 'enumNames', schemaType: 'array', valid: true });
     addFormats(formAjv, { mode: 'full', formats: ['email', 'uri', 'date', 'date-time'] });
     formAjv.addFormat('date-time', { type: 'string', validate: validDateTime });

@@ -199,7 +199,7 @@ export function WorkspaceWorktrees({
               <p className="small path">{current.path}</p>
               <p className="small path">HEAD：{current.head}</p>
               <p className="small path">内容版本：{current.revision ?? '无法完整检查'}</p>
-              {current.retirementPending && <p className="workspace-warning" role="status">上次退役尚待核对，当前目录位置见工作树详情。若上次请求仍待确认，请先查询原退役操作回执；核对内容版本后可完成退役。</p>}
+              {current.retirementPending && <p className="workspace-warning" role="status">上次退役尚待核对，当前目录位置见工作树详情。若上次请求仍待确认，请先查询原退役操作回执；此阶段只能继续完成退役。请先核对内容版本，完成后文件保留在服务器退役目录。</p>}
               {current.mutationUnavailable && <p className="workspace-warning">{current.mutationUnavailable.message}</p>}
               {cached && (
                 <p className="small muted">

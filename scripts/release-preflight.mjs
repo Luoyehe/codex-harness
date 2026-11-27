@@ -62,7 +62,9 @@ export function toolPins(base, nodeVersion = process.versions.node) {
     workflows[name] = { node: versions, pnpm: managers };
   }
   const affected = readFileSync(path.join(base, '.github/workflows/affected.yml'), 'utf8');
-  if (!/^on:\r?\n  push:\r?\n    branches: \[main\]\r?\n  pull_request:\r?\n  workflow_dispatch:/m.test(affected)) throw Error('Reviewed workflow triggers differ from the declared main/PR/manual policy');
+  if (!/^on:\r?\n  push:\r?\n    branches: \[main\]\r?\n  pull_request:\r?\n  merge_group:\r?\n  workflow_dispatch:/m.test(affected)) throw Error('Reviewed workflow triggers differ from the declared main/PR/merge-queue/manual policy');
+  const security = readFileSync(path.join(base, '.github/workflows/security.yml'), 'utf8');
+  if (!/^  merge_group:\s*$/m.test(security)) throw Error('Security workflow must verify merge queue candidates');
   const native = [...affected.matchAll(/^\s*package:\s*([0-9]+\.[0-9]+\.[0-9]+)-(linux|win32)-x64\s*$/gm)];
   if (native.length !== 2 || native.some(match => match[1] !== codex) || new Set(native.map(match => match[2])).size !== 2) throw Error('CI official CLI package pins disagree');
   const python = [...affected.matchAll(/^\s*python-version:\s*['"]?([0-9]+\.[0-9]+\.[0-9]+)['"]?\s*$/gm)].map(match => match[1]);
@@ -156,6 +158,8 @@ export function releasePreflight(options, base = root) {
   const env = { HARNESS_CI_HEAD: head, HARNESS_AUTHORIZATION_SHA: authorizationSha256 };
   const push = buildCiPlan(base, { ...env, HARNESS_CI_BASE: pushBase });
   const pullRequest = buildCiPlan(base, env, { pull_request: { head: { sha: head }, base: { sha: prBase } } });
+  const mergeGroup = buildCiPlan(base, env, { merge_group: { base_sha: prBase, head_sha: head } });
+  if (mergeGroup.mode !== 'authorized-full') throw Error('Release merge group does not select the authorized full inventory');
   if (pullRequest.mode !== 'authorized-full') throw Error('Release pull request does not select the authorized full inventory');
   const artifacts = checkBuild(base, source, pins, head, build);
   if (committedSource(base, head).digest !== source.digest) throw Error('Source changed during preflight');
@@ -163,7 +167,7 @@ export function releasePreflight(options, base = root) {
   return { schemaVersion: 1, status: 'ready-for-ci', preflightPassed: true, releaseGatePassed: false, testsExecuted: false,
     note: 'Commit, source, authorization, plans, pins and build evidence checked. This is not test success or release approval.',
     head, sourceDigest: source.digest, sourceFiles: source.files, authorization, pins, build: artifacts,
-    plans: { push, pullRequest }, triggers: { pushBranches: ['main'], pullRequest: true, workflowDispatch: true,
+    plans: { push, pullRequest, mergeGroup }, triggers: { mergeGroup: true, pushBranches: ['main'], pullRequest: true, workflowDispatch: true,
       topicWithoutPullRequest: 'Run local targeted tests or explicit workflow_dispatch; no automatic topic-push run.' }, checkedAt: new Date().toISOString() };
 }
 

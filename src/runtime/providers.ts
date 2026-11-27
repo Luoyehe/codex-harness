@@ -57,6 +57,10 @@ export class ManagedProviders {
   }
   resumeSelection(input: JsonValue): JsonObject {
     const value = object(input, 'options'); onlyKeys(value, ['modelProvider', 'model', 'effort']);
+    if (!this.connections.length && value.modelProvider === undefined) {
+      string(value.model, 'model', 256);
+      return value;
+    }
     string(value.modelProvider, 'modelProvider', 80);
     if (!this.connections.some(row => row.enabled && this.matches(row, value.modelProvider)))
       throw new DeliveryError('provider_unavailable', '所选模型供应商不存在或已停用，请重新选择。');

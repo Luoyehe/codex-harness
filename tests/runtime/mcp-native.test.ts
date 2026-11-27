@@ -77,6 +77,26 @@ test.each([[undefined, 320_000], [1, 21_000], [600, 620_000], [1801, null]] as c
       }
     } finally { await service.close(); expectNativeClosed(service.native); }
   });
+test('a defaults probe leaves a literal dotted MCP server dormant until the ordinary thread starts', async () => {
+  const parent = path.resolve('.work/mcp-native'); mkdirSync(parent, { recursive: true });
+  const root = mkdtempSync(path.join(parent, 'dotted-probe-')), home = path.join(root, 'codex');
+  const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: path.join(root, 'tmp') });
+  const log = path.join(root, 'mcp.jsonl'), name = 'fixture.with.dots';
+  writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup=false', '[mcp_servers."fixture.with.dots"]',
+    'command=' + JSON.stringify(process.execPath), 'args=' + JSON.stringify([path.resolve('tests/runtime/mcp-fixture.mjs'), log])].join('\n'));
+  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true });
+  const context = { clientId: 'dotted-probe' };
+  try {
+    await runtime.call('defaults/read', { cwd: root }, context);
+    expect(existsSync(log)).toBe(false);
+    const result = object(await runtime.call('thread/start', { cwd: root }, context)), threadId = object(result.thread).id!;
+    await expect.poll(async () => {
+      const page = object(await runtime.call('mcp/list', { threadId, serverName: name }, context));
+      return object((page.data as JsonValue[])[0]).runtimeStatus;
+    }, { timeout: 10000 }).toBe('connected');
+    expect(readFileSync(log, 'utf8')).toContain('"initialize"');
+  } finally { await runtime.close(); }
+});
 test('the native startup flag changes only the inherited MCP switch while a separate ordinary config write remains effective', async () => {
   const parent = path.resolve('.work/mcp-native'); mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(path.join(parent, 'layers-')), home = path.join(root, 'codex'), temp = path.join(root, 'tmp');

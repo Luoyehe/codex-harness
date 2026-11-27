@@ -76,7 +76,12 @@ describe('durable receipt data minimization', () => {
     const directory = { path: 'folder', kind: 'directory', revision: 'a'.repeat(64), recoveryOperationId: 'new', restoredFromOperationId: 'old' };
     expect(receiptResult('workspace/recovery/restore', directory)).toEqual(directory);
     expect(receiptResult('workspace/recovery/discard', { recoveryOperationId: 'old', discarded: true, receiptRetained: true, path: 'private' })).toEqual({ recoveryOperationId: 'old', discarded: true, receiptRetained: true });
-    for (const value of [{ ...file, revision: 'bad' }, { ...file, bytes: 524289 }, { ...file, kind: 'symlink' }]) expect(() => receiptResult('workspace/recovery/restore', value)).toThrow(expect.objectContaining({ delivery: 'unknown' }));
+    for (const bytes of [0, 512 * 1024 + 1, 1024 * 1024, 8 * 1024 * 1024]) expect(receiptResult('workspace/recovery/restore', { ...file, bytes })).toMatchObject({ bytes });
+    for (const [method, max] of [['workspace/write', 512 * 1024], ['workspace/copy', 8 * 1024 * 1024]] as const) {
+      expect(receiptResult(method, { ...file, bytes: max })).toMatchObject({ bytes: max });
+      for (const bytes of [max + 1, -1, 1.5]) expect(() => receiptResult(method, { ...file, bytes })).toThrow(expect.objectContaining({ delivery: 'unknown' }));
+    }
+    for (const value of [{ ...file, revision: 'bad' }, { ...file, bytes: 8 * 1024 * 1024 + 1 }, { ...file, kind: 'symlink' }]) expect(() => receiptResult('workspace/recovery/restore', value)).toThrow(expect.objectContaining({ delivery: 'unknown' }));
     expect(() => receiptResult('workspace/recovery/discard', { recoveryOperationId: 'old', discarded: true })).toThrow(expect.objectContaining({ delivery: 'unknown' }));
   });
   it('organizational receipts contain identities without associated payloads or private names', () => {

@@ -118,6 +118,30 @@ class IndexFilesystemTests(unittest.TestCase):
         self.stage(["a"])
         self.assertTrue(self.git("ls-files", "--stage", "a").startswith(b"100755 "))
 
+    def test_disabled_filemode_stages_conflict_resolutions_with_the_same_mode_as_native_git_add(self):
+        self.git("config", "core.filemode", "false")
+        file = self.path / "a"
+        file.write_text("resolved content")
+        file.chmod(0o644)
+        oid = self.git("hash-object", "-w", "--stdin", data=b"conflict side").strip().decode()
+        for stages in (
+            [(1, "100755"), (2, "100755"), (3, "100755")],
+            [(1, "100644"), (2, "100755"), (3, "100644")],
+            [(1, "100755"), (2, "100644")], [(1, "100755"), (3, "100644")],
+            [(3, "100755")], [(1, "100755"), (2, "120000"), (3, "100644")],
+        ):
+            with self.subTest(stages=stages):
+                def conflict():
+                    self.git("update-index", "--force-remove", "--", "a")
+                    self.git("update-index", "--index-info", data="".join(
+                        f"{mode} {oid} {stage}\ta\n" for stage, mode in stages).encode())
+                conflict()
+                self.git("add", "--", "a")
+                expected = self.git("ls-files", "--stage", "a")
+                conflict()
+                self.stage(["a"])
+                self.assertEqual(self.git("ls-files", "--stage", "a"), expected)
+
     def test_stage_unstage_and_commit_only_selected_paths_preserve_worktree_and_other_index_entries(self):
         (self.path / "a").write_text("changed a\n")
         (self.path / "b").write_text("changed b\n")

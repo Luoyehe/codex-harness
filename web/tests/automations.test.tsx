@@ -12,12 +12,13 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Api } from '../lib/api';
+import { Events } from '../lib/events';
 import { AutomationForm } from '../components/AutomationForm';
 import { AutomationDetail, AutomationsPanel } from '../components/AutomationsPanel';
 import { reconcileOperation } from '../lib/operations';
 import * as operationStorage from '../lib/operations';
 import { useAutomationRuns } from '../hooks/useAutomationRuns';
-import { localTime, zonedTime, type Automation, type Run } from '../lib/automations';
+import { localTime, runLabels, zonedTime, type Automation, type Run } from '../lib/automations';
 type Call = { method: string; params: Record<string, unknown>; operationId?: string };
 const project = { id: 'registered-root', name: 'Workspace', cwd: '/work/root' },
   future = Date.now() + 3_600_000;
@@ -125,6 +126,7 @@ async function savePlan(edit = false) {
 }
 const detailProps = (api: Api) => ({
   api,
+  events: new Events(),
   record: job,
   epoch: 'worker-one',
   enabled: true,
@@ -460,6 +462,7 @@ it('retains edits made after an unknown create as edits of the accepted plan, in
   render(
     <AutomationsPanel
       api={api}
+      events={new Events()}
       epoch="session-a"
       projects={[project]}
       projectId={project.id}
@@ -953,4 +956,44 @@ it('restores the latest saved automation only after confirmation and sends no up
   fireEvent.click(screen.getByRole('button', { name: '确认放弃本次修改' }));
   expect(name).toHaveProperty('value', '服务器新名称');
   expect(calls.some(c => c.method === 'automation/update')).toBe(false);
+});
+
+it('updates an open plan and its canceled runs from a committed worktree change before the next poll', async () => {
+  let archived = false;
+  const events = new Events();
+  const { api, calls } = setup(call => {
+    const record = { ...job, state: archived ? 'paused' : 'active', revision: archived ? 5 : 4 };
+    if (call.method === 'automation/list') return { data: [record] };
+    if (call.method === 'automation/read') return record;
+    if (call.method === 'automation/status') return { running: true, lastTickAt: future, lastError: null };
+    if (call.method === 'automation/runs') return { data: [{ ...run, state: archived ? 'canceled' : 'queued' }], next: null };
+  });
+  render(<AutomationsPanel api={api} events={events} epoch="stable" projects={[project]} projectId={project.id}
+    models={[]} modes={[]} enabled idle onOpenThread={vi.fn()} onChanged={vi.fn()} onClose={vi.fn()} />);
+  const plans = within(screen.getByRole('navigation', { name: '自动化计划' }));
+  fireEvent.click(await plans.findByText('Daily review'));
+  expect(plans.getByText('已启用')).toBeTruthy();
+  await screen.findByText(/版本 4/);
+  await screen.findByText(runLabels.queued);
+  const callsBefore = calls.length;
+  act(() => events.publish({ type: 'automation', data: { health: { running: true } } }));
+  expect(calls).toHaveLength(callsBefore);
+  archived = true;
+  act(() => events.publish({ type: 'automation', data: { changed: true } }));
+  await plans.findByText('已暂停');
+  await screen.findByText(/版本 5/);
+  await screen.findByText(runLabels.canceled);
+  expect(calls.slice(callsBefore).map(call => call.method)).toEqual(expect.arrayContaining(['automation/list', 'automation/read', 'automation/runs']));
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  try {
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    const beforeHiddenChange = calls.length;
+    archived = false;
+    act(() => events.publish({ type: 'automation', data: { changed: true } }));
+    expect(calls).toHaveLength(beforeHiddenChange);
+    visibility.mockReturnValue('visible');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    await plans.findByText('已启用');
+    await screen.findByText(runLabels.queued);
+  } finally { visibility.mockRestore(); }
 });

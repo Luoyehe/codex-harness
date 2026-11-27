@@ -5,12 +5,14 @@ import { validateOfficial } from './validation.js';
 import { DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import type { NativeOptions } from './native.js';
 type Write = (method: string, params: JsonValue, options?: NativeOptions) => Promise<JsonValue>;
-interface Host { bin: string; cwd: string; native: Write; redactor: DiagnosticRedactor; configure(operation: (write: Write) => Promise<JsonValue>, context: CallContext): Promise<JsonValue>; available(): void; failEpoch(): Promise<void> }
+interface Host { bin: string; cwd: string; native: Write; redactor: DiagnosticRedactor; configure(operation: (write: Write) => Promise<JsonValue>, context: CallContext): Promise<JsonValue>; available(): void; changed(): void; failEpoch(): Promise<void> }
 interface Entry { resultId: string; kind: 'doctor' | 'models-bundled'; owner: CallContext; revoked: boolean; cleanupConfirmed?: boolean; cleanup?: Promise<void>; result?: JsonObject; process?: Processes; processHandle?: string; done(): void; reject(error: Error): void; timer?: NodeJS.Timeout }
 export const cliDiagnosticMethods = new Set(['diagnostics/cli/run', 'diagnostics/cli/result/read']);
 /** Fixed read-only CLI diagnostics use the same independently owned process tree as terminals. */
 export class CliDiagnostics {
   private entries = new Map<string, Entry>(); private closed = false;
+  private running = false;
+  get active(): boolean { return this.running; }
   constructor(private host: Host) {}
   private public(entry: Entry): JsonObject { return { resultId: entry.resultId, kind: entry.kind, status: entry.result?.status ?? 'running' }; }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
@@ -21,9 +23,11 @@ export class CliDiagnostics {
     }
     onlyKeys(params, ['kind']); if (params.kind !== 'doctor' && params.kind !== 'models-bundled') throw new DeliveryError('invalid_params', 'Choose doctor or models-bundled');
     if (this.closed) throw new DeliveryError('runtime_unavailable', 'Runtime is closing');
+    if (this.running) throw new DeliveryError('diagnostics_busy', '已有正在运行的 CLI 诊断，请等待完成后重试。');
     if (this.entries.size >= 8) { const expired = [...this.entries.values()].find(entry => entry.result); if (!expired) throw new DeliveryError('capacity', 'Diagnostic result capacity exhausted'); this.remove(expired); }
     let done!: () => void, reject!: (error: Error) => void; const ended = new Promise<void>((resolve, fail) => { done = resolve; reject = fail; }); void ended.catch(() => {});
     const entry: Entry = { resultId: randomUUID(), kind: params.kind, owner: { ...context }, revoked: false, done, reject }; this.entries.set(entry.resultId, entry);
+    this.running = true; this.host.changed();
     try {
       return await this.host.configure(async write => {
         const available = (): void => { if (entry.revoked || this.closed) throw new DeliveryError('client_disconnected', 'Diagnostic owner disconnected'); this.host.available(); };
@@ -57,6 +61,7 @@ export class CliDiagnostics {
         entry.timer = setTimeout(() => this.remove(entry), 600000); entry.timer.unref(); return this.public(entry);
       }, context);
     } catch (error) { this.remove(entry); throw error; }
+    finally { this.running = false; this.host.changed(); }
   }
   notification(method: string, params: JsonObject): boolean {
     const entry = [...this.entries.values()].find(entry => entry.processHandle === params.processHandle);

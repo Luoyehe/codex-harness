@@ -13,10 +13,17 @@ export function modelSupportsEffort(model: Model | undefined, value: string): bo
 }
 
 /** Unlabelled rows are safe only in a complete, entirely legacy directory. */
-export function providerModels(models: Model[], provider: string, complete: boolean): Model[] {
-  const legacy = complete && models.every(row => !row.modelProvider && !row.providerId);
-  return models.filter(row => row.modelProvider === provider || row.providerAliases?.includes(provider) ||
-    legacy && !row.modelProvider && !row.providerId);
+export function providerModels(models: Model[], provider: string | undefined, complete: boolean): Model[] {
+  if (complete && models.every(row => !row.modelProvider && !row.providerId && !row.providerAliases?.length)) {
+    const unique = new Set<string>(), duplicates = new Set<string>();
+    for (const row of models) {
+      const name = row.model ?? row.id;
+      if (unique.has(name)) duplicates.add(name);
+      unique.add(name);
+    }
+    return models.filter(row => !duplicates.has(row.model ?? row.id));
+  }
+  return provider ? models.filter(row => row.modelProvider === provider || row.providerAliases?.includes(provider)) : [];
 }
 
 /** A partial catalog cannot disprove an alias that may appear on a later page. */

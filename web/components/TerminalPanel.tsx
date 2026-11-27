@@ -37,7 +37,7 @@ export function TerminalPanel({
   runtimeEpoch = epoch,
   onServiceSettings,
   onShell,
-  onOwnershipChange,
+  onOwnedProgramChange,
 }: {
   api: Api;
   events: Events;
@@ -49,7 +49,7 @@ export function TerminalPanel({
   runtimeEpoch?: string;
   onServiceSettings?: () => void;
   onShell?: () => void;
-  onOwnershipChange?: (owned: boolean) => void;
+  onOwnedProgramChange?: (program: NonNullable<TerminalOperation['program']> | null) => void;
 }) {
   const [restartRequired, setRestartRequired] = useState(false);
   const lastRuntime = useRef(runtimeEpoch);
@@ -68,8 +68,6 @@ export function TerminalPanel({
     [error, setError] = useState(''),
     [ended, setEnded] = useState(false),
     [pending, setPending] = useState(false);
-  useEffect(() => { onOwnershipChange?.(Boolean(id || pending || busy)); }, [onOwnershipChange, id, pending, busy]);
-  useEffect(() => () => onOwnershipChange?.(false), [onOwnershipChange]);
   const blocked = useRef(false),
     closeOnly = useRef(false),
     queuedBytes = useRef(0),
@@ -78,6 +76,10 @@ export function TerminalPanel({
   scope.current = { projectId, connected, epoch, program };
   const mounted = useRef(true),
     activeOperation = useRef<TerminalOperation | undefined>(undefined);
+  const owner = id ? activeOperation.current : undefined;
+  const ownedProgram = owner ? (owner.program ?? 'shell') : null;
+  useEffect(() => { onOwnedProgramChange?.(ownedProgram); }, [onOwnedProgramChange, ownedProgram]);
+  useEffect(() => () => onOwnedProgramChange?.(null), [onOwnedProgramChange]);
   const acknowledge = async (operation: TerminalOperation) => {
     try {
       if ((await listOperations()).some((o) => o.id === operation.operationId))
@@ -533,6 +535,19 @@ export function TerminalPanel({
         <p role="alert" className="error">
           {error}
         </p>
+      )}
+      {id && !blocked.current && (
+        <div className="terminal-mobile-keys" aria-label="终端快捷键" role="group">
+          {(['Tab', '↑', '↓'] as const).map(key => (
+            <button key={key} className="button small" type="button" onMouseDown={event => event.preventDefault()}
+              onClick={() => {
+                const terminal = term.current;
+                if (!terminal) return;
+                const cursorPrefix = terminal.modes.applicationCursorKeysMode ? '\x1bO' : '\x1b[';
+                terminal.input(key === 'Tab' ? '\t' : cursorPrefix + (key === '↑' ? 'A' : 'B'));
+              }}>{key}</button>
+          ))}
+        </div>
       )}
       <div className="terminal-surface">
         <div ref={container} className="terminal-mount" role="region" aria-label="交互终端" />

@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  merge_group:
   workflow_dispatch:
     inputs:
       base_commit:
@@ -58,7 +59,7 @@ jobs:
         env:
           HARNESS_CI_BASE: ${{ inputs.base_commit }}
           HARNESS_AUTHORIZATION_SHA: ${{ inputs.authorization_sha256 }}
-          HARNESS_PR_AUTHORIZATION_SHA: ${{ github.event_name == 'pull_request' && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}
+          HARNESS_PR_AUTHORIZATION_SHA: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && vars.HARNESS_RELEASE_AUTHORIZATION_SHA256 || '' }}
         run: node scripts/ci-checks.mjs plan .work/ci-plan.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

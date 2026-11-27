@@ -21,10 +21,12 @@ export function ModelPicker({ models, options, onOptions, defaults, existingThre
   const ref = useRef<HTMLDetailsElement>(null);
   const inheritedProvider = typeof defaults?.modelProvider === 'string' ? defaults.modelProvider : undefined;
   const currentProvider = threadProvider ?? inheritedProvider;
-  models = existingThread ? currentProvider ? providerModels(models, currentProvider, directoryComplete ?? (!more && !loading)) : [] : models;
+  models = existingThread ? providerModels(models, currentProvider, directoryComplete ?? (!more && !loading)) : models;
   const provider = options.modelProvider ?? inheritedProvider;
   const id = options.model ?? (typeof defaults?.model === 'string' ? defaults.model : undefined);
-  const waitingDefaults = Boolean(existingThread && !currentProvider || defaultsLoading && (!options.model || !options.modelProvider));
+  const legacySelection = existingThread && models.length > 0 && models.every(row => !row.modelProvider && !row.providerId);
+  const waitingDefaults = Boolean(existingThread && !currentProvider && !models.length ||
+    defaultsLoading && (!options.model || !options.modelProvider && !legacySelection));
   const candidates = waitingDefaults ? [] : models.filter(row => (row.model ?? row.id) === id && matchesProvider(row, provider));
   const selected = candidates.length === 1 ? candidates[0] : undefined;
   const efforts = selected?.supportedReasoningEfforts ?? [];

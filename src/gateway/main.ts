@@ -40,7 +40,7 @@ async function main(): Promise<void> {
   worker.on('event', (event: HarnessEvent) => dispatcher.event(event)); worker.on('disconnect', () => dispatcher.disconnected());
   const managedProxy = process.env.HARNESS_TRUSTED_PROXY === '1' || !!(process.env.HARNESS_TOKEN_FILE && process.env.HARNESS_MANAGE_COMMAND);
   const trustedProxyToken = managedProxy && auth.origin.protocol === 'https:' ? createHash('sha256').update('codex-harness-edge-client-v1\0').update(token).digest('hex') : undefined;
-  const server = new GatewayServer(auth, dispatcher, worker, process.env.HARNESS_STATIC_DIR, { ...(trustedProxyToken ? { trustedProxyToken } : {}) });
+  const server = new GatewayServer(auth, dispatcher, worker, process.env.HARNESS_STATIC_DIR, { ...(trustedProxyToken ? { trustedProxyToken } : {}), strictTransportSecurity: process.env.HARNESS_HSTS === '1' });
   const port = Number(process.env.HARNESS_LISTEN_PORT ?? 8787);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid listen port');
   startupStage = 'listen';

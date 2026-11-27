@@ -150,7 +150,7 @@ describe('transport and runtime state separation', () => {
       },
     );
     const api = { clientId: 'client' } as Api;
-    const { result } = renderHook(() => useEvents(api, vi.fn()));
+    const { result, rerender } = renderHook(({ id }) => useEvents(api, vi.fn(), true, id), { initialProps: { id: 'a' } });
     const state = (extra = {}) =>
       act(() =>
         socket.onmessage({
@@ -183,6 +183,13 @@ describe('transport and runtime state separation', () => {
       state(extra);
       expect(result.current.configurationReady).toBe(false);
     }
+    state({ unknown: true, globalUnknown: false, unknownThreads: ['a'] });
+    expect(result.current.activityReady).toBe(false);
+    rerender({ id: 'b' });
+    expect(result.current.activityReady).toBe(true);
+    expect(result.current.configurationReady).toBe(false);
+    state({ unknown: true, globalUnknown: false, unknownThreads: [] });
+    expect(result.current.activityReady).toBe(false);
   });
   it('advances one resource generation on same-worker recovery, never on repeated healthy snapshots', () => {
     let socket!: {

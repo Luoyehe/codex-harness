@@ -237,20 +237,23 @@ export class Ledger {
     if (!this.#db.prepare("SELECT 1 FROM receipts WHERE state='unknown' LIMIT 1").get()) this.setMeta('activityUncertain', 'false');
   }
   /** Only a supervisor-private positive witness, bound to this exact gateway request, can resolve file writes. */
-  confirmWorkspace(id: string, method: string, scope: string, fingerprint: string, result: JsonValue): Receipt {
+  confirmWorkspace(id: string, method: string, scope: string, fingerprint: string, result: JsonValue, onProjectDeactivated?: () => void): Receipt {
     if (!workspaceConfirmations.has(method)) throw new HarnessError('operation_state', '此操作不是可核对的文件操作。');
     const value = JSON.stringify(result);
     if (Buffer.byteLength(value) > LIMITS.receiptBytes) throw new HarnessError('capacity', '文件操作回执过大。');
-    return this.transaction(() => {
+    let projectDeactivated = false;
+    const receipt = this.transaction(() => {
       const pending = this.read(id);
       if (!pending) throw new HarnessError('operation_missing', '操作记录不存在。');
       if (pending.state !== 'unknown' || pending.method !== method || pending.scope !== scope || !this.matchesDigest(id, fingerprint)) return pending;
       this.confirmationCapacity(id, Buffer.byteLength(value));
-      if (method.startsWith('workspace/worktree/')) this.worktrees.apply(method, scope.slice(8), id, result);
+      if (method.startsWith('workspace/worktree/')) projectDeactivated = this.worktrees.apply(method, scope.slice(8), id, result);
       this.#db.prepare(`UPDATE receipts SET state='accepted',result=?,error=NULL,bytes=?,updated_at=? WHERE id=?`)
         .run(value, Buffer.byteLength(value), this.now(), id);
       this.confirmed(); return this.read(id)!;
     });
+    if (projectDeactivated) onProjectDeactivated?.();
+    return receipt;
   }
   getMeta(key: string): string | null {
     const row = this.#db.prepare('SELECT value FROM metadata WHERE key=?').get(key);

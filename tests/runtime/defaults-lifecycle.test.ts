@@ -130,6 +130,15 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
   return { root, service, main, starts, release, held, stopped, read };
 }
 
+test('effective defaults disable literal server keys including dotted and object-prototype names', async () => {
+  const f = concurrentDefaults();
+  const names = ['fixture', 'fixture.with.dots', '__proto__', 'constructor'];
+  f.main.config = { mcp_servers: Object.fromEntries(names.map(name => [name, { command: 'local-fixture' }])) };
+  const pending = f.read(); await f.held();
+  expect(f.starts()[0]!.params.config).toEqual({ mcp_servers: Object.fromEntries(names.map(name => [name, { enabled: false }])) });
+  f.release(1); await pending; await f.stopped();
+});
+
 test('the identity guard rejects a live predecessor and cleanup preserves the observed request rejection', async () => {
   const f = concurrentDefaults(), pending = f.read(); await f.held();
   const pid = f.starts()[0]!.pid, identity = await processIdentity(pid);

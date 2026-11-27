@@ -63,7 +63,7 @@ class RecoveryFilesystemTests(unittest.TestCase):
         return changed, self.call("recovery/read", {"operationId": changed["recoveryOperationId"]})
 
     def test_large_binary_copy_remove_restore_and_stale_revision(self):
-        data = b"\0large" * 120000
+        data = b"\0large" * 200000
         (self.path / "asset").write_bytes(data)
         meta = self.call("metadata", {"path": "asset"})
         self.assertTrue(meta["copyable"] and meta["removable"])

@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { DatabaseSync } from 'node:sqlite';
 import { EventEmitter } from 'node:events';
 import { isIPv6 } from 'node:net';
-import { chmodSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync } from 'node:fs';
+import { chmodSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { HarnessError } from '../core/errors.js';
 import { uuid } from '../core/validation.js';
@@ -37,7 +37,8 @@ export class Authentication extends EventEmitter {
   readonly #tokenHash: Buffer | undefined;
   readonly origin: URL;
   readonly cookieName: string;
-  #bootstrapIdentity: string | undefined;
+  #lastCleanupAt = -Infinity;
+  #bootstrapDigest: string | undefined;
   constructor(options: AuthOptions | string, origin: string, readonly now: () => number = Date.now) {
     super();
     this.#options = typeof options === 'string' ? { database: ':memory:', bootstrapToken: options } : options;
@@ -91,30 +92,33 @@ export class Authentication extends EventEmitter {
     let descriptor: number;
     try { descriptor = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT' && !this.account()?.bootstrap_revision) return; throw new HarnessError('authentication_unavailable', '管理员认证配置不可用，请通过服务器检查或恢复。'); }
-    let raw: string, identity: string;
+    let raw: string;
     try {
-      const info = fstatSync(descriptor);
-      if (!info.isFile() || info.size > 8192 || this.#options.strictFiles && (info.uid !== 0 || info.gid !== process.getgid?.() || info.nlink !== 1 || (info.mode & 0o027) !== 0)) throw new Error('Invalid bootstrap permissions');
-      const precise = fstatSync(descriptor, { bigint: true });
-      identity = [precise.dev, precise.ino, precise.size, precise.mtimeNs, precise.ctimeNs,
-        precise.mode, precise.uid, precise.gid, precise.nlink].join(':');
-      // Check the opened file on every authorization, including replacement,
-      // permissions and nanosecond change time. Never grant a TTL after reset.
-      if (identity === this.#bootstrapIdentity) return;
-      raw = readFileSync(descriptor, 'utf8');
+      const info = fstatSync(descriptor, { bigint: true });
+      if (!info.isFile() || info.size > 8192n || this.#options.strictFiles && (info.uid !== 0n || Number(info.gid) !== process.getgid?.() || info.nlink !== 1n || (info.mode & 0o027n) !== 0n)) throw new Error('Invalid bootstrap permissions');
+      const buffer = Buffer.alloc(Number(info.size));
+      for (let offset = 0; offset < buffer.length;) {
+        const count = readSync(descriptor, buffer, offset, buffer.length - offset, offset);
+        if (!count) throw new Error('Bootstrap changed during read');
+        offset += count;
+      }
       const after = fstatSync(descriptor, { bigint: true });
-      if ([after.dev, after.ino, after.size, after.mtimeNs, after.ctimeNs, after.mode, after.uid, after.gid, after.nlink].join(':') !== identity)
+      if (after.size !== info.size || after.mtimeNs !== info.mtimeNs || after.ctimeNs !== info.ctimeNs || after.mode !== info.mode || after.uid !== info.uid || after.gid !== info.gid || after.nlink !== info.nlink)
         throw new Error('Bootstrap changed during read');
+      raw = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(buffer);
     } finally { closeSync(descriptor); }
+    // Coarse filesystem timestamps can be identical across two same-sized writes.
+    const fingerprint = digest(raw);
+    if (fingerprint === this.#bootstrapDigest) return;
     const value = JSON.parse(raw) as Input;
     if (value.schemaVersion !== 1) throw new Error('Invalid bootstrap schema');
-    const revision = uuid(value.revision), name = username(value.username), passwordHash = parsePassword(value.passwordHash), fingerprint = digest(raw), account = this.account();
-    if (account?.bootstrap_revision === revision) { if (account.bootstrap_digest !== fingerprint) throw new Error('Bootstrap revision changed content'); this.#bootstrapIdentity = identity; return; }
+    const revision = uuid(value.revision), name = username(value.username), passwordHash = parsePassword(value.passwordHash), account = this.account();
+    if (account?.bootstrap_revision === revision) { if (account.bootstrap_digest !== fingerprint) throw new Error('Bootstrap revision changed content'); this.#bootstrapDigest = fingerprint; return; }
     this.transaction(() => {
       this.#db.prepare('INSERT INTO auth_account(id,username,password,version,totp_secret,totp_counter,bootstrap_revision,bootstrap_digest) VALUES(1,?,?,?,NULL,-1,?,?) ON CONFLICT(id) DO UPDATE SET username=excluded.username,password=excluded.password,version=excluded.version,totp_secret=NULL,totp_counter=-1,bootstrap_revision=excluded.bootstrap_revision,bootstrap_digest=excluded.bootstrap_digest').run(name, JSON.stringify(passwordHash), randomUUID(), revision, fingerprint);
       this.#db.exec('DELETE FROM auth_sessions; DELETE FROM auth_recovery; DELETE FROM auth_pending; DELETE FROM auth_attempts;');
     });
-    this.#bootstrapIdentity = identity;
+    this.#bootstrapDigest = fingerprint;
     this.emit('revoked');
   }
   private cleanup(): void {
@@ -122,6 +126,7 @@ export class Authentication extends EventEmitter {
     this.#db.prepare('DELETE FROM auth_attempts WHERE reset<=?').run(now);
     this.#db.exec("DELETE FROM auth_attempts WHERE peer LIKE 'session:%' AND substr(peer,9) NOT IN (SELECT id FROM auth_sessions)");
     this.#db.prepare('DELETE FROM auth_pending WHERE expires_at<=? OR session_id NOT IN (SELECT id FROM auth_sessions)').run(now);
+    this.#lastCleanupAt = now;
   }
   private attempt(peer: string, session?: Session): void {
     this.cleanup(); const key = session ? 'session:' + session.id : 'anonymous:' + digest(clientNetwork(peer)), row = this.#db.prepare('SELECT count FROM auth_attempts WHERE peer=?').get(key);
@@ -129,7 +134,7 @@ export class Authentication extends EventEmitter {
     // loopback reverse proxy cannot prevent an existing administrator securing the account.
     if (row && Number(row.count) >= 8) throw new HarnessError('rate_limited', '认证尝试过多，请稍后重试。');
     if (!session && !row && Number(this.#db.prepare("SELECT count(*) AS n FROM auth_attempts WHERE peer LIKE 'anonymous:%'").get()!.n) >= 1024) {
-      const removed = this.#db.prepare("DELETE FROM auth_attempts WHERE peer=(SELECT peer FROM auth_attempts WHERE peer LIKE 'anonymous:%' AND count=1 ORDER BY reset,peer LIMIT 1)").run();
+      const removed = this.#db.prepare("DELETE FROM auth_attempts WHERE peer=(SELECT peer FROM auth_attempts WHERE peer LIKE 'anonymous:%' AND count=1 ORDER BY reset,rowid LIMIT 1)").run();
       if (!removed.changes) throw new HarnessError('rate_limited', '认证尝试过多，请稍后重试。');
     }
     this.#db.prepare('INSERT INTO auth_attempts(peer,count,reset) VALUES(?,1,?) ON CONFLICT(peer) DO UPDATE SET count=count+1').run(key, this.now() + 60_000);
@@ -173,6 +178,8 @@ export class Authentication extends EventEmitter {
   }
   session(cookie: string | undefined): Session | null {
     try { this.refresh(); } catch { return null; }
+    const now = this.now();
+    if (now < this.#lastCleanupAt || now - this.#lastCleanupAt >= 60_000) this.cleanup();
     const key = this.key(cookie); if (!key) return null;
     const row = this.#db.prepare('SELECT s.* FROM auth_sessions s JOIN auth_account a ON s.version=a.version WHERE s.token_hash=?').get(digest(key));
     if (!row) return null;

@@ -5,6 +5,9 @@ import { organizationMethods } from '../core/organization-methods.js';
 import { executionModeState } from '../core/execution-mode.js';
 import { organizationReceipt } from './organization-receipt.js';
 
+const maxWorkspaceTextBytes = 512 * 1024;
+const maxWorkspaceCaptureBytes = 8 * 1024 * 1024;
+
 function threadMetadata(input: JsonValue | undefined): JsonObject {
   object(input, '会话结果');
   const result: JsonObject = { id: identifier(input.id, '会话标识') };
@@ -358,7 +361,7 @@ function projectResult(method: string, input: JsonValue, params?: JsonObject): J
     const result: JsonObject = { path: validText(input.path, 4096), kind: input.kind!, revision: input.revision,
       restoredFromOperationId: identifier(input.restoredFromOperationId), recoveryOperationId: identifier(input.recoveryOperationId) };
     if (input.kind === 'file') {
-      if (typeof input.bytes !== 'number' || !Number.isSafeInteger(input.bytes) || input.bytes < 0 || input.bytes > 512 * 1024) throw new Error('Invalid restored byte count');
+      if (typeof input.bytes !== 'number' || !Number.isSafeInteger(input.bytes) || input.bytes < 0 || input.bytes > maxWorkspaceCaptureBytes) throw new Error('Invalid restored byte count');
       result.bytes = input.bytes;
     }
     return result;
@@ -370,7 +373,8 @@ function projectResult(method: string, input: JsonValue, params?: JsonObject): J
       result.recoveryOperationId = identifier(input.recoveryOperationId);
       if (method === 'workspace/remove') { if (input.removed !== true) throw new Error('Unconfirmed removal'); result.removed = true; }
       else {
-        if (typeof input.revision !== 'string' || !/^[0-9a-f]{64}$/.test(input.revision) || typeof input.bytes !== 'number' || !Number.isSafeInteger(input.bytes) || input.bytes < 0) throw new Error('Invalid file revision');
+        const maxBytes = method === 'workspace/write' ? maxWorkspaceTextBytes : maxWorkspaceCaptureBytes;
+        if (typeof input.revision !== 'string' || !/^[0-9a-f]{64}$/.test(input.revision) || typeof input.bytes !== 'number' || !Number.isSafeInteger(input.bytes) || input.bytes < 0 || input.bytes > maxBytes) throw new Error('Invalid file revision');
         result.revision = input.revision; result.bytes = input.bytes;
       }
     }

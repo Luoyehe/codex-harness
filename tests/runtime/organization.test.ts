@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
-import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
+import { NativeRpc, type NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
 
 const parent = path.resolve('.work/organization-tests'); mkdirSync(parent, { recursive: true }); const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => {} };
@@ -68,17 +68,33 @@ test('automation preflight validates both fixed native schemas without calling n
   await expect(service.call('automation/validate', { cwd, options: { permissions: 'profile', sandboxPolicy: { type: 'dangerFullAccess' } } }, context)).rejects.toMatchObject({ code: 'invalid_params' }); expect(native.calls).toHaveLength(calls); expect(service.status()).toEqual(before);
 });
 
-test('an unloaded owner from the same page is omitted while peers and unrelated native errors survive', async () => {
+test('owner pagination skips confirmed missing threads before diagnostic redaction and propagates other failures', async () => {
   const { cwd, native, service } = await setup(), original = native.call.bind(native);
-  const owners = ['a', 'b'].map(threadId => ({ threadId, archived: false }));
-  let reported = 'a';
-  native.call = async (method, input, options) => {
-    if (method === 'thread/attachmentOwner/list') return { data: owners, nextCursor: null };
-    if (method === 'thread/read' && object(input).threadId === 'a') throw new DeliveryError('native_error', 'thread not loaded: ' + reported, 'not_sent', { code: -32600 });
-    return original(method, input, options);
-  };
-  const params = { cwd, attachmentType: 'file', identityKey: 'fixture' };
-  await expect(service.call('thread/attachmentOwner/list', params, context)).resolves.toMatchObject({ data: [owners[1]], nextCursor: null, listChanged: true });
-  reported = 'different';
-  await expect(service.call('thread/attachmentOwner/list', params, context)).rejects.toMatchObject({ code: 'native_error' });
+  const secret = 'fixture-owner-secret', id = 'cold-' + secret;
+  const owners = [id, 'b'].map(threadId => ({ threadId, archived: false }));
+  const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/native-fixture.mjs')], home: cwd, cwd, env: { HARNESS_PROVIDER_KEY_DEFAULT: secret } });
+  try {
+    await rpc.initialize();
+    let rejection = { code: -32600, message: '' };
+    native.call = async (method, input, options) => {
+      if (method === 'thread/attachmentOwner/list') return { data: owners, nextCursor: 'next' };
+      if (method === 'thread/read' && object(input).threadId === id) return rpc.call('fixture/error/reflect', rejection, options);
+      return original(method, input, options);
+    };
+    const read = () => service.call('thread/attachmentOwner/list', { cwd, attachmentType: 'file', identityKey: 'fixture' }, context);
+    for (const [code, message] of [
+      [-32600, 'thread not loaded: ' + id], [-32602, 'no rollout found for thread id ' + id],
+      [-32002, 'no archived rollout found for thread id: ' + id], [-32004, 'thread not found'],
+    ] as const) {
+      rejection = { code, message };
+      await expect(read()).resolves.toMatchObject({ data: [owners[1]], nextCursor: 'next', listChanged: true });
+    }
+    for (const [code, message] of [
+      [-32600, 'thread not loaded: different-' + secret], [-32099, 'thread not found'],
+      [-32602, 'permission denied: no rollout found for thread id ' + id],
+    ] as const) {
+      rejection = { code, message };
+      await expect(read()).rejects.toMatchObject({ code: 'native_error', message: message.replace(secret, '[redacted]') });
+    }
+  } finally { await rpc.close(); }
 });

@@ -138,7 +138,7 @@ export class Mcp {
     const p = { ...params, subscriptionId: entry.subscriptionId }; validateOfficial('McpServerEventStreamStartParams', p); this.streams.set(entry.subscriptionId, entry); this.host.changed();
     try {
       await this.host.mutate({ method: 'mcpServer/event/stream/start', params: p, schema: 'McpServerEventStreamStartParams', responseSchema: 'McpServerEventStreamStartResponse', threadId, mode: 'any', history: true,
-        preflight: async () => { await this.server(threadId, server); }, beforeWrite: () => { this.host.requireLoaded(threadId); if (entry.revoked || this.streams.get(entry.subscriptionId) !== entry) throw new DeliveryError('client_disconnected', 'Subscription owner disconnected'); entry.dispatched = true; },
+        preflight: async () => { await this.server(threadId, server, 'toolsAndAuthOnly'); }, beforeWrite: () => { this.host.requireLoaded(threadId); if (entry.revoked || this.streams.get(entry.subscriptionId) !== entry) throw new DeliveryError('client_disconnected', 'Subscription owner disconnected'); entry.dispatched = true; },
       }, context);
       settleStart();
       return this.publicStream(entry);

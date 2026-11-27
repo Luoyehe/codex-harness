@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Events } from '../lib/events';
 import type { Api } from '../lib/api';
 import {
   activeRun,
@@ -17,8 +18,22 @@ import { AutomationForm } from './AutomationForm';
 import type { ModelPagination } from './ModelDirectoryStatus';
 import { Dialog } from './Dialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
+/** Keep a change received in a background tab or while editing until reads can resume. */
+function useAutomationChanges(events: Events, ready: boolean, refresh: () => void) {
+  const dirty = useRef(false);
+  useEffect(() => {
+    if (ready && dirty.current) { dirty.current = false; refresh(); }
+    return events.subscribe(event => {
+      if (event.type !== 'automation' || event.data.changed !== true) return;
+      if (ready) refresh();
+      else dirty.current = true;
+    });
+  }, [events, ready, refresh]);
+}
+
 export function AutomationsPanel({
   api,
+  events,
   epoch,
   projects,
   projectId,
@@ -32,6 +47,7 @@ export function AutomationsPanel({
   onClose,
 }: {
   api: Api;
+  events: Events;
   epoch: string;
   projects: Project[];
   projectId: string;
@@ -71,6 +87,11 @@ export function AutomationsPanel({
     (lastDetail?.epoch === epoch && lastDetail.record.id === selected
       ? lastDetail.record
       : undefined);
+  const refreshSchedule = useCallback(() => {
+    list.refresh();
+    if (selected) detail.refresh();
+  }, [list.refresh, detail.refresh, selected]);
+  useAutomationChanges(events, enabled && visible && !editing, refreshSchedule);
   const refresh = useCallback(() => {
     list.refresh();
     health.refresh();
@@ -183,6 +204,7 @@ export function AutomationsPanel({
                 <AutomationDetail
                   key={`${currentDetail.id}:${epoch}`}
                   api={api}
+                  events={events}
                   record={currentDetail}
                   epoch={epoch}
                   enabled={enabled}
@@ -209,6 +231,7 @@ export function AutomationsPanel({
 }
 export function AutomationDetail({
   api,
+  events,
   record,
   epoch,
   enabled,
@@ -219,6 +242,7 @@ export function AutomationDetail({
   onOpenThread,
 }: {
   api: Api;
+  events: Events;
   record: Automation;
   epoch: string;
   enabled: boolean;
@@ -235,6 +259,7 @@ export function AutomationDetail({
     [confirmed, setConfirmed] = useState(false),
     [reading, setReading] = useState(false),
     [error, setError] = useState('');
+  useAutomationChanges(events, enabled && visible, runs.refresh);
   const changed = useCallback(() => {
     void runs.refresh();
     onChanged();

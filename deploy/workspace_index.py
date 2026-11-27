@@ -97,6 +97,15 @@ def replace_view(environment, data):
         target.write_bytes(data)
 
 
+def tracked_executable(entries, name):
+    # Resolving a conflict replaces its higher-stage entries with one normal entry.
+    for stage in ("0", "2", "1", "3"):
+        entry = entries.get((name, stage))
+        if entry:
+            return entry[0] == "100755"
+    return False
+
+
 def prepare(workspace, action, params, paths, current, original):
     root = workspace.root
     selected = [item["path"] for item in params["files"]] if action == "git/stage" else params.get("paths", [])
@@ -133,8 +142,7 @@ def prepare(workspace, action, params, paths, current, original):
                 require(total <= MAX_SELECTED, "Selected staging files exceed byte budget", "budget")
                 oid = git(root, ["hash-object", "-w", "--stdin"], environment=environment, descriptors=descriptors, input_bytes=data, input_limit=MAX_FILE).decode().strip()
                 require(OID.fullmatch(oid), "Invalid staged object", "git_unavailable")
-                tracked_mode = old_entries.get((name, "0"), (None,))[0]
-                executable = bool(info.st_mode & 0o100) if respect_mode else tracked_mode == "100755"
+                executable = bool(info.st_mode & 0o100) if respect_mode else tracked_executable(old_entries, name)
                 mode = "100755" if executable else "100644"
             else:
                 if current["head"] is None: continue

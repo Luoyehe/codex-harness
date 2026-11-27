@@ -7,6 +7,7 @@ import { RuntimeService, type RuntimeConfig } from '../../src/runtime/service.js
 import { LiveThreadList } from '../../src/runtime/live-thread-list.js';
 import type { NativeRpc, NativeOptions } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
+import { validateValue } from '../../web/lib/prompt-validation';
 import { validateOfficial, validatePrompt } from '../../src/runtime/validation.js';
 import { Ledger } from '../../src/core/ledger.js';
 import { Dispatcher } from '../../src/gateway/dispatch.js';
@@ -342,6 +343,33 @@ describe('RuntimeService admission and recovery', () => {
     expect(await service.call('thread/history', { threadId: 'stored' }, context)).toMatchObject({ complete: true });
     return { ...fixture, response };
   }
+
+  test.each(['legacy', 'known-source', 'tagged', 'duplicate'] as const)('old directory model resume validates all pages (%s)', async kind => {
+    const { service, native, response } = await resumable();
+    const original = native.call.bind(native);
+    native.call = async (method, params, options) => {
+      const result = await original(method, params, options);
+      if (method === 'thread/read' && kind !== 'known-source') {
+        const { modelProvider: _provider, ...legacy } = response.thread;
+        return { thread: legacy };
+      }
+      if (method === 'account/read') return { requiresOpenaiAuth: false };
+      if (method === 'model/list') return object(params).cursor
+        ? { data: kind === 'duplicate' ? [{ id: 'duplicate', model: 'fixture' }] : kind === 'tagged' ? [{ id: 'other', providerId: 'known' }] : [], nextCursor: null }
+        : { data: [{ id: 'fixture' }], nextCursor: 'page-2' };
+      return result;
+    };
+    const request = service.call('thread/resume', { threadId: 'stored', options: { model: 'fixture' } }, context);
+    if (kind === 'tagged' || kind === 'duplicate') {
+      await expect(request).rejects.toMatchObject({ code: 'provider_unavailable', delivery: 'not_sent' });
+      expect(native.calls.some(row => row.method === 'thread/resume')).toBe(false);
+    } else {
+      await expect(request).resolves.toMatchObject({ model: 'fixture' });
+      const sent = object(native.calls.find(row => row.method === 'thread/resume')!.params);
+      expect(sent.modelProvider).toBe(kind === 'known-source' ? 'fixture' : undefined);
+    }
+    expect(native.calls.filter(row => row.method === 'model/list')).toHaveLength(2);
+  });
 
   test('a legal large resume snapshot is retained without poisoning a positive acknowledgement', async () => {
     const { service, native, response } = await resumable(4000);
@@ -846,6 +874,37 @@ describe('official approval responses and form semantics', () => {
     expect(() => validatePrompt('mcpServer/elicitation/request', params, { action: 'accept', content: { empty: '', flag: false, count: 0, values: [] }, _meta: null })).not.toThrow();
     expect(() => validatePrompt('mcpServer/elicitation/request', params, { action: 'accept', content: { flag: false, count: 0, values: [] }, _meta: null })).toThrow(DeliveryError);
   });
+  test.each(['https://json-schema.org/draft/2019-09/schema#', 'https://json-schema.org/draft/2020-12/schema'])('MCP form numeric steps and nested dialects (%s)', $schema => {
+    const schema = { $schema, type: 'object', properties: { qty: { type: 'number', multipleOf: 0.1 },
+      choice: { type: 'string', oneOf: [{ const: 'ok', $schema: 'http://json-schema.org/draft-07/schema#' }] } } };
+    const submit = (requestedSchema: JsonValue, qty: number) => validatePrompt('mcpServer/elicitation/request',
+      { mode: 'form', requestedSchema }, { action: 'accept', content: { qty, choice: 'ok' }, _meta: null });
+    expect(() => submit(schema, 0.3)).not.toThrow();
+    expect(() => submit(schema, 0.35)).toThrow(/multiple/);
+    expect(() => submit({ ...schema, properties: { qty: { type: 'number', multipleOf: 0 } } }, 1)).toThrow(/Invalid form multipleOf/);
+    expect(() => submit({ ...schema, properties: { qty: { type: 'number', $schema: 'urn:future' } } }, 1)).toThrow(/dialect/);
+    expect(schema.properties.choice.oneOf[0]?.$schema).toBe('http://json-schema.org/draft-07/schema#');
+  });
+
+  test.each(['http://json-schema.org/draft-07/schema#', 'https://json-schema.org/draft/2019-09/schema', 'https://json-schema.org/draft/2020-12/schema'])(
+    'browser and submitted form use the same exact decimal steps (%s)', $schema => {
+      const cases: [number, number, boolean][] = [
+        [1, 1e-13, false], [1e12, 0.1, false], [1, 1.0000000000000002, false],
+        [0.1, -0.3, true], [0.1, 0.30000000000000004, false],
+        [3e-323, 1e308, false], [2e-323, 1e308, true], [5e-324, 1e-323, true],
+        [3e200, 9e200, true], [1e200, -0, true],
+      ];
+      for (const [multipleOf, qty, expected] of cases) {
+        const requestedSchema = { type: 'object', $schema, required: ['qty'], properties: { qty: { type: 'number', multipleOf } } };
+        expect(validateValue(requestedSchema, { qty }).length === 0).toBe(expected);
+        const submit = () => validatePrompt('mcpServer/elicitation/request', { mode: 'form', requestedSchema },
+          { action: 'accept', content: { qty }, _meta: null });
+        if (expected) expect(submit).not.toThrow();
+        else expect(submit).toThrow(/multipleOf/);
+      }
+    },
+  );
+
   test('form dialects are checked at each schema node while literal data and names stay intact', () => {
     const draft = 'https://json-schema.org/draft-07/schema#', schema = { type: 'object', $schema: draft,
       properties: { $schema: { type: 'string', const: 'ordinary', $schema: draft }, nested: { type: 'string', $schema: draft } } };

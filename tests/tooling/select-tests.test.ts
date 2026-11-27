@@ -10,6 +10,12 @@ function fixture(): string { const parent = path.resolve('.work/tooling-selectio
 function git(root: string, args: string[]): string { return execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }).trim(); }
 afterEach(() => { vi.unstubAllEnvs(); for (const root of fixtures.splice(0)) rmSync(root, { recursive: true, force: true }); });
 
+test.each(['src/core/ledger.ts', 'src/core/automations.ts'])('selects online and offline journal contracts for %s', file => {
+  const inventory = testInventory(), expected = ['tests/deploy/test_journal_schema.py', 'tests/deploy/root/test_journal_recovery.py'];
+  expect(Object.values(selectTests([file], inventory).groups).flat()).toEqual(expect.arrayContaining(expected));
+  expect(selectTests([file], inventory.filter(name => name !== expected[1])).requiresFullAudit).toContainEqual({ path: expected[1], reason: 'missing-deployment-identity-coverage' });
+});
+
 test('shared transport, media and form changes select their browser, gateway and runtime consumers', () => {
   const inventory = testInventory();
   for (const [file, expected] of [

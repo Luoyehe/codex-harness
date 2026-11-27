@@ -126,7 +126,7 @@ export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, ac
         if (response.ok === true && Object.hasOwn(response, 'result')) { resolve(response.result!); return; }
         const failure = object(response.error);
         if (response.ok !== false || !['not_sent', 'unknown'].includes(String(failure.delivery))) throw new Error('Invalid workspace response');
-        reject(new DeliveryError(string(failure.code, 'workspace error code', 128), string(failure.message, 'workspace error message'), failure.delivery as 'not_sent' | 'unknown'));
+        reject(new DeliveryError(string(failure.code, 'workspace error code', 128), string(failure.message, 'workspace error message', 8192), failure.delivery as 'not_sent' | 'unknown'));
       } catch {
         reject(new DeliveryError('workspace_unavailable', 'Native workspace helper did not return a complete result; query the original operation', mutation && dispatched ? 'unknown' : 'not_sent'));
       }

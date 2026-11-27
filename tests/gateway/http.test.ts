@@ -274,6 +274,22 @@ describe('real HTTP and WebSocket authorization boundary', () => {
       expect(Buffer.concat(chunks).toString()).toContain('401 Unauthorized'); expect(f.forwarded).toBe(0);
     } finally { socket?.destroy(); await f.close(); }
   });
+  it.each([
+    ['https:', true, 'max-age=63072000; includeSubDomains'], ['https:', 'max-age=180', 'max-age=180'],
+    ['https:', false, null], ['http:', true, null],
+  ] as const)('serves the configured HSTS policy for origin %s and setting %s', async (protocol, policy, expected) => {
+    const auth = new Authentication(randomBytes(32).toString('hex'), protocol + '//127.0.0.1:0');
+    const ledger = new Ledger(':memory:'), worker = { connected: false, call: async () => ({}) };
+    const dispatcher = new Dispatcher(ledger, worker, { call: async () => ({}) });
+    const build = (setting: boolean | string) => new GatewayServer(auth, dispatcher, worker as unknown as WorkerClient, undefined, { strictTransportSecurity: setting });
+    expect(() => build('max-age=180\r\n')).toThrow(/Invalid HSTS/);
+    const server = build(policy);
+    try {
+      const port = await server.listen(0); auth.origin.port = String(port);
+      const response = await fetch('http://127.0.0.1:' + port + '/api/account/status');
+      expect(response.headers.get('strict-transport-security')).toBe(expected);
+    } finally { await server.close(); auth.close(); ledger.close(); }
+  });
   it('permits the application document to request microphone access while denying unrelated devices', async () => {
     const f = await fixture(Date.now, false, 'web');
     try {

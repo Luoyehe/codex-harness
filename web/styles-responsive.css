@@ -156,7 +156,7 @@
     font-size: 25px;
   }
   .welcome > p {
-    font-size: 11px;
+    font-size: 12px;
     max-width: 280px;
     margin-bottom: 23px;
   }
@@ -168,7 +168,7 @@
     border-radius: 10px;
   }
   .suggestions strong {
-    font-size: 11px;
+    font-size: 12px;
   }
   .suggestions small {
     font-size: 11px;
@@ -323,7 +323,7 @@
     margin-bottom: 10px;
   }
   .welcome > p {
-    font-size: 10px;
+    font-size: 12px;
     margin-bottom: 17px;
   }
   .suggestions {
@@ -334,7 +334,7 @@
     gap: 6px;
   }
   .suggestions strong {
-    font-size: 10px;
+    font-size: 12px;
   }
   .suggestion-icon {
     width: 22px;
@@ -367,7 +367,7 @@
     overflow: auto;
   }
   .composer-note {
-    font-size: 8px;
+    font-size: 11px;
   }
   .dialog,
   .dialog.wide {
@@ -380,7 +380,7 @@
     flex-direction: column;
   }
   .connection {
-    font-size: 8px;
+    font-size: 11px;
   }
   .tool-caption {
     max-width: 100px;
@@ -432,4 +432,10 @@
   .sidebar-section {
     padding-top: 2px;
   }
+}
+
+.terminal-mobile-keys { display: none; }
+@media (max-width: 760px), (any-pointer: coarse) {
+  .terminal-mobile-keys { display: flex; gap: 8px; }
+  .terminal-mobile-keys button { min-width: 44px; min-height: 44px; }
 }

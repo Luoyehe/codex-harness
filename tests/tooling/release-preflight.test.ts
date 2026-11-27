@@ -42,7 +42,7 @@ function fixture() {
 }
 afterEach(() => { for (const base of fixtures.splice(0)) { if (!base.startsWith(realpathSync(fixtureRoot) + path.sep)) throw Error('Unsafe fixture cleanup'); rmSync(base, { recursive: true, force: true }); } });
 
-test('preflight binds two actual plans and reusable build outputs without executing tests', () => {
+test('preflight binds main, PR and merge queue plans and reusable build outputs without executing tests', () => {
   const { base, files, source, options } = fixture();
   expect(() => checkBuild(base, source, toolPins(base), options.head)).toThrow(/build evidence is missing/);
   put(base, 'dist/stale.js', 'Stale artifact must not survive a rebuild.');
@@ -52,6 +52,8 @@ test('preflight binds two actual plans and reusable build outputs without execut
   expect(result).toMatchObject({ status: 'ready-for-ci', testsExecuted: false, releaseGatePassed: false, head: options.head });
   expect(result.plans.push).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase, selection: { status: 'selected' } });
   expect(result.plans.pullRequest).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase, selection: { status: 'selected' } });
+  expect(result.triggers.mergeGroup).toBe(true);
+  expect(result.plans.mergeGroup).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase });
   expect(result.plans.pullRequest.targets).toEqual(['linux', 'windows', 'linux-root']);
   expect(existsSync(path.join(base, 'dist/stale.js'))).toBe(false);
   const calls = readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8');
@@ -127,6 +129,10 @@ test('tool pin drift and a release without full-tests authorization are explicit
   const name = '.github/workflows/security.yml'; put(base, name, readFileSync(path.join(base, name), 'utf8').replaceAll('24.22.1', '24.15.0'));
   expect(() => toolPins(base)).toThrow(/Workflow Node pin disagrees: security/);
   put(base, name, readFileSync(path.join(base, name), 'utf8').replaceAll('24.15.0', '24.22.1'));
+  const security = readFileSync(path.join(base, name), 'utf8');
+  put(base, name, security.replace('  merge_group:', '  merge_queue:'));
+  expect(() => toolPins(base)).toThrow(/verify merge queue/);
+  put(base, name, security);
   const affected = '.github/workflows/affected.yml'; put(base, affected, readFileSync(path.join(base, affected), 'utf8').replace('branches: [main]', "branches: ['**']"));
   expect(() => toolPins(base)).toThrow(/workflow triggers differ/);
 });

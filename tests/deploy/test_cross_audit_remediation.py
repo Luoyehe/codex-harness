@@ -244,11 +244,15 @@ class CrossAuditWorktrees(unittest.TestCase):
         self.assertEqual(read['path'], current['path'])
         self.assertEqual(read['binding'], current['binding'])
         self.assertEqual(read['mutationUnavailable']['code'], 'unsafe_path')
+        self.assertIn('node_modules/bin', read['mutationUnavailable']['message'])
+        self.assertNotIn(str(outside), read['mutationUnavailable']['message'])
         with self.assertRaises(DeployError) as attach_error:
             self.fixture.call('worktree/attach', {
                 'worktreeId': current['worktreeId'], 'expectedRevision': current['revision'],
             }, current['binding'])
+        from deploy.workspace import failure
         self.assertEqual(attach_error.exception.code, 'unsafe_path')
+        self.assertIn('node_modules/bin', failure(attach_error.exception, dispatched=True)['error']['message'])
         with self.assertRaises(DeployError) as archive_error:
             self.fixture.move('archive', current)
         self.assertEqual(archive_error.exception.code, 'unsafe_path')

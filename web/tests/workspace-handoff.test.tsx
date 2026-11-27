@@ -88,7 +88,7 @@ vi.mock('../components/Sidebar', () => ({ Sidebar: (props: ComponentProps<typeof
 // Only presentational controls and unrelated resource readers are substituted.
 vi.mock('../components/Composer', () => ({ Composer: (props: ComponentProps<typeof Composer>) => {
   controls.composer = props;
-  return <textarea aria-label="Draft" value={props.value} onChange={event => props.onChange(event.target.value)} />;
+  return <textarea id="message-input" aria-label="Draft" value={props.value} onChange={event => props.onChange(event.target.value)} />;
 } }));
 
 beforeEach(() => {
@@ -414,3 +414,27 @@ it('wires a certified history window to scoped reads, submission and cleanup sep
   await waitFor(() => expect(controls.settings?.threadReady).toBe(true));
   expect(controls.settings?.historyComplete).toBe(false);
 });
+
+it.each([[1200, 0, true, true], [1200, 1, true, false], [600, 0, true, false], [1200, 0, false, false]] as const)(
+  'restores composer focus only on intentional desktop return (width %d, touches %d, fine %s)', async (width, touches, fine, shouldFocus) => {
+    vi.stubGlobal('innerWidth', width);
+    vi.stubGlobal('matchMedia', () => ({ matches: fine }));
+    const old = Object.getOwnPropertyDescriptor(navigator, 'maxTouchPoints');
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: touches, configurable: true });
+    try {
+      render(<Workspace api={new Api()} logout={async () => {}} active />);
+      const input = await screen.findByLabelText('Draft');
+      expect(document.activeElement).not.toBe(input);
+      fireEvent.click(screen.getByRole('button', { name: '打开项目文件' }));
+      expect(document.activeElement).not.toBe(input);
+      fireEvent.click(screen.getByRole('button', { name: /返回聊天/ }));
+      expect(document.activeElement === input).toBe(shouldFocus);
+      fireEvent.click(screen.getByRole('button', { name: '打开项目文件' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Open other thread' }));
+      expect(document.activeElement).not.toBe(input);
+    } finally {
+      if (old) Object.defineProperty(navigator, 'maxTouchPoints', old);
+      else Reflect.deleteProperty(navigator, 'maxTouchPoints');
+    }
+  },
+);

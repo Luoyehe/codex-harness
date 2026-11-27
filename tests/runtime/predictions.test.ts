@@ -53,9 +53,11 @@ test('request preparation reserves the thread and final context/owner changes re
 });
 
 test('pending prediction blocks global maintenance but explicit new input invalidates it and late results never restore text', async () => {
-  const f = setup(); await f.history(); const result = object(await f.request()); expect(f.activity().pendingStarts).toBe(1);
+  vi.useFakeTimers(); const f = setup(); await f.history(); const result = object(await f.request()); expect(f.activity().pendingStarts).toBe(1);
   await expect(f.service.call('account/logout', {}, owner)).rejects.toMatchObject({ code: 'activity_busy' });
   await f.service.call('turn/start', { threadId: 'thread', text: 'Explicit next input' }, owner); expect(await f.read(result.predictionId!)).toMatchObject({ state: 'stale' });
+  expect(f.activity().pendingStarts).toBe(0); await vi.advanceTimersByTimeAsync(61000);
+  expect(f.activity()).toMatchObject({ pendingStarts: 0, unknown: false, globalUnknown: false, unknownThreads: [] });
   f.native.update({ type: 'completed', text: 'Never restore this old draft' }); const read = object(await f.read(result.predictionId!)); expect(read.state).toBe('stale'); expect(read).not.toHaveProperty('result'); expect(f.activity().pendingStarts).toBe(0);
 });
 
@@ -70,6 +72,9 @@ test('disconnected source ownership is never reassigned, unknown requests are ne
 test('timeout and malformed terminal notifications retain a recovery requirement; completed results expire without source reuse', async () => {
   vi.useFakeTimers(); const f = setup(); await f.history(); const result = object(await f.request()); await vi.advanceTimersByTimeAsync(60001); expect(await f.read(result.predictionId!)).toMatchObject({ state: 'unknown' }); expect(f.activity().unknown).toBe(true);
   const second = setup(); await second.history(); const bad = object(await second.request()); second.native.update({ type: 'completed', text: 'x'.repeat(17000) }); expect(await second.read(bad.predictionId!)).toMatchObject({ state: 'unknown' }); expect(second.activity().unknown).toBe(true);
+  second.native.update({ type: 'completed', text: 'matched result' });
+  expect(second.activity()).toMatchObject({ unknown: false, unknownThreads: [] });
+  expect(await second.read(bad.predictionId!)).toMatchObject({ state: 'completed', result: { text: 'matched result' } });
   const third = setup(); await third.history(); const ok = object(await third.request()); third.native.update({ type: 'completed', text: null }); expect(await third.read(ok.predictionId!)).toMatchObject({ state: 'completed', result: { text: null } }); await vi.advanceTimersByTimeAsync(600001); await expect(third.read(ok.predictionId!)).rejects.toMatchObject({ code: 'not_found' }); await expect(third.request()).rejects.toMatchObject({ code: 'prediction_already_requested' });
 });
 
@@ -94,3 +99,44 @@ test('more than 2048 completed prediction sources expire in one epoch while thei
     expect(object(object(f.service.status()).predictionBudget).retained).toBe(0);
   } finally { vi.restoreAllMocks(); }
 }, 20000);
+
+test.each(['late', 'thread/closed', 'thread/deleted'] as const)('a scoped prediction timeout clears on %s without leaking an obsolete result', async resolution => {
+  vi.useFakeTimers(); const f = setup(); await f.history(); const result = object(await f.request());
+  await vi.advanceTimersByTimeAsync(60001);
+  expect(f.activity()).toMatchObject({ unknown: true, globalUnknown: false, unknownThreads: ['thread'], pendingStarts: 0 });
+  await expect(f.service.call('account/logout', {}, owner)).rejects.toMatchObject({ code: 'activity_busy' });
+  await expect(f.service.call('turn/start', { threadId: 'thread', text: 'wait' }, owner)).rejects.toMatchObject({ code: 'activity_unknown' });
+  await f.service.call('thread/history', { threadId: 'other' }, owner);
+  await expect(f.service.call('turn/start', { threadId: 'other', text: 'continue' }, owner)).resolves.toHaveProperty('turn');
+  if (resolution === 'late') {
+    await f.service.clientDisconnected(owner.clientId, owner.eventChannelId); // Revocation cannot erase unresolved evidence.
+    await vi.advanceTimersByTimeAsync(601000);
+    expect(f.activity().unknown).toBe(true);
+    f.native.update({ type: 'completed', text: 'expired suggestion' });
+    await expect(f.read(result.predictionId!)).rejects.toMatchObject({ code: 'not_found' });
+  } else {
+    f.native.emit('notification', { method: resolution, params: { threadId: 'thread' } });
+    f.native.update({ type: 'completed', text: 'expired suggestion' });
+    expect(await f.read(result.predictionId!)).toMatchObject({ state: 'stale' });
+  }
+  expect(f.activity()).toMatchObject({ unknown: false, unknownThreads: [] });
+  await f.history();
+  if (resolution === 'late') {
+    await expect(f.service.call('turn/start', { threadId: 'thread', text: 'resolved' }, owner)).resolves.toHaveProperty('turn');
+  } else {
+    // A closed or deleted session retains its independent loading requirement.
+    await expect(f.service.call('turn/start', { threadId: 'thread', text: 'resolved' }, owner)).rejects.toMatchObject({ code: 'session_not_loaded' });
+  }
+});
+
+test('a source revision change or owner disconnect releases the pending slot even without a result or another read', async () => {
+  vi.useFakeTimers();
+  for (const reason of ['revision', 'disconnect']) {
+    const f = setup(); await f.history(); await f.request();
+    if (reason === 'disconnect') await f.service.clientDisconnected(owner.clientId, owner.eventChannelId);
+    else f.native.emit('notification', { method: 'thread/status/changed', params: { threadId: 'thread', status: { type: 'idle' } } });
+    expect(f.activity().pendingStarts).toBe(0);
+    await vi.advanceTimersByTimeAsync(61000);
+    expect(f.activity()).toMatchObject({ pendingStarts: 0, unknown: false, unknownThreads: [] });
+  }
+});

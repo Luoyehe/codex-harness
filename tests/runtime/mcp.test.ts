@@ -97,6 +97,7 @@ test('resources must match fresh discovered URIs, templates or an observed nativ
 });
 test('subscriptions route to their exact connection, block configuration, and disconnect waits for stop', async () => {
   const { native, service, events } = await setup(); const stream = object(await service.call('mcp/stream/start', streamParams, context));
+  expect(native.calls.filter(call => call.method === 'mcpServerStatus/list').map(call => object(call.params).detail)).toEqual(['toolsAndAuthOnly']);
   expect(object(object(service.status()).activity).subscriptions).toBe(1);
   await expect(service.call('mcp/reload', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
   await expect(service.call('mcp/stream/stop', { subscriptionId: stream.subscriptionId! }, { ...context, eventChannelId: 'other' })).rejects.toMatchObject({ code: 'not_found' });

@@ -25,7 +25,7 @@ export class Worktrees {
   protectRemoval(id: string): void {
     if (this.db.prepare("SELECT id FROM worktree_projects WHERE (origin_id=? OR id=?) AND phase<>'retired' LIMIT 1").get(id, id)) throw new HarnessError('worktree_registered', '此项目关联受管工作树；请先从工作树面板退役，相关文件将保留。');
   }
-  apply(method: string, originId: string, operationId: string, input: JsonValue): void {
+  apply(method: string, originId: string, operationId: string, input: JsonValue): boolean {
     object(input); const id = uuid(input.worktreeId); const creating = method === 'workspace/worktree/create';
     if (creating && id !== operationId) throw new HarnessError('worktree_identity', '工作树创建编号与原操作不一致。', 'unknown');
     const origin = this.db.prepare('SELECT name FROM projects WHERE id=?').get(originId);
@@ -36,7 +36,7 @@ export class Worktrees {
     const generation = input.worktreeVersion;
     if (typeof generation !== 'number' || !Number.isSafeInteger(generation) || generation < 1) throw new HarnessError('worktree_identity', '工作树状态缺少可信版本。', 'unknown');
     // A delayed positive proof can resolve its own receipt without rolling back later state.
-    if (prior && Number(prior.generation) >= generation) return;
+    if (prior && Number(prior.generation) >= generation) return false;
     const activePath = prior ? String(prior.active_path) : validText(input.path, 4096);
     if (!activePath.startsWith('/') || path.posix.normalize(activePath) !== activePath || path.posix.basename(activePath) !== id || path.posix.basename(path.posix.dirname(activePath)) !== 'worktrees') throw new HarnessError('worktree_identity', '受管工作树目录无效。', 'unknown');
     const phase = input.phase; const expected = phase === 'active' ? activePath : phase === 'retired' ? path.posix.join(path.posix.dirname(path.posix.dirname(activePath)), 'worktree-state', 'retired', id, 'checkout') : path.posix.join(path.posix.dirname(path.posix.dirname(activePath)), 'worktree-state', id, 'checkout');
@@ -51,5 +51,6 @@ export class Worktrees {
     this.db.prepare(`INSERT INTO worktree_projects(id,origin_id,active_path,name,phase,head,revision,generation,updated_at) VALUES(?,?,?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET phase=excluded.phase,head=excluded.head,revision=excluded.revision,generation=excluded.generation,updated_at=excluded.updated_at`)
       .run(id, originId, activePath, name, String(phase), validText(input.head, 64), validText(input.revision, 64), generation, this.now());
+    return phase !== 'active';
   }
 }

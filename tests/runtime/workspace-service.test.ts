@@ -171,3 +171,15 @@ test('an admitted worktree write retains its verified repository identity throug
   } finally { release(); await first; }
   await expect(leases.run('/linked', true, async () => 'ok')).resolves.toBe('ok');
 });
+
+test('a Git write and normal work in a standalone directory are admitted in either order', async () => {
+  const { RepositoryLeases } = await import('../../src/runtime/repository-leases.js');
+  const plain = '/standalone', root = '/repository', nestedLinked = '/other-checkout/child';
+  const identity = async (cwd: string) => cwd === plain ? 'ordinary-directory-id' : 'git-common-id';
+  const leases = new RepositoryLeases(identity, () => [plain]);
+  await leases.run(root, true, async check => {
+    check();
+    await expect(leases.run(plain, false, async () => 'started')).resolves.toBe('started');
+    await expect(leases.run(nestedLinked, false, async () => 'started')).rejects.toMatchObject({ code: 'activity_busy' });
+  });
+});

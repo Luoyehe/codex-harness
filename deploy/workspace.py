@@ -379,9 +379,9 @@ class Workspace:
 
 
 def failure(exc: Exception, *, dispatched: bool) -> dict:
-    from .workspace_errors import FALLBACK, MESSAGES, error_code
+    from .workspace_errors import display_fields, error_code
     code = error_code(exc)
-    return {"ok": False, "error": {"code": code, "message": MESSAGES.get(code, FALLBACK),
+    return {"ok": False, "error": {"code": code, **display_fields(code, getattr(exc, "worktree_path", None)),
                                    "delivery": getattr(exc, "delivery", "unknown" if dispatched else "not_sent")}}
 
 

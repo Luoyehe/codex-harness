@@ -130,7 +130,7 @@ test('restore proof binds both the source operation and the new mutation identit
   for (const changed of [{}, { path: 'other' }, { restoredFromOperationId: randomUUID() }, { recoveryOperationId: randomUUID() }]) {
     const { home, context } = fixture(); const witness = new WorkspaceWitness(home); const source = randomUUID();
     const request = { version: 1, root: '/project', action: 'recovery/restore', params: { recoveryOperationId: source, slot: 'before', path: 'restored', sourceRevision: 'a'.repeat(64), expectedRevision: null }, operationId: context.operationId };
-    const result = { path: 'restored', kind: 'file', revision: 'b'.repeat(64), bytes: 1, restoredFromOperationId: source, recoveryOperationId: context.operationId };
+    const result = { path: 'restored', kind: 'file', revision: 'b'.repeat(64), bytes: 8 * 1024 * 1024, restoredFromOperationId: source, recoveryOperationId: context.operationId };
     try {
       witness.reserve('workspace/recovery/restore', request, context);
       if (!Object.keys(changed).length) expect(witness.complete('workspace/recovery/restore', request, result, context)).toEqual(result);

@@ -1,4 +1,7 @@
 """Fixed-identity worktree lifecycle; local Git only, no network or root paths."""
+import hashlib
+import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -8,11 +11,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from deploy.common import DeployError
+from deploy.common import DeployError, canonical
 from deploy.workspace import Workspace, WRITES, validate
 from deploy.workspace_git import GIT_ENV
-from deploy.workspace_paths import Root
-from deploy.workspace_worktrees import MAX_TREE_ENTRIES, checkout_data, ref, validate_binding
+from deploy.workspace_paths import Root, revision
+from deploy.workspace_worktrees import MAX_TREE_ENTRIES, checkout_data, tree, ref, validate_binding
 
 
 class WorktreeValidationTests(unittest.TestCase):
@@ -46,6 +49,34 @@ class WorktreeValidationTests(unittest.TestCase):
         with self.checkout_fixture([path]):
             files, _ = checkout_data(SimpleNamespace(root=None), "a" * 40)
         self.assertEqual(files[0][0], path)
+
+    @unittest.skipIf(os.name == "nt", "POSIX file descriptor traversal")
+    def test_streamed_revision_matches_saved_v1_manifest_and_reports_blocked_relative_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve(); checkout = base / "checkout"; checkout.mkdir()
+            (checkout / ".git").write_text("pointer")
+            (base / "index").write_bytes(b"fixture index")
+            folder = checkout / "dir"; folder.mkdir()
+            file = folder / "leaf"; file.write_bytes(b"content")
+            link = checkout / "link"; link.symlink_to("dir/leaf")
+            root = Root(str(checkout), [])
+            self.addCleanup(root.close)
+            metadata = os.open(base, os.O_DIRECTORY); self.addCleanup(os.close, metadata)
+            entries = [
+                ["dir", "directory", stat.S_IMODE(folder.stat().st_mode), revision(folder.stat())],
+                ["dir/leaf", "file", stat.S_IMODE(file.stat().st_mode), revision(file.stat(), file.read_bytes())],
+                ["link", "symlink", "dir/leaf", revision(link.lstat())],
+            ]
+            head = "1" * 40
+            saved = canonical({"entries": entries, "head": head, "index": hashlib.sha256(b"fixture index").hexdigest()})
+            self.assertEqual(tree(root, metadata, head), hashlib.sha256(saved).hexdigest())
+            link.unlink(); link.symlink_to("../index")
+            with self.assertRaisesRegex(DeployError, "'link'") as failure:
+                tree(root, metadata, head)
+            self.assertEqual(failure.exception.code, "unsafe_path")
+            self.assertNotIn(str(base), str(failure.exception))
+            with patch("deploy.workspace_worktrees.MAX_TREE_ENTRIES", 2), self.assertRaisesRegex(DeployError, "dir/leaf"):
+                tree(root, metadata, head)
 
     def test_refs_cannot_be_options_revspec_programs_or_arbitrary_paths(self):
         for value in ("HEAD", "refs/heads/main", "refs/remotes/origin/feature", "a" * 40):

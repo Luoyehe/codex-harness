@@ -17,13 +17,20 @@ function ids(value: JsonValue | undefined, max: number): string[] { if (!Array.i
 function page(params: JsonObject): JsonObject { const p: JsonObject = { ...params, limit: params.limit == null ? 50 : integer(params.limit, 'limit', 1, 100) }; if (p.cursor != null) string(p.cursor, 'cursor', LIMITS.cursorBytes, true); return p; }
 function pageResult(schema: string, value: JsonValue, cursor: JsonValue | undefined): JsonObject { const result = checked(schema, value); if (!Array.isArray(result.data) || result.data.length > 100) throw new DeliveryError('invalid_native_response', 'Native page exceeded its record budget'); if (result.nextCursor !== null) { string(result.nextCursor, 'cursor', LIMITS.cursorBytes, true); if (result.nextCursor === cursor) throw new DeliveryError('cursor_loop', 'Native organization cursor did not advance'); } return result; }
 
+// Classify only the rejected lookup, before diagnostic redaction can alter its ID.
+function missingOwner(code: number, message: string, threadId: string): boolean {
+  if (![-32600, -32602, -32002, -32004].includes(code)) return false;
+  const match = /^(?:thread (?:not loaded|not found|does not exist)|unknown thread|no (?:archived )?(?:rollout|thread) found(?: for thread(?: id)?)?)(?:(?::\s*|\s+)(.+))?$/i.exec(message);
+  return !!match && (match[1] === undefined || match[1] === threadId);
+}
+
 /** Native project/section identities organize CLI metadata; they never grant filesystem authority. */
 export class Organization {
   private writing = false;
   constructor(private host: Host) {}
   private async request(method: string, p: JsonObject, schema: string, responseSchema: string): Promise<JsonObject> { validateOfficial(schema, p); return checked(responseSchema, await this.host.native(method, p)); }
   private async project(id: string): Promise<JsonObject> { const result = await this.request('project/read', { projectId: id }, 'ProjectReadParams', 'ProjectReadResponse'); if (object(result.project).id !== id) throw new DeliveryError('invalid_native_response', 'Native project identity mismatch'); return object(result.project); }
-  private async thread(id: string): Promise<JsonObject> { const result = object(await this.host.native('thread/read', { threadId: id })); const thread = object(result.thread); if (thread.id !== id) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); string(thread.cwd, 'thread cwd'); return thread; }
+  private async thread(id: string, options?: NativeOptions): Promise<JsonObject> { const result = object(await this.host.native('thread/read', { threadId: id }, options)); const thread = object(result.thread); if (thread.id !== id) throw new DeliveryError('invalid_native_response', 'Thread identity mismatch'); string(thread.cwd, 'thread cwd'); return thread; }
   private roots(value: JsonValue): JsonValue[] { if (!Array.isArray(value) || !value.length || value.length > 32) throw new DeliveryError('invalid_params', 'Select between one and 32 registered project roots'); const roots = value.map(item => { const root = object(item); onlyKeys(root, ['path']); return { path: this.host.cwd(root.path!) }; }); if (roots.some((root, i) => roots.slice(0, i).some(other => samePath(root.path, other.path)))) throw new DeliveryError('invalid_params', 'Project roots must be distinct'); return roots; }
   private metadata(value: JsonValue): void { const fields = object(value, 'metadata'); if (Object.keys(fields).length > 64) throw new DeliveryError('capacity', 'Project metadata exceeds its field budget'); for (const [key, item] of Object.entries(fields)) { string(key, 'metadata key', 256); string(item, 'metadata value', 4096, true); } jsonBytes(fields, 64 * 1024); }
   async call(method: string, params: JsonObject, context: CallContext): Promise<JsonValue> {
@@ -41,9 +48,15 @@ export class Organization {
       const entries = result.data as JsonValue[];
       for (let offset = 0; offset < entries.length; offset += 4) {
         const batch = await Promise.all(entries.slice(offset, offset + 4).map(async item => {
-          const owner = object(item);
-          try { const thread = await this.thread(string(owner.threadId, 'threadId')); return samePath(String(thread.cwd), cwd) ? owner : null; }
-          catch (error) { if (error instanceof DeliveryError && error.delivery === 'not_sent' && (error.code === 'not_found' || error.code === 'native_error' && error.data && typeof error.data === 'object' && !Array.isArray(error.data) && error.data.code === -32600 && error.message === 'thread not loaded: ' + owner.threadId)) { listChanged = true; return null; } throw error; }
+          const owner = object(item), id = string(owner.threadId, 'threadId');
+          try {
+            const thread = await this.thread(id, { classifyRejection: (code, message) => missingOwner(code, message, id) ? 'not_found' : undefined });
+            return samePath(String(thread.cwd), cwd) ? owner : null;
+          } catch (error) {
+            if (!(error instanceof DeliveryError && error.code === 'not_found' && error.delivery === 'not_sent')) throw error;
+            listChanged = true;
+            return null;
+          }
         }));
         data.push(...batch.filter((item): item is JsonObject => item !== null));
       }

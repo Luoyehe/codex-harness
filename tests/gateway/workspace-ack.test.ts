@@ -82,6 +82,31 @@ test('opportunistic cleanup is bounded, throttled and resumes beyond unmatched f
   await vi.waitFor(() => expect(f.proofs.size).toBe(8));
 });
 
+test.each([false, true])('preserves large restore receipts without repeating the write (lost reply: %s)', async lost => {
+  const f = setup(), dispatcher = new Dispatcher(f.ledger, f.worker, { async call() { return {}; } });
+  dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });
+  const { id: projectId } = f.ledger.addProject('/restore', 'restore');
+  const operationId = randomUUID(), source = randomUUID(), method = 'workspace/recovery/restore';
+  const params = { projectId, recoveryOperationId: source, slot: 'before', path: 'large.bin', sourceRevision: 'a'.repeat(64), expectedRevision: null };
+  const result = { path: params.path, kind: 'file', revision: params.sourceRevision, bytes: 8 * 1024 * 1024, recoveryOperationId: operationId, restoredFromOperationId: source };
+  const original = f.worker.call.bind(f.worker); let writes = 0;
+  f.worker.call = async (called, p, c) => {
+    if (called !== method) return original(called, p, c);
+    c.beforeWrite?.(); writes++;
+    f.proofs.set(operationId, { operationId, method, projectId, gatewayRequestDigest: c.gatewayRequestDigest!, resultDigest: digest(result), result, state: 'completed' });
+    if (lost) throw new HarnessError('lost', 'lost', 'unknown');
+    return result;
+  };
+  const context = { clientId: 'browser' };
+  const write = dispatcher.call({ method, params, operationId }, context);
+  if (lost) { await expect(write).rejects.toMatchObject({ delivery: 'unknown' }); expect(f.ledger.getMeta('activityUncertain')).toBe('true'); }
+  else await write;
+  expect(await dispatcher.call({ method: 'operation/read', params: { operationId } }, context)).toMatchObject({ state: 'accepted', result });
+  expect(f.ledger.getMeta('activityUncertain')).not.toBe('true');
+  await dispatcher.call({ method, params, operationId }, context);
+  expect(writes).toBe(1); expect(f.proofs.size).toBe(0);
+});
+
 test('dispatcher acknowledges only after settle and positive unknown-operation confirmation', async () => {
   const f = setup(), dispatcher = new Dispatcher(f.ledger, f.worker, { async call() { return {}; } });
   dispatcher.event({ type: 'state', data: { connected: true, activity: { activeThreads: [], pendingStarts: 0, terminals: 0, unknown: false } } });

@@ -653,3 +653,25 @@ it('drops a delayed open for an answered snapshot-only prompt and refreshes afte
   await waitFor(() => expect(view.result.current.prompts).toEqual([next]));
   expect(api.call).toHaveBeenCalledTimes(3);
 });
+
+it.each(['https://json-schema.org/draft/2019-09/schema#', 'https://json-schema.org/draft/2020-12/schema'])(
+  'renders and validates modern MCP forms while a numeric field is edited (%s)', async $schema => {
+    const schema = { $schema, type: 'object', required: ['qty'], properties: {
+      qty: { type: 'number', multipleOf: 0.1 },
+      choice: { type: 'string', oneOf: [{ const: 'ok', $schema: 'http://json-schema.org/draft-07/schema#' }] },
+    } };
+    const answer = vi.fn().mockResolvedValue(undefined);
+    render(<Prompts prompts={[{ promptId: 'f', method: 'mcpServer/elicitation/request',
+      params: { mode: 'form', requestedSchema: schema } }]} onAnswer={answer} />);
+    const qty = screen.getByRole('spinbutton');
+    fireEvent.change(qty, { target: { value: '0.35' } });
+    expect(qty.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(qty.getAttribute('aria-describedby')!)?.textContent).toMatch(/0.1 的整数倍/);
+    fireEvent.change(qty, { target: { value: '0.3' } });
+    expect(qty.getAttribute('aria-invalid')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: '确认' }));
+    await waitFor(() => expect(answer).toHaveBeenCalledWith('f', { action: 'accept', content: { qty: 0.3 }, _meta: null }));
+    expect(schemaSupported({ ...schema, $schema: 'urn:other' })).toBe(false);
+    for (const divisor of [0, -1, Infinity, '1']) expect(schemaSupported({ type: 'number', multipleOf: divisor })).toBe(false);
+  },
+);

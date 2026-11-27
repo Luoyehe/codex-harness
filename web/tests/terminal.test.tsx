@@ -15,6 +15,7 @@ const terminalState = vi.hoisted(() => ({
 }));
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
+    modes = { applicationCursorKeysMode: false };
     rows = 24;
     cols = 80;
     loadAddon() {}
@@ -34,6 +35,7 @@ vi.mock('@xterm/xterm', () => ({
       terminalState.output.push(text);
     }
     focus() { terminalState.focus(); }
+    input(text: string) { terminalState.input(text); }
     onData(fn: (text: string) => void) {
       terminalState.input = fn;
       return { dispose() {} };
@@ -643,4 +645,27 @@ it('requires explicit close after changing terminal program and never auto-stops
   expect(vi.mocked(api.call).mock.calls.some(call => call[0] === 'terminal/write')).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: '关闭终端' }));
   await waitFor(() => expect(api.call).toHaveBeenCalledWith('terminal/close', { terminalId: 'kept' }));
+});
+
+it('tracks the owned PTY program across panel selections and writes shortcut keys to that PTY', async () => {
+  let accept!: (result: { terminalId: string }) => void;
+  const api = terminalApi({ mutate: vi.fn(() => new Promise(resolve => { accept = resolve; })), call: vi.fn().mockResolvedValue({}) });
+  const events = new Events(), onOwnedProgramChange = vi.fn();
+  const panel = (program: 'codex' | 'shell') => <TerminalPanel api={api} events={events} projectId="p" connected epoch="lease"
+    program={program} onOwnedProgramChange={onOwnedProgramChange} />;
+  const view = render(panel('codex'));
+  fireEvent.click(screen.getByRole('button', { name: '启动原生 CLI' }));
+  await screen.findByText('正在确认终端启动…');
+  expect(onOwnedProgramChange).toHaveBeenLastCalledWith(null);
+  await act(async () => accept({ terminalId: 'actual' }));
+  await screen.findByRole('button', { name: '关闭终端' });
+  expect(onOwnedProgramChange).toHaveBeenLastCalledWith('codex');
+  for (const [key, input] of [['Tab', '\t'], ['↑', '\x1b[A'], ['↓', '\x1b[B']]) {
+    fireEvent.click(screen.getByRole('button', { name: key }));
+    await waitFor(() => expect(api.call).toHaveBeenCalledWith('terminal/write', { terminalId: 'actual', text: input }));
+  }
+  view.rerender(panel('shell'));
+  expect(onOwnedProgramChange).toHaveBeenLastCalledWith('codex');
+  fireEvent.click(screen.getByRole('button', { name: '关闭终端' }));
+  await waitFor(() => expect(onOwnedProgramChange).toHaveBeenLastCalledWith(null));
 });

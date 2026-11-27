@@ -133,7 +133,7 @@
 .thread-snippet {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
   white-space: normal;
   max-height: 3em;
@@ -164,7 +164,7 @@
   display: flex;
   gap: 9px;
   align-items: center;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .composer-intent select {
@@ -173,7 +173,7 @@
   max-width: 100%;
 }
 .composer-intent .small {
-  font-size: 10px;
+  font-size: 11px;
 }
 .resume-notice {
   padding: 12px 24px;

@@ -19,6 +19,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const audioFormats: Record<string, string> = { 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/vnd.wave': 'wav', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/mp4': 'm4a', 'audio/m4a': 'm4a', 'audio/x-m4a': 'm4a', 'audio/webm': 'webm', 'audio/ogg': 'ogg' };
 const audioMimes: Record<string, string> = { wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', webm: 'audio/webm', ogg: 'audio/ogg' };
 const mediaSuffixes: Record<string, string> = { ...audioFormats, 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov' };
+// Persisted historical filename variants. New uploads keep their canonical storage names.
+const historicalMediaSuffixes = new Map<string, readonly string[]>([
+  ['image/jpeg', ['jpeg']], ['video/mp4', ['m4v']], ['video/x-m4v', ['m4v']],
+  ['video/x-msvideo', ['avi']], ['video/avi', ['avi']], ['video/msvideo', ['avi']], ['video/x-ms-wmv', ['wmv']],
+]);
+function validDataName(id: string, mimeType: string, name: unknown): boolean {
+  const mime = mimeType.split(';')[0]!.toLowerCase();
+  if (Object.hasOwn(mediaSuffixes, mime) && name === id + '.' + mediaSuffixes[mime]) return true;
+  return historicalMediaSuffixes.get(mime)?.some(suffix => name === id + '.' + suffix) ?? false;
+}
 
 const fault = (message: string): DeliveryError => new DeliveryError('attachment_storage', message);
 const identity = (stat: BigIntStats): Identity => ({ dev: String(stat.dev), ino: String(stat.ino), birthtimeNs: String(stat.birthtimeNs), mtimeNs: String(stat.mtimeNs) });
@@ -75,7 +85,7 @@ export class Attachments {
         const item = object(value); const id = string(item.attachmentId, 'attachmentId'); const stored = object(item.identity);
         if (!UUID.test(id) || this.entries.has(id) || typeof item.size !== 'number' || !Number.isSafeInteger(item.size) || item.size < 0 || item.size > LIMITS.attachmentBytes || !Array.isArray(item.threads) || item.threads.length > 256 || !item.threads.every(thread => typeof thread === 'string' && thread.length <= 4096) || typeof item.owner !== 'string' || typeof item.created !== 'number' || !Number.isFinite(item.created) || (item.state !== 'live' && item.state !== 'deleting') || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256) || !['dev', 'ino', 'birthtimeNs', 'mtimeNs'].every(key => typeof stored[key] === 'string' && /^\d{1,30}$/.test(stored[key] as string))) throw fault('Invalid attachment metadata');
         string(item.name, 'name', 256); string(item.mimeType, 'mimeType', 128); string(item.owner, 'owner', 256);
-        if (item.fileName !== undefined && (!mediaSuffixes[String(item.mimeType).split(';')[0]!.toLowerCase()] || item.fileName !== `${id}.${mediaSuffixes[String(item.mimeType).split(';')[0]!.toLowerCase()]}`)) throw fault('Invalid attachment data filename');
+        if (item.fileName !== undefined && !validDataName(id, String(item.mimeType), item.fileName)) throw fault('Invalid attachment data filename');
         if (item.referencesUnverified !== undefined && typeof item.referencesUnverified !== 'boolean') throw fault('Invalid attachment reconciliation state');
         if (item.legacyCopyScan !== undefined && (!Number.isSafeInteger(item.legacyCopyScan) || Number(item.legacyCopyScan) < 0 || Number(item.legacyCopyScan) > this.scanGeneration)) throw fault('Invalid legacy attachment ownership generation');
         if (item.queueOrigin !== undefined) {

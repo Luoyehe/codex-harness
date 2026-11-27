@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import path from 'node:path';
 import { auditGitObjects, auditSource, scanFiles, scanStream } from '../../scripts/release-audit.mjs';
@@ -101,6 +101,17 @@ test('failed reads and nonregular entries are incomplete, never clean or size-sk
   const report = await scanFiles(root, ['blocked.txt', 'missing.txt', 'directory'], { open: () => new Readable({ read() { this.destroy(Object.assign(new Error('do not expose this content'), { code: 'EACCES' })); } }) });
   expect(report.status).toBe('incomplete'); expect(report.unreadable).toHaveLength(3); expect(report.scannedFiles).toBe(0);
   expect(JSON.stringify(report)).not.toContain('do not expose'); expect(report.skipped).toEqual([]);
+});
+
+test('workspace ignores and release scans agree on private filenames and exact public exceptions', async () => {
+  const root = fixture(); git(root, ['init', '-q']); put(root, '.gitignore', readFileSync('.gitignore'));
+  const privateNames = ['auth.local.json', 'cloud-credentials-backup.json', 'my-service-account.json', 'dev-service_account-key.json', 'client_secret_tmp.json', 'id_dsa', 'id_dsa.bak', '.npmrc', '.netrc', '.pypirc', 'sign.keystore', 'dev.jks'];
+  const publicNames = ['id_rsa.pub', 'id_ed25519.pub', 'id_ecdsa.pub', 'id_dsa.pub', '.env.example'];
+  const paths = [...privateNames, ...publicNames].map(name => 'nested/' + name);
+  for (const name of paths) put(root, name, 'placeholder');
+  const expected = privateNames.map(name => 'nested/' + name).sort();
+  expect(git(root, ['check-ignore', '--stdin'], paths.join('\n') + '\n').trim().split('\n').sort()).toEqual(expected);
+  expect((await scanFiles(root, paths)).artifacts.map((row: { path: string }) => row.path).sort()).toEqual(expected);
 });
 
 test('private files and generated residuals block release even when contents look harmless', async () => {

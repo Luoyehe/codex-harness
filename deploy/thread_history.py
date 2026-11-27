@@ -260,7 +260,7 @@ def _managed_references(root: str, active=None, unmatched=None):
             for candidate in candidates:
                 if len(candidate) > 8192 or not candidate or "\x00" in candidate: continue
                 name = _local_path(candidate)
-                if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg|jpg|png|gif|webp|mp4|mov))?", name.name):
+                if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg|jpg|jpeg|png|gif|webp|mp4|mov|m4v|avi|wmv))?", name.name):
                     found.add(str(name)); check(len(found) <= 128, "Attachment reference budget exceeded", "thread_history_limit")
     return collect, found, images
 
@@ -268,7 +268,7 @@ def _managed_references(root: str, active=None, unmatched=None):
 @contextlib.contextmanager
 def _scan_checkpoints(home: Path, uid: int):
     """Resume large immutable rollout prefixes. Each checkpoint is tied to
-    path, owner, file identity, size, ctime, mtime and the requested cutoff."""
+    path, owner, file identity, timestamps, cutoff and the actual prefix bytes."""
     filename = home / "harness-attachment-checkpoints.sqlite"
     fd = os.open(filename, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
     try: _safe(os.fstat(fd), uid)
@@ -308,33 +308,48 @@ def _attachment_paths(home: Path, uid: int, path: Path, thread_id: str, root: st
             value = _decode(header)
             check(header.endswith(b"\n") and len(header) <= LINE_LIMIT and value.get("type") == "session_meta" and value["payload"].get("id") == identity, "Attachment history identity mismatch")
             base = value["payload"].get("history_base"); size = len(header); count = 1
-            key = None
+            key = digest = None
             if checkpoints is not None and maximum >= ATTACHMENT_CHECKPOINT_BYTES:
-                witness = ["inline-refs-v4", _digest_filter_stamp(active), str(filename), identity, root, *_identity(before), before.st_ctime_ns, maximum]
+                witness = ["inline-refs-v5", _digest_filter_stamp(active), str(filename), identity, root, *_identity(before), before.st_ctime_ns, maximum]
                 key = hashlib.sha256(json.dumps(witness).encode()).hexdigest()
+                digest = hashlib.sha256(header)
                 saved = checkpoints.execute("SELECT offset,lines,paths FROM checkpoints WHERE key=?", (key,)).fetchone()
                 if saved:
-                    size, count, paths = saved
-                    check(len(header) <= size <= maximum and count >= 1 and len(paths) <= 1024 * 1024, "Invalid history checkpoint")
+                    offset, lines, paths = saved
+                    check(type(offset) is int and len(header) <= offset <= maximum and type(lines) is int and lines >= 1
+                          and len(paths) <= 1024 * 1024, "Invalid history checkpoint")
                     recorded = _decode(paths)
                     check(isinstance(recorded, dict) and isinstance(recorded.get("paths"), list), "Invalid attachment checkpoint")
-                    for item in recorded["paths"]: collect(item)
-                    for field, destination in (("images", images), ("unmatched", missing)):
-                        for image in recorded.get(field, []):
-                            check(isinstance(image, dict) and image.get("mimeType") in INLINE_IMAGE_MIMES and
-                                  isinstance(image.get("sha256"), str) and re.fullmatch("[0-9a-f]{64}", image["sha256"]), "Invalid image checkpoint")
-                            destination.add((image["mimeType"], image["sha256"]))
-                    stream.seek(size)
+                    # Some filesystems give consecutive same-size rewrites identical timestamps.
+                    # Stream the previously decoded prefix without reparsing its JSON records.
+                    remaining = offset - len(header)
+                    while remaining:
+                        chunk = stream.read(min(remaining, 1024 * 1024))
+                        check(bool(chunk), "Attachment history changed", "thread_history_changed")
+                        digest.update(chunk); remaining -= len(chunk)
+                    if digest.hexdigest() == recorded.get("prefixSha256"):
+                        size, count = offset, lines
+                        for item in recorded["paths"]: collect(item)
+                        for field, destination in (("images", images), ("unmatched", missing)):
+                            for image in recorded.get(field, []):
+                                check(isinstance(image, dict) and image.get("mimeType") in INLINE_IMAGE_MIMES and
+                                      isinstance(image.get("sha256"), str) and re.fullmatch("[0-9a-f]{64}", image["sha256"]), "Invalid image checkpoint")
+                                destination.add((image["mimeType"], image["sha256"]))
+                    else:
+                        stream.seek(len(header))
+                        digest = hashlib.sha256(header)
             checkpoint = size
             while size < maximum:
                 raw = stream.readline(min(LINE_LIMIT + 1, maximum - size)); size += len(raw); count += 1
                 check(raw.endswith(b"\n") and len(raw) <= LINE_LIMIT, "Incomplete attachment history", "thread_history_changed")
                 value = _decode(raw); check(isinstance(value, dict) and isinstance(value.get("payload"), dict), "Invalid attachment record")
                 collect(value["payload"])
+                if digest is not None:
+                    digest.update(raw)
                 if key and (size - checkpoint >= ATTACHMENT_CHECKPOINT_BYTES or size == maximum):
                     check(_identity(before) == _identity(os.fstat(stream.fileno())) and before.st_ctime_ns == os.fstat(stream.fileno()).st_ctime_ns,
                           "Attachment history changed", "thread_history_changed")
-                    record = _reference_record(found, images)
+                    record = {**_reference_record(found, images), "prefixSha256": digest.hexdigest()}
                     if missing: record["unmatched"] = _reference_record([], missing)["images"]
                     checkpoints.execute("INSERT OR REPLACE INTO checkpoints VALUES(?,?,?,?,?)", (key, size, count, json.dumps(record), time.time_ns()))
                     checkpoints.commit(); checkpoint = size

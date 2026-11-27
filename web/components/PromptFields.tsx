@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { array, object } from '../lib/types';
 import { fieldType, validateValue } from '../lib/prompt-validation';
 import { ownField, withField } from '../lib/form-values';
@@ -24,7 +24,7 @@ export function SchemaField({
   name,
   schema,
   value,
-  onChange,
+  onChange: update,
   required = false,
 }: {
   name: string;
@@ -49,6 +49,13 @@ export function SchemaField({
       }));
   const label = String(s.title ?? name),
     nullable = validateValue(s, null).length === 0;
+  const [edited, setEdited] = useState(false);
+  const onChange = (next: unknown) => { setEdited(true); update(next); };
+  const errors = edited && (required || value !== undefined) ? validateValue(s, value, label) : [];
+  const feedback = errors.length > 0 && (
+    <small className="error" id={id + '-error'} aria-live="polite">{errors.join(' ')}</small>
+  );
+  const validity = { 'aria-invalid': errors.length > 0, 'aria-describedby': errors.length ? id + '-error' : undefined };
   const presence = (
     <label className="check-row">
       <input
@@ -81,7 +88,7 @@ export function SchemaField({
             label: String(object(v).title ?? object(v).const),
           }));
     return (
-      <fieldset>
+      <fieldset {...validity}>
         <legend>
           {label}
           {required ? ' *' : ''}
@@ -147,6 +154,7 @@ export function SchemaField({
               </button>
             </>
           ))}
+        {feedback}
         {s.description ? <small>{String(s.description)}</small> : null}
       </fieldset>
     );
@@ -159,6 +167,7 @@ export function SchemaField({
       </label>
       {choices.length ? (
         <select
+          {...validity}
           id={id}
           value={value === undefined ? '' : String(choices.findIndex((v) => same(v.value, value)))}
           onChange={(e) =>
@@ -174,6 +183,7 @@ export function SchemaField({
         </select>
       ) : type === 'boolean' ? (
         <select
+          {...validity}
           id={id}
           value={value === undefined ? '' : String(value)}
           onChange={(e) =>
@@ -193,6 +203,7 @@ export function SchemaField({
         </select>
       ) : type === 'null' ? (
         <select
+          {...validity}
           id={id}
           value={value === null ? 'null' : ''}
           onChange={(e) => onChange(e.target.value === 'null' ? null : undefined)}
@@ -205,10 +216,11 @@ export function SchemaField({
           {type === 'string' || !type ? presence : null}
           {nullChoice}
           <input
+            {...validity}
             id={id}
             disabled={value === null || ((type === 'string' || !type) && value === undefined)}
             type={type === 'number' || type === 'integer' ? 'number' : 'text'}
-            step={type === 'integer' ? 1 : 'any'}
+            step={typeof s.multipleOf === 'number' ? s.multipleOf : type === 'integer' ? 1 : 'any'}
             value={value === undefined || value === null ? '' : String(value)}
             onChange={(e) =>
               onChange(
@@ -222,6 +234,7 @@ export function SchemaField({
           />
         </>
       )}
+      {feedback}
       {s.description ? <small>{String(s.description)}</small> : null}
     </div>
   );

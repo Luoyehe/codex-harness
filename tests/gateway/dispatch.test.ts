@@ -504,3 +504,46 @@ describe('gateway operation admission', () => {
     } finally { ledger.close(); }
   });
 });
+
+it('isolates scoped unknown activity while protecting maintenance, legacy runtimes and durable uncertain receipts', async () => {
+  const { dispatcher, ledger, worker } = setup();
+  const context = { clientId: 'owner' };
+  const send = (threadId: string) => dispatcher.call({ method: 'turn/start', params: { threadId, text: 'next' }, operationId: randomUUID() }, context);
+  const state = (fields: JsonObject) => dispatcher.event({ type: 'state', data: { connected: true, activity: {
+    activeThreads: ['a'], pendingStarts: 0, terminals: 0, unknown: true, ...fields,
+  } } });
+  try {
+    state({ globalUnknown: false, unknownThreads: ['a'] });
+    await expect(send('a')).rejects.toMatchObject({ code: 'activity_unknown' });
+    await expect(dispatcher.call({ method: 'system/provider/write', params: { kind: 'chatgpt' }, operationId: randomUUID() }, context)).rejects.toMatchObject({ code: 'activity_unknown' });
+    await expect(send('b')).resolves.toHaveProperty('turn');
+    state({}); await expect(send('b')).rejects.toMatchObject({ code: 'activity_unknown' });
+    state({ globalUnknown: false, unknownThreads: [] }); await expect(send('b')).rejects.toMatchObject({ code: 'activity_unknown' });
+    state({ globalUnknown: true, unknownThreads: [] }); await expect(send('b')).rejects.toMatchObject({ code: 'activity_unknown' });
+    state({ globalUnknown: false, unknownThreads: ['a'] }); ledger.setMeta('activityUncertain', 'true');
+    await expect(send('b')).rejects.toMatchObject({ code: 'activity_unknown' });
+    expect(worker.calls).toBe(1);
+  } finally { ledger.close(); }
+});
+
+it('a pending CLI diagnosis allows independent chat and fences duplicate diagnostics and ordinary restart', async () => {
+  const { ledger, dispatcher, worker } = setup();
+  const context = { clientId: 'owner' };
+  let finish!: () => void;
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  worker.run = async (method, _params, request) => {
+    request.beforeWrite?.();
+    if (method === 'diagnostics/cli/run') {
+      await gate;
+      return { resultId: randomUUID(), kind: 'doctor', status: 'completed' };
+    }
+    return { turn: { id: 'turn', status: 'inProgress' } };
+  };
+  const run = () => dispatcher.call({ method: 'diagnostics/cli/run', params: { kind: 'doctor' }, operationId: randomUUID() }, context);
+  const first = run();
+  try {
+    await expect(run()).rejects.toMatchObject({ code: 'diagnostics_busy' });
+    await expect(dispatcher.call({ method: 'system/restart', params: {}, operationId: randomUUID() }, context)).rejects.toMatchObject({ code: 'activity_busy' });
+    await expect(dispatcher.call({ method: 'turn/start', params: { threadId: 'b', text: 'continue' }, operationId: randomUUID() }, context)).resolves.toHaveProperty('turn');
+  } finally { finish(); await first; ledger.close(); }
+});

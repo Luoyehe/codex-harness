@@ -31,6 +31,18 @@ class WorkspaceFailureTests(unittest.TestCase):
         self.assertEqual(failure(OSError("private internal path"), dispatched=False)["error"],
                          {"code": "workspace_error", "message": "工作区操作失败，请查看原操作记录并核对其送达状态。", "delivery": "not_sent"})
 
+    def test_worktree_receipt_displays_only_valid_relative_blockers(self):
+        from deploy.workspace_errors import response_for_display
+        for path, accepted in (("node_modules/.bin/tool", True), ("/outside/target", False),
+                               ("../escape", False), ("forged\nmessage", False)):
+            response = {"ok": False, "error": {"code": "unsafe_path", "delivery": "not_sent",
+                        "message": "old diagnostic /private/target", "worktreePath": path}}
+            error = response_for_display(response)["error"]
+            self.assertEqual(error.get("worktreePath"), path if accepted else None)
+            self.assertEqual(path in error["message"], accepted)
+            self.assertNotIn("/private/target", error["message"])
+
+
 
 class WorkspaceValidationTests(unittest.TestCase):
     def request(self, action, params, **extra):

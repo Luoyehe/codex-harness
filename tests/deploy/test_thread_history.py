@@ -274,6 +274,26 @@ class ThreadHistoryTests(unittest.TestCase):
         result = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root)})
         self.assertEqual(result["references"], [{"threadId": THREAD, "paths": sorted([old, current])}])
 
+    def test_historical_media_suffixes_are_retained_only_under_the_attachment_root(self):
+        root = self.home / "attachments"
+        base = "11111111-1111-4111-8111-111111111111"
+        valid = [str(root / (base + "." + suffix)) for suffix in ("jpeg", "m4v", "avi", "wmv")]
+        others = [str(root / (base + ".exe")), str(self.home / (base + ".jpeg"))]
+        self.save(line("response_item", {"type": "message", "content": [
+            {"type": "input_text", "text": 'Attached file "media" is available at ' + json.dumps(name) + '.'}
+            for name in valid + others]}))
+        # Previously completed scans omitted these paths. Upgrading must rescan the prefix.
+        before = self.path.stat()
+        witness = ["inline-refs-v4", None, str(self.path), THREAD, str(root), *history._identity(before),
+                   before.st_ctime_ns, before.st_size]
+        key = hashlib.sha256(json.dumps(witness).encode()).hexdigest()
+        with history._scan_checkpoints(self.home, self.uid) as db:
+            db.execute("INSERT INTO checkpoints VALUES(?,?,?,?,?)", (key, before.st_size, 2, '{"paths":[]}', 0))
+            db.commit()
+        with patch.object(history, "ATTACHMENT_CHECKPOINT_BYTES", 1):
+            result = history.operate(self.home, self.uid, {"action": "attachment-index", "attachmentRoot": str(root)})
+        self.assertEqual(result["references"], [{"threadId": THREAD, "paths": sorted(valid)}])
+
     def test_attachment_inventory_keeps_uninspectable_history_distinct_from_confirmed_absence(self):
         attachment_root = self.home / "attachments"
         attachment = str(attachment_root / "11111111-1111-4111-8111-111111111111")
@@ -319,6 +339,14 @@ class ThreadHistoryTests(unittest.TestCase):
             changed = self.save(*(line("event_msg", {"type": "fixture", "value": two}) for _ in rows))
             self.assertNotEqual(raw, changed)
             self.assertEqual(len(raw), len(changed))
+            # Force the same cache hit as a filesystem that timestamps both writes in one tick.
+            current = self.path.stat()
+            witness = ["inline-refs-v5", None, str(self.path), THREAD, str(root),
+                       *history._identity(current), current.st_ctime_ns, current.st_size]
+            collision = hashlib.sha256(json.dumps(witness).encode()).hexdigest()
+            with history._scan_checkpoints(self.home, self.uid) as db:
+                self.assertEqual(db.execute("UPDATE checkpoints SET key=?", (collision,)).rowcount, 1)
+                db.commit()
             self.assertEqual(history.operate(self.home, self.uid, request)["references"][0]["paths"], [two])
 
     def test_independent_rollouts_remain_collectable_when_aggregate_exceeds_per_history_limit(self):

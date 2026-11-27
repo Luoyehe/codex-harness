@@ -1,5 +1,6 @@
+import type { FormatDefinition } from 'ajv';
 import { fullFormats } from 'ajv-formats/dist/formats.js';
-import { supportsFormDialect } from '../../src/shared/form-formats';
+import { isFormMultiple, parseFormDialect, validFormDivisor } from '../../src/shared/form-formats';
 import { object } from './types';
 import { validDateTime } from '../../src/shared/date-time';
 const supported = new Set([
@@ -22,6 +23,7 @@ const supported = new Set([
   'maximum',
   'exclusiveMinimum',
   'exclusiveMaximum',
+  'multipleOf',
   'minLength',
   'maxLength',
   'format',
@@ -37,7 +39,7 @@ export const fieldType = (s: Record<string, unknown>): string | undefined =>
 export function schemaSupported(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const s = object(value);
-  if (!supportsFormDialect(s.$schema)) return false;
+  if (!parseFormDialect(s.$schema) || (s.multipleOf !== undefined && !validFormDivisor(s.multipleOf))) return false;
   if (Object.keys(s).some((k) => !supported.has(k))) return false;
   const types = Array.isArray(s.type) ? s.type : s.type === undefined ? [] : [s.type];
   if (
@@ -119,18 +121,13 @@ export function validateValue(schema: unknown, value: unknown, name = '字段'):
       errors.push(`${name}至少需要 ${s.minLength} 个字符。`);
     if (typeof s.maxLength === 'number' && [...value].length > s.maxLength)
       errors.push(`${name}不能超过 ${s.maxLength} 个字符。`);
-    if (s.format === 'uri' || s.format === 'email') {
+    if (s.format === 'uri' || s.format === 'email' || s.format === 'date') {
       const format = fullFormats[s.format];
-      const valid = format instanceof RegExp ? format.test(value) : typeof format === 'function' && format(value);
-      if (!valid) errors.push(s.format === 'email' ? `${name}需要有效邮箱。` : `${name}需要完整 URI。`);
+      // ajv-formats publishes a union for every format. All three selected entries validate strings.
+      const check = typeof format === 'object' && 'validate' in format ? (format as FormatDefinition<string>).validate : format;
+      const valid = check instanceof RegExp ? check.test(value) : typeof check === 'function' && check(value);
+      if (!valid) errors.push(name + { email: '需要有效邮箱。', uri: '需要完整 URI。', date: '需要有效日期。' }[s.format]);
     }
-    if (
-      s.format === 'date' &&
-      (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-        Number.isNaN(Date.parse(value)) ||
-        new Date(value).toISOString().slice(0, 10) !== value)
-    )
-      errors.push(`${name}需要有效日期。`);
     if (
       s.format === 'date-time' &&
       !validDateTime(value)
@@ -143,6 +140,8 @@ export function validateValue(schema: unknown, value: unknown, name = '字段'):
       (type === 'integer' && !Number.isInteger(value))
     )
       return [`${name}需要有效${type === 'integer' ? '整数' : '数字'}。`];
+    if (typeof s.multipleOf === 'number' && !isFormMultiple(s.multipleOf, value))
+      errors.push(`${name}必须是 ${s.multipleOf} 的整数倍。`);
     if (
       (typeof s.minimum === 'number' && value < s.minimum) ||
       (typeof s.exclusiveMinimum === 'number' && value <= s.exclusiveMinimum)

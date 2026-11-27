@@ -91,7 +91,7 @@ it('retains remote registration text while clearing token and consent and stoppi
   const f = fixture();
   render(<Settings {...f.props} />);
   tab('远端环境与连接');
-  await screen.findByText('状态：disabled · local');
+  await screen.findByText('状态：未启用 · local');
   fireEvent.click(screen.getByText('登记新的远端环境'));
   change('环境名称', 'draft executor');
   change('Exec-server WebSocket 地址', 'wss://draft.example/');
@@ -137,7 +137,7 @@ it.each(['api', 'csrf', 'runtime'])('does not restore remote drafts after a diff
   const f = fixture();
   const props = { ...f.props, epoch: 'runtime-a', enabled: true, connected: true };
   const view = render(<RemoteSettings {...props} />);
-  await screen.findByText('状态：disabled · local');
+  await screen.findByText('状态：未启用 · local');
   change('环境名称', 'old-owner');
   change('Exec-server WebSocket 地址', 'wss://old-owner.example/');
   if (transition === 'csrf') f.api.csrf = 'account-b';

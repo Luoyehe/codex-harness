@@ -16,7 +16,7 @@ from pathlib import Path
 from contextlib import contextmanager
 
 from .common import DeployError, canonical, require
-from .workspace_errors import FALLBACK, MESSAGES, error_code, response_for_display
+from .workspace_errors import display_fields, error_code, response_for_display
 from .workspace_paths import MAX_FILE, MAX_TRANSFER, Root, read_file, regular
 
 MAX_RECORDS = 256
@@ -450,7 +450,7 @@ class Store:
                         os.unlink("next", dir_fd=directory)
                         os.fsync(directory)
                 code = error_code(exc)
-                error = {"code": code, "message": MESSAGES.get(code, FALLBACK),
+                error = {"code": code, **display_fields(code, getattr(exc, "worktree_path", None)),
                          "delivery": "not_sent" if no_effect else "unknown"}
                 diagnostics = {"type": type(exc).__name__}
                 if isinstance(exc, OSError) and exc.errno is not None:
@@ -459,6 +459,7 @@ class Store:
                 # Callers at the native boundary receive the stable Chinese explanation;
                 # local administrative diagnostics keep their original exception chain.
                 failure = DeployError(code, str(exc) if isinstance(exc, DeployError) else error["message"])
+                failure.worktree_path = error.get("worktreePath")
                 failure.delivery = error["delivery"]
                 raise failure from exc
         finally:

@@ -11,7 +11,7 @@ import { windowsJob } from './windows-job.js';
 import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
-export interface NativeOptions { historyWindowTail?: boolean; historyImageDisplayChars?: number; beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
+export interface NativeOptions { classifyRejection?: (code: number, message: string) => string | undefined; historyWindowTail?: boolean; historyImageDisplayChars?: number; beforeWrite?: () => void; timeoutMs?: number; onWritten?: () => void }
 interface Pending { historyShape?: NativeHistoryShape | undefined; frameKind?: 'history' | 'queue-read' | 'queue-write' | undefined; id: number; frame: Buffer | null; bytes: number; sent: boolean; flushed: boolean; resolved: boolean; timer: NodeJS.Timeout | null; options: NativeOptions; resolve: (value: JsonValue) => void; reject: (error: Error) => void }
 
 /** One process, one protocol epoch. A failed process is never restarted in place. */
@@ -228,7 +228,8 @@ export class NativeRpc extends EventEmitter {
           if ('result' in message || !nativeError || typeof nativeError !== 'object' || Array.isArray(nativeError) || typeof nativeError.code !== 'number' || !Number.isSafeInteger(nativeError.code) || typeof nativeError.message !== 'string') throw new Error('Invalid native error response');
           entry.resolved = true;
           // Native rejection is definitive: the operation was not accepted.
-          entry.reject(new DeliveryError('native_error', this.redactor.text(nativeError.message), 'not_sent', this.redactor.value(message.error as JsonValue)));
+          const code = entry.options.classifyRejection?.(nativeError.code, nativeError.message) ?? 'native_error';
+          entry.reject(new DeliveryError(code, this.redactor.text(nativeError.message), 'not_sent', this.redactor.value(message.error as JsonValue)));
         } else if ('result' in message) { entry.resolved = true; entry.resolve(message.result as JsonValue); }
         else throw new Error('Invalid native response');
         this.release(entry);

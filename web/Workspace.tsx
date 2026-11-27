@@ -153,28 +153,32 @@ export function Workspace({
   const threadMenu = useRef<HTMLDetailsElement>(null),
     workspaceBody = useRef<HTMLDivElement>(null),
     composerSlot = useRef<HTMLDivElement>(null);
-  const [ownsTerminal, setOwnsTerminal] = useState(false);
+  const [runningTerminalProgram, setRunningTerminalProgram] = useState<typeof terminalProgram | null>(null);
   const [terminalSwitch, setTerminalSwitch] = useState<typeof terminalProgram>();
   const openTerminalProgram = (next: typeof terminalProgram) => {
-    if (next !== terminalProgram && ownsTerminal) { setTerminalSwitch(next); return; }
+    if (runningTerminalProgram !== null && next !== runningTerminalProgram) { setTerminalSwitch(next); return; }
     setTerminalProgram(next); setTerminalMounted(true); setPanel('terminal');
   };
   const [panelFocusRevision, setPanelFocusRevision] = useState(0),
-    pendingPanelFocus = useRef(false);
-  const setPanel = (next: typeof panel, focus = true) => {
+    pendingPanelFocus = useRef<false | 'panel' | 'return'>(false);
+  const setPanel = (next: typeof panel, focus: boolean | 'reading' = true) => {
     if (threadMenu.current) threadMenu.current.open = false;
-    pendingPanelFocus.current = focus;
+    pendingPanelFocus.current = !focus ? false : focus === true && next === 'chat' && panel !== 'chat' ? 'return' : 'panel';
     setPanelState(next);
     setPanelFocusRevision((value) => value + 1);
   };
   useEffect(() => {
     if (!pendingPanelFocus.current) return;
+    const returning = pendingPanelFocus.current === 'return';
     pendingPanelFocus.current = false;
     if (!active || modal) return;
     const heading = [...(workspaceBody.current?.querySelectorAll<HTMLElement>('h2,h3') ?? [])].find(
       (element) => !element.closest('[hidden]'),
     );
-    const target = panel === 'chat' ? workspaceBody.current : (heading ?? workspaceBody.current);
+    const desktopReturn = returning && window.innerWidth > 760 && navigator.maxTouchPoints === 0 &&
+      window.matchMedia?.('(pointer: fine)').matches;
+    const input = desktopReturn ? composerSlot.current?.querySelector<HTMLTextAreaElement>('#message-input:not(:disabled)') : null;
+    const target = panel === 'chat' ? (input ?? workspaceBody.current) : (heading ?? workspaceBody.current);
     if (target) {
       if (!(target instanceof HTMLTextAreaElement)) target.tabIndex = -1;
       target.focus({ preventScroll: true });
@@ -255,7 +259,7 @@ export function Workspace({
     setFocusTarget(undefined);
     if (!settings.preserveAttachments && executionDraftKey(id || `new:${settings.projectId ?? projectId}`, draftMode) !== contextKey)
       setAttachmentContext(uuid());
-    setPanel('chat');
+    setPanel('chat', 'reading');
     if (!settings.keepDrawer) setMobile(false);
     setError('');
     const url = new URL(settings.historyUrl ?? location.href);
@@ -326,7 +330,7 @@ export function Workspace({
     },
     [events, threadId],
   );
-  const runtimeNetwork = useEvents(api, receive, active);
+  const runtimeNetwork = useEvents(api, receive, active, threadId);
   const modeChanged = runtimeNetwork.executionModeConfirmed && runtimeNetwork.executionMode?.mode !== draftMode;
   const executionBlocked = modeChanged || ((draftMode === 'root' || Boolean(runtimeNetwork.executionMode)) && !runtimeNetwork.executionModeConfirmed);
   // Keep the old draft owner until it is durable. All native consumers see the
@@ -508,19 +512,22 @@ export function Workspace({
   const sameProvider = (target: string) => sourceProvider !== undefined &&
     providerRelation(models.items, sourceProvider, target, directoryComplete) === 'same';
   // The shared catalog remains complete. Only the current conversation's controls are scoped.
-  const composerModels = !threadId ? models.items : sourceProvider
-    ? providerModels(models.items, sourceProvider, directoryComplete) : [];
+  const composerModels = !threadId ? models.items : providerModels(models.items, sourceProvider, directoryComplete);
   const setOptions = (next: Options) => {
     const modelChanged = next.model !== options.model || next.modelProvider !== options.modelProvider;
-    if (threadId && modelChanged && (!sourceProvider || next.modelProvider && !sameProvider(next.modelProvider))) {
+    const legacySelection = !next.modelProvider && (!next.model || composerModels.some(row => (row.model ?? row.id) === next.model));
+    if (threadId && modelChanged && (next.modelProvider ? !sameProvider(next.modelProvider) : !sourceProvider && !legacySelection)) {
       setError(sourceProvider ? '如需使用其他供应商，请从会话操作中选择“切换供应商 / 转换会话”。' :
         '会话供应商尚未读取，请等待会话读取完成后再选择模型。');
       return;
     }
     draftState.setOptions(next);
   };
+  const unverifiedLegacyModel = threadId && options.model && !sourceProvider && !options.modelProvider &&
+    !composerModels.some(row => (row.model ?? row.id) === options.model);
   const draftProviderRelation = threadId && options.modelProvider
-    ? sourceProvider ? providerRelation(models.items, sourceProvider, options.modelProvider, directoryComplete) : 'unknown' : 'same';
+    ? sourceProvider ? providerRelation(models.items, sourceProvider, options.modelProvider, directoryComplete) : 'unknown'
+    : unverifiedLegacyModel ? 'unknown' : 'same';
   const foreignDraftModel = draftProviderRelation !== 'same';
   useEffect(() => {
     if (draftProviderRelation !== 'different') return;
@@ -809,13 +816,12 @@ export function Workspace({
       let modelOptions: Record<string, unknown> | undefined;
       if (options.model) {
         const provider = options.modelProvider ?? sourceProvider;
-        if (!provider) throw new Error('会话供应商尚未确认，请先重新读取会话。');
         const matches = providerModels(models.items, provider, directoryComplete).filter(row => (row.model ?? row.id) === options.model);
         const selected = matches.length === 1 ? matches[0] : undefined;
         if (!selected || models.loading) throw new Error('请从当前模型目录选择可用模型，再加载会话。');
         if (options.effort && !modelSupportsEffort(selected, options.effort))
           throw new Error('所选思考强度已不适用于当前模型，请重新选择或清除本次强度设置。');
-        modelOptions = { modelProvider: selected.modelProvider ?? provider, model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
+        modelOptions = { ...(selected.modelProvider ? { modelProvider: selected.modelProvider } : {}), model: options.model, ...(options.effort ? { effort: options.effort } : {}) };
       }
       await api.mutate('thread/resume', { threadId: target, ...(automatic ? { automatic: true } : {}), ...(modelOptions ? { options: modelOptions } : {}) }, draftMode);
       if (navigation.current === nav) setResumeRevision((v) => v + 1);
@@ -1474,7 +1480,7 @@ export function Workspace({
                     </div>
                   </section>}
                   onShell={() => openTerminalProgram('shell')}
-                  onOwnershipChange={setOwnsTerminal}
+                  onOwnedProgramChange={setRunningTerminalProgram}
                   program={terminalProgram}
                   runtimeEpoch={network.epoch}
                   enabled={
@@ -1685,6 +1691,7 @@ export function Workspace({
             {modal === 'automations' && (
               <AutomationsPanel
                 api={api}
+                events={events}
                 epoch={resourceEpoch}
                 projects={projects}
                 projectId={projectId}

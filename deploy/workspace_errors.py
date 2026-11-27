@@ -55,6 +55,22 @@ def error_code(exc):
     return "workspace_error"
 
 
+class WorktreePathError(DeployError):
+    def __init__(self, code, message, path):
+        super().__init__(code, f"{message} at {path!r}")
+        self.worktree_path = path
+
+
+def display_fields(code, path=None):
+    message = MESSAGES.get(code, FALLBACK)
+    # Retained records are untrusted. Relay only the checkout-relative name.
+    if (code in ("budget", "unsafe_path", "conflict", "worktree_nested") and isinstance(path, str)
+            and path and path.isprintable() and len(path.encode("utf-8", "replace")) <= 4096
+            and "\\" not in path and all(part not in ("", ".", "..") for part in path.split("/"))):
+        return {"message": message + " 涉及路径：" + path, "worktreePath": path}
+    return {"message": message}
+
+
 def response_for_display(response):
     if not isinstance(response, dict) or response.get("ok") is not False or not isinstance(response.get("error"), dict):
         return response
@@ -62,4 +78,5 @@ def response_for_display(response):
     code = error.get("code")
     if not isinstance(code, str):
         return response
-    return {**response, "error": {**error, "message": MESSAGES.get(code, FALLBACK)}}
+    safe = {key: value for key, value in error.items() if key != "worktreePath"}
+    return {**response, "error": {**safe, **display_fields(code, error.get("worktreePath"))}}

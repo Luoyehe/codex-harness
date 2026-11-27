@@ -8,6 +8,9 @@ import { useResource } from '../hooks/useResource';
 import { SettingsDrafts, hasSettingsDrafts, useSettingsDraft, useSettingsNavigation } from '../hooks/useSettingsDraft';
 import { SettingsDraftDialog } from './SettingsDraftDialog';
 import { ExtensionStatus, ReadState, useExtensionAction } from './ExtensionControls';
+
+const principalTypes = new Map(Object.entries({ user: '用户', group: '用户组', workspace: '工作区', organization: '组织', service: '服务' }));
+const principalRoles = new Map(Object.entries({ owner: '所有者', editor: '可编辑', reader: '只读' }));
 type Shared = PluginShareListItem & { previewHash: string };
 type Preview = {
   pluginId: string;
@@ -180,7 +183,7 @@ function SharedDetails({
         <ul>
           {context.sharePrincipals.map((principal) => (
             <li key={principal.principalType + ':' + principal.principalId}>
-              {principal.name} · {principal.principalType} · {principal.role}
+              {principal.name} · {principalTypes.get(principal.principalType) ?? principal.principalType} · {principalRoles.get(principal.role) ?? principal.role}
             </li>
           ))}
         </ul>

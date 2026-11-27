@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { createHash, randomUUID } from 'node:crypto';
+import * as workspace from '../../src/runtime/workspace.js';
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
@@ -30,6 +32,22 @@ beforeEach(() => { fixture.jobs.length = 0; fixture.commands.length = 0; fixture
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.useRealTimers(); });
 test('a diagnostic overlaps an independent new chat while retaining private cleanup and output', async () => {
   const f = setup(), pending = f.run(); await expect.poll(() => f.native.calls.length).toBe(1); const handle = f.handle(); expect(fixture.commands).toEqual([[process.execPath, 'debug', 'models', '--bundled']]);
+  await expect(f.service.call('diagnostics/cli/run', { kind: 'doctor' }, owner)).rejects.toMatchObject({ code: 'diagnostics_busy' });
+  await expect(f.service.call('runtime/maintenance/check', {}, owner)).rejects.toMatchObject({ code: 'activity_busy' });
+  f.service.config.launcher = { path: '/unused', user: 'fixture' };
+  const revision = 'a'.repeat(64);
+  const helper = vi.spyOn(workspace, 'runWorkspace').mockImplementation(async (_config, _root, action, _params, context) => {
+    if (action === 'repository/identity') return { identity: revision };
+    if (action !== 'git/stage') throw new Error('Unexpected workspace operation');
+    context.beforeWrite?.();
+    return { head: null, indexRevision: 'b'.repeat(64), previousIndexRevision: revision, recoveryOperationId: context.operationId!,
+      selectedCount: 1, pathsDigest: createHash('sha256').update(JSON.stringify(['note'])).digest('hex') };
+  });
+  try {
+    await expect(f.service.call('workspace/git/stage', { cwd: f.cwd, expectedHead: null, expectedHeadRevision: revision,
+      expectedIndexRevision: revision, files: [{ path: 'note', expectedRevision: revision, deleted: false }] }, { ...owner, operationId: randomUUID(),
+      projectId: randomUUID(), gatewayRequestDigest: revision })).resolves.toMatchObject({ selectedCount: 1 });
+  } finally { helper.mockRestore(); }
   await expect(f.service.call('thread/start', { cwd: f.cwd }, owner)).resolves.toMatchObject({ thread: { id: 'parallel-thread' } });
   f.output(handle, JSON.stringify({ models: [{ note: 'fixture-private-key' }] })); f.exit(handle); await Promise.resolve(); expect(object(object(f.service.status()).activity).pendingStarts).toBe(1); fixture.jobs[0]!.finish(0);
   const result = object(await pending); expect(result).toMatchObject({ kind: 'models-bundled', status: 'completed' });

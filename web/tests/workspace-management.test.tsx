@@ -557,7 +557,7 @@ it('finishes interrupted retirement with the freshly read revision and hides unr
   const {api,calls}=setup(c=>c.method==='workspace/worktree/read'?{...tree,phase:'recovery',retirementPending:true,revision:'d'.repeat(64)}:undefined);
   render(<WorkspaceWorktrees {...treeProps(api)} />);
   await selectTree();
-  await screen.findByText(/上次退役尚待核对，当前目录位置见工作树详情/);
+  await screen.findByText(/此阶段只能继续完成退役/);
   expect(screen.queryByRole('button',{name:'修复并恢复工作树…'})).toBeNull();
   expect(screen.queryByRole('button',{name:'核对并登记为项目…'})).toBeNull();
   fireEvent.click(await enabledButton({name:'完成退役（保留文件）…'}));

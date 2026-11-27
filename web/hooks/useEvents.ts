@@ -3,9 +3,10 @@ import type { Api } from '../lib/api';
 import { object, type HarnessEvent } from '../lib/types';
 import { uuid } from '../lib/ids';
 import { executionIdentity, type ExecutionIdentity } from '../lib/execution-mode';
+import { activityScope } from '../../src/shared/activity-scope';
 import { MAX_EVENT_BYTES } from '../../src/shared/event-limits';
 
-export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enabled = true) {
+export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enabled = true, threadId?: string) {
   const callback = useRef(onEvent);
   callback.current = onEvent;
   const [connection, setConnection] = useState<'connecting' | 'connected' | 'offline'>(
@@ -14,6 +15,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
   const [epoch, setEpoch] = useState('');
   const [runtimeConnected, setRuntimeConnected] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [unknownThreads, setUnknownThreads] = useState<string[]>([]);
   const [activityReady, setActivityReady] = useState(false);
   const [configurationReady, setConfigurationReady] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -98,17 +100,19 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
             }
             setRuntimeConnected(connected);
             setRestarting(previous => typeof runtime.restarting === 'boolean' ? runtime.restarting : connected ? false : previous);
+            const scope = activityScope(activity);
+            setUnknownThreads(scope.unknownThreads);
             setActivityReady(
               connected &&
                 runtime.restarting !== true &&
-                activity.unknown === false &&
+                !scope.globalUnknown &&
                 data.activityUncertain !== true &&
                 data.maintenance !== true,
             );
             setConfigurationReady(
               connected &&
                 runtime.restarting !== true &&
-                activity.unknown === false &&
+                !scope.globalUnknown && scope.unknownThreads.length === 0 &&
                 data.activityUncertain !== true &&
                 data.maintenance !== true &&
                 Array.isArray(activity.activeThreads) &&
@@ -175,7 +179,7 @@ export function useEvents(api: Api, onEvent: (event: HarnessEvent) => void, enab
     connection,
     runtimeConnected,
     restarting,
-    activityReady,
+    activityReady: activityReady && !unknownThreads.includes(threadId ?? ''),
     configurationReady,
     epoch,
     revision,

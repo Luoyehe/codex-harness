@@ -322,7 +322,7 @@ hr {
   border-radius: 5px;
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   padding: 3px 7px;
   white-space: nowrap;
 }
@@ -406,7 +406,7 @@ hr {
 }
 .shortcut {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--muted);
   border: 1px solid var(--line);
@@ -561,7 +561,7 @@ hr {
   font-weight: 500;
 }
 .sidebar-account small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .sidebar-account svg {
@@ -608,7 +608,7 @@ hr {
   color: #ccd1ca;
 }
 .connection {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   display: flex;
   gap: 6px;
@@ -708,7 +708,7 @@ hr {
   box-shadow: inset 0 1px 0 #fff8;
 }
 .welcome .eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   margin-bottom: 13px;
   color: var(--muted);
 }
@@ -774,7 +774,7 @@ hr {
   font-weight: 500;
 }
 .suggestions small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .welcome-project {
@@ -782,7 +782,7 @@ hr {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 25px;
 }
 .composer-wrap {
@@ -852,7 +852,7 @@ hr {
 .composer-note {
   text-align: center;
   margin: 10px 0 0;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   min-height: 14px;
   line-height: 1.5;
@@ -936,7 +936,7 @@ hr {
   border-radius: 14px 14px 3px 14px;
 }
 .user-message .message-author {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin-bottom: 8px;
 }
@@ -1123,7 +1123,7 @@ hr {
 }
 .connection-banner {
   background: #faf6ed;
-  color: #997b3e;
+  color: #6f531d;
   font-size: 11px;
   text-align: center;
   padding: 8px 15px;
@@ -1181,7 +1181,7 @@ hr {
 }
 .recovery-row small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .prompts {
   overflow: auto;
@@ -1428,7 +1428,7 @@ hr {
   gap: 19px;
 }
 .login-card .eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 9px;
 }
 .login-card h1 {
@@ -1486,7 +1486,7 @@ hr {
   overflow-wrap: anywhere;
 }
 .token-usage {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 @keyframes pulse {

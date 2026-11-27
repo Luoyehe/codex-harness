@@ -102,6 +102,23 @@ test('legacy extensionless audio remains readable but must be reuploaded before 
   data.entries[0].fileName = '../escape.wav'; writeFileSync(file, JSON.stringify(data)); expect(() => new Attachments(home)).toThrow('data filename');
 });
 
+test.each([
+  ['image/jpeg', 'jpeg'], ['video/mp4', 'm4v'], ['video/x-msvideo', 'avi'], ['video/x-ms-wmv', 'wmv'],
+])('a historical %s index reopens its exact suffixed file and keeps thread ownership', (mimeType, suffix) => {
+  const { storage, home, dir } = setup(), id = upload(storage);
+  const index = path.join(dir, 'index.json'), record = JSON.parse(readFileSync(index, 'utf8'));
+  const name = id + '.' + suffix;
+  renameSync(path.join(dir, id), path.join(dir, name));
+  Object.assign(record.entries[0], { fileName: name, mimeType, threads: ['owner'] });
+  writeFileSync(index, JSON.stringify(record));
+  const restored = new Attachments(home);
+  expect(restored.read({ attachmentId: id })).toMatchObject({ mimeType, base64: Buffer.from('file data').toString('base64') });
+  expect(() => restored.remove({ attachmentId: id })).toThrow('retained by thread history');
+  record.entries[0].fileName = id + '.exe';
+  writeFileSync(index, JSON.stringify(record));
+  expect(() => new Attachments(home)).toThrow('data filename');
+});
+
 test('history media reads only exact indexed paths retained by the requested thread', () => {
   const { storage, dir } = setup(), id = upload(storage), filename = path.join(dir, id);
   expect(() => storage.readHistory({ path: filename, threadId: 'thread' })).toThrow('not a retained attachment');

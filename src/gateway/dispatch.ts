@@ -6,6 +6,7 @@ import { Ledger } from '../core/ledger.js';
 import { digest, identifier, object, uuid, validText } from '../core/validation.js';
 import type { ManagerPort } from './manager-client.js';
 import { receiptResult } from './receipt-result.js';
+import { activityScope } from '../shared/activity-scope.js';
 import { featureMethod } from '../core/feature-methods.js';
 import { automationReads, automationWrites, automationSpec } from '../core/automations.js';
 import { WorkspaceAcknowledgements } from './workspace-ack.js';
@@ -18,7 +19,7 @@ const volatile = new Set(['turn/interrupt', 'terminal/write', 'terminal/resize',
 const workMethods = new Set(['conversation/start', 'turn/start', 'thread/compact', 'terminal/open']);
 const systemReads = new Set(['system/status', 'system/logs', 'system/provider/read', 'system/execution-mode/read']);
 const projectMethods = new Set(['thread/list', 'conversation/start', 'defaults/read', 'terminal/open']);
-interface Activity { activeThreads: string[]; pendingStarts: number; terminals: number; subscriptions: number; processes: number; unknown: boolean }
+interface Activity { activeThreads: string[]; pendingStarts: number; terminals: number; subscriptions: number; processes: number; unknown: boolean; globalUnknown: boolean; unknownThreads: string[] }
 interface Maintenance { kind: 'root' | 'worker' | 'receipt' }
 export class Dispatcher extends EventEmitter {
   readonly workspaceAcknowledgements: WorkspaceAcknowledgements;
@@ -26,7 +27,7 @@ export class Dispatcher extends EventEmitter {
   #pendingWork = new Set<string>(); #maintenance: Maintenance | null = null;
   #recoveryGeneration = 0;
   #automationHealth: JsonObject = { running: false, lastTickAt: null, lastError: null };
-  #runtime: JsonValue = null; #activity: Activity = { activeThreads: [], pendingStarts: 0, terminals: 0, subscriptions: 0, processes: 0, unknown: true };
+  #runtime: JsonValue = null; #activity: Activity = { activeThreads: [], pendingStarts: 0, terminals: 0, subscriptions: 0, processes: 0, unknown: true, globalUnknown: true, unknownThreads: [] };
   constructor(readonly ledger: Ledger, readonly worker: WorkerPort, readonly manager: ManagerPort) { super(); this.workspaceAcknowledgements = new WorkspaceAcknowledgements(ledger, worker); this.receiptMaintenance = new ReceiptMaintenance(ledger); }
   event(event: HarnessEvent): void {
     if (event.type === 'state') {
@@ -36,12 +37,14 @@ export class Dispatcher extends EventEmitter {
         if (!Array.isArray(activity.activeThreads) || !activity.activeThreads.every(x => typeof x === 'string') || typeof activity.pendingStarts !== 'number' || typeof activity.terminals !== 'number' || typeof activity.unknown !== 'boolean') throw new Error();
         if (activity.subscriptions !== undefined && (typeof activity.subscriptions !== 'number' || !Number.isSafeInteger(activity.subscriptions) || activity.subscriptions < 0)) throw new Error();
         if (activity.processes !== undefined && (typeof activity.processes !== 'number' || !Number.isSafeInteger(activity.processes) || activity.processes < 0)) throw new Error();
-        this.#activity = { activeThreads: activity.activeThreads as string[], pendingStarts: activity.pendingStarts, terminals: activity.terminals, subscriptions: activity.subscriptions as number | undefined ?? 0, processes: activity.processes as number | undefined ?? 0, unknown: activity.unknown || event.data.connected !== true };
-      } catch { this.#activity.unknown = true; }
+        const scope = activityScope(activity);
+        const globalUnknown = scope.globalUnknown || event.data.connected !== true;
+        this.#activity = { activeThreads: activity.activeThreads as string[], pendingStarts: activity.pendingStarts, terminals: activity.terminals, subscriptions: activity.subscriptions as number | undefined ?? 0, processes: activity.processes as number | undefined ?? 0, unknown: globalUnknown || scope.unknownThreads.length > 0, globalUnknown, unknownThreads: scope.unknownThreads };
+      } catch { this.#activity.unknown = this.#activity.globalUnknown = true; }
     }
     this.emit('event', event.type === 'state' ? { type: 'state', data: this.status() } : event);
   }
-  disconnected(): void { this.workspaceAcknowledgements.reconnected(); this.#activity.unknown = true; this.emit('event', { type: 'state', data: { connected: false, activity: { ...this.#activity } } }); }
+  disconnected(): void { this.workspaceAcknowledgements.reconnected(); this.#activity.unknown = this.#activity.globalUnknown = true; this.emit('event', { type: 'state', data: { connected: false, activity: { ...this.#activity } } }); }
   status(): JsonValue {
     const runtime = this.#runtime && typeof this.#runtime === 'object' && !Array.isArray(this.#runtime) ? this.#runtime : {};
     return { ...runtime, connected: this.worker.connected && runtime.connected === true, operationGeneration: this.ledger.operationGeneration(), activity: { ...this.#activity }, activityUncertain: this.ledger.getMeta('activityUncertain') === 'true', maintenance: this.#maintenance !== null, automation: this.#automationHealth };
@@ -100,7 +103,7 @@ export class Dispatcher extends EventEmitter {
           context.requireAuthorization?.();
           saved = this.ledger.read(operationId);
           if (saved?.state === 'unknown' && proof.operationId === operationId && proof.method === saved.method && saved.scope === 'project:' + proof.projectId && this.ledger.matchesDigest(operationId, proof.gatewayRequestDigest) && proof.state === 'completed' && Object.hasOwn(proof, 'result')) {
-            saved = this.ledger.confirmWorkspace(operationId, saved.method, saved.scope, String(proof.gatewayRequestDigest), receiptResult(saved.method, proof.result!)); this.emitReceipt(saved);
+            saved = this.ledger.confirmWorkspace(operationId, saved.method, saved.scope, String(proof.gatewayRequestDigest), receiptResult(saved.method, proof.result!), () => this.notifyAutomations()); this.emitReceipt(saved);
           }
         } catch { /* Native-owned helper journals and absence are never acceptance proofs. */ }
       }
@@ -138,7 +141,7 @@ export class Dispatcher extends EventEmitter {
     const runtime = this.#runtime && typeof this.#runtime === 'object' && !Array.isArray(this.#runtime) ? this.#runtime : {};
     const repository = feature?.activity === 'repository';
     const scopedRepository = repository && runtime.repositoryScopes === 1;
-    const isWork = startsWork || feature?.activity === 'continue' || feature?.activity === 'idle' || scopedRepository;
+    const isWork = method === 'diagnostics/cli/run' || startsWork || feature?.activity === 'continue' || feature?.activity === 'idle' || scopedRepository;
     const rootManagement = method.startsWith('system/');
     const localProject = method === 'project/remove' || method === 'project/rename';
     const management = rootManagement || feature?.activity === 'configuration' || (repository && !scopedRepository);
@@ -150,7 +153,9 @@ export class Dispatcher extends EventEmitter {
       if ((isWork || management || feature?.access === 'write' || method.startsWith('account/') || method.startsWith('project/')) &&
           this.#maintenance && !(forceRecovery && this.#maintenance.kind === 'worker'))
         throw new HarnessError('maintenance', '服务器正在变更配置，请稍后重试。');
-      if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
+      if (isWork && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.globalUnknown)) throw new HarnessError('activity_unknown', '后台任务状态需要核对，暂不能开始新任务。');
+      if (isWork && typeof params.threadId === 'string' && this.#activity.unknownThreads.includes(params.threadId)) throw new HarnessError('activity_unknown', '此会话有结果待核对的操作，暂不能开始新任务。');
+      if (method === 'diagnostics/cli/run' && this.#pendingWork.has(scope)) throw new HarnessError('diagnostics_busy', '已有正在运行的 CLI 诊断，请等待完成后重试。');
       if (isWork && (this.#pendingWork.has(scope) || ((startsWork || feature?.activity === 'idle') && this.#activity.activeThreads.includes(String(params.threadId))))) throw new HarnessError('thread_busy', repository ? '此仓库或工作树仍有待确认的项目操作，请完成后重试。' : scope.startsWith('project:') ? '此项目有正在执行或等待确认的操作，请完成后重试。' : '此会话已有正在执行或等待确认的任务。');
       if (management) {
         if (method !== 'system/restart' && !forceRecovery && (this.ledger.getMeta('activityUncertain') === 'true' || this.#activity.unknown)) throw new HarnessError('activity_unknown', '后台状态未知，请先检查并恢复服务。');
@@ -202,7 +207,7 @@ export class Dispatcher extends EventEmitter {
           if (saved.state !== 'accepted') throw new HarnessError('journal_capacity', '无法保存移除回执，项目和计划均已保留。');
           return saved;
         });
-        this.emitReceipt(receipt); this.emit('automation-changed'); this.emit('event', { type: 'automation', data: { changed: true } });
+        this.emitReceipt(receipt); this.notifyAutomations();
         return this.replay(receipt);
       }
       if (method === 'project/rename') {
@@ -247,10 +252,12 @@ export class Dispatcher extends EventEmitter {
       // Authorization changes after dispatch cannot retroactively turn that success into an unsent operation.
       if (!dispatched) recordDispatch();
       const projected = receiptResult(method, result, params);
+      let projectDeactivated = false;
       const receipt = this.ledger.transaction(() => {
-        if (method.startsWith('workspace/worktree/')) this.ledger.worktrees.apply(method, identifier(params.projectId), operationId, projected);
+        if (method.startsWith('workspace/worktree/')) projectDeactivated = this.ledger.worktrees.apply(method, identifier(params.projectId), operationId, projected);
         return this.ledger.settle(operationId, { ok: true, value: projected });
       }); this.emitReceipt(receipt);
+      if (projectDeactivated) this.notifyAutomations();
       await this.workspaceAcknowledgements.accepted(receipt, context, digest({ method, params }));
       return this.replay(receipt);
     } catch (error) {
@@ -302,6 +309,10 @@ export class Dispatcher extends EventEmitter {
       if (current?.state === 'pending') this.emitReceipt(this.ledger.settle(operationId, { ok: false, error: body }));
       throw new HarnessError(body.code, body.message, body.delivery, body.data);
     }
+  }
+  private notifyAutomations(): void {
+    this.emit('automation-changed');
+    this.emit('event', { type: 'automation', data: { changed: true } });
   }
   private emitReceipt(receipt: Receipt): void {
     this.emit('event', { type: 'receipt', data: { ...receipt } as unknown as JsonValue });
