@@ -36,12 +36,19 @@ def schema_references(value):
                 yield from schema_references(child)
 
 
+def consumers():
+    for directory in ('src', 'web', 'tests'):
+        for source in (ROOT / directory).rglob('*.ts*'):
+            if source.suffix in ('.ts', '.tsx') and not {'node_modules', 'dist'}.intersection(source.relative_to(ROOT).parts):
+                yield source
+
+
 def select_definitions(generated, output):
     document = json.loads((generated / 'json' / BUNDLE).read_text())
     definitions = document['definitions']
     standalone = {path.stem for path in (generated / 'json').glob('*.json')}
     literals = set()
-    for source in (ROOT / 'src').rglob('*.ts'):
+    for source in consumers():
         literals.update(LITERAL.findall(source.read_text()))
     roots = literals & (standalone | definitions.keys())
     # Realtime and attachment code use literal operation prefixes. The project
@@ -70,13 +77,10 @@ def select_definitions(generated, output):
 def select_types(generated, output):
     source_root = generated / 'ts'
     pending = []
-    for directory in ('src', 'web', 'tests'):
-        for source in (ROOT / directory).rglob('*.ts*'):
-            if source.suffix not in ('.ts', '.tsx') or 'node_modules' in source.parts or 'dist' in source.parts:
-                continue
-            for name in TS_IMPORT.findall(source.read_text()):
-                if '/protocol/ts/' in name:
-                    pending.append(name.split('/protocol/ts/', 1)[1])
+    for source in consumers():
+        for name in TS_IMPORT.findall(source.read_text()):
+            if '/protocol/ts/' in name:
+                pending.append(name.split('/protocol/ts/', 1)[1])
     visited = set()
     while pending:
         relative = Path(pending.pop()).with_suffix('.ts')

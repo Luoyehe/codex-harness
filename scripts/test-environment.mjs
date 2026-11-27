@@ -36,6 +36,9 @@ export function isolatedTestEnvironment(base, inherited = process.env, { rootFix
 
 /** Public CLI planning also invokes Git, before any test subprocess exists. */
 export function isolateTestProcess(base, options) {
+  // Fixtures create native config and homes under the same ownership rules as the worker.
+  // Keep stricter caller permissions and prevent group/other writes in all descendants.
+  process.umask(process.umask() | 0o022);
   if (!cleanupRegistered) {
     cleanupRegistered = true;
     process.once('exit', code => { for (const directory of workspaces) { try { finishTestWorkspace(directory, code === 0); } catch { /* Keep unconfirmed cleanup for manual inspection. */ } } });

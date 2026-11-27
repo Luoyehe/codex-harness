@@ -451,11 +451,15 @@ class ArchiveTests(unittest.TestCase):
             source = root / "source"
             source.mkdir()
             (source / "package.json").write_text("{}")
+            (source / "package.json").chmod(0o664)
             (source / "bin").write_text("fixture")
             os.chmod(source / "bin", 0o755)
             os.symlink("bin", source / "link")
-            snapshot(source, root / "copy", producer_stopped=True)
-            self.assertEqual(inspect_tree(source), inspect_tree(root / "copy"))
+            expected = inspect_tree(source)
+            expected["package.json"]["mode"] = 0o644
+            manifest = snapshot(source, root / "copy", producer_stopped=True)
+            self.assertEqual(manifest, expected)
+            self.assertEqual(inspect_tree(root / "copy"), expected)
             with self.assertRaises(DeployError):
                 snapshot(source, root / "running", producer_stopped=False)
             os.link(source / "bin", source / "hard")

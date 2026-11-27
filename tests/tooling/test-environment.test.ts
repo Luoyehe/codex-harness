@@ -30,6 +30,26 @@ test('the shared local and CI allowlist replaces host paths and removes configur
   expect(env.GIT_CONFIG_SYSTEM).toBe(env.GIT_CONFIG_GLOBAL);
 });
 
+test.each([
+  [0o002, 0o022, 0o755, 0o644],
+  [0o077, 0o077, 0o700, 0o600],
+])('test process isolates inherited umask %i before creating native fixtures', (initial, expected, directory, file) => {
+  const parentMask = process.umask();
+  const probe = `
+    import { statSync, writeFileSync } from 'node:fs';
+    import path from 'node:path';
+    import { isolateTestProcess } from './scripts/test-environment.mjs';
+    process.umask(Number(process.argv[1]));
+    const env = isolateTestProcess(process.argv[2], { rootFixtures: false });
+    const config = path.join(env.TMPDIR, 'config.toml');
+    writeFileSync(config, '');
+    console.log(JSON.stringify([process.umask(), statSync(env.TMPDIR).mode & 0o777, statSync(config).mode & 0o777]));
+  `;
+  const result = execFileSync(process.execPath, ['--input-type=module', '-e', probe, String(initial), fixture()], { encoding: 'utf8' });
+  expect(JSON.parse(result)).toEqual([expected, directory, file]);
+  expect(process.umask()).toBe(parentMask);
+});
+
 test('both engines and prerequisite checks receive the same isolated environment without mutating the caller', () => {
   const base = fixture(); const oldHome = path.join(base, 'artificial-home');
   vi.stubEnv('HOME', oldHome); vi.stubEnv('CODEX_HOME', oldHome); vi.stubEnv('OPENAI_API_KEY', 'fixture-only');

@@ -175,6 +175,9 @@ export function prepareRuntimeHomes(config: RuntimeConfig): void {
 }
 async function main(): Promise<void> {
   const config = configFromEnvironment(process.env);
+  // Native history rejects group- or world-writable rollouts. Keep stricter
+  // caller masks while giving development workers the same write protection.
+  if (config.runtime.dev) process.umask(process.umask() | 0o022);
   const handle = await startWorkerServer(async () => {
     prepareRuntimeHomes(config.runtime);
     if ((await runNativeHelper(config.runtime, 'version')).trim() !== `codex-cli ${CODEX_VERSION}`) throw new Error('Codex runtime version does not match the pinned package');

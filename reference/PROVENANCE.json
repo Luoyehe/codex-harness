@@ -24,8 +24,8 @@
     "output": {
       "jsonFiles": 6,
       "typescriptFiles": 191,
-      "v2Definitions": 596,
-      "v2BundleSha256": "36cbca507b68310f7fa58c13943373703fcb32ab213d7e44087bec362b6aa754"
+      "v2Definitions": 611,
+      "v2BundleSha256": "1e3fb307fcd6b2bd6efdaaa96c91891eece474122a746f5f0434fd2a262dcd5f"
     }
   }
 }

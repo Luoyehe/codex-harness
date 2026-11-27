@@ -85,6 +85,7 @@ test('definitive native not_sent reclaims only its own unresolved reservation', 
   } finally { witness.close(); }
 });
 
+// Each of the 2005 cycles performs real SQLite FULL-sync writes. Virtual disks can need over a minute.
 test('acknowledged ordinary operations can exceed the lifetime witness capacity', async () => {
   const first = fixture(), witness = new WorkspaceWitness(first.home);
   try {
@@ -96,7 +97,7 @@ test('acknowledged ordinary operations can exceed the lifetime witness capacity'
     }
     expect(witness.usage().total).toBe(0);
   } finally { witness.close(); }
-}, 30000);
+}, 180_000);
 test('missing or incomplete witnesses never adopt a native recovery record or authorize a replay', () => {
   const { home, context, request } = fixture(); const witness = new WorkspaceWitness(home);
   try {

@@ -228,23 +228,29 @@ class TreeDurabilityTests(unittest.TestCase):
 
     def test_toolchain_syncs_assembly_before_manifest_and_rename_parents_afterwards(self):
         builder, download = self.toolchain_fixture()
-        root = self.layout.work / "toolchains" / digest(toolchain_spec("x64"))
-        with patch("deploy.build.download", side_effect=download), patch("deploy.build.architecture", return_value="x64"), self.syncing() as events:
-            def publish(path, value):
-                assembled = next(self.layout.work.glob("tools-*/assembled"))
-                positions = self.positions(events)
-                self.assertIn(assembled / "runtime", positions)
-                self.assertIn(assembled / "runtime/node/bin/node", positions)
-                self.assertIn(self.layout.work.parent, positions)
-                self.assertIn(self.layout.work.parent.parent, positions)
-                self.assertFalse(root.exists())
-                write_json(path, value)
-            with patch("deploy.build.write_json", side_effect=publish):
-                self.assertEqual(builder.toolchain(), root / "runtime")
-            self.assertEqual(events[-1][1], self.layout.work)
-            self.assertIn(root.parent, self.positions(events))
-        with self.syncing(lambda path: path == root / "runtime/node/bin"), self.assertRaises(OSError):
-            builder.toolchain()
+        for arch in ("x64", "arm64"):
+            root = self.layout.work / "toolchains" / digest(toolchain_spec(arch))
+            with self.subTest(arch=arch), patch("deploy.build.architecture", return_value=arch), \
+                    patch("deploy.build.download", side_effect=download) as fetch:
+                with self.syncing() as events:
+                    def publish(path, value):
+                        assembled = next(self.layout.work.glob("tools-*/assembled"))
+                        positions = self.positions(events)
+                        self.assertIn(assembled / "runtime", positions)
+                        self.assertIn(assembled / "runtime/node/bin/node", positions)
+                        self.assertIn(self.layout.work.parent, positions)
+                        self.assertIn(self.layout.work.parent.parent, positions)
+                        self.assertFalse(root.exists())
+                        write_json(path, value)
+                    with patch("deploy.build.write_json", side_effect=publish):
+                        self.assertEqual(builder.toolchain(), root / "runtime")
+                    self.assertEqual(events[-1][1], self.layout.work)
+                    self.assertIn(root.parent, self.positions(events))
+                fetch.reset_mock()
+                with self.syncing(lambda path: path == root / "runtime/node/bin"), \
+                        self.assertRaisesRegex(OSError, "Injected durability failure"):
+                    builder.toolchain()
+                fetch.assert_not_called()
 
     def test_toolchain_sync_failure_prevents_manifest_and_rename(self):
         builder, download = self.toolchain_fixture()
@@ -303,8 +309,11 @@ class TreeDurabilityTests(unittest.TestCase):
                 write_json(path, value)
             with patch("deploy.https.write_json", side_effect=publish):
                 self.assertEqual(edge_binary(self.layout, "caddy"), target)
-        with self.syncing(lambda path: path == root), self.assertRaises(OSError):
+        with patch("deploy.https.architecture", return_value="x64"), \
+                patch("deploy.https.urllib.request.build_opener") as new_opener, \
+                self.syncing(lambda path: path == root), self.assertRaisesRegex(OSError, "Injected durability failure"):
             edge_binary(self.layout, "caddy")
+        new_opener.assert_not_called()
 
     def test_edge_extract_fsync_failure_does_not_publish_manifest(self):
         data, opener = self.edge_fixture()

@@ -17,7 +17,7 @@ python3 reference/select-protocol.py "$protocol_work/generated" "$protocol_work/
 diff -qr protocol "$protocol_work/selected"
 ```
 
-运行时按名称校验请求和响应。`protocol/json` 保留用到的 v2 定义、递归引用及独立审批响应 schema。`protocol/ts` 保留源码和测试导入的官方类型及其依赖。定义中的字段和生成类型保留官方内容，包括原生服务可能返回的跨平台配置。添加新操作后应重新生成并核对选集；动态拼接协议名的入口还应检查选择脚本。App Server 实验能力仍须在初始化时显式声明。[官方 App Server 文档](https://developers.openai.com/codex/app-server/)
+运行时和协议验收测试按名称校验请求、响应和通知。`protocol/json` 保留源码及测试用到的 v2 定义、递归引用和独立 schema。`protocol/ts` 保留源码和测试导入的官方类型及其依赖。定义中的字段和生成类型保留官方内容，包括原生服务可能返回的跨平台配置。添加新操作后应重新生成并核对选集；动态拼接协议名的入口还应检查选择脚本。App Server 实验能力仍须在初始化时显式声明。[官方 App Server 文档](https://developers.openai.com/codex/app-server/)
 
 ## 连接与生命周期
 
