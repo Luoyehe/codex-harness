@@ -1,7 +1,17 @@
 {
   "schemaVersion": 1,
-  "kind": "historical-privacy-export",
-  "authorizesRelease": false,
-  "status": "superseded",
-  "notice": "The authorization applied to the original source only. A new audit and explicit release authorization are required for these exported bytes."
+  "kind": "audited-release-closeout",
+  "auditRoundsWaived": false,
+  "auditRecordSha256": "f144288b8e32e5d5d55d8fbb0b71f51ee27a382efac6da774f2cc0c03eb07383",
+  "sourceDigest": "2bee13dc7226bca121e569a88922d92f1ff9761ee17a012e9acf7d10ddb1bb58",
+  "sourceFiles": 938,
+  "baseCommit": "cfdbf1efe0e39495dac23bc7f4a19e797e58361d",
+  "version": "2.5.0",
+  "approvedAt": "2026-11-27T17:06:47.710Z",
+  "userInstruction": "After two consecutive clean audits of the Unix candidate, verify and submit the changes to GitHub.",
+  "repairsReviewed": true,
+  "scopes": [
+    "full-tests"
+  ],
+  "unresolvedBlockers": []
 }

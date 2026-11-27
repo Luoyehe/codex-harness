@@ -1,1 +1,71 @@
-{"schemaVersion":1,"rounds":[]}
+{
+  "schemaVersion": 1,
+  "rounds": [
+    {
+      "id": "unix-audit-1",
+      "sequence": 1,
+      "digest": "2bee13dc7226bca121e569a88922d92f1ff9761ee17a012e9acf7d10ddb1bb58",
+      "complete": true,
+      "findings": [],
+      "skipped": [],
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "startedAt": "2026-11-27T16:55:16.363Z",
+      "completedAt": "2026-11-27T17:03:44.181Z",
+      "reviewers": [
+        {
+          "id": "unix_round1_verify",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/unix-audit-1/repository-review.json",
+          "sha256": "7d22ee33fd282d5d2ec4cbea38ebbcdb57d806fcd8af19b06b1bffae88a8ce11"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/unix-audit-1/builtin-freshness.json",
+        "sha256": "21d575d4f0042d445ad23c3a228fc7a40b7614d1e945006d172879de60ffadba"
+      }
+    },
+    {
+      "id": "unix-audit-2",
+      "sequence": 2,
+      "digest": "2bee13dc7226bca121e569a88922d92f1ff9761ee17a012e9acf7d10ddb1bb58",
+      "complete": true,
+      "findings": [],
+      "skipped": [],
+      "scopes": [
+        "gateway-core",
+        "runtime-protocol",
+        "web-ux",
+        "deployment-release"
+      ],
+      "startedAt": "2026-11-27T17:03:44.250Z",
+      "completedAt": "2026-11-27T17:06:47.709Z",
+      "reviewers": [
+        {
+          "id": "unix_round2_verify",
+          "scopes": [
+            "gateway-core",
+            "runtime-protocol",
+            "web-ux",
+            "deployment-release"
+          ],
+          "evidence": "verification/audit-evidence/unix-audit-2/repository-review.json",
+          "sha256": "6716be7f5a50f065edbbe0591ff772c867c0fdaee5aa80915920543222e05118"
+        }
+      ],
+      "builtinMcpFreshness": {
+        "path": "verification/audit-evidence/unix-audit-2/builtin-freshness.json",
+        "sha256": "301c0fed18859ed2f463c0bfb65b17543432012e458680f0803e4b5e55b1f2fa"
+      }
+    }
+  ]
+}
