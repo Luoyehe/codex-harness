@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -93,29 +93,36 @@ test('automation dispatch IDs follow the active generation and queued work block
   expect(() => rotate(value)).toThrow(expect.objectContaining({ code: 'journal_busy' }));
 });
 
-test('large WAL previews yield to other requests and export one intact pre-write snapshot', async () => {
-  const directory = mkdtempSync(join(tmpdir(), 'operation-window-')); directories.push(directory);
-  const ledger = new Ledger(join(directory, 'ledger.sqlite')); opened.push(ledger);
-  for (let n = 0; n < 420; n++) {
-    const id = ledger.newOperationId(); ledger.reserve(id, 'workspace/read', {}, 'project');
-    ledger.settle(id, { ok: true, value: { label: '回执行'.repeat(2200), n } });
-  }
-  const before = ledger.maintenancePreview() as JsonObject;
-  let callbacks = 0;
-  const exporting = ledger.connectionPreview(() => { callbacks++; });
-  const added = accept(ledger);
-  expect(ledger.read(added)?.state).toBe('accepted');
-  const result = await exporting;
-  expect(callbacks).toBeGreaterThan(3);
-  expect(result).toMatchObject({ digest: before.digest, receipts: 420, bytes: before.bytes });
-  const chunks: Buffer[] = []; let offset: number | null = 0;
-  while (offset !== null) {
-    const part = ledger.maintenanceChunk({ digest: String(result.digest), offset, limit: 98547 }) as JsonObject;
-    chunks.push(Buffer.from(String(part.base64), 'base64')); offset = part.nextOffset as number | null;
-  }
-  const bytes = Buffer.concat(chunks);
-  const { createHash } = await import('node:crypto');
-  expect(createHash('sha256').update(bytes).digest('hex')).toBe(before.digest);
-  expect(JSON.parse(bytes.toString()).receipts).toHaveLength(420);
-  expect((ledger.maintenancePreview() as JsonObject).receipts).toBe(421);
+describe('on-disk WAL export', () => {
+  let ledger: Ledger;
+  beforeEach(() => {
+    // Prepare 420 durable receipts separately from the interactive export deadline.
+    const directory = mkdtempSync(join(tmpdir(), 'operation-window-')); directories.push(directory);
+    ledger = new Ledger(join(directory, 'ledger.sqlite')); opened.push(ledger);
+    for (let n = 0; n < 420; n++) {
+      const id = ledger.newOperationId(); ledger.reserve(id, 'workspace/read', {}, 'project');
+      ledger.settle(id, { ok: true, value: { label: '回执行'.repeat(2200), n } });
+    }
+  }, 60_000);
+
+  test('large WAL previews yield to other requests and export one intact pre-write snapshot', async () => {
+    const before = ledger.maintenancePreview() as JsonObject;
+    let callbacks = 0;
+    const exporting = ledger.connectionPreview(() => { callbacks++; });
+    const added = accept(ledger);
+    expect(ledger.read(added)?.state).toBe('accepted');
+    const result = await exporting;
+    expect(callbacks).toBeGreaterThan(3);
+    expect(result).toMatchObject({ digest: before.digest, receipts: 420, bytes: before.bytes });
+    const chunks: Buffer[] = []; let offset: number | null = 0;
+    while (offset !== null) {
+      const part = ledger.maintenanceChunk({ digest: String(result.digest), offset, limit: 98547 }) as JsonObject;
+      chunks.push(Buffer.from(String(part.base64), 'base64')); offset = part.nextOffset as number | null;
+    }
+    const bytes = Buffer.concat(chunks);
+    const { createHash } = await import('node:crypto');
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(before.digest);
+    expect(JSON.parse(bytes.toString()).receipts).toHaveLength(420);
+    expect((ledger.maintenancePreview() as JsonObject).receipts).toBe(421);
+  });
 });

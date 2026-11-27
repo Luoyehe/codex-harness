@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { EventEmitter } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import type { NativeOptions, NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: string) => void), gate: undefined as Promise<void> | undefined, calls: [] as { action: string; binding: unknown }[], result: undefined as JsonValue | undefined, failure: undefined as Error | undefined }));
+const helper = vi.hoisted(() => ({ hook: undefined as undefined | ((action: string) => void), gate: undefined as PromiseWithResolvers<void> | undefined, calls: [] as { action: string; binding: unknown }[], result: undefined as JsonValue | undefined, failure: undefined as Error | undefined }));
+const admissions = new EventEmitter();
 vi.mock('../../src/runtime/workspace.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../../src/runtime/workspace.js')>();
   return { ...actual, runWorkspace: async (_config: unknown, root: import('../../src/runtime/workspace.js').WorkspaceRoot, action: string, params: JsonObject, context: import('../../src/runtime/types.js').CallContext, internal = false) => {
@@ -13,7 +14,9 @@ vi.mock('../../src/runtime/workspace.js', async importOriginal => {
     if (action === 'repository/identity') return { identity: root.path === '/independent' ? 'b'.repeat(64) : 'a'.repeat(64) };
     helper.hook?.(action);
     if (actual.workspaceMutations.has(action) || action === 'operation/ack') context.beforeWrite?.();
-    helper.calls.push({ action, binding: root.worktreeBinding }); await helper.gate;
+    helper.calls.push({ action, binding: root.worktreeBinding });
+    admissions.emit('admitted');
+    await helper.gate?.promise;
     if (helper.failure) throw helper.failure;
     if (helper.result !== undefined) return helper.result;
     if (action === 'operation/ack') return { acknowledged: true, operationId: params.operationId, removed: true };
@@ -35,8 +38,20 @@ function setup() {
   const service = new RuntimeService({ bin: '/unused', home, workerHome: home, nativeHome: '/native', cwd: '/', env: {}, launcher: { path: '/unused', user: 'ch-fixture-worker' } }, native as unknown as NativeRpc); services.push(service);
   return { service, native, context: { clientId: 'owner', operationId: randomUUID(), projectId: randomUUID(), gatewayRequestDigest: 'c'.repeat(64), beforeWrite: () => {} } };
 }
+function holdHelper(): () => void {
+  helper.gate = Promise.withResolvers<void>();
+  return helper.gate.resolve;
+}
+async function expectAdmitted(count: number, operation: Promise<unknown>): Promise<void> {
+  if (helper.calls.length < count) await Promise.race([once(admissions, 'admitted'), operation]);
+  expect(helper.calls).toHaveLength(count);
+}
 beforeEach(() => { helper.calls.length = 0; helper.hook = undefined; helper.gate = undefined; helper.result = undefined; helper.failure = undefined; });
-afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); });
+afterEach(async () => {
+  helper.gate?.resolve();
+  admissions.removeAllListeners();
+  await Promise.all(services.splice(0).map(service => service.close()));
+});
 test('worktree creation establishes a private binding and read never exposes nested recovery bindings', async () => {
   const { service, context } = setup();
   const created = await service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, context);
@@ -49,13 +64,14 @@ test('worktree creation establishes a private binding and read never exposes nes
   expect(await service.call('workspace/operation/read', { cwd: '/project', operationId: context.operationId }, context)).toEqual({ operationId: context.operationId, response: { result: { path: 'retained' } } });
 });
 test('worktree changes wait for prior file writes and exclude new work until acknowledged', async () => {
-  const { service, context } = setup(); let release!: () => void; helper.gate = new Promise(resolve => { release = resolve; });
+  const { service, context } = setup(); const release = holdHelper();
   const writing = service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context);
   const creating = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, { ...context, operationId: randomUUID() });
-  expect(helper.calls.map(call => call.action)).toEqual(['mkdir']); helper.gate = undefined; release(); await writing; await creating;
-  let complete!: () => void; helper.gate = new Promise(resolve => { complete = resolve; });
+  await expectAdmitted(1, writing);
+  expect(helper.calls.map(call => call.action)).toEqual(['mkdir']); release(); await writing; await creating;
+  const complete = holdHelper();
   const next = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, { ...context, operationId: randomUUID() });
-  await expect.poll(() => helper.calls.length).toBe(3);
+  await expectAdmitted(3, next);
   await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'other' }, { ...context, operationId: randomUUID() })).rejects.toMatchObject({ code: 'activity_busy' });
   complete(); await next;
 });
@@ -68,8 +84,8 @@ test('worktree helper final boundary rejects newly active work and revoked owner
   }
 });
 test('service close waits for helper acknowledgement before closing the witness database', async () => {
-  const { service, context } = setup(); let release!: () => void; helper.gate = new Promise(resolve => { release = resolve; });
-  const pending = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, context); await expect.poll(() => helper.calls.length).toBe(1);
+  const { service, context } = setup(); const release = holdHelper();
+  const pending = service.call('workspace/worktree/create', { cwd: '/project', ref: 'HEAD' }, context); await expectAdmitted(1, pending);
   let closed = false; const closing = service.close().then(() => { closed = true; }); await Promise.resolve(); expect(closed).toBe(false);
   release(); await expect(pending).resolves.toMatchObject({ created: true, worktreeVersion: 1 }); await closing;
 });
@@ -90,7 +106,7 @@ test('maintenance waits for native acknowledgement cleanup to finish', async () 
   const { service, context } = setup();
   await service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context);
   const page = object(await service.call('workspace/witness/pending', {}, context)), ack = object((page.data as JsonValue[])[0]);
-  let release!: () => void; helper.gate = new Promise(resolve => { release = resolve; });
+  const release = holdHelper();
   const cleanup = service.call('workspace/witness/ack', ack, context);
   await expect(service.call('runtime/maintenance/check', {}, context)).rejects.toMatchObject({ code: 'activity_busy' });
   release(); await cleanup;
@@ -128,13 +144,13 @@ test('definite helper rejection before a positive reply releases its witness wit
   await expect(service.call('workspace/mkdir', { cwd: '/project', path: 'folder' }, context)).resolves.toMatchObject({ created: true });
 });
 test('permits overlapping independent repository writes but holds the common repository across two registered worktrees', async () => {
-  const { service, context } = setup(); let release!: () => void;
-  helper.gate = new Promise(resolve => { release = resolve; });
+  const { service, context } = setup(); const release = holdHelper();
   const origin = service.call('workspace/worktree/create', {cwd:'/project',ref:'HEAD'}, context);
-  await expect.poll(() => helper.calls.length).toBe(1);
-  const separate = service.call('workspace/worktree/create', {cwd:'/independent',ref:'HEAD'}, {...context,projectId:randomUUID(),operationId:randomUUID()});
+  let separate: Promise<JsonValue> | undefined;
   try {
-    await expect.poll(() => helper.calls.length).toBe(2);
+    await expectAdmitted(1, origin);
+    separate = service.call('workspace/worktree/create', {cwd:'/independent',ref:'HEAD'}, {...context,projectId:randomUUID(),operationId:randomUUID()});
+    await expectAdmitted(2, separate);
     await expect(service.call('workspace/worktree/create',{cwd:'/linked',ref:'HEAD'},{...context,projectId:randomUUID(),operationId:randomUUID()}))
       .rejects.toMatchObject({code:'activity_busy',delivery:'not_sent'});
     expect(helper.calls).toHaveLength(2);
