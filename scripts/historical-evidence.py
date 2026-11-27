@@ -12,7 +12,10 @@ NAME = re.compile(r"verification/audit-evidence/[\w-]+/[\w-]+\.json", re.ASCII)
 
 def digest(file: Path) -> str:
     with file.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        checksum = hashlib.sha256()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            checksum.update(chunk)
+        return checksum.hexdigest()
 
 
 def main() -> None:

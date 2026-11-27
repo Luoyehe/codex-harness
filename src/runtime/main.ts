@@ -1,9 +1,8 @@
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { chmodSync, lstatSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from 'node:fs';
+import { chmodSync, lstatSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createConnection } from 'node:net';
 import { WebSocket, WebSocketServer } from 'ws';
 import { RuntimeService, type RuntimeConfig } from './service.js';
 import { DeliveryError, jsonBytes, object, onlyKeys, string, type JsonValue, type RuntimeEvent } from './types.js';
@@ -11,10 +10,32 @@ import { CODEX_VERSION } from './metadata.js';
 import { runNativeHelper, validateLauncher, type ExecutionPolicy } from './native-launch.js';
 
 import { workerSocketPath } from '../shared/worker-socket.js';
+import { reserveWorkerSocket } from './worker-socket-reservation.js';
 
 export interface WorkerServerConfig { socket: string; development?: boolean }
-export async function startWorkerServer(service: RuntimeService, config: WorkerServerConfig): Promise<{ server: Server; close: () => Promise<void> }> {
+// A supplied runtime belongs to the caller. A factory's runtime is initialized
+// and closed under the same reservation as the listener that serves it.
+export async function startWorkerServer(source: RuntimeService | (() => Promise<RuntimeService>), config: WorkerServerConfig) {
   const socketPath = workerSocketPath(config.socket, !!config.development);
+  const release = await reserveWorkerSocket(socketPath);
+  try {
+    const service = typeof source === 'function' ? await source() : source;
+    const closeService = () => typeof source === 'function' ? service.close() : undefined;
+    try {
+      const handle = await listenWorker(service, socketPath, !!config.development);
+      let shutdown: Promise<void> | undefined;
+      return { server: handle.server, service, close: () => shutdown ??= handle.close().finally(closeService).finally(release) };
+    } catch (error) {
+      await closeService();
+      throw error;
+    }
+  } catch (error) {
+    release();
+    throw error;
+  }
+}
+
+async function listenWorker(service: RuntimeService, socketPath: string, development: boolean): Promise<{ server: Server; close: () => Promise<void> }> {
   let calls = 0; let retained = 0; let closing = false;
   let restartPending = false;
   const restartWhenIdle = (): void => { if (restartPending && calls === 0 && !closing) { restartPending = false; service.emit('restart-ready'); } };
@@ -98,27 +119,11 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
     });
   });
   const events = (event: RuntimeEvent): void => { const text = jsonBytes({ type: event.type, data: event.data }); const bytes = Buffer.byteLength(text); for (const ws of sockets) { if (ws.readyState !== WebSocket.OPEN || (event.eventChannelId && event.eventChannelId !== channelIds.get(ws))) continue; if (ws.bufferedAmount + bytes > 16 * 1024 * 1024) { ws.close(1013, 'Event backlog: resynchronize state and history'); setTimeout(() => ws.terminate(), 1000).unref(); } else ws.send(text, error => { if (error) ws.terminate(); }); } };
-  const existing = lstatSync(socketPath, { throwIfNoEntry: false });
-  if (existing) {
-    if (!existing.isSocket() || existing.uid !== process.geteuid!()) throw new Error('Refusing to replace worker socket');
-    const active = await new Promise<boolean>(resolve => {
-      const probe = createConnection(socketPath);
-      probe.once('connect', () => { probe.destroy(); resolve(true); });
-      probe.once('error', (error: NodeJS.ErrnoException) => resolve(error.code !== 'ECONNREFUSED'));
-      probe.setTimeout(1000, () => { probe.destroy(); resolve(true); });
-    });
-    if (active) throw new Error('Worker socket is active or unavailable');
-    const current = lstatSync(socketPath, { throwIfNoEntry: false });
-    if (current) {
-      if (current.dev !== existing.dev || current.ino !== existing.ino) throw new Error('Worker socket changed during startup');
-      unlinkSync(socketPath);
-    }
-  }
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
     server.listen(socketPath, () => { server.off('error', reject); resolve(); });
   });
-  try { chmodSync(socketPath, config.development ? 0o600 : 0o660); }
+  try { chmodSync(socketPath, development ? 0o600 : 0o660); }
   catch (error) { await new Promise<void>(resolve => server.close(() => resolve())); throw error; }
   service.on('restart-required', requestRestart);
   service.on('event', events);
@@ -169,12 +174,15 @@ export function prepareRuntimeHomes(config: RuntimeConfig): void {
   mkdirSync(config.workerHome, { recursive: true, mode: 0o700 });
 }
 async function main(): Promise<void> {
-  const config = configFromEnvironment(process.env); prepareRuntimeHomes(config.runtime);
-  if ((await runNativeHelper(config.runtime, 'version')).trim() !== `codex-cli ${CODEX_VERSION}`) throw new Error('Codex runtime version does not match the pinned package');
-  const service = await RuntimeService.create(config.runtime); let shuttingDown = false;
-  let handle: Awaited<ReturnType<typeof startWorkerServer>>;
-  try { handle = await startWorkerServer(service, config.server); } catch (error) { await service.close(); throw error; }
-  const stop = (code: number): void => { if (shuttingDown) return; shuttingDown = true; const deadline = setTimeout(() => process.exit(code || 1), 7000); void (async () => { try { await handle.close(); await service.close(); clearTimeout(deadline); process.exit(code); } catch { process.exit(1); } })(); };
+  const config = configFromEnvironment(process.env);
+  const handle = await startWorkerServer(async () => {
+    prepareRuntimeHomes(config.runtime);
+    if ((await runNativeHelper(config.runtime, 'version')).trim() !== `codex-cli ${CODEX_VERSION}`) throw new Error('Codex runtime version does not match the pinned package');
+    return RuntimeService.create(config.runtime);
+  }, config.server);
+  const { service } = handle;
+  let shuttingDown = false;
+  const stop = (code: number): void => { if (shuttingDown) return; shuttingDown = true; const deadline = setTimeout(() => process.exit(code || 1), 7000); void (async () => { try { await handle.close(); clearTimeout(deadline); process.exit(code); } catch { process.exit(1); } })(); };
   service.on('fatal', () => stop(1));
   // Managed services use Restart=on-failure. Code 75 requests a clean new epoch
   // after a separately hosted CLI has finished and all RPC replies have drained.

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { createConnection } from 'node:net';
+import { createConnection, createServer } from 'node:net';
 import { chmodSync, existsSync, lstatSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { temporaryWorkerSocket } from '../fixtures/worker-socket.js';
 import { WebSocket } from 'ws';
@@ -51,6 +51,7 @@ test('worker binds a private socket, preserves an active listener, and removes i
   expect(handles.at(-1)!.server.address()).toBe(socketPath);
   expect(lstatSync(path.dirname(socketPath)).mode & 0o777).toBe(0o700);
   expect(lstatSync(socketPath).mode & 0o777).toBe(0o600);
+  expect(lstatSync(socketPath + '.lock').mode & 0o777).toBe(0o600);
   const start = (socket: string, development = true) => startWorkerServer(service as unknown as RuntimeService, { socket, development });
   await expect(start(socketPath)).rejects.toThrow('active');
   await connect(socketPath);
@@ -70,12 +71,60 @@ test('a stopped worker socket can be reclaimed and used by a new listener', asyn
   await connect(socketPath);
 });
 
+test('competing workers reserve a stale endpoint before opening shared runtime state and until shutdown finishes', async () => {
+  const { socketPath, service } = await setup();
+  await handles.pop()!.close();
+  execFileSync(process.execPath, ['-e', "require('node:net').createServer().listen(process.argv[1], () => process.exit(0))", socketPath], { timeout: 5000 });
+  const config = { socket: socketPath, development: true };
+  const initialize = Promise.withResolvers<void>(), startGate = Promise.withResolvers<void>();
+  const stopping = Promise.withResolvers<void>(), stopGate = Promise.withResolvers<void>();
+  const runtime = Object.assign(service, { async close() { stopping.resolve(); await stopGate.promise; } }) as unknown as RuntimeService;
+  let duplicateOpened = false;
+  const duplicate = () => startWorkerServer(async () => { duplicateOpened = true; return runtime; }, config);
+  const starting = startWorkerServer(async () => { initialize.resolve(); await startGate.promise; return runtime; }, config);
+  try {
+    await initialize.promise;
+    await expect(duplicate()).rejects.toThrow('active');
+    startGate.resolve();
+    const running = await starting; handles.push(running);
+    await connect(socketPath);
+    const closing = running.close();
+    await stopping.promise;
+    expect(running.close()).toBe(closing);
+    await expect(duplicate()).rejects.toThrow('active');
+    expect(duplicateOpened).toBe(false);
+    stopGate.resolve();
+    await closing;
+    await expect(startWorkerServer(async () => { throw new Error('fixture startup failure'); }, config)).rejects.toThrow('fixture startup failure');
+    handles.push(await startWorkerServer(runtime, config));
+    await connect(socketPath);
+  } finally { startGate.resolve(); stopGate.resolve(); }
+});
+
+test('a listener without a reservation remains reachable after a competing worker attempts to start', async () => {
+  const { socketPath, service } = await setup();
+  await handles.pop()!.close();
+  const live = createServer(peer => peer.end());
+  await new Promise<void>((resolve, reject) => { live.once('error', reject); live.listen(socketPath, resolve); });
+  try {
+    await expect(startWorkerServer(service as unknown as RuntimeService, { socket: socketPath, development: true })).rejects.toThrow('active or unavailable');
+    await new Promise<void>((resolve, reject) => {
+      const peer = createConnection(socketPath);
+      peer.once('error', reject); peer.once('end', resolve); peer.resume();
+    });
+  } finally { await new Promise<void>(resolve => live.close(() => resolve())); }
+});
+
 test('unsafe socket directories and occupied non-socket paths are refused', async () => {
   const { socketPath, service } = await setup();
   const directory = path.dirname(socketPath);
   const start = (socket: string) => startWorkerServer(service as unknown as RuntimeService, { socket, development: true });
   const occupied = path.join(directory, 'file'); writeFileSync(occupied, 'fixture');
   const link = path.join(directory, 'link'); symlinkSync(occupied, link);
+  const newSocket = path.join(directory, 'second.sock');
+  symlinkSync(occupied, newSocket + '.lock');
+  await expect(start(newSocket)).rejects.toThrow();
+  expect(existsSync(newSocket)).toBe(false);
   for (const target of [occupied, link]) await expect(start(target)).rejects.toThrow('unsafe worker socket');
   await expect(start('relative')).rejects.toThrow('absolute normalized');
   const shared = path.join(directory, 'shared'); mkdirSync(shared); chmodSync(shared, 0o777);

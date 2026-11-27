@@ -423,6 +423,7 @@ Versions before 2.1.0 could retain temporary MCP OAuth authorization links in op
 | `/var/lib/codex-harness-instances/INSTANCE/worker` | native worker UID, 0750; native sessions/auth/project execution; private files remain 0600 |
 | `/var/lib/codex-harness-instances/INSTANCE/supervisor` | control UID, native read group, 0750; attachments directory 2750 and files 0640; native cannot write |
 | `/run/codex-harness-INSTANCE/worker.sock` | control UID, gateway IPC group; 0660; native has no directory access |
+| `/run/codex-harness-INSTANCE/worker.sock.lock` | control UID, 0600. The worker holds an exclusive kernel lock from startup through native shutdown. Leave this file in place while the service is running. |
 | `/usr/lib/codex-harness/INSTANCE/manage` | root; fixed `rpc` sudo entry only |
 | `/usr/lib/codex-harness/INSTANCE/native-launch` | root-owned; control UID may sudo only to the selected fixed native/root identity; managed execution policy adds `identity` to the five existing modes; configuration-layer downgrade removes only `workspace` |
 | root transaction/provider/identity records | private root paths; retained on uncertain recovery |

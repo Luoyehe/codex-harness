@@ -4,7 +4,7 @@
 
 ## 产品范围
 
-单管理员自托管 Codex 网页工作台。基础会话、审批、附件、终端和部署之外，提供队列、目标、子 Agent、审查、定时任务、文件与 Git 恢复、worktree、技能/插件/MCP、记忆、远端环境及原生语音工作流。供应商包括 ChatGPT、企业网关、智谱、自定义 Responses 和 Bedrock。逐项入口、官方平台限制及验收证据见 `FEATURES.md` 和 `verification/feature-evidence/capability-coverage.json`。
+单管理员自托管 Codex 网页工作台。基础会话、审批、附件、终端和部署之外，提供队列、目标、子 Agent、审查、定时任务、文件与 Git 恢复、worktree、技能/插件/MCP、记忆、远端环境及原生语音工作流。供应商包括 ChatGPT、企业网关、智谱、自定义 Responses 和 Bedrock。逐项入口、官方平台限制及验收证据见 `FEATURES.md` 和 [capability-coverage.json](https://github.com/Luoyehe/codex-harness/blob/b2f5a1f798e9fb26ba40eb79d8bb63ab93ca8052/verification/feature-evidence/capability-coverage.json)。
 
 不增加多用户协作或跨用户隔离承诺。项目列表是工作目录选择，不能冒充安全边界。网页终端显式使用当前受管执行账号的 shell 权限，与某个模型回合的 sandbox 设置无关。
 
