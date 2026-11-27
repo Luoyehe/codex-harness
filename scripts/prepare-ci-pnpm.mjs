@@ -15,7 +15,7 @@ export function createPnpmDirectory(base) {
   const root = path.parse(resolved).root;
   let current = root;
   // Check every existing ancestor before creating any child: checking only the
-  // leaf permits a .work junction to redirect extraction outside the workspace.
+  // leaf permits a .work symlink to redirect extraction outside the workspace.
   for (const component of resolved.slice(root.length).split(path.sep).filter(Boolean)) {
     current = path.join(current, component);
     const stat = lstatSync(current);
@@ -40,18 +40,14 @@ export async function preparePnpm(base, env = process.env) {
   for await (const part of response.body ?? []) { bytes += part.length; if (bytes > 32 * 1024 * 1024) throw Error('pnpm distribution too large'); chunks.push(part); }
   const archive = Buffer.concat(chunks, bytes); verifyPnpmArchive(archive);
   writeFileSync(path.join(directory, 'pnpm.tgz'), archive);
-  execFileSync('tar', ['-xzf', 'pnpm.tgz'], { cwd: directory, windowsHide: true });
+  execFileSync('tar', ['-xzf', 'pnpm.tgz'], { cwd: directory });
   const pkg = JSON.parse(readFileSync(path.join(directory, 'package/package.json'), 'utf8'));
   if (pkg.name !== 'pnpm' || pkg.version !== pnpmVersion || !env.GITHUB_PATH) throw Error('Prepared pnpm package identity mismatch');
   const binary = path.join(directory, 'package/bin/pnpm.cjs');
-  if (execFileSync(process.execPath, [binary, '--version'], { encoding: 'utf8', windowsHide: true }).trim() !== pnpmVersion) throw Error('Prepared pnpm runtime mismatch');
+  if (execFileSync(process.execPath, [binary, '--version'], { encoding: 'utf8' }).trim() !== pnpmVersion) throw Error('Prepared pnpm runtime mismatch');
   const shellQuote = value => "'" + value.replaceAll("'", "'\\''") + "'";
-  writeFileSync(path.join(directory, 'pnpm'), `#!/bin/sh\nexec ${shellQuote(process.execPath.replaceAll('\\', '/'))} ${shellQuote(binary.replaceAll('\\', '/'))} "$@"\n`);
+  writeFileSync(path.join(directory, 'pnpm'), `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(binary)} "$@"\n`);
   chmodSync(path.join(directory, 'pnpm'), 0o755);
-  if (process.platform === 'win32') {
-    if (/["%\r\n]/.test(process.execPath + binary)) throw Error('Unsafe Windows pnpm launcher path');
-    writeFileSync(path.join(directory, 'pnpm.cmd'), `@"${process.execPath}" "${binary}" %*\r\n`);
-  }
   appendFileSync(env.GITHUB_PATH, directory + '\n');
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

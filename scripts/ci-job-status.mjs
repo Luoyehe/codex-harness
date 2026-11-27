@@ -3,7 +3,7 @@ import path from 'node:path';
 
 export function requireSuccessfulJobs(needs) {
   if (needs?.plan?.result !== 'success') throw Error('Test planning did not succeed');
-  for (const [job, output] of [['standard', 'standard'], ['root_deploy', 'root']]) {
+  for (const [job, output] of [['standard', 'standard'], ['macos_development', 'standard'], ['root_deploy', 'root']]) {
     const requested = needs.plan.outputs?.[output];
     if (!['true', 'false'].includes(requested)) throw Error('Missing test plan job selection');
     if (needs[job]?.result !== (requested === 'true' ? 'success' : 'skipped')) throw Error(`Required job outcome mismatch: ${job}`);

@@ -1,6 +1,5 @@
 import { expect, test, vi } from 'vitest';
 import { spawn, execFileSync } from 'node:child_process';
-import { once } from 'node:events';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, unlinkSync, renameSync, linkSync, symlinkSync, utimesSync, truncateSync } from 'node:fs';
 import fs from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
@@ -114,7 +113,7 @@ test.each([
   const restored = new Attachments(home);
   expect(restored.read({ attachmentId: id })).toMatchObject({ mimeType, base64: Buffer.from('file data').toString('base64') });
   expect(() => restored.remove({ attachmentId: id })).toThrow('retained by thread history');
-  record.entries[0].fileName = id + '.exe';
+  record.entries[0].fileName = id + '.sh';
   writeFileSync(index, JSON.stringify(record));
   expect(() => new Attachments(home)).toThrow('data filename');
 });
@@ -218,7 +217,7 @@ test('directory iteration fails at a fixed entry budget without materializing an
   expect(() => storage.gc()).toThrow('directory entry budget');
 });
 
-test.skipIf(process.platform === 'win32')('symlink and FIFO substitutions never follow or block', () => {
+test('symlink and FIFO substitutions never follow or block', () => {
   for (const mutation of ['symlink', 'fifo']) {
     const { storage, dir } = setup(); const attachmentId = upload(storage); const file = path.join(dir, attachmentId); unlinkSync(file);
     if (mutation === 'symlink') { const target = path.join(dir, 'secret'); writeFileSync(target, 'secret'); symlinkSync(target, file); }
@@ -227,27 +226,11 @@ test.skipIf(process.platform === 'win32')('symlink and FIFO substitutions never 
   }
 });
 
-test.skipIf(process.platform === 'win32')('read-only native data group never gains metadata or directory write access', () => {
+test('read-only native data group never gains metadata or directory write access', () => {
   const home = mkdtempSync(path.join(parent, 'shared-')); const gid = process.getgid!(); const storage = new Attachments(home, gid); const attachmentId = upload(storage); const dir = path.join(home, 'attachments');
   expect(fs.statSync(dir).mode & 0o7777).toBe(0o2750); expect(fs.statSync(path.join(dir, attachmentId)).gid).toBe(gid);
   expect(fs.statSync(path.join(dir, attachmentId)).mode & 0o777).toBe(0o640); expect(fs.statSync(path.join(dir, 'index.json')).mode & 0o777).toBe(0o600);
 });
-
-test.skipIf(process.platform !== 'win32')('real OS unlink denial leaves a durable tombstone and quota charge until restart can delete', async () => {
-  const { home, storage, dir } = setup(); const attachmentId = upload(storage); const file = path.join(dir, attachmentId);
-  const script = `$stream = [IO.File]::Open('${file.replaceAll("'", "''")}', [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite); try { [Console]::Out.WriteLine('locked'); [Console]::Out.Flush(); [Console]::In.ReadLine() | Out-Null } finally { $stream.Dispose() }`;
-  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }); const exited = once(child, 'close');
-  try {
-    await Promise.race([once(child.stdout, 'data'), new Promise((_, reject) => setTimeout(() => reject(new Error('File lock did not start')), 5000).unref())]);
-    expect(() => unlinkSync(file)).toThrow(); expect(() => storage.remove({ attachmentId })).toThrow('pending'); expect(existsSync(file)).toBe(true);
-    const index = () => JSON.parse(readFileSync(path.join(dir, 'index.json'), 'utf8')) as { entries: { attachmentId: string; state: string }[] };
-    expect(index().entries).toMatchObject([{ attachmentId, state: 'deleting' }]); expect(() => storage.read({ attachmentId })).toThrow('not found');
-    const restored = new Attachments(home); restored.gc(Date.now() + 2 * 24 * 60 * 60 * 1000); expect(index().entries).toHaveLength(1); expect(existsSync(file)).toBe(true);
-    for (let i = 0; i < LIMITS.attachments - 1; i++) writeFileSync(path.join(dir, randomUUID()), '');
-    expect(() => upload(restored)).toThrow('capacity');
-  } finally { child.stdin.end('\n'); await exited; expect(child.exitCode).toBe(0); }
-  const recovered = new Attachments(home); expect(existsSync(file)).toBe(false); expect(() => upload(recovered)).not.toThrow();
-}, 15000);
 
 test.each([['mp4', 'video/mp4'], ['mov', 'video/quicktime']])('video container bytes override empty or incorrect browser audio types for %s', (extension, mimeType) => {
   const { storage, dir } = setup();

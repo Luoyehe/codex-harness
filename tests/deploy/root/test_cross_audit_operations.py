@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from deploy.common import DeployError, Layout, atomic_write, write_json
 
 
-@unittest.skipUnless(os.name == 'posix' and os.geteuid() == 0, 'Requires POSIX root ownership')
+@unittest.skipUnless(os.geteuid() == 0, 'Requires POSIX root ownership')
 class CrossAuditOperations(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "linux", "DNS archive inspection requires Linux mountinfo")
     def test_dns_archive_retains_complete_tree_and_refuses_unknown_stop(self):

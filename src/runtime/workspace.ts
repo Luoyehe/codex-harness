@@ -119,7 +119,7 @@ export async function runWorkspace(config: LaunchConfig, root: WorkspaceRoot, ac
   const command = nativeCommand(config, 'workspace');
   return new Promise((resolve, reject) => {
     let dispatched = false;
-    const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true, timeout: action.startsWith('worktree/') || action === 'git/commit' || Object.hasOwn(indexFields, action) ? 90000 : 30000, maxBuffer: (action === 'download' ? 12 : 2) * 1024 * 1024, encoding: 'utf8' }, (error, stdout) => {
+    const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, timeout: action.startsWith('worktree/') || action === 'git/commit' || Object.hasOwn(indexFields, action) ? 90000 : 30000, maxBuffer: (action === 'download' ? 12 : 2) * 1024 * 1024, encoding: 'utf8' }, (error, stdout) => {
       try {
         if (!stdout) throw error ?? new Error('Missing workspace response');
         const response = object(JSON.parse(stdout));

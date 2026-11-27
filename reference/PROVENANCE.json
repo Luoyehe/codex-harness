@@ -1,71 +1,31 @@
 {
-  "verifiedAt": "2026-11-17",
+  "verifiedOn": "2026-11-27",
+  "platform": "macOS arm64",
   "package": "@openai/codex",
-  "latestStable": "0.169.0",
-  "platformPackageVersion": "0.169.0-win32-x64",
-  "binaryVersion": "codex-cli 0.169.0",
-  "registry": "https://registry.npmjs.org/@openai/codex/latest",
-  "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.169.0-win32-x64.tgz",
-  "npmIntegrity": "sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg==",
-  "integrityVerified": true,
-  "documentation": "https://learn.chatgpt.com/docs/app-server",
+  "packageVersion": "0.169.0-darwin-arm64",
+  "versionOutput": "codex-cli 0.169.0",
+  "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.169.0-darwin-arm64.tgz",
+  "integrity": "sha512-5WsWFBbVP78D+6FvNo1MMVxLPZdmcoQlqVJFrF4qx/TmvneLnMQKtLyXkUo54XOTDfoYKpNouTJ/F7gTVA8FnQ==",
   "generation": {
-    "cwd": "rewrite-20261025",
-    "isolatedCodexHome": "isolated home under .work; never personal CODEX_HOME",
+    "environment": "isolated HOME and CODEX_HOME",
     "commands": [
-      "codex.exe app-server generate-json-schema --experimental --out protocol/json",
-      "codex.exe app-server generate-ts --experimental --out protocol/ts"
-    ]
-  },
-  "generated": {
-    "jsonFileCount": 479,
-    "typescriptFileCount": 951,
-    "bundleSha256": {
-      "codex_app_server_protocol.schemas.json": "d2d0612646b0739dd264067ef944442a5485e44529c793bebf3985e9a9df6cfc",
-      "codex_app_server_protocol.v2.schemas.json": "2e34d83c42ed8b8672d44255501c9198ff4000f48a59d23457620c5d05b53fcd"
+      "codex app-server generate-json-schema --experimental --out <generated>/json",
+      "codex app-server generate-ts --experimental --out <generated>/ts"
+    ],
+    "output": {
+      "jsonFiles": 479,
+      "typescriptFiles": 951,
+      "v2Definitions": 864,
+      "v2BundleSha256": "2e34d83c42ed8b8672d44255501c9198ff4000f48a59d23457620c5d05b53fcd"
     }
   },
-  "smoke": {
-    "isolatedHome": true,
-    "realUserCodexHomeRead": false,
-    "modelInferenceCalled": false,
-    "status": "passed-windows-isolated",
-    "passed": [
-      "Account read/logout and bounded native probe cleanup in isolated homes",
-      "Exact provider model routing and preserved thread provider lock",
-      "Independent conversion with compacted history, retained original bytes, independent deletion/restart and attachment fork/copy ownership",
-      "Local schema/context/audio input and explicit command approval",
-      "Local MCP tools/resources, extension discovery and nearest-Git ancestor skill preview",
-      "Gateway device OAuth initiation without implicit browser authorization",
-      "Process/PTY/diagnostics and descendant cleanup with isolated controller",
-      "Projects/sections/thread lists and background automation after browser disconnection"
-    ],
-    "platform": "win32-x64",
-    "cliVersion": "0.169.0",
-    "commercialInferenceCalled": false,
-    "loopbackResponsesTested": true,
-    "externalMcpCalled": false,
-    "limits": [
-      "Windows actual CLI validation; Linux native counterpart tracked separately",
-      "Two native.test platform-specific cases skipped on Windows, not counted as passes",
-      "Only synthetic accounts and loopback Responses/MCP/exec fixtures; no paid model, live external MCP, personal home or production mutation"
-    ],
-    "evidence": [
-      {
-        "path": ".work/v240/runtime-native-169.log",
-        "sha256": "1b0c4676a6d821433382b26084d2fee18af315d107604945fc068580b958994c",
-        "note": "Initial native batch retains two failures; conversion/PID fixtures corrected and verified in subsequent evidence."
-      },
-      {
-        "path": ".work/v240/runtime-conversion-169.log",
-        "sha256": "e35cbe88acb86574c871046838275152bd1c79e811dfb8da358f4fe8dbb2d86a",
-        "note": "Focused corrected-scope validation."
-      },
-      {
-        "path": ".work/v240/runtime-attachment-native-final.log",
-        "sha256": "ae614870c95e20f3bc20bf5b79fe21dc31228fbf3bc2fa462689dba043c6867e",
-        "note": "Focused corrected-scope validation."
-      }
-    ]
+  "selection": {
+    "command": "python3 reference/select-protocol.py <generated> <empty-output-dir>",
+    "output": {
+      "jsonFiles": 6,
+      "typescriptFiles": 191,
+      "v2Definitions": 596,
+      "v2BundleSha256": "36cbca507b68310f7fa58c13943373703fcb32ab213d7e44087bec362b6aa754"
+    }
   }
 }

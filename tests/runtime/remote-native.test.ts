@@ -5,12 +5,11 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
-import { windowsProcessJob } from '../../src/runtime/windows-process.js';
 import { linuxProcessJob } from '../../src/runtime/linux-process.js';
 import { object } from '../../src/runtime/types.js';
 import { nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
-test('official CLI connects to an owned authenticated loopback exec-server and exposes local capability/status without inference', () => withFixtureCleanup(async defer => {
+test.runIf(process.platform === 'linux')('official CLI connects to an owned authenticated loopback exec-server and exposes local capability/status without inference', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/remote-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')), home = path.join(workerHome, 'codex'), tmp = path.join(workerHome, 'tmp'); mkdirSync(home); mkdirSync(tmp); writeFileSync(path.join(home, 'config.toml'), 'check_for_update_on_startup = false\n');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: tmp });
   const reservation = createServer(); await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve)); const port = (reservation.address() as { port: number }).port; await new Promise<void>(resolve => reservation.close(() => resolve()));
@@ -18,15 +17,14 @@ test('official CLI connects to an owned authenticated loopback exec-server and e
   const bin = process.env.HARNESS_TEST_CODEX_BIN!;
   const command = [bin, 'exec-server', '--listen', endpoint, '--ws-auth', 'capability-token', '--ws-token-file', tokenFile];
   let child!: ReturnType<typeof spawn>, errors = '';
-  const pipe = process.platform === 'linux' ? linuxProcessJob(command, workerHome, { tty: false, stdin: false, cap: 4096 },
+  const job = linuxProcessJob(command, workerHome, { tty: false, stdin: false, cap: 4096 },
     (bytes, guard) => { guard?.(); return new Promise((resolve, reject) => child.stdin!.write(Buffer.from(bytes, 'base64'), error => error ? reject(error) : resolve())); },
-    (stream, data) => { if (stream === 'stderr') errors = (errors + Buffer.from(data, 'base64').toString()).slice(-4096); }) : undefined;
-  const job = pipe ?? await windowsProcessJob(command, workerHome);
+    (stream, data) => { if (stream === 'stderr') errors = (errors + Buffer.from(data, 'base64').toString()).slice(-4096); });
   defer(() => job.dispose());
-  child = spawn(job.command[0]!, job.command.slice(1), { cwd: workerHome, env: { ...env, ...job.env }, windowsHide: true, stdio: 'pipe' });
-  if (pipe) child.stdout!.on('data', chunk => pipe.feed(chunk)); else child.stdout!.resume();
+  child = spawn(job.command[0]!, job.command.slice(1), { cwd: workerHome, env: { ...env, ...job.env }, stdio: 'pipe' });
+  child.stdout!.on('data', chunk => job.feed(chunk));
   child.stderr!.on('data', bytes => { errors = (errors + String(bytes)).slice(-4096); });
-  const closed = new Promise<number | null>((resolve, reject) => { child.once('close', code => { pipe?.endNative(); resolve(code); }); child.once('error', reject); }); void closed.catch(() => {});
+  const closed = new Promise<number | null>((resolve, reject) => { child.once('close', code => { job.endNative(); resolve(code); }); child.once('error', reject); }); void closed.catch(() => {});
   defer(async () => { if (child.exitCode === null && child.signalCode === null) child.kill(); await closed; });
   defer(async () => { await job.signal(); await job.exited; expect(await closed).toBe(0); });
   let service: RuntimeService | undefined;
@@ -46,7 +44,7 @@ test('official CLI connects to an owned authenticated loopback exec-server and e
     expect(object(thread.thread).environments).toMatchObject([{ environmentId: added.environmentId, cwd: workerHome }]);
     const localThread = object(await service.call('thread/start', { cwd: workerHome }, context)); const threadId = object(localThread.thread).id!; expect(object(localThread.thread).environments).toEqual([{ environmentId: 'local', cwd: workerHome, runtimeWorkspaceRoots: [workerHome] }]);
     const marker = path.join(workerHome, 'shell-marker.txt'); const notices: unknown[] = []; service.on('event', event => { if (event.type === 'notification') notices.push(event.data); });
-    await service.call('thread/shellCommand', { threadId, command: process.platform === 'win32' ? `Set-Content -LiteralPath '${marker.replaceAll("'", "''")}' -Value 'thread-shell-fixture'` : `printf thread-shell-fixture > '${marker.replaceAll("'", "'\"'\"'")}'`, confirmUnsandboxed: true, timeoutMs: 5000 }, context);
+    await service.call('thread/shellCommand', { threadId, command: `printf thread-shell-fixture > '${marker.replaceAll("'", "'\"'\"'")}'`, confirmUnsandboxed: true, timeoutMs: 5000 }, context);
     await expect.poll(() => object(object(service!.status()).activity).activeThreads, { timeout: 10000 }).not.toContain(threadId);
     const history = await service.call('thread/history', { threadId }, context); expect(object(history).complete).toBe(true); writeFileSync(path.join(workerHome, 'shell-notifications.json'), JSON.stringify(notices)); expect(readFileSync(marker, 'utf8')).toContain('thread-shell-fixture');
     expect(await service.call('thread/backgroundTerminals/list', { threadId }, context)).toMatchObject({ data: [], nextCursor: null });

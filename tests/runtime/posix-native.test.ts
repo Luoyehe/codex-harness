@@ -9,15 +9,15 @@ import { captureProcesses, expectNativeClosed, expectProcessesStopped } from './
 test.runIf(process.platform === 'linux' || process.platform === 'darwin').each(process.platform === 'darwin' ? ['portable-stop', 'portable-natural'] : ['linux-stop', 'linux-natural', 'linux-pressure', 'portable-stop', 'portable-natural'])('native ownership cleanup confirms %s without signaling a reaped PGID', async mode => {
   const root = path.resolve('.work/posix-native'); mkdirSync(root, { recursive: true }); const cwd = mkdtempSync(path.join(root, 'home-'));
   const implementation = posix.posixNative;
-  // Exercise the portable waitid path with real processes on Linux. This is
-  // not evidence for macOS's distinct kqueue path.
+  // On Linux, exercise the portable waitid path as well as the subreaper.
+  // macOS exercises its actual kqueue path.
   const command = vi.spyOn(posix, 'posixNative').mockImplementation(input => {
     const output = implementation(input);
     if (mode.startsWith('portable')) output.args = output.args.map(value => value.replaceAll("sys.platform=='linux'", "False"));
     return output;
   });
   const rawSignal = vi.spyOn(process, 'kill').mockImplementation(() => { throw new Error('NativeRpc must not signal a historical numeric PID'); });
-  const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/windows-job-fixture.mjs')], home: cwd, cwd, env: {}, dev: true });
+  const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/posix-process-fixture.mjs')], home: cwd, cwd, env: {}, dev: true });
   try {
     await rpc.initialize(); const result = await rpc.call(mode.startsWith('portable') ? 'spawn-group' : 'spawn', {}) as { rootPid: number; childPid: number };
     const processes = await captureProcesses([result.rootPid, result.childPid]);
@@ -33,22 +33,22 @@ test.runIf(process.platform === 'linux' || process.platform === 'darwin').each(p
   } finally { await rpc.close(); command.mockRestore(); rawSignal.mockRestore(); }
 }, 15000);
 
-test.runIf(process.platform === 'linux')('closing before the POSIX controller starts retains its stop request and confirms cleanup', async () => {
+test('closing before the POSIX controller starts retains its stop request and confirms cleanup', async () => {
   const root = path.resolve('.work/posix-native'); mkdirSync(root, { recursive: true }); const cwd = mkdtempSync(path.join(root, 'early-'));
   const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/native-fixture.mjs')], home: cwd, cwd, env: {}, isolatedGroup: true });
   await rpc.close(); expectNativeClosed(rpc); expect(rpc['child'].exitCode).toBe(0);
 });
 
-test.runIf(process.platform === 'linux')('native shutdown may finish and persist its acknowledgement before forced descendant cleanup', async () => {
+test('native shutdown may finish and persist its acknowledgement before forced descendant cleanup', async () => {
   const root = path.resolve('.work/posix-native'); mkdirSync(root, { recursive: true }); const cwd = mkdtempSync(path.join(root, 'graceful-')), marker = path.join(cwd, 'shutdown.txt');
-  const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/windows-job-fixture.mjs')], home: cwd, cwd, env: { HARNESS_FIXTURE_SHUTDOWN_MARKER: marker }, dev: true });
+  const rpc = new NativeRpc({ bin: process.execPath, args: [path.resolve('tests/runtime/posix-process-fixture.mjs')], home: cwd, cwd, env: { HARNESS_FIXTURE_SHUTDOWN_MARKER: marker }, dev: true });
   try {
-    await rpc.initialize(); const result = await rpc.call('spawn', {}) as { rootPid: number; childPid: number }; const children = await captureProcesses([result.rootPid, result.childPid]);
+    await rpc.initialize(); const result = await rpc.call(process.platform === 'linux' ? 'spawn' : 'spawn-group', {}) as { rootPid: number; childPid: number }; const children = await captureProcesses([result.rootPid, result.childPid]);
     await rpc.close(); expectNativeClosed(rpc); expect(readFileSync(marker, 'utf8')).toBe('native shutdown completed'); await expectProcessesStopped(children);
   } finally { await rpc.close(); }
 });
 
-test.skipIf(process.platform === 'win32')('portable cleanup refuses a permission failure while a live descendant remains, and accepts a confirmed late exit', () => {
+test('portable cleanup refuses a permission failure while a live descendant remains, and accepts a confirmed late exit', () => {
   const script = posix.posixNative({ bin: process.execPath, args: [], env: {}, cwd: '/' }).args.at(-1)!;
   const fn = script.slice(script.indexOf('def portable_cleanup():'), script.indexOf('\ntry:\n    for sig', script.indexOf('def portable_cleanup():')));
   const fixture = `

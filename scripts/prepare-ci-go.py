@@ -18,7 +18,6 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
-import zipfile
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,8 +25,7 @@ sys.path.insert(0, str(ROOT))
 from deploy.common import DeployError
 from deploy.dns_caddy_build import GO_HASHES, GO_VERSION, source_material, validate_download_proxy
 
-WINDOWS_SHA256 = "7ecd2d7260e82c59bcbd7f1077a07cee2dea607295b858df67195a1e4e09629b"
-ARCHIVE_BYTES = {"linux": 66_936_659, "windows": 75_004_774}
+ARCHIVE_BYTES = {"amd64": 66_936_659, "arm64": 63_827_526}
 DOWNLOAD_SECONDS = 480
 DOWNLOAD_ATTEMPTS = 3
 MAX_ARCHIVE = 256 * 1024**2
@@ -42,13 +40,11 @@ def require(condition: bool, message: str) -> None:
 
 def pin(system: str, machine: str) -> dict:
     require(GO_VERSION == "1.26.10", "Reviewed Go version changed")
-    require(system in ("Linux", "Windows") and machine.lower() in ("amd64", "x86_64"),
-            "Go CI preparation requires a supported x64 runner")
-    target = system.lower()
-    suffix = "zip" if target == "windows" else "tar.gz"
-    return {"goVersion": GO_VERSION, "platform": target, "architecture": "amd64",
-            "archiveSha256": WINDOWS_SHA256 if target == "windows" else GO_HASHES["amd64"],
-            "archiveBytes": ARCHIVE_BYTES[target], "filename": f"go{GO_VERSION}.{target}-amd64.{suffix}"}
+    architecture = {"amd64": "amd64", "x86_64": "amd64", "aarch64": "arm64", "arm64": "arm64"}.get(machine.lower())
+    require(system == "Linux" and architecture in ARCHIVE_BYTES, "Go CI preparation requires Linux amd64 or arm64")
+    return {"goVersion": GO_VERSION, "platform": "linux", "architecture": architecture,
+            "archiveSha256": GO_HASHES[architecture], "archiveBytes": ARCHIVE_BYTES[architecture],
+            "filename": f"go{GO_VERSION}.linux-{architecture}.tar.gz"}
 
 
 def ordinary(path: Path, base: Path, *, directory: bool = False) -> Path:
@@ -58,8 +54,8 @@ def ordinary(path: Path, base: Path, *, directory: bool = False) -> Path:
         if not item.is_relative_to(base):
             continue
         info = item.lstat()
-        require(not stat.S_ISLNK(info.st_mode) and not getattr(info, "st_file_attributes", 0) & 0x400,
-                "Symlink or junction is not a preparation input")
+        require(not stat.S_ISLNK(info.st_mode),
+                "Symlink is not a preparation input")
         require(stat.S_ISDIR(info.st_mode) if item != path or directory else stat.S_ISREG(info.st_mode),
                 "Expected an ordinary preparation path")
     return path
@@ -84,9 +80,7 @@ def copy_file(source: Path, destination: Path, limit: int) -> int:
     before = source.lstat()
     require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= limit,
             "Unsafe or oversized preparation input")
-    # Windows pathname stat infers executable bits from suffixes such as .com;
-    # descriptor stat has no filename and omits those synthetic bits.
-    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode & (~0o111 if os.name == "nt" else ~0), value.st_nlink,
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_nlink,
                               value.st_size, value.st_mtime_ns)
     with source.open("rb") as incoming, destination.open("xb") as outgoing:
         require(identity(os.fstat(incoming.fileno())) == identity(before), "Preparation input changed before copying")
@@ -112,8 +106,8 @@ def copy_cache(source: Path, destination: Path, base: Path) -> None:
             require(count <= MAX_FILES, "Module cache file budget exceeded")
             target = destination / entry.relative_to(source)
             info = entry.lstat()
-            require(not stat.S_ISLNK(info.st_mode) and not getattr(info, "st_file_attributes", 0) & 0x400,
-                    "Symlink or junction in module cache")
+            require(not stat.S_ISLNK(info.st_mode),
+                    "Symlink in module cache")
             if stat.S_ISDIR(info.st_mode):
                 target.mkdir()
                 pending.append(entry)
@@ -220,7 +214,7 @@ def download(selected: dict, target: Path, download_proxy: str | None = None) ->
         partial.unlink(missing_ok=True)
 
 
-def extract(archive: Path, destination: Path, windows: bool) -> None:
+def extract(archive: Path, destination: Path) -> None:
     seen, count, total = set(), 0, 0
 
     def target(name: str, size: int, directory: bool) -> Path:
@@ -252,40 +246,26 @@ def extract(archive: Path, destination: Path, windows: bool) -> None:
         require(copied == size, "Truncated Go archive member")
         output.chmod(0o755 if executable else 0o644)
 
-    if windows:
-        with zipfile.ZipFile(archive) as bundle:
-            for member in bundle.infolist():
-                mode = member.external_attr >> 16
-                require(stat.S_IFMT(mode) in (0, stat.S_IFREG, stat.S_IFDIR), "Special file in Go archive")
-                output = target(member.orig_filename, member.file_size, member.is_dir())
-                if not member.is_dir():
-                    with bundle.open(member) as stream:
-                        materialize(stream, output, member.file_size, bool(mode & 0o111))
-    else:
-        with tarfile.open(archive, "r:gz") as bundle:
-            for member in bundle:
-                require(member.isfile() or member.isdir(), "Special file in Go archive")
-                output = target(member.name, member.size, member.isdir())
-                if member.isfile():
-                    with bundle.extractfile(member) as stream:
-                        materialize(stream, output, member.size, bool(member.mode & 0o111))
+    with tarfile.open(archive, "r:gz") as bundle:
+        for member in bundle:
+            require(member.isfile() or member.isdir(), "Special file in Go archive")
+            output = target(member.name, member.size, member.isdir())
+            if member.isfile():
+                with bundle.extractfile(member) as stream:
+                    materialize(stream, output, member.size, bool(member.mode & 0o111))
 
 
 def environment(work: Path, runtime: Path, selected: dict, *, network: bool, download_proxy: str | None = None) -> dict:
     proxy = validate_download_proxy(download_proxy)
-    env = {key: os.environ[key] for key in ("SystemRoot", "WINDIR") if key in os.environ}
-    system_path = str(Path(env.get("SystemRoot", "C:/Windows")) / "System32") if os.name == "nt" else "/usr/bin:/bin"
-    env.update({"PATH": str(runtime / "go/bin") + os.pathsep + system_path,
-                "HOME": str(work / "home"), "USERPROFILE": str(work / "home"),
-                "APPDATA": str(work / "home/appdata"), "LOCALAPPDATA": str(work / "home/localappdata"),
-                "TMP": str(work / "tmp"), "TEMP": str(work / "tmp"), "TMPDIR": str(work / "tmp"),
-                "GOTOOLCHAIN": "local", "GOENV": "off", "GOWORK": "off", "GOTELEMETRY": "off",
-                "GOVCS": "*:off", "GOAUTH": "off", "GOFLAGS": "-mod=readonly", "CGO_ENABLED": "0",
-                "GOOS": selected["platform"], "GOARCH": selected["architecture"], "GOMAXPROCS": "16" if network else "2",
-                "GOPROXY": "https://proxy.golang.org" if network else "off",
-                "GOSUMDB": "sum.golang.org https://sum.golang.org", "GOPRIVATE": "", "GONOPROXY": "none",
-                "GONOSUMDB": "none", "GOPATH": str(work / "gopath"), "GOMODCACHE": str(work / "modules"),
-                "GOCACHE": str(work / "cache"), "NO_PROXY": "", "LANG": "C.UTF-8"})
+    env = {"PATH": str(runtime / "go/bin") + os.pathsep + "/usr/bin:/bin",
+           "HOME": str(work / "home"), "TMPDIR": str(work / "tmp"),
+           "GOTOOLCHAIN": "local", "GOENV": "off", "GOWORK": "off", "GOTELEMETRY": "off",
+           "GOVCS": "*:off", "GOAUTH": "off", "GOFLAGS": "-mod=readonly", "CGO_ENABLED": "0",
+           "GOOS": selected["platform"], "GOARCH": selected["architecture"], "GOMAXPROCS": "16" if network else "2",
+           "GOPROXY": "https://proxy.golang.org" if network else "off",
+           "GOSUMDB": "sum.golang.org https://sum.golang.org", "GOPRIVATE": "", "GONOPROXY": "none",
+           "GONOSUMDB": "none", "GOPATH": str(work / "gopath"), "GOMODCACHE": str(work / "modules"),
+           "GOCACHE": str(work / "cache"), "NO_PROXY": "", "LANG": "C.UTF-8"}
     if not network:
         env.update({name: "http://127.0.0.1:9" for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY")})
     elif proxy:
@@ -297,8 +277,7 @@ def run_go(binary: Path, arguments: list[str], source: Path, env: dict, log: Pat
     diagnostic = "go " + " ".join(arguments) + "; log: .work/ci-go/" + log.name
     with log.open("w+b") as output:
         child = subprocess.Popen([str(binary), *arguments], cwd=source, env=env, stdin=subprocess.DEVNULL,
-                                 stdout=output, stderr=subprocess.STDOUT,
-                                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                                 stdout=output, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + timeout
         try:
             while child.poll() is None:
@@ -370,17 +349,17 @@ def prepare(base: Path = ROOT, *, archive: Path | None = None, seed_cache: Path 
         runtime.rmdir()
         raise
     work.mkdir()
-    for folder in ("home", "home/appdata", "home/localappdata", "tmp", "gopath", "modules", "cache", "source"):
+    for folder in ("home", "tmp", "gopath", "modules", "cache", "source"):
         (work / folder).mkdir(parents=True, exist_ok=True)
     for name, data in sources.items():
         (work / "source" / name).write_bytes(data)
-    extract(verified, runtime, selected["platform"] == "windows")
-    binary = ordinary(runtime / "go/bin" / ("go.exe" if selected["platform"] == "windows" else "go"), runtime)
+    extract(verified, runtime)
+    binary = ordinary(runtime / "go/bin" / "go", runtime)
     if seed_cache is not None:
         copy_cache(seed_cache, work / "modules", base)
     env = environment(work, runtime, selected, network=False)
     version = run_go(binary, ["version"], work / "source", env, work / "version.log", 15).strip()
-    require(version == f"go version go{GO_VERSION} {selected['platform']}/amd64", "Prepared Go runtime version mismatch")
+    require(version == f"go version go{GO_VERSION} {selected['platform']}/{selected['architecture']}", "Prepared Go runtime version mismatch")
     for phase, arguments, network, timeout in (("download", ["mod", "download"], seed_cache is None, 900),
                                                 ("verify", ["mod", "verify"], False, 120)):
         run_go(binary, arguments, work / "source", environment(work, runtime, selected, network=network, download_proxy=proxy), work / (phase + ".log"), timeout)
@@ -416,6 +395,6 @@ if __name__ == "__main__":
             with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as output:
                 output.write("HARNESS_TEST_GO_MANIFEST=" + str(result) + "\n")
         print(json.dumps({"status": "prepared", "manifest": str(result)}))
-    except (OSError, ValueError, DeployError, http.client.HTTPException, tarfile.TarError, zipfile.BadZipFile) as error:
+    except (OSError, ValueError, DeployError, http.client.HTTPException, tarfile.TarError) as error:
         print("Go preparation refused: " + str(error), file=sys.stderr)
         sys.exit(1)

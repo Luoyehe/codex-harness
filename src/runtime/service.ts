@@ -49,10 +49,7 @@ import { convertThread } from './thread-conversion.js';
 import { historyHelper } from './thread-history-compatibility.js';
 
 function hasDevelopmentSystemConfig(config: NativeConfig): boolean {
-  const system = process.platform === 'win32'
-    ? path.join(config.env.ProgramData ?? config.env.PROGRAMDATA ?? process.env.ProgramData ?? 'C:\\ProgramData', 'OpenAI', 'Codex', 'config.toml')
-    : '/etc/codex/config.toml';
-  return config.dev === true && existsSync(system);
+  return config.dev === true && existsSync('/etc/codex/config.toml');
 }
 
 export interface RuntimeConfig extends NativeConfig { workerHome: string; nativeHome?: string; shell?: string; attachmentGid?: number; providerRegistry?: JsonObject; executionPolicy?: ExecutionPolicy }
@@ -1149,7 +1146,7 @@ export class RuntimeService extends EventEmitter {
     if (this.terminals.size >= LIMITS.terminals || [...this.terminals.values()].filter(item => this.ownerKey(item.clientId, item.eventChannelId) === ownerKey).length >= 2) throw new DeliveryError('capacity', 'Terminal capacity exhausted');
     const terminalId = randomUUID(); const generation = this.generations.get(ownerKey) ?? 0; const terminal: Terminal = { cwd, terminalId, clientId: context.clientId, eventChannelId: context.eventChannelId, generation, ended: false }; this.terminals.set(terminalId, terminal); this.emitState();
     let writtenResolve!: () => void; let writtenReject!: (error: unknown) => void; const written = new Promise<void>((resolve, reject) => { writtenResolve = resolve; writtenReject = reject; });
-    const command = [this.config.shell ?? (process.platform === 'win32' ? 'C:\\Windows\\System32\\cmd.exe' : '/bin/sh')];
+    const command = [this.config.shell ?? '/bin/sh'];
     void this.native.call('command/exec', { command, cwd, processId: terminalId, tty: true, size: { rows, cols }, disableTimeout: true, disableOutputCap: true, sandboxPolicy: { type: 'dangerFullAccess' } }, { timeoutMs: 0, beforeWrite: () => { if ((this.generations.get(ownerKey) ?? 0) !== generation || this.terminals.get(terminalId) !== terminal) throw new DeliveryError('client_disconnected', 'Terminal owner disconnected'); context.beforeWrite?.(); }, onWritten: writtenResolve }).then(result => {
       terminal.ended = true;
       this.emitEvent('terminal', { terminalId, clientId: context.clientId, type: 'exit', ...object(result) }, context.eventChannelId);

@@ -1,7 +1,6 @@
 """Operator journeys exercise the real argument parser, without host mutations."""
 import io
 import json
-import os
 import tempfile
 import unittest
 from contextlib import nullcontext, redirect_stderr, redirect_stdout
@@ -355,9 +354,8 @@ class OperatorTests(unittest.TestCase):
         with menu.dns_credentials("alidns", reuse=False) as name:
             path = Path(name)
             self.assertEqual(json.loads(path.read_text())["accessKeySecret"], secret)
-            if os.name == "posix":
-                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-                self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
             self.assertNotIn(secret, "\n".join(self.output))
         self.assertFalse(path.exists())
 

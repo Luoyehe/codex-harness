@@ -1,23 +1,23 @@
 # Codex App Server 协议契约
 
-核验日期：2026-11-17。固定实现基线：官方 npm `@openai/codex@0.169.0`，独立 Windows x64 二进制报告 `codex-cli 0.169.0`。这是当次 npm `latest`，不代表永久最新。协议从校验过的官方分发重新生成；测试使用隔离 home 和本地协议替身，不读取真实用户 CODEX_HOME、不调用商业模型推理。
+协议固定在官方 Codex CLI 0.169.0。2026-11-27 使用 macOS arm64 分发包和独立的配置目录重新生成了完整 JSON Schema 和 TypeScript 类型。包校验值、文件数量和协议摘要见 [来源记录](PROVENANCE.json)。
 
 ## 来源和可复现生成
 
-- [官方 App Server 文档](https://learn.chatgpt.com/docs/app-server) 提供流程说明。
-- [官方 npm latest](https://registry.npmjs.org/@openai/codex/latest) 和 [固定 Windows 包元数据](https://registry.npmjs.org/@openai/codex/0.169.0-win32-x64) 提供版本、下载地址、完整性校验。
-- Windows 包：`https://registry.npmjs.org/@openai/codex/-/codex-0.169.0-win32-x64.tgz`。
-- 包 SHA-512（npm integrity）：`sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg==`，下载后已验证。
-- 二进制：`reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe`。
-- 在独立子进程环境中将 `CODEX_HOME` 指向 `reference/runtime/codex-0.169.0/generation-home`，以新项目为 cwd，运行：
+从 [固定版本的 npm 元数据](https://registry.npmjs.org/@openai/codex/0.169.0-darwin-arm64) 获取分发包，核对 SHA-512 后解包。将包内已校验的 `codex` 二进制加入 PATH，在 Harness 源码根目录运行：
 
-```text
-codex.exe --version
-codex.exe app-server generate-json-schema --experimental --out protocol/json
-codex.exe app-server generate-ts --experimental --out protocol/ts
+```sh
+protocol_work="$(mktemp -d)"
+export HOME="$protocol_work/home" CODEX_HOME="$protocol_work/codex-home"
+mkdir -p "$HOME" "$CODEX_HOME" "$protocol_work/generated/json" "$protocol_work/generated/ts"
+codex --version
+codex app-server generate-json-schema --experimental --out "$protocol_work/generated/json"
+codex app-server generate-ts --experimental --out "$protocol_work/generated/ts"
+python3 reference/select-protocol.py "$protocol_work/generated" "$protocol_work/selected"
+diff -qr protocol "$protocol_work/selected"
 ```
 
-`protocol/json` 和 `protocol/ts` 是本次 CLI 新生成的完整官方产物，不手改。`--experimental` 保留完整联合类型；调用实验能力仍须初始化显式 opt-in。网页与固定版本不一致时，以固定版本生成物和隔离实测为准。源级校验入口为 `protocol/json/codex_app_server_protocol.v2.schemas.json`、`protocol/ts/ClientRequest.ts`、`ServerRequest.ts`、`ServerNotification.ts`。
+运行时按名称校验请求和响应。`protocol/json` 保留用到的 v2 定义、递归引用及独立审批响应 schema。`protocol/ts` 保留源码和测试导入的官方类型及其依赖。定义中的字段和生成类型保留官方内容，包括原生服务可能返回的跨平台配置。添加新操作后应重新生成并核对选集；动态拼接协议名的入口还应检查选择脚本。App Server 实验能力仍须在初始化时显式声明。[官方 App Server 文档](https://developers.openai.com/codex/app-server/)
 
 ## 连接与生命周期
 
@@ -96,6 +96,6 @@ MCP 普通 form 校验覆盖 required、string/number/integer/boolean、enum/one
 
 ## 已核验及边界
 
-独立 home 下通过：版本、两种 schema 生成、初始化握手、未登录 account/read、thread/project 列表及终端创建、resize、stdin、输出和退出。进一步的原生验收调用 `turn/start` 时仅连接本地 Responses 替身，覆盖会话转换、队列、目标、审批与附件继承；未登录真实账户、未调用付费模型。具体平台、通过项、首次失败及后续修正证据以 `PROVENANCE.json` 与版本审计记录为准，平台跳过不计为通过。
+本次来源核验覆盖了 CLI 版本、分发包完整性和两种协议的重新生成。仓库另有独立 home 下的原生验收测试，检查握手、终端和本地 Responses 替身流程。各平台通过项和跳过项以对应测试记录为准。
 
 CLI 稳定发布不等于每项 app-server 能力稳定；官方将 app-server/部分接口标为实验性。隔离 smoke 不能证明真实 ChatGPT 登录、智谱计费/套餐权益或自定义 provider 的全部工具行为。真实联调用用户明确选择的 provider，不能后台偷偷调用付费推理探测。

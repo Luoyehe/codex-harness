@@ -40,10 +40,8 @@ def durable_tree(path: Path) -> None:
     # rename parent fsync cannot make those nested files/directories durable.
     for parent, _, files in os.walk(path, topdown=False, followlinks=False):
         for name in files:
-            # Windows's fixture runtime needs a writable descriptor for fsync;
-            # production Linux uses read-only descriptors, including live edge
-            # executables which cannot be opened for writing (ETXTBSY).
-            with (Path(parent) / name).open("rb" if os.name == "posix" else "r+b") as source:
+            # Read-only descriptors also work for running executables.
+            with (Path(parent) / name).open("rb") as source:
                 os.fsync(source.fileno())
         fsync_directory(Path(parent))
 

@@ -25,7 +25,7 @@ export function buildTool(base, command) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const result = spawnSync(process.execPath, [buildTool(process.cwd(), process.argv[2]), ...process.argv.slice(3)],
-      { stdio: 'inherit', windowsHide: true });
+      { stdio: 'inherit' });
     if (result.error) throw result.error;
     process.exitCode = result.status ?? 1;
   } catch (error) { console.error(error.message); process.exitCode = 1; }

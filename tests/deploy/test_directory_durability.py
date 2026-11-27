@@ -117,8 +117,8 @@ class DirectoryDurabilityTests(unittest.TestCase):
     def test_creation_plan_existing_entries_reestablish_publication_before_return(self):
         layout = Layout("fixture", self.root)
         plan = CreationPlan(layout, {"id": "a" * 32})
-        uid = os.getuid() if hasattr(os, "getuid") else 0
-        gid = os.getgid() if hasattr(os, "getgid") else 0
+        uid = os.getuid()
+        gid = os.getgid()
         directory = self.root / "owned"
         plan.directory(directory, 0o700, uid, gid)
         plan.publish(directory)

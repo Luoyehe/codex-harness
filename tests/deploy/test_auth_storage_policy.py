@@ -31,7 +31,7 @@ class AuthenticationStoragePolicyTests(unittest.TestCase):
                 data = b'\xef\xbb\xbfprofiles.work = {\r\n "cli_auth_credentials_\\x73tore" = "keyring",\r\n}\r\n'
                 path.write_bytes(data)
                 with self.assertRaises(DeployError) as caught:
-                    require_file_store(layout, home, os.getuid() if os.name == "posix" else 0)
+                    require_file_store(layout, home, os.getuid())
                 self.assertEqual(caught.exception.code, "auth_store_unsupported")
                 self.assertEqual(path.read_bytes(), data)
                 path.unlink()
@@ -41,14 +41,14 @@ class AuthenticationStoragePolicyTests(unittest.TestCase):
             path = Path(folder) / "config.toml"
             path.write_bytes(b'api_key = "fixture-secret-marker\n')
             with self.assertRaises(DeployError) as error:
-                check_file(path, os.getuid() if os.name == "posix" else 0)
+                check_file(path, os.getuid())
             self.assertNotIn("fixture-secret-marker", str(error.exception))
 
     def test_generated_layers_above_host_budget_are_read_in_full_in_both_views(self):
         with tempfile.TemporaryDirectory() as folder:
             layout = Layout("fixture", Path(folder))
             home = layout.state / "worker/codex"
-            uid = os.getuid() if os.name == "posix" else 0
+            uid = os.getuid()
             padding = b"#" + b"x" * (1024 * 1024) + b"\n"
             for path in (layout.root / "etc/codex/config.toml", layout.root / "etc/codex/requirements.toml",
                          layout.config / "providers/current/system-config.toml", layout.config / "providers/current/requirements.toml"):
@@ -61,7 +61,6 @@ class AuthenticationStoragePolicyTests(unittest.TestCase):
                 self.assertEqual(error.exception.code, "auth_store_unsupported")
                 path.unlink()
 
-    @unittest.skipUnless(os.name == "posix", "POSIX file-link boundary")
     def test_symlink_config_is_rejected_without_reading_or_mutating_target(self):
         with tempfile.TemporaryDirectory() as folder:
             original = Path(folder) / "original"

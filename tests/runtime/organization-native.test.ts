@@ -5,13 +5,13 @@ import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
 import { loopbackProvider } from './loopback-provider.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
 test('official CLI persists projects, sections and thread attachment metadata separately from execution roots', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/organization-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')); const home = path.join(workerHome, 'codex'), temp = path.join(workerHome, 'tmp'), firstRoot = path.join(workerHome, 'first'), secondRoot = path.join(workerHome, 'second'); for (const dir of [home, temp, firstRoot, secondRoot]) mkdirSync(dir);
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: temp, fixtureApiKey: 'local-fixture' });
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'); const provider = await loopbackProvider(); defer(() => provider.close());
+  const bin = nativeTestBinary(); const provider = await loopbackProvider(); defer(() => provider.close());
   const catalog = path.join(workerHome, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', 'model = "harness-loopback-fixture"', 'model_provider = "local_fixture"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = ${JSON.stringify(provider.url)}`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0'].join('\n'));
   let runtime = await RuntimeService.create({ bin, home, workerHome, cwd: firstRoot, env, dev: true }); const context = { clientId: 'organization-native', beforeWrite: () => {} }; const children = [(runtime.native as unknown as { child: import('node:child_process').ChildProcess }).child]; const events: RuntimeEvent[] = []; runtime.on('event', event => events.push(event));

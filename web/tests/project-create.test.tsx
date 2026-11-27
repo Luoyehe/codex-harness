@@ -277,19 +277,3 @@ test('native absolute permission failures preserve the path and server ROOT inst
   expect(screen.getByRole('textbox', { name: '项目路径' })).toHaveProperty('value', '/root/project');
   expect(calls).toEqual(['project/defaults', 'project/create']);
 });
-
-test.each([
-  ['C:\\projects\\', 'C:\\workspace\\existing\\', 'C:/workspace/existing', 'C:/workspace/existing'],
-  ['\\\\server\\share\\projects', '..\\existing\\', '../existing', '//server/share/existing'],
-])('Windows development base %s retains its platform path semantics', async (base, input, normalized, preview) => {
-  const api = new Api();
-  vi.spyOn(api, 'call').mockResolvedValue({ directory: base });
-  const mutate = vi.spyOn(api, 'mutate').mockResolvedValue({ id: 'added' });
-  render(<ProjectDialog api={api} onAdded={vi.fn()} onClose={vi.fn()} onOpen={vi.fn()} />);
-  fireEvent.click(screen.getByRole('button', { name: '添加已有目录' }));
-  fireEvent.change(screen.getByRole('textbox', { name: '项目名称' }), { target: { value: 'Existing' } });
-  fireEvent.change(screen.getByRole('textbox', { name: '项目路径' }), { target: { value: input } });
-  await screen.findByText(preview);
-  fireEvent.click(screen.getByRole('button', { name: '添加项目' }));
-  await waitFor(() => expect(mutate).toHaveBeenCalledExactlyOnceWith('project/add', { name: 'Existing', path: normalized }));
-});

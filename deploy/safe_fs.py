@@ -58,23 +58,11 @@ def durable_tree(path: Path) -> None:
         names = bounded_names(directory, MAX_FILES - reserved)
         reserved += len(names)
         for name in names:
-            if os.name == "posix":
-                before = os.stat(name, dir_fd=directory, follow_symlinks=False)
-            else:
-                before = (directory / name).lstat()
+            before = os.stat(name, dir_fd=directory, follow_symlinks=False)
             if stat.S_ISLNK(before.st_mode):
                 continue
             is_directory = stat.S_ISDIR(before.st_mode)
             require(is_directory or stat.S_ISREG(before.st_mode), "Special file in durable tree", "unsafe_path")
-            if os.name != "posix":
-                # Windows fixtures need writable file descriptors for fsync and
-                # do not support the Linux directory durability contract.
-                if is_directory:
-                    visit(directory / name)
-                else:
-                    with (directory / name).open("r+b") as source:
-                        os.fsync(source.fileno())
-                continue
             flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
             child = os.open(name, flags | (os.O_DIRECTORY if is_directory else 0), dir_fd=directory)
             try:
@@ -89,14 +77,10 @@ def durable_tree(path: Path) -> None:
                         "Tree changed during durability flush", "unsafe_path")
             finally:
                 os.close(child)
-        if os.name == "posix":
-            os.fsync(directory)
+        os.fsync(directory)
 
     before = path.lstat()
     require(stat.S_ISDIR(before.st_mode), "Durable tree root is not a directory", "unsafe_path")
-    if os.name != "posix":
-        visit(path)
-        return
     root = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
         require(stable_identity(os.fstat(root)) == stable_identity(before), "Durable tree root changed", "unsafe_path")
@@ -218,7 +202,6 @@ def check_links(root: Path) -> None:
 
 def snapshot(source: Path, destination: Path, *, producer_stopped: bool, expected_uid: int | None = None) -> dict:
     require(producer_stopped, "Producer stop is not confirmed", "stop_unknown")
-    require(os.name == "posix", "Secure snapshots require Linux", "unsupported_platform")
     destination.mkdir(mode=0o755, exist_ok=False)
     os.chmod(destination, 0o755)
     source_fd = os.open(source, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -306,7 +289,7 @@ def inspect_tree(root: Path, *, root_owned: bool = False) -> dict:
             rel = path.relative_to(root).as_posix()
             status = path.lstat()
             require(len(result) < MAX_FILES, "Tree file budget exceeded", "budget")
-            if root_owned and os.name == "posix":
+            if root_owned:
                 require(status.st_uid == 0 and (stat.S_ISLNK(status.st_mode) or not status.st_mode & 0o022),
                         "Release is not exclusively root writable", "unsafe_path")
             if path.is_symlink():

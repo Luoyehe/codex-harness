@@ -7,9 +7,6 @@ import re
 import sys
 from zipfile import ZipFile
 
-ROOT = Path(__file__).resolve().parents[1]
-ARCHIVE = ROOT / "verification/history/through-v2.4.0.zip"
-INDEX = ARCHIVE.with_suffix(".json")
 NAME = re.compile(r"verification/audit-evidence/[\w-]+/[\w-]+\.json", re.ASCII)
 
 
@@ -20,17 +17,18 @@ def digest(file: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--archive", type=Path, required=True, help="local historical ZIP with its original adjacent JSON manifest")
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--list", action="store_true", help="list original repository-relative names")
     action.add_argument("--show", metavar="PATH", help="write one original JSON record to stdout")
     action.add_argument("--verify", action="store_true", help="verify every original byte and Git blob identity")
     action.add_argument("--restore", type=Path, metavar="NEW_DIRECTORY", help="restore all records below a new directory")
     args = parser.parse_args()
-    manifest = json.loads(INDEX.read_bytes())
+    manifest = json.loads(args.archive.with_suffix(".json").read_bytes())
     files = manifest["files"]
-    if manifest["format"] != 1 or digest(ARCHIVE) != manifest["archiveSha256"]:
+    if manifest["format"] != 1 or digest(args.archive) != manifest["archiveSha256"]:
         raise ValueError("Evidence archive digest mismatch")
-    with ZipFile(ARCHIVE) as bundle:
+    with ZipFile(args.archive) as bundle:
         if sorted(bundle.namelist()) != sorted(files) or any(not NAME.fullmatch(name) for name in files):
             raise ValueError("Evidence archive inventory mismatch")
         if args.list:

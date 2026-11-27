@@ -60,7 +60,7 @@ RPC 请求 `{method,params,operationId?}`；成功 `{ok:true,result}`；失败 `
 
 HTTP 同时限制连接数、处理中的请求数及实际保留的响应字节。请求占用持续到后台处理和响应完成两者都结束；客户端提前断开不释放仍在后台使用的准入额度。响应预算在 socket 完成或关闭时释放，写入超过 15 秒的慢客户端会断开；静态资源在读取前也需预留预算。
 
-私有 worker 使用 HTTP over Unix socket（Windows 隔离开发用 loopback + 独立临时 token），同样的 RPC envelope 和事件流。gateway 的 `WorkerClient.call(method,params,context)` 返回 Promise<JsonValue>；context 绑定连接所有者、操作编号，文件变更另带网关计算的原请求摘要与项目编号。浏览器不能提供这些可信上下文字段。worker 的调用错误明确标记 delivery（not_sent/unknown）。工作进程启动时生成 epoch；进程中断导致已写请求 unknown，不能由一次普通连接重连解除。
+私有 worker 使用 HTTP over Unix socket，承载 RPC 和事件流。macOS 和 Linux 开发时，网关与 worker 使用相同的 `HARNESS_WORKER_SOCKET`。用 `mktemp -d /tmp/codex-harness.XXXXXX` 创建本用户独占的 0700 目录，再将套接字路径设在其中。开发套接字权限为 0600。停止两个进程后可清理该临时目录。生产环境由 systemd 配置服务目录和服务组权限。gateway 的 `WorkerClient.call(method,params,context)` 返回 Promise<JsonValue>；context 绑定连接所有者、操作编号，文件变更另带网关计算的原请求摘要与项目编号。浏览器不能提供这些可信上下文字段。worker 的调用错误明确标记 delivery（not_sent/unknown）。工作进程启动时生成 epoch；进程中断导致已写请求 unknown，不能由一次普通连接重连解除。
 
 ## RPC 方法
 

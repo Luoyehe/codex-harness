@@ -13,7 +13,7 @@ const buildRecord = '.work/release-preflight-build.json';
 const reportPath = '.work/release-preflight.json';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = file => JSON.parse(readFileSync(file, 'utf8'));
-const git = (base, args, input) => execFileSync('git', args, { cwd: base, input, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+const git = (base, args, input) => execFileSync('git', args, { cwd: base, input, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
 const commit = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value) && !/^0+$/.test(value);
 
 function workDirectory(base) {
@@ -36,11 +36,10 @@ export function committedSource(base, head) {
   const names = entries.map(entry => entry.name).sort();
   if (JSON.stringify(names) !== JSON.stringify(current.names)) throw Error('Source inventory differs from the expected commit');
   const byName = new Map(entries.map(entry => [entry.name, entry]));
-  const indexModes = new Map(git(base, ['ls-files', '--stage', '-z']).split('\0').filter(Boolean).map(row => [row.slice(row.indexOf('\t') + 1), row.slice(0, 6)]));
   const hashes = git(base, ['hash-object', '--no-filters', '--stdin-paths'], current.names.map(name => JSON.stringify(name)).join('\n') + '\n').trim().split('\n');
   if (hashes.length !== current.names.length) throw Error('Incomplete committed-source hash check');
   current.names.forEach((name, index) => {
-    const entry = byName.get(name), bits = sourceExecutableBits(lstatSync(path.join(base, name)), indexModes.get(name));
+    const entry = byName.get(name), bits = sourceExecutableBits(lstatSync(path.join(base, name)));
     if (entry.type !== 'blob' || !['100644', '100755'].includes(entry.mode) || entry.oid !== hashes[index] || bits !== (entry.mode === '100755' ? 0o111 : 0))
       throw Error(`Source bytes or executable bits differ from commit: ${name}`);
   });
@@ -65,8 +64,8 @@ export function toolPins(base, nodeVersion = process.versions.node) {
   if (!/^on:\r?\n  push:\r?\n    branches: \[main\]\r?\n  pull_request:\r?\n  merge_group:\r?\n  workflow_dispatch:/m.test(affected)) throw Error('Reviewed workflow triggers differ from the declared main/PR/merge-queue/manual policy');
   const security = readFileSync(path.join(base, '.github/workflows/security.yml'), 'utf8');
   if (!/^  merge_group:\s*$/m.test(security)) throw Error('Security workflow must verify merge queue candidates');
-  const native = [...affected.matchAll(/^\s*package:\s*([0-9]+\.[0-9]+\.[0-9]+)-(linux|win32)-x64\s*$/gm)];
-  if (native.length !== 2 || native.some(match => match[1] !== codex) || new Set(native.map(match => match[2])).size !== 2) throw Error('CI official CLI package pins disagree');
+  const native = [...affected.matchAll(/^\s*CODEX_PACKAGE_VERSION:\s*([0-9]+\.[0-9]+\.[0-9]+)-linux-x64\s*$/gm)];
+  if (native.length !== 1 || native[0][1] !== codex) throw Error('CI official CLI package pins disagree');
   const python = [...affected.matchAll(/^\s*python-version:\s*['"]?([0-9]+\.[0-9]+\.[0-9]+)['"]?\s*$/gm)].map(match => match[1]);
   if (python.length !== 1) throw Error('CI Python must have one exact version pin');
   return { node, pnpm, codex, python: python[0], workflows };
@@ -122,7 +121,7 @@ export function checkBuild(base, source, pins, head, rebuild = false) {
       [buildTool(base, 'tsc'), '--noEmit', '-p', 'web/tsconfig.json'],
       [buildTool(base, 'tsc'), '-p', 'tsconfig.server.json'],
       [buildTool(base, 'vite'), 'build', '--config', 'web/vite.config.ts'],
-    ]) execFileSync(process.execPath, args, { cwd: base, stdio: 'inherit', windowsHide: true });
+    ]) execFileSync(process.execPath, args, { cwd: base, stdio: 'inherit' });
     const after = committedSource(base, head);
     if (after.digest !== source.digest) throw Error('Source changed during build');
     writeFileSync(file, JSON.stringify({ schemaVersion: 1, kind: 'source-bound-build', sourceDigest: source.digest, sourceFiles: source.files, builtForHead: head, node: pins.node, tools, createdAt: new Date().toISOString(), outputs: artifactInventory(base) }, null, 2) + '\n');

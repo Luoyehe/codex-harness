@@ -8,7 +8,7 @@ import type { CallContext, HarnessEvent, JsonObject, JsonValue, WorkerPort } fro
 import { LIMITS } from '../core/contracts.js';
 import { object, safeJson, uuid } from '../core/validation.js';
 
-export interface WorkerAddress { socketPath?: string; port?: number; token?: string }
+export interface WorkerAddress { socketPath: string }
 interface OwnerRegistration { channel: string; connected: Promise<void>; disconnecting?: Promise<void> }
 export class WorkerClient extends EventEmitter implements WorkerPort {
   connected = false;
@@ -21,10 +21,9 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
     if (this.#closed || this.#socket) return;
     const options: WebSocket.ClientOptions = {
       maxPayload: LIMITS.responseBytes, handshakeTimeout: 10_000,
-      headers: this.address.token ? { Authorization: `Bearer ${this.address.token}` } : {},
-      ...(this.address.socketPath ? { createConnection: () => net.connect(this.address.socketPath!) } : {}),
+      createConnection: () => net.connect(this.address.socketPath),
     };
-    const socket = new WebSocket(`ws://127.0.0.1:${this.address.port ?? 80}/events`, options);
+    const socket = new WebSocket('ws://localhost/events', options);
     this.#socket = socket;
     socket.on('open', () => {
       this.#alive = true;
@@ -124,10 +123,9 @@ export class WorkerClient extends EventEmitter implements WorkerPort {
         if (error) reject(error); else resolve(result ?? null);
       };
       const req = http.request({
-        ...(this.address.socketPath ? { socketPath: this.address.socketPath } : { host: '127.0.0.1', port: this.address.port }),
+        socketPath: this.address.socketPath,
         path, method: 'POST', headers: { 'content-type': 'application/json', 'content-length': payload.length,
-          'x-harness-event-channel': channelId,
-          ...(this.address.token ? { authorization: `Bearer ${this.address.token}` } : {}) },
+          'x-harness-event-channel': channelId },
       }, res => {
         const chunks: Buffer[] = []; let size = 0;
         res.on('data', (chunk: Buffer) => {

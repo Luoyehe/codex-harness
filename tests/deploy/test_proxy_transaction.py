@@ -11,6 +11,7 @@ import hashlib
 import io
 import os
 import tempfile
+import stat
 import types
 import unittest
 from pathlib import Path
@@ -70,12 +71,17 @@ class ProxyTransactionTests(unittest.TestCase):
         write_json(self.layout.control / "capabilities.json", {"serviceProxy": 1})
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
-        # Replace each module's OS view, not global os.name or pathlib semantics.
-        # Windows already has this portable ownership branch; Linux root-specific
-        # permission evidence belongs to tests/deploy/root/test_proxy_transaction.py.
-        portable_os = types.SimpleNamespace(**vars(os)); portable_os.name = "nt"
-        for module in ("deploy.proxy_transaction.os", "deploy.service_proxy.os", "deploy.ownership.os"):
-            self.stack.enter_context(patch(module, portable_os))
+        # Only ownership is synthetic here. Use actual modes, inode identities,
+        # file contents and service paths for each admission assertion.
+        real_lstat = Path.lstat
+        def fixture_lstat(path):
+            info = real_lstat(path)
+            if not path.is_relative_to(self.layout.root):
+                return info
+            fields = list(info)
+            fields[stat.ST_UID] = 0
+            return os.stat_result(fields)
+        self.stack.enter_context(patch.object(Path, "lstat", fixture_lstat))
         self.core = self.stack.enter_context(patch("deploy.proxy_core.verify_core", return_value={"version": "26.10.29"}))
         self.configuration = self.stack.enter_context(patch("deploy.proxy_transaction.verify_configuration"))
         self.stack.enter_context(patch("deploy.service_proxy.require_available_ports"))
@@ -94,11 +100,6 @@ class ProxyTransactionTests(unittest.TestCase):
         candidate = {**old, "serviceProxy": selection()} if following is None else copy.deepcopy(following)
         journal = {"kind": "service-proxy", "phase": "prepared", "before": transaction.snapshot(self.manager),
                    "candidateConfig": candidate, "mainActive": [], "proxyActive": []}
-        if os.name == "nt":
-            # Windows chmod cannot represent the POSIX modes saved by the
-            # Linux installer. Model only that snapshot field, not validation.
-            for name, item in journal["before"].items():
-                if item is not None: item["mode"] = 0o600 if name == "instance" else 0o644
         path = self.layout.state / "transactions" / ("1" * 32) / "state.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         write_json(path, journal)

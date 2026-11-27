@@ -28,7 +28,7 @@ function fixture() {
   for (const [name, text] of Object.entries(contents)) put(base, instance + '/' + name, text);
   const consumer = 'node_modules/.pnpm/vite@8.3.5/node_modules/vite';
   put(base, consumer + '/package.json', JSON.stringify({ name: 'vite', dependencies: { picomatch: '^4.0.7' } }));
-  symlinkSync(path.join(base, instance), path.join(base, 'node_modules/.pnpm/vite@8.3.5/node_modules/picomatch'), process.platform === 'win32' ? 'junction' : 'dir');
+  symlinkSync(path.join(base, instance), path.join(base, 'node_modules/.pnpm/vite@8.3.5/node_modules/picomatch'), 'dir');
   put(base, 'dependency-audit.json', JSON.stringify(report(), null, 2) + '\n');
   return { base, instance, contract, contents, consumer };
 }
@@ -74,7 +74,7 @@ test('rejects absent install, an unpatched second instance and redirected consum
   const redirect = fixture(), outside = path.join(redirect.base, 'substituted-package');
   for (const [name, text] of Object.entries(redirect.contents)) put(outside, name, text);
   const link = path.join(redirect.base, 'node_modules/.pnpm/vite@8.3.5/node_modules/picomatch'); rmSync(link);
-  symlinkSync(outside, link, process.platform === 'win32' ? 'junction' : 'dir');
+  symlinkSync(outside, link, 'dir');
   expect(() => checkDependencyAudit(redirect.base, 1)).toThrow(/escaped|outside/);
 });
 
@@ -121,7 +121,7 @@ test('actual gate CLI preserves raw bytes and reports safe precise failures with
   const { base, instance } = fixture();
   for (const name of ['dependency-audit.mjs', 'picomatch-patch-proof.mjs']) put(base, 'scripts/' + name, readFileSync('scripts/' + name, 'utf8'));
   const raw = readFileSync(path.join(base, 'dependency-audit.json'));
-  const invoke = () => spawnSync(process.execPath, ['scripts/dependency-audit.mjs', '--audit-exit', '1'], { cwd: base, encoding: 'utf8', windowsHide: true });
+  const invoke = () => spawnSync(process.execPath, ['scripts/dependency-audit.mjs', '--audit-exit', '1'], { cwd: base, encoding: 'utf8' });
   expect(invoke().status).toBe(0);
   expect(JSON.parse(readFileSync(path.join(base, 'dependency-audit-classification.json'), 'utf8'))).toMatchObject({ status: 'passed' });
   // A prior successful classification cannot stand in for a new installed-byte check.

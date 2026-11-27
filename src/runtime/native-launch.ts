@@ -26,7 +26,7 @@ export function nativeCommand(config: LaunchConfig, mode: 'app-server' | 'versio
 export async function runNativeHelper(config: LaunchConfig, mode: 'version' | 'identity' | 'resolve-project', input?: JsonObject, mutating = false): Promise<string> {
   const body = input === undefined ? '' : jsonBytes(input, 4096); const command = nativeCommand(config, mode);
   return new Promise((resolve, reject) => {
-    const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true, timeout: 10000, maxBuffer: 8192, encoding: 'utf8' }, (error, stdout) => {
+    const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, timeout: 10000, maxBuffer: 8192, encoding: 'utf8' }, (error, stdout) => {
       if (error) {
         if (mode === 'resolve-project') {
           try {

@@ -17,8 +17,8 @@ class CreationPlanTests(unittest.TestCase):
             layout = Layout("fixture", Path(folder))
             plan = CreationPlan(layout, {"id": "a" * 32})
             path = Path(folder) / "owned"
-            uid = os.getuid() if hasattr(os, "getuid") else 0
-            gid = os.getgid() if hasattr(os, "getgid") else 0
+            uid = os.getuid()
+            gid = os.getgid()
             plan.file(path, b"original", 0o600, uid, gid)
             plan.publish(path)
             path.write_bytes(b"changed")

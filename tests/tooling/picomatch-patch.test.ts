@@ -11,10 +11,10 @@ type Picomatch = {
 // implementation. All subjects below are fixed, short ordinary filenames.
 const dependency = createRequire(realpathSync('node_modules/vitest/package.json'));
 const picomatch = dependency('picomatch') as Picomatch;
-const compile = (pattern: string, options: Options = {}) => picomatch.makeRe(pattern, { windows: false, ...options });
+const compile = (pattern: string, options: Options = {}) => picomatch.makeRe(pattern, options);
 const matches = (pattern: string, names: string[], options: Options = {}) => {
   if (names.some(name => name.length > 32)) throw Error('Ordinary filename test bound exceeded');
-  const match = picomatch(pattern, { windows: false, ...options });
+  const match = picomatch(pattern, options);
   // The matcher has an optional second argument; never pass it to Array.filter
   // directly, because filter's index would request a diagnostic result object.
   return names.filter(name => match(name));
@@ -39,7 +39,6 @@ test('shared-prefix or suffix alternatives retain both adjacent literals and opt
 
 test('single-segment normalization retains dot, Unicode, bounded wildcards and separator rules', () => {
   expect(matches('+(*a)', ['', 'a', 'ba', 'b', '.a', 'dir/a', 'dir\\a'])).toEqual(['a', 'ba', '.a', 'dir\\a']);
-  expect(matches('+(*a)', ['', 'a', 'ba', 'b', '.a', 'dir/a', 'dir\\a'], { windows: true })).toEqual(['a', 'ba', '.a']);
   expect(matches('+(a?*)', ['a', 'ab', 'app', 'b', 'a/file'])).toEqual(['ab', 'app']);
   expect(matches('+(*文件)', ['文件', '新文件', '文件.ts', '目录/文件'])).toEqual(['文件', '新文件']);
   expect(matches('+(*.js)', ['.js', 'app.js', 'app.ts', 'src/app.js'], { dot: true })).toEqual(['.js', 'app.js']);

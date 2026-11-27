@@ -13,7 +13,7 @@ from deploy.manager import Manager
 from deploy.units import render_edge_units
 
 
-@unittest.skipUnless(os.name == "posix" and os.geteuid() == 0, "Requires Linux root fixtures")
+@unittest.skipUnless(os.geteuid() == 0, "Requires Linux root fixtures")
 class EdgeConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

@@ -58,7 +58,6 @@ class UserMcpConfigTests(unittest.TestCase):
             editor.apply(self.home, self.request({"command": "echo"}))
         self.assertEqual(self.path.read_bytes(), b'# written by another operator\n')
 
-    @unittest.skipUnless(os.name == "posix", "POSIX file identity")
     def test_symlinks_and_shared_files_cannot_be_replaced(self):
         original = self.home / "original"
         original.write_text("# keep\n")
@@ -69,7 +68,6 @@ class UserMcpConfigTests(unittest.TestCase):
             self.assertEqual(original.read_text(), "# keep\n")
             self.path.unlink()
 
-    @unittest.skipUnless(os.name == "posix", "managed workspace host")
     def test_managed_and_standalone_distinguish_failed_writes_from_uncertain_publication(self):
         from deploy import mcp_enabled_override, thread_history, workspace
         project = tempfile.TemporaryDirectory()

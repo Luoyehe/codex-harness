@@ -94,9 +94,7 @@ test('rejects damaged or nonprivate raw queue data and caps the work while keepi
     for (let i = 1; i < handoffLimit; i++) f.assets.saveQueueHandoff('thread', 'q' + i, f.input);
     expect(() => f.assets.saveQueueHandoff('thread', 'overflow', f.input)).toThrow('容量');
     const location = path.join(f.assets.root, handoffFile(first));
-    if (process.platform !== 'win32') {
-      chmodSync(location, 0o644); expect(() => new Attachments(f.home)).toThrow('权限或摘要'); chmodSync(location, 0o600);
-    }
+    chmodSync(location, 0o644); expect(() => new Attachments(f.home)).toThrow('权限或摘要'); chmodSync(location, 0o600);
     writeFileSync(location, '[]'); expect(() => new Attachments(f.home)).toThrow('权限或摘要');
     expect(readFileSync(f.file)).toEqual(f.bytes);
   } finally { rmSync(f.home, { recursive: true, force: true }); }
@@ -167,7 +165,7 @@ test('reserves the destination reference slot before native dispatch and across 
   } finally { rmSync(f.home, { recursive: true, force: true }); }
 });
 
-test.skipIf(process.platform === 'win32')('a retry cannot authorize native work after a published index until its directory sync succeeds', () => {
+test('a retry cannot authorize native work after a published index until its directory sync succeeds', () => {
   const f = setup();
   try {
     const id = f.assets.saveQueueHandoff('thread', 'q', f.input).id as string;

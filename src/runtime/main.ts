@@ -1,5 +1,5 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { createServer, type Server, type ServerResponse } from 'node:http';
+import { randomUUID } from 'node:crypto';
 import { chmodSync, lstatSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,26 +10,22 @@ import { DeliveryError, jsonBytes, object, onlyKeys, string, type JsonValue, typ
 import { CODEX_VERSION } from './metadata.js';
 import { runNativeHelper, validateLauncher, type ExecutionPolicy } from './native-launch.js';
 
-export interface WorkerServerConfig { socket?: string; devPort?: number; token?: string }
+import { workerSocketPath } from '../shared/worker-socket.js';
+
+export interface WorkerServerConfig { socket: string; development?: boolean }
 export async function startWorkerServer(service: RuntimeService, config: WorkerServerConfig): Promise<{ server: Server; close: () => Promise<void> }> {
+  const socketPath = workerSocketPath(config.socket, !!config.development);
   let calls = 0; let retained = 0; let closing = false;
   let restartPending = false;
   const restartWhenIdle = (): void => { if (restartPending && calls === 0 && !closing) { restartPending = false; service.emit('restart-ready'); } };
   const requestRestart = (): void => { restartPending = true; restartWhenIdle(); };
-  service.on('restart-required', requestRestart);
   const sockets = new Set<WebSocket>(); const alive = new WeakMap<WebSocket, boolean>();
   const channels = new Map<string, WebSocket>(); const channelIds = new WeakMap<WebSocket, string>();
   const leases = new Map<string, Map<string, object>>();
   const clientIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-  const authorize = (req: IncomingMessage): boolean => {
-    if (!config.token) return !!config.socket;
-    const header = req.headers.authorization; const expected = Buffer.from(`Bearer ${config.token}`); const actual = Buffer.from(typeof header === 'string' ? header : '');
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
-  };
   const reply = (res: ServerResponse, status: number, data: JsonValue): void => { if (!res.destroyed) { const text = jsonBytes(data); res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(text); } };
   const server = createServer({ maxHeaderSize: 8192, requestTimeout: 15000, headersTimeout: 10000, keepAliveTimeout: 5000 }, (req, res) => {
     void (async () => {
-      if (!authorize(req)) { reply(res, 401, { ok: false, error: { code: 'unauthorized', message: 'Worker authentication failed', delivery: 'not_sent' } }); req.resume(); return; }
       if (req.method === 'GET' && req.url === '/status') { reply(res, 200, { ok: true, result: service.status() }); return; }
       if (req.method !== 'POST' || !['/rpc', '/connect', '/disconnect'].includes(req.url ?? '')) { reply(res, 404, { ok: false, error: { code: 'not_found', message: 'Worker route not found', delivery: 'not_sent' } }); req.resume(); return; }
       if (closing || calls >= 48) { reply(res, 503, { ok: false, error: { code: 'capacity', message: 'Worker request capacity exhausted', delivery: 'not_sent' } }); req.resume(); return; }
@@ -93,7 +89,7 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
   });
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024, perMessageDeflate: false });
   server.on('upgrade', (req, socket, head) => {
-    if (!authorize(req) || req.url !== '/events' || closing || sockets.size >= 4) { socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); socket.destroy(); return; }
+    if (req.url !== '/events' || closing || sockets.size >= 4) { socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); socket.destroy(); return; }
     wss.handleUpgrade(req, socket, head, ws => {
       const eventChannelId = randomUUID(); sockets.add(ws); channels.set(eventChannelId, ws); leases.set(eventChannelId, new Map()); channelIds.set(ws, eventChannelId); alive.set(ws, true);
       ws.on('pong', () => alive.set(ws, true)); ws.on('message', () => ws.close(1008, 'Receive-only event channel')); ws.on('error', () => ws.terminate());
@@ -102,22 +98,34 @@ export async function startWorkerServer(service: RuntimeService, config: WorkerS
     });
   });
   const events = (event: RuntimeEvent): void => { const text = jsonBytes({ type: event.type, data: event.data }); const bytes = Buffer.byteLength(text); for (const ws of sockets) { if (ws.readyState !== WebSocket.OPEN || (event.eventChannelId && event.eventChannelId !== channelIds.get(ws))) continue; if (ws.bufferedAmount + bytes > 16 * 1024 * 1024) { ws.close(1013, 'Event backlog: resynchronize state and history'); setTimeout(() => ws.terminate(), 1000).unref(); } else ws.send(text, error => { if (error) ws.terminate(); }); } };
+  const existing = lstatSync(socketPath, { throwIfNoEntry: false });
+  if (existing) {
+    if (!existing.isSocket() || existing.uid !== process.geteuid!()) throw new Error('Refusing to replace worker socket');
+    const active = await new Promise<boolean>(resolve => {
+      const probe = createConnection(socketPath);
+      probe.once('connect', () => { probe.destroy(); resolve(true); });
+      probe.once('error', (error: NodeJS.ErrnoException) => resolve(error.code !== 'ECONNREFUSED'));
+      probe.setTimeout(1000, () => { probe.destroy(); resolve(true); });
+    });
+    if (active) throw new Error('Worker socket is active or unavailable');
+    const current = lstatSync(socketPath, { throwIfNoEntry: false });
+    if (current) {
+      if (current.dev !== existing.dev || current.ino !== existing.ino) throw new Error('Worker socket changed during startup');
+      unlinkSync(socketPath);
+    }
+  }
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(socketPath, () => { server.off('error', reject); resolve(); });
+  });
+  try { chmodSync(socketPath, config.development ? 0o600 : 0o660); }
+  catch (error) { await new Promise<void>(resolve => server.close(() => resolve())); throw error; }
+  service.on('restart-required', requestRestart);
   service.on('event', events);
   const heartbeat = setInterval(() => { for (const ws of sockets) { if (!alive.get(ws)) ws.terminate(); else { alive.set(ws, false); ws.ping(); } } }, 15000); heartbeat.unref();
-  if (config.socket) {
-    if (process.platform === 'win32' || !path.isAbsolute(config.socket)) throw new Error('Production worker requires an absolute Unix socket path');
-    try {
-      const stat = lstatSync(config.socket); if (!stat.isSocket() || stat.uid !== process.getuid?.()) throw new Error('Refusing to replace worker socket');
-      const active = await new Promise<boolean>(resolve => { const probe = createConnection(config.socket!); probe.once('connect', () => { probe.destroy(); resolve(true); }); probe.once('error', (error: NodeJS.ErrnoException) => resolve(error.code !== 'ECONNREFUSED')); probe.setTimeout(1000, () => { probe.destroy(); resolve(true); }); });
-      if (active) throw new Error('Worker socket is active or unavailable'); unlinkSync(config.socket);
-    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-  }
-  await new Promise<void>((resolve, reject) => { server.once('error', reject); if (config.socket) server.listen(config.socket, resolve); else server.listen(config.devPort ?? 4318, '127.0.0.1', resolve); });
-  if (config.socket) chmodSync(config.socket, 0o660);
   return { server, close: async () => {
     if (closing) return; closing = true; channels.clear(); leases.clear(); clearInterval(heartbeat); service.off('event', events); service.off('restart-required', requestRestart); for (const ws of sockets) ws.terminate(); wss.close();
     await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
-    if (config.socket) try { unlinkSync(config.socket); } catch {}
   } };
 }
 
@@ -134,10 +142,9 @@ export function configFromEnvironment(env: NodeJS.ProcessEnv): { runtime: Runtim
   if (![bin, home, workerHome].every(value => path.isAbsolute(value))) throw new Error('Worker paths must be absolute');
   const nativeHome = !dev || env.HARNESS_NATIVE_HOME !== undefined ? string(env.HARNESS_NATIVE_HOME, 'HARNESS_NATIVE_HOME') : undefined;
   if (nativeHome !== undefined && (!path.isAbsolute(nativeHome) || path.normalize(nativeHome) !== nativeHome)) throw new Error('Native home must be an absolute normalized path');
-  if (!dev && process.platform === 'win32') throw new Error('Windows requires explicit HARNESS_DEV=1');
   if (!dev && process.getuid?.() === 0) throw new Error('Production worker must run as an unprivileged supervisor identity');
-  const childEnv: NodeJS.ProcessEnv = { HOME: workerHome, USERPROFILE: workerHome, CODEX_HOME: home };
-  for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC', 'TEMP', 'TMP', 'LANG', 'LC_ALL', 'TERM', 'HARNESS_PROVIDER_API_KEY', 'AWS_BEARER_TOKEN_BEDROCK', 'AWS_REGION', 'Z_AI_API_KEY', 'Z_AI_MODE', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) if (env[key] !== undefined) childEnv[key] = env[key];
+  const childEnv: NodeJS.ProcessEnv = { HOME: workerHome, CODEX_HOME: home };
+  for (const key of ['PATH', 'TMPDIR', 'LANG', 'LC_ALL', 'TERM', 'HARNESS_PROVIDER_API_KEY', 'AWS_BEARER_TOKEN_BEDROCK', 'AWS_REGION', 'Z_AI_API_KEY', 'Z_AI_MODE', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) if (env[key] !== undefined) childEnv[key] = env[key];
   for (const [key, value] of Object.entries(env)) if (/^HARNESS_PROVIDER_KEY_(?:DEFAULT|[0-9A-F]{32})$/.test(key) && value !== undefined) childEnv[key] = value;
   const runtime: RuntimeConfig = { bin, home, workerHome, ...(nativeHome === undefined ? {} : { nativeHome }), cwd: workerHome, env: childEnv, dev };
   if (env.HARNESS_PROVIDER_REGISTRY_FILE) {
@@ -147,12 +154,13 @@ export function configFromEnvironment(env: NodeJS.ProcessEnv): { runtime: Runtim
     if (!info.isFile() || info.isSymbolicLink() || info.size > 4 * 1024 * 1024 || !dev && (info.uid !== 0 || (info.mode & 0o022) !== 0)) throw new Error('Invalid managed provider registry');
     runtime.providerRegistry = object(JSON.parse(readFileSync(registryPath, 'utf8')));
   }
-  if (dev) { const token = string(env.HARNESS_WORKER_TOKEN, 'HARNESS_WORKER_TOKEN', 256); if (token.length < 32) throw new Error('Worker token must contain at least 32 characters'); const port = Number(env.HARNESS_WORKER_PORT ?? '4318'); if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid worker port'); return { runtime, server: { devPort: port, token } }; }
+  const socket = string(env.HARNESS_WORKER_SOCKET, 'HARNESS_WORKER_SOCKET');
+  if (dev) return { runtime, server: { socket, development: true } };
   const launcher = { path: string(env.HARNESS_NATIVE_LAUNCHER, 'HARNESS_NATIVE_LAUNCHER'), user: string(env.HARNESS_NATIVE_USER, 'HARNESS_NATIVE_USER', 64) }; validateLauncher(launcher);
   const executionPolicy = executionPolicyFromEnvironment(env, launcher.user);
   const gid = Number(string(env.HARNESS_ATTACHMENT_GID, 'HARNESS_ATTACHMENT_GID', 16)); if (!Number.isSafeInteger(gid) || gid <= 0 || gid > 0xffffffff || !process.getgroups?.().includes(gid)) throw new Error('Invalid native attachment read group');
   runtime.launcher = launcher; runtime.attachmentGid = gid; if (executionPolicy) runtime.executionPolicy = executionPolicy;
-  return { runtime, server: { socket: string(env.HARNESS_WORKER_SOCKET, 'HARNESS_WORKER_SOCKET') } };
+  return { runtime, server: { socket } };
 }
 export function prepareRuntimeHomes(config: RuntimeConfig): void {
   // Managed native homes belong to the selected execution identity, which can

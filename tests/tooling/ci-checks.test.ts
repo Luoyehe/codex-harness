@@ -15,13 +15,13 @@ const checksum = (value: string | Buffer) => createHash('sha256').update(value).
 function fixture() {
   mkdirSync('.work/ci-gate-tests', { recursive: true });
   const base = mkdtempSync(path.resolve('.work/ci-gate-tests/case-')); fixtures.push(base);
-  execFileSync('git', ['init', '-q'], { cwd: base, windowsHide: true });
+  execFileSync('git', ['init', '-q'], { cwd: base });
   writeFileSync(path.join(base, '.gitignore'), '.work/\n');
   writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1' }));
   for (const name of available) { const file = path.join(base, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, '// Fixture: never executed.\n'); }
-  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
-  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'base'], { cwd: base, windowsHide: true });
-  const baseCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  execFileSync('git', ['add', '.'], { cwd: base });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'base'], { cwd: base });
+  const baseCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8' }).trim();
   return { base, baseCommit };
 }
 function approve(base: string, baseCommit: string) {
@@ -34,7 +34,7 @@ function approve(base: string, baseCommit: string) {
 }
 afterEach(() => { for (const base of fixtures.splice(0)) rmSync(base, { recursive: true, force: true }); });
 
-test.runIf(process.platform !== 'win32')('root fixtures have a traversable disposable temp outside their private home', () => {
+test('root fixtures have a traversable disposable temp outside their private home', () => {
   const { base } = fixture(); const paths = isolatedPaths(base, true); fixtures.push(paths.temporary);
   expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false);
   expect(statSync(paths.temporary).mode & 0o777).toBe(0o755);
@@ -51,7 +51,7 @@ test('build metadata requires explicit current-source authorization, never an im
   expect(() => selectCiPlan({ changed: ['package.json'], available, head, sourceDigest: digest, authorization: { sourceDigest: 'c'.repeat(64) } })).toThrow();
   const plan = selectCiPlan({ changed: ['package.json'], available, head, sourceDigest: digest, authorization: { sourceDigest: digest } });
   expect(plan.mode).toBe('authorized-full'); expect(plan.files).toEqual(available);
-  expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
+  expect(plan.targets).toEqual(['linux', 'linux-root']);
   expect(() => selectCiPlan({ changed: ['tests/core/example.test.ts'], available, head, sourceDigest: digest, authorization: { sourceDigest: 'c'.repeat(64) } })).toThrow(/exact-source/);
 });
 
@@ -91,9 +91,9 @@ test('main and manual plans ignore stale PR approval while explicit manual check
   const { base, baseCommit } = fixture();
   writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Reviewed release change' }));
   const approval = approve(base, baseCommit);
-  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
-  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed change'], { cwd: base, windowsHide: true });
-  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  execFileSync('git', ['add', '.'], { cwd: base });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed change'], { cwd: base });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8' }).trim();
   const stale = '0'.repeat(64), env = { GITHUB_SHA: currentHead, HARNESS_PR_AUTHORIZATION_SHA: stale };
   const main = buildCiPlan(base, { ...env, GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main' }, { before: baseCommit });
   expect(main).toMatchObject({ mode: 'authorized-full', authorization: { sha256: approval.sha256 } });
@@ -115,9 +115,9 @@ test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects
   mkdirSync(path.dirname(path.join(base, changed)), { recursive: true });
   writeFileSync(path.join(base, changed), '// Reviewed closeout change.\n');
   const approval = approve(base, baseCommit);
-  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
-  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed closeout'], { cwd: base, windowsHide: true });
-  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  execFileSync('git', ['add', '.'], { cwd: base });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'reviewed closeout'], { cwd: base });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8' }).trim();
   const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
   const env = { GITHUB_SHA: currentHead };
   const queue = { merge_group: { base_sha: baseCommit, head_sha: currentHead } };
@@ -134,7 +134,7 @@ test.each(['narrow', 'evidence-only'] as const)('a trusted full closeout selects
   ];
   for (const plan of plans) {
     expect(plan).toMatchObject({ mode: 'authorized-full', baseCommit, sourceDigest: approval.value.sourceDigest, authorization: { sha256: approval.sha256 } });
-    expect(plan.files).toEqual(available); expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
+    expect(plan.files).toEqual(available); expect(plan.targets).toEqual(['linux', 'linux-root']);
     expect(plan.selection.status).toBe(kind === 'narrow' ? 'selected' : 'no-behavior-change');
   }
   expect(() => buildCiPlan(base, { ...env, HARNESS_PR_AUTHORIZATION_SHA: '0'.repeat(64) }, event)).toThrow(/checksum/);
@@ -146,9 +146,9 @@ test('a committed PR authorization cannot approve itself and external PR approva
   const { base, baseCommit } = fixture();
   writeFileSync(path.join(base, 'package.json'), JSON.stringify({ version: '2.0.1', description: 'Proposed release change' }));
   const approval = approve(base, baseCommit);
-  execFileSync('git', ['add', '.'], { cwd: base, windowsHide: true });
-  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'proposed change'], { cwd: base, windowsHide: true });
-  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  execFileSync('git', ['add', '.'], { cwd: base });
+  execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'proposed change'], { cwd: base });
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8' }).trim();
   const event = { pull_request: { base: { sha: baseCommit }, head: { sha: currentHead } } };
   const env = { GITHUB_SHA: currentHead, GITHUB_EVENT_NAME: 'pull_request' };
   expect(() => buildCiPlan(base, env, event)).toThrow(/trusted checksum/);
@@ -160,7 +160,7 @@ test('a committed PR authorization cannot approve itself and external PR approva
 
 test('an explicit checksum requires its file while absent optional approval preserves only narrow plans', () => {
   const { base, baseCommit } = fixture();
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   writeFileSync(path.join(base, 'tests/core/example.test.ts'), '// Reviewed narrow fixture change.\n');
   git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'narrow change');
   const currentHead = git('rev-parse', 'HEAD'), optional = '0'.repeat(64);
@@ -182,7 +182,7 @@ test('an explicit checksum requires its file while absent optional approval pres
 
 test('a PR uses the shared ancestor when its target branch advanced independently', () => {
   const { base, baseCommit } = fixture();
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git('switch', '-c', 'advanced-main');
   writeFileSync(path.join(base, 'README.md'), 'Independent target branch update.\n');
   git('add', 'README.md'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'advance target');
@@ -211,18 +211,18 @@ test('a PR uses the shared ancestor when its target branch advanced independentl
   expect(() => buildCiPlan(base, { ...env, HARNESS_CI_BASE: 'HEAD~1' })).toThrow(/valid nonzero/);
 });
 
-test('coverage reconciles exact per-case platform complements and rejects failures, gaps and stale reports', () => {
+test('coverage reconciles each selected Linux identity and rejects failures, gaps and stale reports', () => {
   const files = ['tests/runtime/platform.test.ts', 'tests/deploy/root/test_example.py'];
-  const plan: any = { head, sourceDigest: digest, files, standardFiles: files.slice(0, 1), rootFiles: files.slice(1), targets: ['linux', 'windows', 'linux-root'] };
-  const reports: any[] = plan.targets.map((target: string) => ({ head, sourceDigest: digest, sourceDigestAfter: digest, target, exitCode: target === 'linux-root' ? 0 : 3, files: target === 'linux-root' ? plan.rootFiles : plan.standardFiles, cases: target === 'linux-root' ? [{ id: `${files[1]}::root_case`, file: files[1], status: 'passed' }] : ['linux_case', 'windows_case'].map(name => ({ id: `${files[0]}::${name}`, file: files[0], status: name.startsWith(target) ? 'passed' : 'skipped' })) }));
-  expect(reconcileCi(plan, reports)).toMatchObject({ status: 'passed', cases: 3, coverageGaps: [] });
+  const plan: any = { head, sourceDigest: digest, files, standardFiles: files.slice(0, 1), rootFiles: files.slice(1), targets: ['linux', 'linux-root'] };
+  const reports: any[] = plan.targets.map((target: string) => ({ head, sourceDigest: digest, sourceDigestAfter: digest, target, exitCode: 0, files: target === 'linux-root' ? plan.rootFiles : plan.standardFiles, cases: target === 'linux-root' ? [{ id: `${files[1]}::root_case`, file: files[1], status: 'passed' }] : [{ id: files[0] + '::ordinary_case', file: files[0], status: 'passed' }] }));
+  expect(reconcileCi(plan, reports)).toMatchObject({ status: 'passed', cases: 2, coverageGaps: [] });
   for (const mutate of [
     (r: any[]) => r.pop(),
     (r: any[]) => r[0].cases[0].status = 'failed',
     (r: any[]) => r[0].cases[0].status = 'skipped',
     (r: any[]) => r[0].sourceDigestAfter = 'c'.repeat(64),
     (r: any[]) => r[0].cases.push(r[0].cases[0]),
-    (r: any[]) => r[2].cases = [],
+    (r: any[]) => r[1].cases = [],
     (r: any[]) => r[0].exitCode = 1,
   ]) { const changed = structuredClone(reports); mutate(changed); expect(() => reconcileCi(plan, changed)).toThrow(); }
   // Actual merged-artifact consumption must ignore nested raw diagnostics and
@@ -233,11 +233,11 @@ test('coverage reconciles exact per-case platform complements and rejects failur
   writeFileSync(planFile, JSON.stringify(plan));
   for (const report of reports) writeFileSync(path.join(output, `result-${report.target}.json`), JSON.stringify(report));
   writeFileSync(path.join(output, 'test-results/raw-failure/vitest.json'), '{"success":false,"numFailedTests":1}');
-  writeFileSync(path.join(output, 'test-results/raw-failure/result-windows.json'), JSON.stringify({ ...reports[1], exitCode: 1 }));
-  const reconcile = () => spawnSync(process.execPath, [path.resolve('scripts/ci-checks.mjs'), 'reconcile', planFile, output], { cwd: base, windowsHide: true, encoding: 'utf8' });
+  writeFileSync(path.join(output, 'test-results/raw-failure/result-linux-root.json'), JSON.stringify({ ...reports[1], exitCode: 1 }));
+  const reconcile = () => spawnSync(process.execPath, [path.resolve('scripts/ci-checks.mjs'), 'reconcile', planFile, output], { cwd: base, encoding: 'utf8' });
   expect(reconcile().status).toBe(0);
-  expect(JSON.parse(readFileSync(path.join(output, 'reconciled.json'), 'utf8'))).toMatchObject({ status: 'passed', cases: 3 });
-  rmSync(path.join(output, 'result-windows.json'));
+  expect(JSON.parse(readFileSync(path.join(output, 'reconciled.json'), 'utf8'))).toMatchObject({ status: 'passed', cases: 2 });
+  rmSync(path.join(output, 'result-linux-root.json'));
   expect(reconcile()).toMatchObject({ status: 1, stderr: expect.stringContaining('Every expected platform report is required exactly once') });
 });
 
@@ -292,6 +292,9 @@ test('hosted root work is scoped and every matrix result is reconciled before th
   expect(workflow).toContain('/usr/bin/sudo -n -- /usr/bin/env -i');
   const coverage = workflow.replaceAll('\r\n', '\n').split('\n  coverage:\n')[1]!;
   expect(coverage).toContain('if: always()');
+  expect(coverage).toContain('needs: [plan, standard, macos_development, root_deploy]');
+  expect(workflow).toContain('runs-on: macos-15');
+  expect(workflow).toContain('tests/core/ledger.test.ts tests/runtime/posix-native.test.ts web/tests/model-picker.test.tsx');
   expect(coverage).not.toContain("needs.plan.result == 'success'");
   expect(coverage).toContain('scripts/ci-job-status.mjs');
   expect(coverage).toContain('HARNESS_CI_NEEDS: ${{ toJSON(needs) }}');
@@ -299,18 +302,18 @@ test('hosted root work is scoped and every matrix result is reconciled before th
   const standard = workflow.replaceAll('\r\n', '\n').split('\n  standard:\n')[1]!.split('\n  root_deploy:\n')[0]!;
   const aggregateCheck = standard.split('      - name: Require aggregate case report before publishing diagnostics\n')[1]!.split('      - uses:')[0]!;
   expect(aggregateCheck).toContain('if: always()');
-  expect(aggregateCheck).toContain('CI_TARGET: ${{ matrix.target }}');
+  expect(aggregateCheck).toContain('CI_TARGET: linux');
   const checkSource = aggregateCheck.match(/run: node --input-type=module -e '([^'\n]+)'/)![1]!;
-  const artifact = standard.split('          name: cases-${{ matrix.target }}\n')[1]!;
-  expect(artifact).toContain('path: |\n            .work/result-${{ matrix.target }}.json\n            .work/test-results/*/vitest.json');
+  const artifact = standard.split('          name: cases-linux\n')[1]!;
+  expect(artifact).toContain('path: |\n            .work/result-linux.json\n            .work/test-results/*/vitest.json');
   expect(artifact).toContain('if-no-files-found: error');
   // Execute the workflow's actual check, including raw-only and directory
   // false positives that a multi-path upload would otherwise accept.
   const { base } = fixture(), raw = path.join(base, '.work/test-results/raw-failure/vitest.json');
   mkdirSync(path.dirname(raw), { recursive: true }); writeFileSync(raw, '{"success":false}');
-  const check = () => spawnSync(process.execPath, ['--input-type=module', '-e', checkSource], { cwd: base, env: { ...process.env, CI_TARGET: 'windows' }, windowsHide: true });
+  const check = () => spawnSync(process.execPath, ['--input-type=module', '-e', checkSource], { cwd: base, env: { ...process.env, CI_TARGET: 'linux' } });
   expect(check().status).toBe(1);
-  const result = path.join(base, '.work/result-windows.json');
+  const result = path.join(base, '.work/result-linux.json');
   mkdirSync(result); expect(check().status).toBe(1); rmSync(result, { recursive: true });
   writeFileSync(result, '{"exitCode":1}'); expect(check().status).toBe(0);
   rmSync(raw); expect(check().status).toBe(0);
@@ -319,7 +322,7 @@ test('hosted root work is scoped and every matrix result is reconciled before th
 
 test('an old unchanged closeout permits a narrow new change while malformed history fails validation', () => {
   const { base, baseCommit } = fixture();
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8' }).trim();
   const commitAll = () => { git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
   const approval = approve(base, baseCommit);
   const reviewed = commitAll();
@@ -333,7 +336,7 @@ test('an old unchanged closeout permits a narrow new change while malformed hist
 
 test('the retired privacy export allows only ordinary incremental selection and cannot authorize a run', () => {
   const { base, baseCommit } = fixture();
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const commitAll = () => { git('add', '.'); git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
   const name = 'verification/audit-evidence/release-closeout/authorization.json';
   const marker = JSON.stringify({

@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
 import { captureProcesses, expectProcessesStopped, processIdentity } from './process-identity.js';
 
-test.runIf(process.platform === 'win32' || process.platform === 'linux')('a recycled numeric PID differs from the captured original identity without sending a signal', async () => {
+test('a recycled numeric PID differs from the captured original identity without sending a signal', async () => {
   const signal = vi.spyOn(process, 'kill').mockImplementation(() => { throw new Error('Identity checks must never signal a process'); });
   try {
     const current = await captureProcesses([process.pid]);

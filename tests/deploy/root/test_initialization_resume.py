@@ -25,7 +25,10 @@ class InitializationResumeTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.layout = Layout("resume", Path(self.directory.name))
+        # Model the real shared system ancestry even under a private test umask.
         self.layout.config.parent.mkdir(parents=True)
+        self.layout.config.parent.parent.chmod(0o755)
+        self.layout.config.parent.chmod(0o755)
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
         identities = {role: {"name": self.layout.prefix + "-" + role, "gid": 800 + index,
@@ -46,12 +49,6 @@ class InitializationResumeTests(unittest.TestCase):
         self.stack.enter_context(patch("deploy.provider_layers.prepare_host_targets"))
         self.stack.enter_context(patch("deploy.provider_layers.generation_layers", return_value=({"system-config.toml": b"# expected\n"}, {"host": "fixed"})))
         self.command = self.stack.enter_context(patch("deploy.install_recovery.run"))
-        # Only the pointer primitive is substituted on Windows, whose test token
-        # cannot create symlinks. Linux exercises the real symlink path.
-        if os.name == "nt":
-            self.stack.enter_context(patch.object(CreationPlan, "link", lambda plan, path, target: plan.file(path, target.encode(), 0o644)))
-            chmod = os.chmod
-            self.stack.enter_context(patch("os.chmod", side_effect=lambda path, mode: chmod(path, mode | 0o200)))
 
     def start(self):
         return initialize_recorded(self.layout, origin="http://127.0.0.1:3300", port=3300,

@@ -91,7 +91,7 @@ class Manager:
             return False
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+                (info.st_uid == 0 and not info.st_mode & 0o022),
                 "Unsafe release compatibility metadata", "integrity")
         value = read_json(path)
         return isinstance(value, dict) and value.get("harnessAuthentication") == "account-v1"
@@ -338,7 +338,7 @@ class Manager:
                 expected = "HARNESS_EDGE_PROXY_TOKEN=" + hashlib.sha256(("codex-harness-edge-client-v1\0" + token).encode()).hexdigest() + "\n"
                 proxy_env = self.layout.config / "edge-proxy.env"
                 regular(proxy_env, {expected.encode()})
-                require(os.name != "posix" or stat.S_IMODE(proxy_env.stat().st_mode) == 0o600, "Unsafe edge identity credential", "integrity")
+                require(stat.S_IMODE(proxy_env.stat().st_mode) == 0o600, "Unsafe edge identity credential", "integrity")
             from .dns_tls import validate_dns_selection
             validate_dns_selection(self.layout, metadata)
             if metadata.get("tls") == "provided":
@@ -346,7 +346,7 @@ class Manager:
                 for pem, field in ((certificate, "certificateSha256"), (private_key, "privateKeySha256")):
                     info = pem.lstat()
                     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
-                            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022 and
+                            (info.st_uid == 0 and not info.st_mode & 0o022 and
                              (field != "privateKeySha256" or not info.st_mode & 0o007)),
                             "Unsafe retained TLS material", "integrity")
                     require(hashlib.sha256(read_pem(pem, private=field == "privateKeySha256")).hexdigest() == metadata.get(field),

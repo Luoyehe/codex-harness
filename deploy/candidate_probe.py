@@ -39,7 +39,7 @@ def probe_cli(binary: Path, home: Path) -> dict:
         'model = ' + json.dumps(model) + '\nmodel_catalog_json = ' + json.dumps(str(home / "models.json")) +
         '\nmodel_provider = "probe"\n[analytics]\nenabled = false\n[model_providers.probe]\n'
         'name = "Installation probe"\nbase_url = "http://127.0.0.1:9/v1"\nwire_api = "responses"\n', encoding="utf-8")
-    environment = {key: value for key, value in os.environ.items() if key in ("PATH", "SYSTEMROOT", "WINDIR", "LANG", "TMPDIR", "TMP", "TEMP")}
+    environment = {key: value for key, value in os.environ.items() if key in ("PATH", "LANG", "TMPDIR")}
     environment.update(HOME=str(home), CODEX_HOME=str(home))
     version = subprocess.run([str(binary), "--version"], cwd=home, env=environment, capture_output=True, text=True, timeout=15, check=True)
     require(version.stdout.strip() == "codex-cli " + CODEX_VERSION, "Pinned CLI version probe failed")

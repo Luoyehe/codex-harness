@@ -1,9 +1,7 @@
 """Write one authenticated user's MCP server without exposing other configuration."""
 from __future__ import annotations
 
-import os
 import re
-import stat
 
 from . import native_toml
 from .common import DeployError, require
@@ -15,18 +13,7 @@ MAP_FIELDS = {"env", "http_headers", "env_http_headers"}
 REMOVE_ONLY = {"bearer_token", "env_vars", "cwd", "http_headers_helper", "auth", "oauth", "oauth_resource"}
 
 
-def _check_reparse(path):
-    if os.name == "nt":
-        try:
-            info = path.lstat()
-        except FileNotFoundError:
-            return
-        require(not info.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT, "Unsafe native configuration entry", "config_conflict")
-
-
 def state(home):
-    _check_reparse(home)
-    _check_reparse(home / "config.toml")
     _safe(home.lstat(), True)
     before = _read(home / "config.toml", limit=LIMIT, private=False)
     return {"fileVersion": _file_version(before), "userConfigEdits": 1}
@@ -61,12 +48,9 @@ def apply(home, params):
     from .mcp_user_toml import edit_server
     validate(params)
     path = home / "config.toml"
-    _check_reparse(home)
-    _check_reparse(home / ".harness-mcp-override.lock")
     published = False
     try:
         with _exclusive(home):
-            _check_reparse(path)
             before = _read(path, limit=LIMIT)
             require(_file_version(before) == params["expectedVersion"], "User configuration changed; reload before saving", "config_conflict")
             try:

@@ -35,7 +35,7 @@ def snapshot(layout) -> dict:
             continue
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 128 * 1024 and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe configuration snapshot", "ownership_conflict")
+                (info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe configuration snapshot", "ownership_conflict")
         result[name] = {"data": base64.b64encode(path.read_bytes()).decode(), "mode": stat.S_IMODE(info.st_mode)}
     return result
 

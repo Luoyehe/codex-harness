@@ -1,7 +1,6 @@
 """Native-identity descriptor paths. No caller-selected host command or home."""
 from __future__ import annotations
 
-import ctypes
 import errno
 import hashlib
 import os
@@ -10,7 +9,7 @@ import stat
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
-from .common import DeployError, canonical, require
+from .common import DeployError, canonical, rename_noreplace, require
 
 MAX_FILE = 512 * 1024
 MAX_TRANSFER = 8 * 1024 * 1024
@@ -90,20 +89,17 @@ def read_file(fd: int, limit: int = MAX_FILE) -> tuple[bytes, os.stat_result]:
 def rename_absent(source_fd: int, source: str, target_fd: int, target: str) -> None:
     # Both directions are descriptor-relative, and the kernel refuses a target
     # appearing between validation and rename. No shell or path-based fallback.
-    libc = ctypes.CDLL(None, use_errno=True)
-    rename = getattr(libc, "renameat2", None)
-    require(rename is not None, "Atomic no-replace rename is unavailable", "unsupported_platform")
-    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-    rename.restype = ctypes.c_int
-    if rename(source_fd, os.fsencode(source), target_fd, os.fsencode(target), 1) != 0:
-        error = ctypes.get_errno()
+    try:
+        rename_noreplace(source, target, source_fd=source_fd, target_fd=target_fd)
+    except OSError as cause:
+        error = cause.errno
         if error == errno.EEXIST:
             exc = DeployError("already_exists", "Workspace destination already exists; nothing was replaced")
             exc.no_effect = True
             raise exc
         if error == errno.EXDEV:
             raise DeployError("unsupported_path", "Workspace mutation cannot cross a filesystem boundary")
-        raise OSError(error, os.strerror(error))
+        raise
     os.fsync(source_fd)
     if target_fd != source_fd:
         os.fsync(target_fd)
@@ -131,7 +127,7 @@ class Root:
     def __init__(self, value: object, forbidden: list[Path]):
         require(isinstance(value, str) and value.startswith("/") and len(value.encode()) <= 4096 and
                 not any(ord(c) < 32 or ord(c) == 127 for c in value), "Invalid registered workspace root")
-        require(os.name == "posix" and hasattr(os, "O_NOFOLLOW") and hasattr(os, "O_PATH"), "Workspace helper requires Linux descriptor paths", "unsupported_platform")
+        require(hasattr(os, "O_NOFOLLOW") and hasattr(os, "O_PATH"), "Workspace helper requires Linux descriptor paths", "unsupported_platform")
         self.path = Path(value)
         require(not any(part in (".git", RESERVED) for part in self.path.parts), "Workspace root names reserved metadata", "forbidden_path")
         require(str(self.path) == value and self.path.resolve(strict=True) == self.path, "Workspace root must be canonical", "unsafe_path")

@@ -6,7 +6,7 @@
 
 当前版本 **2.5.0**，适配 **Codex CLI 0.169.0**。适合个人自托管：一个管理员账号管理整个工作台，不提供不同用户之间的数据隔离。
 
-本版变化见 [v2.5.0 发布说明](verification/reports/release-v2.5.0.md)。
+开发和本机验证使用 macOS 或 Linux。生产服务使用 Linux、systemd 和独立的服务身份。最近一次已发布版本的变化见 [v2.5.0 发布说明](https://github.com/Luoyehe/codex-harness/blob/v2.5.0/verification/reports/release-v2.5.0.md)。
 
 聊天草稿保存在当前标签页的会话存储中。刷新同一标签页通常可恢复，关闭标签页后可能丢失。重要内容请在关闭前保存或导出。
 

@@ -42,7 +42,7 @@ class RequestSpool:
     def ordinary(self, path: Path, *, directory: bool = False) -> os.stat_result:
         info = path.lstat()
         require((stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode) and info.st_nlink == 1) and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o077),
+                (info.st_uid == 0 and not info.st_mode & 0o077),
                 "Unsafe management request storage; inspect retained files", "recovery_required")
         return info
 

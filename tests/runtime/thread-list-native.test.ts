@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
 test('official CLI lists persisted project threads across providers, including after a provider is removed', () => withFixtureCleanup(async defer => {
@@ -39,7 +39,7 @@ test('official CLI lists persisted project threads across providers, including a
   const configure = (letters: string[]) => writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "provider_a"', 'approval_policy = "never"', 'sandbox_mode = "read-only"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', ...definitions(letters)].join('\n'));
   configure(['a', 'b']);
   const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'provider_a', connections: ['a', 'b'].map((letter, i) => ({ id: i ? 'b'.repeat(32) : 'default', modelProvider: 'provider_' + letter, kind: 'responses', name: letter, enabled: true, model: 'harness-loopback-fixture', models: [{ id: 'harness-loopback-fixture', defaultEffort: 'low', efforts: ['low'] }], catalogPath: catalog })) };
-  const config = { bin: process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
+  const config = { bin: nativeTestBinary(), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
   const completed = new Map<string, JsonObject>(), context = { clientId: 'thread-list-native' };
   const start = async () => {
     const service = await RuntimeService.create(config);

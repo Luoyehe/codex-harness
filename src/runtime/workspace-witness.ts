@@ -33,8 +33,7 @@ export class WorkspaceWitness {
     if (!info.isDirectory() || info.isSymbolicLink() || (process.getuid && (info.uid !== process.getuid() || (info.mode & 0o077) !== 0))) throw new DeliveryError('witness_storage', 'Unsafe workspace witness directory');
     // SQLite FULL synchronizes its own directory, not this directory's entry in
     // the installer-owned home. Repeat both barriers after an interrupted mkdir.
-    // Windows is development-only and does not support this directory fsync.
-    if (process.platform !== 'win32') try {
+    try {
       syncDirectory(directory, info); syncDirectory(home, parent);
       if (!sameDirectory(lstatSync(directory), info)) throw new DeliveryError('witness_storage', 'Workspace witness directory was replaced');
     } catch { throw new DeliveryError('witness_storage', 'Workspace witness directory could not be made durable'); }

@@ -39,7 +39,7 @@ def ordinary_directory(path: Path) -> tuple[int, int]:
     trusted_ancestors(path)
     info = path.lstat()
     require(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode) and
-            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe candidate directory", "integrity")
+            (info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe candidate directory", "integrity")
     return info.st_dev, info.st_ino
 
 
@@ -209,7 +209,7 @@ def archive_locked(manager, candidate: str, *, allow_failed: bool = False) -> di
     for directory in (root.parent, root):
         if present(directory):
             ordinary_directory(directory)
-            require(os.name != "posix" or stat.S_IMODE(directory.stat().st_mode) == 0o700, "Archive directory must be private", "integrity")
+            require(stat.S_IMODE(directory.stat().st_mode) == 0o700, "Archive directory must be private", "integrity")
         else:
             trusted_ancestors(directory.parent)
             mkdir(directory, 0o700)

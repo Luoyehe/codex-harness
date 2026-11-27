@@ -30,7 +30,7 @@ export function buildCodeqlGo(base = root, inherited = process.env, invoke = exe
   // An inherited GOROOT can make a different compiler claim the prepared root.
   // Ask the actual init-selected entry without that override, then keep it absent.
   delete env.GOROOT;
-  const options = { cwd: path.join(base, 'deploy/caddy_dns_source'), env, windowsHide: true };
+  const options = { cwd: path.join(base, 'deploy/caddy_dns_source'), env };
   const identity = JSON.parse(invoke(entry, ['env', '-json', 'GOVERSION', 'GOROOT', 'GOOS', 'GOARCH'], {
     ...options, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15_000, maxBuffer: 64 * 1024,
   }));

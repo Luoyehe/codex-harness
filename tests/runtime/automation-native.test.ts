@@ -1,9 +1,9 @@
 import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { AddressInfo } from 'node:net';
+import { temporaryWorkerSocket } from '../fixtures/worker-socket.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { startWorkerServer } from '../../src/runtime/main.js';
 import { WorkerClient } from '../../src/gateway/worker-client.js';
@@ -29,9 +29,11 @@ test('scheduled runs use actual worker leases and official CLI after the browser
     const turn = object(object(event.params).turn); if (turnEvents.length < 32) turnEvents.push({ method: event.method, id: turn.id, status: turn.status });
   });
   let handle: Awaited<ReturnType<typeof startWorkerServer>> | undefined, worker: WorkerClient | undefined, ledger: Ledger | undefined, scheduler: AutomationScheduler | undefined;
+  const endpoint = temporaryWorkerSocket(); defer(endpoint.close);
   defer(() => { expectNativeClosed(runtime.native); });
   defer(() => ledger?.close()); defer(() => runtime.close()); defer(() => handle?.close()); defer(() => worker?.close()); defer(() => scheduler?.close());
-    const token = randomBytes(32).toString('hex'); handle = await startWorkerServer(runtime, { devPort: 0, token }); worker = new WorkerClient({ port: (handle.server.address() as AddressInfo).port, token });
+    handle = await startWorkerServer(runtime, { socket: endpoint.socketPath, development: true });
+    worker = new WorkerClient({ socketPath: endpoint.socketPath });
     let now = Date.now(); ledger = new Ledger(path.join(root, 'gateway.sqlite'), () => now); const dispatcher = new Dispatcher(ledger, worker, { call: async () => { throw new Error('Unexpected management call'); } });
     worker.on('event', event => dispatcher.event(event)); worker.on('disconnect', () => dispatcher.disconnected()); worker.connect(); await expect.poll(() => worker!.connected, { timeout: 10000 }).toBe(true);
     const projectId = ledger.addProject(project, 'Scheduled test').id; const browserClient = randomUUID(); await worker.clientConnected(browserClient);

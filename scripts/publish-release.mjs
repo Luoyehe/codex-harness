@@ -20,7 +20,7 @@ export function verifiedCoverage(coverage, { head, digest, files, authorization 
       coverage.sourceDigest !== digest || coverage.authorizationSha256 !== authorization ||
       coverage.files !== files || files < 1 || !Number.isSafeInteger(coverage.cases) || coverage.cases < files ||
       !Array.isArray(coverage.coverageGaps) || coverage.coverageGaps.length ||
-      JSON.stringify(coverage.targets) !== JSON.stringify(['linux', 'windows', 'linux-root']))
+      JSON.stringify(coverage.targets) !== JSON.stringify(['linux', 'linux-root']))
     throw Error('Full coverage evidence does not match this release');
 }
 export function releaseTitle(tag, notes) {

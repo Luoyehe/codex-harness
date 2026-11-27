@@ -63,28 +63,15 @@ def _decode(raw: bytes) -> object:
 
 def _safe(info: os.stat_result, uid: int, *, directory: bool = False) -> None:
     check((stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)) and
-          not getattr(info, "st_file_attributes", 0) & 0x400 and
           (directory or info.st_nlink == 1), "History path is not a private regular entry")
-    if os.name == "posix":
-        check(info.st_uid == uid and not info.st_mode & 0o022,
-              "History path ownership or permissions changed")
-
-
-def _local_path(value: str) -> Path:
-    path = Path(value)
-    if os.name == "nt":
-        text = str(path)
-        if re.match(r"^\\\\\?\\[A-Za-z]:\\", text):
-            path = Path(text[4:])
-        else:
-            check(not text.startswith(("\\\\?\\", "\\\\.\\")), "Unsupported Windows history namespace")
-    return path
+    check(info.st_uid == uid and not info.st_mode & 0o022,
+          "History path ownership or permissions changed")
 
 
 def _path(home: Path, requested: object, uid: int, *, inspect_compressed: bool = False) -> Path:
     check(home.is_absolute() and isinstance(requested, str) and "\x00" not in requested,
           "Invalid native history path")
-    path = _local_path(requested)
+    path = Path(requested)
     check(path.is_absolute() and ".." not in path.parts and path.is_relative_to(home),
           "History path is outside the native home")
     if inspect_compressed and path.suffix == ".jsonl" and not path.exists() and not path.is_symlink():
@@ -111,7 +98,7 @@ def _open(path: Path, flags: int, uid: int, *, create: bool = False) -> int:
     except FileNotFoundError:
         if not create:
             raise
-    fd = os.open(path, flags | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0), 0o600)
+    fd = os.open(path, flags | os.O_NOFOLLOW, 0o600)
     try:
         after = os.fstat(fd)
         _safe(after, uid)
@@ -222,7 +209,7 @@ def _digest_filter_stamp(active):
 def _managed_references(root: str, active=None, unmatched=None):
     found = set()
     images = set()
-    attachment_root = _local_path(root)
+    attachment_root = Path(root)
     check(attachment_root.is_absolute() and ".." not in attachment_root.parts, "Invalid attachment root")
     def collect(value, depth=0):
         check(depth <= 64, "Attachment record nesting exceeds budget", "thread_history_limit")
@@ -259,7 +246,7 @@ def _managed_references(root: str, active=None, unmatched=None):
             if match: candidates.append(json.loads(match[1]))
             for candidate in candidates:
                 if len(candidate) > 8192 or not candidate or "\x00" in candidate: continue
-                name = _local_path(candidate)
+                name = Path(candidate)
                 if name.parent == attachment_root and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:\.(wav|mp3|m4a|webm|ogg|jpg|jpeg|png|gif|webp|mp4|mov|m4v|avi|wmv))?", name.name):
                     found.add(str(name)); check(len(found) <= 128, "Attachment reference budget exceeded", "thread_history_limit")
     return collect, found, images
@@ -377,7 +364,7 @@ def _queue_store(home: Path, uid: int):
         check(len(raw_config) <= 2 * 1024 * 1024, "Native configuration exceeds the queue lookup budget")
         from .native_toml import loads
         configured = loads(raw_config.decode("utf-8")).get("sqlite_home")
-    dbroot = _local_path(configured) if configured else home
+    dbroot = Path(configured) if configured else home
     check(dbroot.is_absolute() and ".." not in dbroot.parts, "Cannot establish the native queue location")
     _safe(dbroot.lstat(), uid, directory=True)
     dbpath = dbroot / "queue_1.sqlite"
@@ -511,7 +498,7 @@ def _queue_inspect(home, uid, request):
           isinstance(request.get("threadId"), str) and re.fullmatch("[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", request["threadId"]),
           "待办会话编号无效。")
     root = request.get("attachmentRoot")
-    check(isinstance(root, str) and _local_path(root).is_absolute() and ".." not in _local_path(root).parts,
+    check(isinstance(root, str) and Path(root).is_absolute() and ".." not in Path(root).parts,
           "待办附件目录无效。")
     row_id = request.get("queuedSubmissionId")
     check(row_id is None and not single or isinstance(row_id, str) and 0 < len(row_id) <= 256, "待办编号无效。")
@@ -746,37 +733,15 @@ def _inherited_plaintext(home: Path, path: Path, uid: int) -> dict:
 @contextlib.contextmanager
 def _lock(fd: int):
     """Use the same OS locks as Rust std::fs::File::{lock,try_lock}."""
-    if os.name == "nt":
-        import ctypes
-        from ctypes import wintypes
-        import msvcrt
-        class Overlapped(ctypes.Structure):
-            _fields_ = [("Internal", ctypes.c_size_t), ("InternalHigh", ctypes.c_size_t),
-                        ("Offset", wintypes.DWORD), ("OffsetHigh", wintypes.DWORD), ("hEvent", wintypes.HANDLE)]
-        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel.LockFileEx.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD,
-                                     wintypes.DWORD, wintypes.DWORD, ctypes.POINTER(Overlapped)]
-        kernel.UnlockFileEx.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD,
-                                       wintypes.DWORD, ctypes.POINTER(Overlapped)]
-        lock = Overlapped()
-        handle = msvcrt.get_osfhandle(fd)
-        if not kernel.LockFileEx(handle, 3, 0, 0xffffffff, 0xffffffff, ctypes.byref(lock)):
-            raise HistoryError("thread_history_busy", "Native thread writer or history publication is still active")
-        try:
-            yield
-        finally:
-            if not kernel.UnlockFileEx(handle, 0, 0xffffffff, 0xffffffff, ctypes.byref(lock)):
-                raise OSError(ctypes.get_last_error(), "Cannot release history coordination lock")
-    else:
-        import fcntl
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise HistoryError("thread_history_busy", "Native thread writer or history publication is still active") from None
-        try:
-            yield
-        finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+    import fcntl
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise HistoryError("thread_history_busy", "Native thread writer or history publication is still active") from None
+    try:
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 @contextlib.contextmanager
@@ -809,7 +774,7 @@ def _publication(home: Path, uid: int, thread_id: str, *other_threads: str):
 def _verify_backup(path: Path, uid: int, witness: dict) -> None:
     with os.fdopen(_open(path, os.O_RDONLY, uid), "rb") as compressed:
         info = os.fstat(compressed.fileno())
-        check(os.name != "posix" or stat.S_IMODE(info.st_mode) == 0o600, "History backup must remain private")
+        check(stat.S_IMODE(info.st_mode) == 0o600, "History backup must remain private")
         digest = hashlib.sha256(); size = 0
         with gzip.GzipFile(fileobj=compressed, mode="rb") as source:
             while chunk := source.read(1024 * 1024):
@@ -824,8 +789,7 @@ def _backup(home: Path, uid: int, thread_id: str, source_path: Path, witness: di
     directory = home / "harness-history-backups"
     directory.mkdir(mode=0o700, exist_ok=True)
     _safe(directory.lstat(), uid, directory=True)
-    if os.name == "posix":
-        check(stat.S_IMODE(directory.stat().st_mode) == 0o700, "History backups must remain private")
+    check(stat.S_IMODE(directory.stat().st_mode) == 0o700, "History backups must remain private")
     path = directory / (thread_id + "-" + witness["sha256"] + ".jsonl.gz")
     if path.exists() or path.is_symlink():
         _verify_backup(path, uid, witness)
@@ -924,7 +888,7 @@ def _recovery_copy(home: Path, uid: int, request: dict, source_path: Path) -> di
     provider = request.get("sourceProvider"); target_provider = request.get("targetProvider", provider); cwd = request.get("cwd")
     check(isinstance(provider, str) and 0 < len(provider) <= 128 and "\x00" not in provider and
           isinstance(target_provider, str) and 0 < len(target_provider) <= 128 and "\x00" not in target_provider and
-          isinstance(cwd, str) and 0 < len(cwd) <= 4096 and "\x00" not in cwd and _local_path(cwd).is_absolute(),
+          isinstance(cwd, str) and 0 < len(cwd) <= 4096 and "\x00" not in cwd and Path(cwd).is_absolute(),
           "Invalid recovery source settings")
     target_path = _path(home, target["path"], uid)
     check(target_path.relative_to(home).parts[0] == "sessions", "Recovery target must be an unarchived native thread")
@@ -977,7 +941,7 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
     try:
         check(isinstance(request, dict), "Invalid history request")
         if request.get("action") in ("queue-item", "queue-capacity", "queue-image"):
-            return _queue_inspect(_local_path(str(home)), uid, request)
+            return _queue_inspect(home, uid, request)
         if request == {"action": "mcp-enabled-read"}:
             from .mcp_enabled_override import read
             return read(home, providers=providers)
@@ -999,7 +963,7 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
             except DeployError as error: raise HistoryError("thread_history_config_conflict", str(error), getattr(error, "delivery", "not_sent")) from None
         if request.get("action") == "attachment-index":
             check(set(request) <= {"action", "attachmentRoot", "activeImageDigests"} and isinstance(request.get("attachmentRoot"), str), "Invalid attachment reconciliation request")
-            return _attachment_index(_local_path(str(home)), uid, request["attachmentRoot"], _active_image_digests(request))
+            return _attachment_index(home, uid, request["attachmentRoot"], _active_image_digests(request))
         allowed = {"action", "threadId", "path", "mode", "expected"}
         if request.get("action") == "recovery-copy": allowed |= {"target", "sourceProvider", "targetProvider", "cwd"}
         if request.get("action") == "attachment-inspect": allowed |= {"attachmentRoot", "activeImageDigests"}
@@ -1007,7 +971,6 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
         check(request.get("action") in ("inspect", "repair", "copy-inspect", "recovery-copy", "attachment-inspect") and request.get("mode") in ("foreign", "plaintext"), "Unsupported history operation")
         thread_id = request.get("threadId")
         check(isinstance(thread_id, str) and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", thread_id) is not None, "Invalid history thread identity")
-        home = _local_path(str(home))
         path = _path(home, request.get("path"), uid, inspect_compressed=request["action"] == "inspect")
         if request["action"] == "attachment-inspect":
             check(isinstance(request.get("attachmentRoot"), str), "Invalid attachment root")
@@ -1045,8 +1008,7 @@ def operate(home: Path, uid: int, request: object, *, providers=None) -> dict:
                 written_witness, written_summary, _ = _scan(path, uid, thread_id, request["mode"], output)
                 check(written_witness == witness and written_summary == summary, "History changed during encoding", "thread_history_changed")
                 output.flush()
-                if os.name == "posix":
-                    os.fchmod(output.fileno(), stat.S_IMODE(info.st_mode))
+                os.fchmod(output.fileno(), stat.S_IMODE(info.st_mode))
                 os.fsync(output.fileno())
             # Coordination excludes native writers; this second comparison also
             # detects unrelated changes while the backup and temp file were made.
@@ -1094,4 +1056,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Same-identity development history helper; no privilege changes")
     parser.add_argument("--home", type=Path, required=True)
     arguments = parser.parse_args()
-    history_main(arguments.home, os.geteuid() if os.name == "posix" else 0)
+    history_main(arguments.home, os.geteuid())

@@ -1,3 +1,4 @@
+import { temporaryWorkerSocket } from '../fixtures/worker-socket.js';
 import { expectNativeClosed } from './process-identity.js';
 import { expect, test } from 'vitest';
 import { createServer, type ServerResponse } from 'node:http';
@@ -16,7 +17,7 @@ import { GatewayServer } from '../../src/gateway/server.js';
 import { Authentication } from '../../src/gateway/auth.js';
 import { Ledger } from '../../src/core/ledger.js';
 import { object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 
 // Event contract: https://developers.openai.com/api/reference/resources/responses/streaming-events
 function streamResponse(res: ServerResponse, number: number): void {
@@ -39,10 +40,10 @@ function streamResponse(res: ServerResponse, number: number): void {
 test('real gateway/worker/CLI chain sends to loopback Responses only, stores history, and replays receipts without resending', async () => {
   const parent = path.resolve('.work/gateway-native'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'run-'));
   const codexHome = path.join(root, 'codex'); const projectPath = path.join(root, 'project'); mkdirSync(codexHome); mkdirSync(projectPath);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const temporary = path.join(root, 'tmp'); mkdirSync(temporary);
   const env = nativeTestEnvironment({ home: root, codexHome, temporary, fixtureApiKey: 'local-protocol-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
   let providerRequests = 0; const received: JsonObject[] = []; const providerErrors: string[] = []; const unexpectedPaths: string[] = [];
   let holdNextResponse = false; const held = new Set<ServerResponse>();
   const provider = createServer((req, res) => { void (async () => {
@@ -55,6 +56,7 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
     } else streamResponse(res, providerRequests);
   })().catch(error => { providerErrors.push(String(error)); res.destroy(); }); });
   let runtime: RuntimeService | undefined; let workerHandle: Awaited<ReturnType<typeof startWorkerServer>> | undefined; let worker: WorkerClient | undefined; let gateway: GatewayServer | undefined; let ledger: Ledger | undefined; let browser: WebSocket | undefined; let auth: Authentication | undefined;
+  const endpoint = temporaryWorkerSocket();
   try {
     await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve)); const providerPort = (provider.address() as AddressInfo).port;
     const catalog = path.join(root, 'models.json'); writeFileSync(catalog, readFileSync(path.resolve('tests/runtime/fixture-model-catalog.json')));
@@ -64,8 +66,8 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
       '[model_providers.local_fixture]', 'name = "Local protocol fixture"', `base_url = "http://127.0.0.1:${providerPort}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0',
     ].join('\n') + '\n');
     runtime = await RuntimeService.create({ bin, home: codexHome, workerHome: root, cwd: projectPath, env, dev: true });
-    const workerToken = randomBytes(32).toString('hex'); workerHandle = await startWorkerServer(runtime, { devPort: 0, token: workerToken });
-    worker = new WorkerClient({ port: (workerHandle.server.address() as AddressInfo).port, token: workerToken }); ledger = new Ledger(path.join(root, 'gateway.sqlite'));
+    workerHandle = await startWorkerServer(runtime, { socket: endpoint.socketPath, development: true });
+    worker = new WorkerClient({ socketPath: endpoint.socketPath }); ledger = new Ledger(path.join(root, 'gateway.sqlite'));
     const dispatcher = new Dispatcher(ledger, worker, { call: async () => { throw new Error('Management is outside this integration'); } });
     worker.on('event', event => dispatcher.event(event)); worker.on('disconnect', () => dispatcher.disconnected()); worker.connect();
     await expect.poll(() => object(dispatcher.status()).connected, { timeout: 10000 }).toBe(true);
@@ -110,6 +112,7 @@ test('real gateway/worker/CLI chain sends to loopback Responses only, stores his
   } finally {
     const cleanupErrors: unknown[] = []; browser?.terminate();
     for (const close of [async () => gateway?.close(), async () => worker?.close(), async () => workerHandle?.close(), async () => runtime?.close(), async () => ledger?.close(), async () => auth?.close()]) { try { await close(); } catch (error) { cleanupErrors.push(error); } }
+    endpoint.close();
     for (const response of held) response.destroy();
     await new Promise<void>(resolve => { provider.close(() => resolve()); provider.closeAllConnections(); });
     if (runtime) expectNativeClosed(runtime.native);

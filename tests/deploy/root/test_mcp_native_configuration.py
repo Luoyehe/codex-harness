@@ -31,7 +31,7 @@ def exercise(directory, parent_namespace):
     subprocess.run([node, "tests/fixtures/mcp-system-native.mjs", str(directory)], cwd=ROOT, check=True, timeout=60)
 
 
-@unittest.skipUnless(sys.platform == "linux" and getattr(os, "geteuid", lambda: -1)() == 0, "Requires a real Linux root mount namespace")
+@unittest.skipUnless(sys.platform == "linux" and os.geteuid() == 0, "Requires a real Linux root mount namespace")
 class SystemMcpNativeTests(unittest.TestCase):
     def test_switches_survive_restart_without_copying_credentials_or_breaking_other_config_writes(self):
         with tempfile.TemporaryDirectory(prefix="harness-mcp-system-") as temporary:

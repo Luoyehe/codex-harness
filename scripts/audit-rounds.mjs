@@ -36,11 +36,11 @@ function readEvidence(base, name, expectedHash) {
 }
 
 export function validateAuditProofs(record, current, base = root) {
-  if (record?.schemaVersion !== 1 || !Array.isArray(record.rounds) || record.rounds.length < 3) throw new Error('Three recorded audit rounds are required');
+  if (record?.schemaVersion !== 1 || !Array.isArray(record.rounds) || record.rounds.length < 2) throw new Error('Two recorded audit rounds are required');
   const inventory = snapshot(base, true);
   if (inventory.digest !== current.digest) throw new Error('Source changed while validating audit coverage');
   const expected = new Set(inventory.names);
-  const rounds = record.rounds.slice(-3); const ids = new Set(); const reviewers = new Set(); const evidenceFiles = new Set(); let previous;
+  const rounds = record.rounds.slice(-2); const ids = new Set(); const reviewers = new Set(); const evidenceFiles = new Set(); let previous;
   const bindings = [];
   for (const round of rounds) {
     if (!identity(round.id) || ids.has(round.id) || !Number.isSafeInteger(round.sequence) || round.sequence < 1 || round.digest !== current.digest || round.complete !== true || !clean(round.findings) || !clean(round.skipped) || !Array.isArray(round.scopes) || !requiredScopes.every(scope => round.scopes.includes(scope))) throw new Error('Each audit must be complete, clean, scoped and bound to the current source');

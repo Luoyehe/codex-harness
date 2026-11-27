@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import WebSocket, { WebSocketServer } from 'ws';
 import { afterEach, expect, it, vi } from 'vitest';
+import { temporaryWorkerSocket } from '../fixtures/worker-socket.js';
 import { WorkerClient } from '../../src/gateway/worker-client.js';
 import { HarnessError } from '../../src/core/errors.js';
 import { Ledger } from '../../src/core/ledger.js';
@@ -59,14 +60,14 @@ async function fixture(response: JsonValue | ((request: http.IncomingMessage) =>
     res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(typeof response === 'function' ? await response(req) : response));
   })().catch(() => res.destroy()); });
   const wss = new WebSocketServer({ server, path: '/events' });
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  const port = (server.address() as { port: number }).port;
-  const worker = new WorkerClient({ port }); const events: unknown[] = [];
+  const endpoint = temporaryWorkerSocket();
+  await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(endpoint.socketPath, resolve); }).catch(error => { endpoint.close(); throw error; });
+  const worker = new WorkerClient({ socketPath: endpoint.socketPath }); const events: unknown[] = [];
   worker.on('event', event => events.push(event));
   const connect = async () => { const ready = once(wss, 'connection'); worker.connect(); return (await ready)[0] as WebSocket; };
   const handshake = async (socket: WebSocket, id: string) => { socket.send(JSON.stringify({ type: 'state', data: { eventChannelId: id, epoch: 'same-worker', connected: true, activity: { unknown: false } } })); await expect.poll(() => worker.connected).toBe(true); };
   const socket = await connect();
-  return { worker, socket, requests, events, connect, handshake, loseRegistration: () => { loseRegistration = true; }, close: async () => { worker.close(); for (const socket of wss.clients) socket.terminate(); await new Promise<void>(resolve => wss.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); } };
+  return { worker, socket, requests, events, connect, handshake, loseRegistration: () => { loseRegistration = true; }, close: async () => { worker.close(); for (const socket of wss.clients) socket.terminate(); await new Promise<void>(resolve => wss.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); endpoint.close(); } };
 }
 it.each(['/connect', '/disconnect'])('ignores a retired channel’s delayed %s result when releasing a replacement owner', async delayed => {
   const old = randomUUID(), fresh = randomUUID(), owner = randomUUID();

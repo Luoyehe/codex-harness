@@ -43,7 +43,7 @@ class ToolchainTests(unittest.TestCase):
         self.addCleanup(patch.stopall)
         patch('deploy.build.architecture', return_value='x64').start()
         patch('deploy.build.download', side_effect=self.download).start()
-        if os.name == 'posix' and os.geteuid() != 0:
+        if os.geteuid() != 0:
             # Ordinary tests retain all tree checks except the root UID; the
             # same inherited cases run with unmodified root ownership below.
             patch('deploy.build.inspect_tree', side_effect=lambda path, **_: inspect_tree(path)).start()

@@ -69,10 +69,17 @@ const deploymentPairs = [
   ['tests/deploy/test_provider_layers.py', 'tests/deploy/test_provider_gateway.py', 'tests/deploy/test_provider_bedrock.py', 'tests/deploy/root/test_provider_layers.py', 'tests/deploy/root/test_config_layer.py', 'tests/deploy/root/test_provider_extended.py'],
   ['tests/deploy/test_workspace.py', 'tests/deploy/test_workspace_recovery.py', 'tests/deploy/test_workspace_worktrees.py', 'tests/deploy/test_workspace_resources.py', 'tests/deploy/test_workspace_commit.py', 'tests/deploy/test_workspace_index.py', 'tests/deploy/test_workspace_search.py', 'tests/deploy/test_repository_identity.py'],
 ];
-const auditMetadata = new Set([patchFile, 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts', 'reference/PROVENANCE.json']);
+const auditMetadata = new Set([patchFile, 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'vitest.config.ts', 'tsconfig.server.json', 'tsconfig.tests.json', 'web/tsconfig.json', 'web/vite.config.ts']);
+const protocolGeneration = new Set(['reference/select-protocol.py', 'reference/PROVENANCE.json']);
 const documentation = new Set(['README.md', 'LICENSE', 'NOTICE.md', 'AGENTS.md', 'ARCHITECTURE.md', 'FEATURES.md', 'PROBLEM-ACCEPTANCE.md', 'deploy/README.md', 'deploy/RECOVERY.md', 'tests/runtime/README.md', 'scripts/RELEASE-PREFLIGHT.md', 'reference/PROTOCOL-CONTRACT.md']);
 
+const workerSocketTests = ['tests/runtime/server.test.ts', 'tests/runtime/gateway-native.test.ts',
+  'tests/runtime/automation-native.test.ts', 'tests/gateway/worker-client.test.ts'];
 const sharedConsumers = new Map([
+  ['src/shared/worker-socket.ts', workerSocketTests],
+  ['tests/fixtures/worker-socket.ts', workerSocketTests],
+  ['tests/runtime/posix-process-fixture.mjs', ['tests/runtime/posix-native.test.ts']],
+  ['tests/runtime/process-controller-fixture.ts', ['tests/runtime/cli-diagnostics.test.ts', 'tests/runtime/cli-terminals.test.ts', 'tests/runtime/processes.test.ts']],
   ['tests/runtime/history-window-fixture.ts', ['tests/runtime/history-references.test.ts', 'web/tests/conversation-recovery.test.tsx']],
   ['src/shared/activity-scope.ts', ['tests/runtime/predictions.test.ts', 'tests/gateway/dispatch.test.ts', 'web/tests/events.test.tsx']],
   ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'web/tests/prompt-fields.test.tsx', 'tests/runtime/service.test.ts', 'tests/runtime/mcp-schema.test.ts']],
@@ -100,7 +107,7 @@ let deploymentDependents;
 function importedTestDependents(source) {
   if (!deploymentDependents) {
     const env = isolatedTestEnvironment(root);
-    const binary = env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+    const binary = env.HARNESS_TEST_PYTHON || 'python3';
     const child = spawnSync(binary, [path.join(root, 'scripts/deploy-test-imports.py'), root], { cwd: root, env, encoding: 'utf8', timeout: 15000, maxBuffer: 2 * 1024 * 1024 });
     if (child.error || child.status !== 0) throw new Error('Could not determine deployment test imports');
     deploymentDependents = JSON.parse(child.stdout);
@@ -124,6 +131,8 @@ export function selectTests(changed, available) {
   for (const name of [...new Set(changed.map(validateRelative))].sort()) {
     plan.changed.push(name);
     if (auditMetadata.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'shared-build-or-dependency-metadata' });
+    // A change to the projection can remove any runtime schema or browser type.
+    else if (protocolGeneration.has(name)) plan.requiresFullAudit.push({ path: name, reason: 'shared-protocol-generation' });
     else if (['scripts/check-builtin-mcp.mjs', 'reference/BUILTIN-MCP-CONTRACT.json', 'tests/deploy/vision_stdio_probe.mjs'].includes(name)) {
       for (const required of builtinMcpTests) if (!inventory.has(required)) plan.requiresFullAudit.push({ path: required, reason: 'missing-builtin-mcp-coverage' });
       add(name, builtinMcpTests, 'builtin-mcp-contract-renderer-and-offline-vision-compatibility');
@@ -248,7 +257,7 @@ export function selectTests(changed, available) {
 export function gitChanges(base, head, cwd = root) {
   // Never interpret user-controlled revisions as options or read an ancestor repo.
   if (![base, head].every(value => typeof value === 'string' && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(value) && !/^0+$/.test(value))) throw new Error('Explicit nonzero base and head commit IDs are required');
-  const run = args => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 16 * 1024 * 1024, windowsHide: true });
+  const run = args => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 16 * 1024 * 1024 });
   if (realpathSync(run(['rev-parse', '--show-toplevel']).trim()) !== realpathSync(cwd)) throw new Error('Change selection must run at its own repository root');
   // No rename detection: renamed files appear as both old deletion and new addition.
   return run(['diff', '--name-only', '-z', '--no-renames', '--diff-filter=ACDMRTUXB', base, head, '--']).split('\0').filter(Boolean).map(validateRelative);
@@ -266,23 +275,23 @@ export function nativePrerequisite(base = root, explicit = process.env.HARNESS_T
   while (directory.startsWith(runtime + path.sep)) {
     const manifest = path.join(directory, 'package.json');
     if (existsSync(manifest)) {
-      try { const value = JSON.parse(readFileSync(manifest, 'utf8')); if (value.name === '@openai/codex' && /^0\.169\.0(?:-(?:linux|win32|darwin)-(?:x64|arm64)(?:-musl)?)?$/.test(value.version)) official = true; } catch { return { status: 'failed', reason: 'unreadable-native-package-metadata' }; }
+      try { const value = JSON.parse(readFileSync(manifest, 'utf8')); if (value.name === '@openai/codex' && /^0\.169\.0(?:-(?:linux|darwin)-(?:x64|arm64)(?:-musl)?)?$/.test(value.version)) official = true; } catch { return { status: 'failed', reason: 'unreadable-native-package-metadata' }; }
     }
     directory = path.dirname(directory);
   }
   if (!official) return { status: 'failed', reason: 'official-0.169.0-package-metadata-not-found' };
   const homes = path.join(base, '.work/native-version'); mkdirSync(homes, { recursive: true }); const isolated = mkdtempSync(path.join(homes, 'check-'));
   const home = path.join(isolated, 'home'); const temporary = path.join(isolated, 'tmp'); mkdirSync(home); mkdirSync(temporary);
-  const env = { HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, 'codex'), TEMP: temporary, TMP: temporary };
-  for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (inherited[key]) env[key] = inherited[key];
-  const checked = spawnSync(candidate, ['--version'], { cwd: base, env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
+  const env = { HOME: home, CODEX_HOME: path.join(home, 'codex'), TMPDIR: temporary };
+  if (inherited.PATH) env.PATH = inherited.PATH;
+  const checked = spawnSync(candidate, ['--version'], { cwd: base, env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096 });
   if (checked.error || checked.status !== 0 || checked.stdout.trim() !== 'codex-cli 0.169.0') return { status: 'failed', reason: 'native-version-check-failed' };
   return { status: 'ready', version: '0.169.0', binary: candidate };
 }
 
 export function pythonPrerequisite(env = isolatedTestEnvironment(root)) {
-  const binary = env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const checked = spawnSync(binary, ['--version'], { env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096, windowsHide: true });
+  const binary = env.HARNESS_TEST_PYTHON || 'python3';
+  const checked = spawnSync(binary, ['--version'], { env, encoding: 'utf8', timeout: 15000, maxBuffer: 4096 });
   if (checked.error || checked.status !== 0) return { status: 'skipped', reason: 'python-interpreter-unavailable' };
   const version = `${checked.stdout ?? ''}${checked.stderr ?? ''}`.trim();
   if (!/^Python 3\.(?:1[1-9]|[2-9][0-9])\.\d+$/.test(version)) return { status: 'failed', reason: 'python-3.11-or-later-required' };
@@ -294,7 +303,7 @@ export function runPythonTests(files, base = root, env = isolatedTestEnvironment
   if (prerequisite.status !== 'ready') return { ...prerequisite, exitCode: prerequisite.status === 'skipped' ? 3 : 1, tests: files };
   if (!files.length) return { status: 'failed', exitCode: 1, reason: 'empty-python-selection', tests: [] };
   return withTestReport(base, 'python', output => {
-    const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
+    const child = spawnSync(prerequisite.binary, ['-B', path.join(root, 'scripts/python-tests.py'), output, ...files], { cwd: base, env, stdio: 'inherit', shell: false });
     const code = child.status ?? 1;
     try {
       const report = JSON.parse(readFileSync(output, 'utf8'));
@@ -328,7 +337,7 @@ export function runSelection(plan, group = 'all', base = root) {
       if (prerequisite.status !== 'ready') { results.push({ group: kind, ...prerequisite, tests: files }); exitCode = prerequisite.status === 'skipped' && exitCode !== 1 ? 3 : 1; continue; }
       env.HARNESS_TEST_CODEX_BIN = prerequisite.binary;
     }
-    const child = spawnSync(process.execPath, [path.join(base, 'scripts/run-tests.mjs'), '--targeted', ...files], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
+    const child = spawnSync(process.execPath, [path.join(base, 'scripts/run-tests.mjs'), '--targeted', ...files], { cwd: base, env, stdio: 'inherit', shell: false });
     const code = child.status ?? 1;
     results.push({ group: kind, status: code === 0 ? 'passed' : code === 3 ? 'skipped' : 'failed', tests: files });
     if (code && exitCode !== 1) exitCode = code === 3 ? 3 : 1;

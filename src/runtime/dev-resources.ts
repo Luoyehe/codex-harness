@@ -11,8 +11,8 @@ export async function devResource(cwd: string, action: string, params: JsonObjec
   if (action === 'project/trust-roots') {
     try {
       const git = async (...args: string[]) => (await promisify(execFile)('git', ['-C', cwd, 'rev-parse', ...args], {
-        env: { PATH: process.env.PATH, HOME: cwd, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null' },
-        timeout: 4000, maxBuffer: 8192, windowsHide: true,
+        env: { PATH: process.env.PATH, HOME: cwd, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+        timeout: 4000, maxBuffer: 8192,
       })).stdout.trim();
       const checkout = await realpath(await git('--show-toplevel')), marker = path.join(checkout, '.git'), info = await lstat(marker);
       const common = await realpath(await git('--path-format=absolute', '--git-common-dir')), metadata = await realpath(await git('--absolute-git-dir'));

@@ -1,5 +1,4 @@
 """Portable policy/ABI tests; no personal homes, network or service mutations."""
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -119,7 +118,7 @@ class ExternalOperatorTests(unittest.TestCase):
         (path / "cgroup").write_text("0::" + group + "\n")
 
     def check(self, pid):
-        with patch("deploy.operator_origin.os.name", "posix"), patch("deploy.operator_origin.os.getuid", return_value=0, create=True), patch("deploy.operator_origin.os.geteuid", return_value=0, create=True):
+        with patch("deploy.operator_origin.os.getuid", return_value=0, create=True), patch("deploy.operator_origin.os.geteuid", return_value=0, create=True):
             require_external_operator(proc=self.proc, pid=pid)
 
     def test_independent_ssh_or_console_allowed(self):
@@ -142,10 +141,9 @@ class ExternalOperatorTests(unittest.TestCase):
 
     def test_already_authorized_full_root_is_not_restricted_by_workflow_origin(self):
         config={**CONFIG,"executionMode":"root","rootAllowed":True,"executionGeneration":"a"*32}
-        with patch("deploy.operator_origin.os.name","posix"),patch("deploy.operator_origin.os.getuid",return_value=0,create=True),patch("deploy.operator_origin.os.geteuid",return_value=0,create=True):
+        with patch("deploy.operator_origin.os.getuid",return_value=0,create=True),patch("deploy.operator_origin.os.geteuid",return_value=0,create=True):
             require_external_operator(config,proc=self.proc,pid=111)
 
-    @unittest.skipUnless(os.name == "posix", "POSIX real uid admission")
     def test_nonroot_identity_cannot_authorize_even_outside_service(self):
         with patch("deploy.operator_origin.os.getuid", return_value=65534), patch("deploy.operator_origin.os.geteuid", return_value=65534), self.assertRaises(DeployError):
             require_external_operator(proc=self.proc, pid=1)

@@ -29,7 +29,7 @@ class ThreadHistoryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name).resolve()
-        self.uid = os.geteuid() if os.name == "posix" else 0
+        self.uid = os.geteuid()
         (self.home / "sessions").mkdir(mode=0o700)
         self.path = self.home / "sessions" / ("rollout-" + THREAD + ".jsonl")
         self.header = line("session_meta", {"id": THREAD, "history_mode": "paginated"})
@@ -69,7 +69,7 @@ class ThreadHistoryTests(unittest.TestCase):
         self.assertEqual(json.loads(after[4])["payload"]["replacement_history_metadata"], [{"fixture": 1}])
         backups = list((self.home / "harness-history-backups").glob("*.jsonl.gz"))
         self.assertEqual(len(backups), 1); self.assertEqual(gzip.decompress(backups[0].read_bytes()), raw)
-        if os.name == "posix": self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
+        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
         self.assertFalse(self.inspect()["needsRepair"])
 
     def test_plaintext_preserves_opaque_reasoning_and_only_removes_nonempty_content(self):
@@ -233,16 +233,6 @@ class ThreadHistoryTests(unittest.TestCase):
         self.assertEqual(body["expected"]["sha256"], hashlib.sha256(raw).hexdigest())
         self.assertNotIn(b"synthetic thought", result.stdout)
 
-    @unittest.skipUnless(os.name == "nt", "Windows native rollout path prefix")
-    def test_extended_drive_path_is_same_file_but_device_namespaces_are_rejected(self):
-        self.save(line("response_item", self.plain))
-        prefixed = "\\\\?\\" + str(self.path)
-        proof = history.operate(self.home, self.uid, self.request(path=prefixed))
-        self.assertEqual(proof["expected"], self.inspect()["expected"])
-        repaired = history.operate(self.home, self.uid, self.request("repair", path=prefixed, expected=proof["expected"]))
-        self.assertTrue(repaired["repaired"])
-        for invalid in ["\\\\.\\C:\\sessions\\rollout.jsonl", "\\\\?\\UNC\\server\\share\\sessions\\rollout.jsonl"]:
-            with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, self.request(path=invalid))
 
 
     def test_attachment_scan_inherits_only_frozen_prefix_and_compacted_references(self):
@@ -278,7 +268,7 @@ class ThreadHistoryTests(unittest.TestCase):
         root = self.home / "attachments"
         base = "11111111-1111-4111-8111-111111111111"
         valid = [str(root / (base + "." + suffix)) for suffix in ("jpeg", "m4v", "avi", "wmv")]
-        others = [str(root / (base + ".exe")), str(self.home / (base + ".jpeg"))]
+        others = [str(root / (base + ".txt")), str(self.home / (base + ".jpeg"))]
         self.save(line("response_item", {"type": "message", "content": [
             {"type": "input_text", "text": 'Attached file "media" is available at ' + json.dumps(name) + '.'}
             for name in valid + others]}))
@@ -496,7 +486,7 @@ class RecoveryCopyTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name).resolve()
-        self.uid = os.geteuid() if os.name == "posix" else 0
+        self.uid = os.geteuid()
         (self.home / "sessions").mkdir(mode=0o700)
         self.target_id = "00000000-0000-4000-8000-000000000002"
         self.source = self.home / "sessions" / (THREAD + ".jsonl")
@@ -537,7 +527,7 @@ class RecoveryCopyTests(unittest.TestCase):
         self.assertEqual(self.target.read_bytes(), self.target_raw + self.source_raw.split(b"\n", 1)[1])
         self.assertFalse((self.home / "harness-history-backups").exists())
         self.assertEqual(result["target"]["expected"]["sha256"], hashlib.sha256(self.target.read_bytes()).hexdigest())
-        if os.name == "posix": self.assertEqual(self.target.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(self.target.stat().st_mode & 0o777, 0o600)
         # Copying never modifies the source's identity, bytes or timestamps.
         proof = history.operate(self.home, self.uid, {"action": "inspect", "mode": "foreign", "threadId": THREAD, "path": str(self.source)})
         self.assertEqual(proof["expected"], result["expected"])
@@ -611,9 +601,8 @@ class RecoveryCopyTests(unittest.TestCase):
         self.target.unlink(); self.write(self.target, self.target_raw)
         request = self.request(); request["target"]["path"] = str(self.home / "outside.jsonl")
         with self.assertRaises(history.HistoryError): history.operate(self.home, self.uid, request)
-        if os.name == "posix":
-            self.target.unlink(); self.target.symlink_to(self.source)
-            with self.assertRaises(history.HistoryError): self.request()
+        self.target.unlink(); self.target.symlink_to(self.source)
+        with self.assertRaises(history.HistoryError): self.request()
 
     def test_late_source_or_target_change_is_rejected_before_publication(self):
         scan = history._copy_scan

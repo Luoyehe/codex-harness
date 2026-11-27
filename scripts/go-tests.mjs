@@ -14,8 +14,8 @@ const providerVersions = {
   huaweicloud: 'v1.0.1', route53: 'v1.6.2', tencentcloud: 'v0.4.3',
 };
 const archiveHashes = {
-  linux: 'ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5',
-  windows: '7ecd2d7260e82c59bcbd7f1077a07cee2dea607295b858df67195a1e4e09629b',
+  amd64: 'ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5',
+  arm64: '3f4227ce7b206a513e794f1393adb473a07b46e94d18bd15d1c684bbb7319797',
 };
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -59,8 +59,8 @@ export function goPrerequisite(base, env = isolatedTestEnvironment(base)) {
   try {
     preparedPath(base, filename, '.work');
     const manifest = JSON.parse(readFileSync(filename, 'utf8'));
-    const platform = process.platform === 'win32' ? 'windows' : process.platform;
-    if (!Object.hasOwn(archiveHashes, platform) || process.arch !== 'x64' || manifest.schemaVersion !== 1 || manifest.goVersion !== '1.26.10' || manifest.platform !== platform || manifest.architecture !== 'amd64' || manifest.archiveSha256 !== archiveHashes[platform]) throw Error('Pinned Go preparation metadata mismatch');
+    const architecture = process.arch === 'x64' ? 'amd64' : process.arch;
+    if (process.platform !== 'linux' || !Object.hasOwn(archiveHashes, architecture) || manifest.schemaVersion !== 1 || manifest.goVersion !== '1.26.10' || manifest.platform !== 'linux' || manifest.architecture !== architecture || manifest.archiveSha256 !== archiveHashes[architecture]) throw Error('Pinned Go preparation metadata mismatch');
     preparedPath(base, manifest.binary, 'reference/runtime');
     preparedPath(base, manifest.archive, 'reference/runtime');
     preparedPath(base, manifest.moduleCache, '.work', 'directory');
@@ -101,7 +101,7 @@ export function parseGoEvents(output, expected, exitCode) {
 
 export function validateGoResult(result, base) {
   const expected = goExpectedTests(base);
-  if (!result || !same(result.tests, [goTestFile]) || !same(result.expectedTopLevel, expected) || !same(result.sources, goSources(base)) || !Array.isArray(result.cases) || !Array.isArray(result.observedTests) || !Array.isArray(result.checks) || ![0, 3].includes(result.exitCode) || result.status !== (result.exitCode === 0 ? 'passed' : 'skipped') || result.runtime?.version !== '1.26.10' || result.runtime?.architecture !== 'amd64' || !Object.hasOwn(archiveHashes, result.runtime?.platform)) throw Error('Incomplete source-bound Go evidence');
+  if (!result || !same(result.tests, [goTestFile]) || !same(result.expectedTopLevel, expected) || !same(result.sources, goSources(base)) || !Array.isArray(result.cases) || !Array.isArray(result.observedTests) || !Array.isArray(result.checks) || ![0, 3].includes(result.exitCode) || result.status !== (result.exitCode === 0 ? 'passed' : 'skipped') || result.runtime?.version !== '1.26.10' || result.runtime?.platform !== 'linux' || !Object.hasOwn(archiveHashes, result.runtime?.architecture)) throw Error('Incomplete source-bound Go evidence');
   if (!same(result.checks.map(item => item.name), checks) || result.checks.some(item => item.file !== goTestFile || item.status !== 'passed' || item.exitCode !== 0)) throw Error('Required Go verification, compilation or probe was not completed');
   const ids = new Set();
   for (const item of result.cases) {
@@ -121,7 +121,7 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
   let directory;
   try {
     result.sources = goSources(base); result.expectedTopLevel = goExpectedTests(base);
-    result.runtime = { version: '1.26.10', platform: ready.manifest.platform, architecture: 'amd64' };
+    result.runtime = { version: '1.26.10', platform: ready.manifest.platform, architecture: ready.manifest.architecture };
     const parent = path.join(base, '.work/go-test-runs'); mkdirSync(parent, { recursive: true });
     directory = mkdtempSync(path.join(parent, 'run-')); beginTestWorkspace(directory);
     const source = path.join(directory, 'source'); mkdirSync(source);
@@ -133,7 +133,7 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
       const filename = remaining.pop(), info = lstatSync(filename);
       if (info.isSymbolicLink() || !info.isDirectory() && (!info.isFile() || info.nlink !== 1))
         throw Error('Non-ordinary prepared module cache');
-      if ((process.platform !== 'win32' || info.isFile()) && (info.mode & 0o222))
+      if (info.mode & 0o222)
         throw Error('Go module cache is not sealed. Re-run prepare-ci-go.py --seal-cache for this checkout.');
       if (info.isDirectory()) for (const entry of readdirSync(filename)) remaining.push(path.join(filename, entry));
       else bytes += info.size;
@@ -141,10 +141,10 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
         throw Error('Go module cache inspection budget exceeded');
     }
     const env = { ...isolatedTestEnvironment(base, inherited), GOTOOLCHAIN: 'local', GOENV: 'off', GOWORK: 'off', GOTELEMETRY: 'off', GOVCS: '*:off', GOAUTH: 'off',
-      GOMAXPROCS: '2', GOFLAGS: '-mod=readonly', CGO_ENABLED: '0', GOOS: ready.manifest.platform, GOARCH: 'amd64', GOPROXY: 'off', GOSUMDB: 'off',
+      GOMAXPROCS: '2', GOFLAGS: '-mod=readonly', CGO_ENABLED: '0', GOOS: ready.manifest.platform, GOARCH: ready.manifest.architecture, GOPROXY: 'off', GOSUMDB: 'off',
       GOPRIVATE: '', GONOPROXY: 'none', GONOSUMDB: 'none', GOPATH: path.join(directory, 'gopath'), GOMODCACHE: cache, GOCACHE: path.join(directory, 'cache') };
     const execute = (name, binary, args, timeout = 900000) => {
-      const child = invoke(binary, args, { cwd: source, env, encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024, windowsHide: true, shell: false });
+      const child = invoke(binary, args, { cwd: source, env, encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024, shell: false });
       const passed = !child.error && child.status === 0;
       result.checks.push({ name, file: goTestFile, status: passed ? 'passed' : 'failed', exitCode: child.status ?? 1 });
       if (name !== 'go-test' && !passed) throw Error(`${name} failed: ${(child.error?.message || child.stderr || '').slice(0, 4096)}`);
@@ -158,7 +158,7 @@ export function runGoTests(files, base, inherited = isolatedTestEnvironment(base
     const parsed = parseGoEvents(tested.stdout || '', result.expectedTopLevel, tested.error ? 1 : tested.status);
     result.cases = parsed.cases; result.observedTests = parsed.observedTests;
     if (parsed.exitCode === 1) throw Error(parsed.reason);
-    const binary = path.join(directory, process.platform === 'win32' ? 'caddy.exe' : 'caddy');
+    const binary = path.join(directory, 'caddy');
     execute('executable-build', ready.binary, ['build', '-p=2', '-trimpath', '-buildvcs=false', '-ldflags=-buildid=', '-o', binary, '.']);
     const probe = execute('version-plugin-probe', binary, ['harness-dns-build-check'], 30000);
     const proof = JSON.parse(probe.stdout);

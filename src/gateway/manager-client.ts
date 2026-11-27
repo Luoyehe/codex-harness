@@ -91,7 +91,7 @@ export class ManagerClient implements ManagerPort {
     let child: ChildProcessByStdio<Writable, Readable, null>;
     try {
       child = spawn('/usr/bin/sudo', ['-n', this.command!, 'rpc'], {
-        shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'],
+        shell: false, stdio: ['pipe', 'pipe', 'ignore'],
         env: { PATH: '/usr/sbin:/usr/bin:/sbin:/bin', LANG: 'C.UTF-8' },
       });
       entry.child = child;

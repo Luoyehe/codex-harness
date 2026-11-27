@@ -19,14 +19,14 @@ afterEach(() => { vi.unstubAllEnvs(); for (const base of fixtures.splice(0)) rmS
 
 test('the shared local and CI allowlist replaces host paths and removes configuration and credential injection', () => {
   const base = fixture(); const oldHome = path.join(base, 'artificial-home');
-  const inherited = { Path: 'fixture-path', systemroot: 'fixture-system', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', HOME: oldHome, USERPROFILE: oldHome, CODEX_HOME: oldHome, TMPDIR: oldHome, XDG_CONFIG_HOME: oldHome, ...Object.fromEntries(forbidden.map(key => [key, 'fixture-injected'])) };
+  const inherited = { PATH: 'fixture-path', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', HOME: oldHome, CODEX_HOME: oldHome, TMPDIR: oldHome, XDG_CONFIG_HOME: oldHome, ...Object.fromEntries(forbidden.map(key => [key, 'fixture-injected'])) };
   const original = { ...inherited }; const env = isolatedTestEnvironment(base, inherited);
   expect(inherited).toEqual(original);
-  expect(env).toMatchObject({ PATH: 'fixture-path', SystemRoot: 'fixture-system', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', GIT_CONFIG_NOSYSTEM: '1', PYTHONNOUSERSITE: '1' });
+  expect(env).toMatchObject({ PATH: 'fixture-path', HARNESS_TEST_NODE: 'fixture-node', HARNESS_TEST_PYTHON: 'fixture-python', HARNESS_TEST_CODEX_BIN: 'fixture-native', GIT_CONFIG_NOSYSTEM: '1', PYTHONNOUSERSITE: '1' });
   for (const key of forbidden) expect(env[key]).toBeUndefined();
-  for (const key of ['HOME', 'USERPROFILE', 'CODEX_HOME', 'TMPDIR', 'XDG_CONFIG_HOME']) expect(env[key]).not.toBe(oldHome);
-  expect(env.HOME).toBe(env.USERPROFILE); expect(env.CODEX_HOME).toBe(path.join(env.HOME!, 'codex'));
-  expect(env.GIT_CONFIG_GLOBAL).toBe(process.platform === 'win32' ? 'NUL' : '/dev/null');
+  for (const key of ['HOME', 'CODEX_HOME', 'TMPDIR', 'XDG_CONFIG_HOME']) expect(env[key]).not.toBe(oldHome);
+  expect(env.CODEX_HOME).toBe(path.join(env.HOME!, 'codex'));
+  expect(env.GIT_CONFIG_GLOBAL).toBe('/dev/null');
   expect(env.GIT_CONFIG_SYSTEM).toBe(env.GIT_CONFIG_GLOBAL);
 });
 
@@ -53,32 +53,25 @@ test('both engines and prerequisite checks receive the same isolated environment
 test('root temporary ancestors stay outside private homes even with an inherited private TMPDIR', () => {
   const base = fixture(); vi.stubEnv('TMPDIR', path.join(base, 'nonexistent-private-temp'));
   const paths = isolatedPaths(base, true);
-  if (process.platform !== 'win32') {
-    fixtures.push(paths.temporary);
-    expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false);
-    expect(statSync(paths.temporary).mode & 0o777).toBe(0o755);
-    expect(statSync(paths.home).mode & 0o777).toBe(0o700);
-    if (process.getuid?.() === 0) {
-      const visible = path.join(paths.temporary, 'visible'); writeFileSync(visible, 'fixture'); chmodSync(visible, 0o644);
-      const child = spawnSync(process.execPath, ['-e', 'require("node:fs").readFileSync(process.argv[1])', visible], { uid: 65534, gid: 65534, cwd: paths.temporary, env: isolatedTestEnvironment(base), encoding: 'utf8' });
-      expect(child.error).toBeUndefined(); expect(child.status, child.stderr).toBe(0);
-    }
-  } else expect(paths.temporary).toBe(path.join(paths.home, 'tmp'));
+  fixtures.push(paths.temporary);
+  expect(paths.temporary.startsWith(paths.home + path.sep)).toBe(false);
+  expect(statSync(paths.temporary).mode & 0o777).toBe(0o755);
+  expect(statSync(paths.home).mode & 0o777).toBe(0o700);
+  if (process.getuid?.() === 0) {
+    const visible = path.join(paths.temporary, 'visible'); writeFileSync(visible, 'fixture'); chmodSync(visible, 0o644);
+    const child = spawnSync(process.execPath, ['-e', 'require("node:fs").readFileSync(process.argv[1])', visible], { uid: 65534, gid: 65534, cwd: paths.temporary, env: isolatedTestEnvironment(base), encoding: 'utf8' });
+    expect(child.error).toBeUndefined(); expect(child.status, child.stderr).toBe(0);
+  }
 });
 
 test('owned root temporary output follows the same success cleanup and failed evidence retention', () => {
   const base = fixture(), passed = isolatedPaths(base, true), failed = isolatedPaths(base, true);
-  if (process.platform === 'win32') {
-    finishTestWorkspace(passed.home, true); expect(existsSync(passed.temporary)).toBe(false);
-    finishTestWorkspace(failed.home, false); expect(existsSync(failed.temporary)).toBe(true);
-  } else {
-    fixtures.push(failed.temporary);
-    const active = isolatedPaths(base, true); fixtures.push(active.temporary);
-    finishTestWorkspace(passed.temporary, true); expect(existsSync(passed.temporary)).toBe(false);
-    finishTestWorkspace(failed.temporary, false); expect(existsSync(failed.temporary)).toBe(true);
-    expect(existsSync(active.temporary)).toBe(true);
-    expect(JSON.parse(readFileSync(path.join(failed.temporary, 'run.json'), 'utf8'))).toMatchObject({ status: 'failed' });
-  }
+  fixtures.push(failed.temporary);
+  const active = isolatedPaths(base, true); fixtures.push(active.temporary);
+  finishTestWorkspace(passed.temporary, true); expect(existsSync(passed.temporary)).toBe(false);
+  finishTestWorkspace(failed.temporary, false); expect(existsSync(failed.temporary)).toBe(true);
+  expect(existsSync(active.temporary)).toBe(true);
+  expect(JSON.parse(readFileSync(path.join(failed.temporary, 'run.json'), 'utf8'))).toMatchObject({ status: 'failed' });
 });
 
 test('the real targeted CLI isolates JavaScript and Python Git fixtures from artificial host hooks and injected Git overrides', () => {
@@ -88,10 +81,10 @@ test('the real targeted CLI isolates JavaScript and Python Git fixtures from art
   put(oldHome, 'codex/auth.json', '{"fixture":"must-remain-unread"}');
   // Start from the same allowlist, then add only artificial hostile state. The
   // positive control never reads the developer's HOME or system Git config.
-  const inherited: NodeJS.ProcessEnv = { ...isolatedTestEnvironment(base), HOME: oldHome, USERPROFILE: oldHome, CODEX_HOME: path.join(oldHome, 'codex'), OPENAI_API_KEY: 'fixture-only', AWS_SECRET_ACCESS_KEY: 'fixture-only' };
+  const inherited: NodeJS.ProcessEnv = { ...isolatedTestEnvironment(base), HOME: oldHome, CODEX_HOME: path.join(oldHome, 'codex'), OPENAI_API_KEY: 'fixture-only', AWS_SECRET_ACCESS_KEY: 'fixture-only' };
   const controlEnv = { ...inherited }; delete controlEnv.GIT_CONFIG_GLOBAL;
   const control = path.join(base, 'control'); mkdirSync(control);
-  const git = (cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) => execFileSync('git', args, { cwd, env, encoding: 'utf8', stdio: 'pipe', windowsHide: true });
+  const git = (cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) => execFileSync('git', args, { cwd, env, encoding: 'utf8', stdio: 'pipe' });
   git(control, controlEnv, 'init', '-q'); put(control, 'fixture.txt', 'fixture'); git(control, controlEnv, 'add', '.');
   git(control, controlEnv, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'positive-control');
   expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\n');
@@ -135,12 +128,12 @@ class Probe(unittest.TestCase):
   pathlib.Path('python-home.json').write_text(json.dumps(os.environ['HOME']))
 `);
   const env = { ...inherited, GIT_CONFIG_GLOBAL: path.join(oldHome, '.gitconfig'), GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'core.hooksPath', GIT_CONFIG_VALUE_0: hooks, GIT_CONFIG_PARAMETERS: `'core.hooksPath=${hooks.replaceAll('\\', '/')}'`, GIT_DIR: path.join(control, '.git'), GIT_WORK_TREE: control, GIT_CONFIG: path.join(oldHome, '.gitconfig'), PYTHONPATH: oldHome };
-  const child = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--targeted', 'tests/tooling/probe.test.ts', 'tests/deploy/test_probe.py'], { cwd: base, env, encoding: 'utf8', timeout: 30000, windowsHide: true });
+  const child = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--targeted', 'tests/tooling/probe.test.ts', 'tests/deploy/test_probe.py'], { cwd: base, env, encoding: 'utf8', timeout: 30000 });
   expect(child.error).toBeUndefined(); expect(child.status, child.stdout + child.stderr).toBe(0);
   expect(JSON.parse(readFileSync(path.join(base, 'js-home.json'), 'utf8'))).toBe(JSON.parse(readFileSync(path.join(base, 'python-home.json'), 'utf8')));
   expect(existsSync(path.join(base, 'js-repo/hook-marker'))).toBe(false); expect(existsSync(path.join(base, 'python-repo/hook-marker'))).toBe(false);
   expect(readFileSync(path.join(control, 'hook-marker'), 'utf8')).toBe('fixture-hook-ran\n');
-  const unavailable = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--targeted', 'tests/tooling/probe.test.ts', 'tests/deploy/test_probe.py'], { cwd: base, env: { ...env, HARNESS_TEST_PYTHON: path.join(base, 'absent-python') }, encoding: 'utf8', timeout: 15000, windowsHide: true });
+  const unavailable = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--targeted', 'tests/tooling/probe.test.ts', 'tests/deploy/test_probe.py'], { cwd: base, env: { ...env, HARNESS_TEST_PYTHON: path.join(base, 'absent-python') }, encoding: 'utf8', timeout: 15000 });
   expect(unavailable.status).toBe(3); expect(JSON.parse(unavailable.stdout)).toMatchObject({ status: 'skipped', results: [] });
   // Exercise planning only: an unaudited artificial repository must reach the
   // audit rejection without following injected GIT_DIR or a global fsmonitor.
@@ -148,11 +141,11 @@ class Probe(unittest.TestCase):
   put(base, 'verification/audits.json', '{"schemaVersion":1,"rounds":[]}');
   const safe = isolatedTestEnvironment(base); git(base, safe, 'init', '-q'); git(base, safe, 'add', '.');
   put(oldHome, 'hooks/fsmonitor', '#!/bin/sh\nprintf "fixture-fsmonitor-ran\\n" >> fsmonitor-marker\nprintf "\\0"\n'); chmodSync(path.join(hooks, 'fsmonitor'), 0o755);
-  put(oldHome, '.gitconfig', `[core]\n hooksPath = "${hooks.replaceAll('\\', '/')}"\n fsmonitor = "${path.join(hooks, 'fsmonitor').replaceAll('\\', '/')}"\n`);
+  git(control, controlEnv, 'config', '--global', 'core.fsmonitor', '"$HOME"/hooks/fsmonitor');
   git(control, controlEnv, 'ls-files', '--cached');
   expect(existsSync(path.join(control, 'fsmonitor-marker'))).toBe(true);
-  const refused = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--full'], { cwd: base, env, encoding: 'utf8', timeout: 15000, windowsHide: true });
-  expect(refused.status).toBe(1); expect(refused.stderr).toContain('Three recorded audit rounds are required');
+  const refused = spawnSync(process.execPath, ['scripts/run-tests.mjs', '--full'], { cwd: base, env, encoding: 'utf8', timeout: 15000 });
+  expect(refused.status).toBe(1); expect(refused.stderr).toContain('Two recorded audit rounds are required');
   expect(existsSync(path.join(base, 'fsmonitor-marker'))).toBe(false);
 }, 45000);
 

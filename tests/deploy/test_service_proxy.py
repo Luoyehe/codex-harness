@@ -185,7 +185,7 @@ class ServiceProxyTests(unittest.TestCase):
 
     def test_private_input_is_bounded_ordinary_single_link_and_preserves_ownership_requirement(self):
         target = self.layout.root / "node.json"; target.write_bytes(b"{}"); target.chmod(0o600)
-        if os.name == "posix" and os.geteuid() != 0:
+        if os.geteuid() != 0:
             with self.assertRaises(DeployError): proxy.private_file(target)
         else:
             self.assertEqual(proxy.private_file(target), b"{}")

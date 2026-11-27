@@ -10,7 +10,7 @@ import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { awaitThreadClosed } from '../../src/runtime/thread-history-compatibility.js';
 import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
 // The provider is a local protocol substitute. No commercial model or MCP call
@@ -24,9 +24,9 @@ function answer(res: ServerResponse, id: number): void {
 }
 test('official CLI persists queues and goals, steers active turns, forks/reverts history and starts inline reviews using loopback only', () => withFixtureCleanup(async defer => {
   const parent = path.resolve('.work/workflows-native'); mkdirSync(parent, { recursive: true }); const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temporary = path.join(home, 'tmp'); mkdirSync(codex); mkdirSync(project); mkdirSync(temporary);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
   let queuedFile = '', queuedImage = '', queuedBytesRead = false, queuedImageRead = false;
   const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAI0lEQVR4nGPsn7+RgRTARJJqhlENxAEmItXBwagGYgDJoQQA62sB/85+iZAAAAAASUVORK5CYII=', 'base64');
   const queueBytes = 'Queued file survives the worker restart';
@@ -143,7 +143,7 @@ test('official CLI agent metadata from non-default providers remains visible wit
   };
   seed(parentId, 'provider_b', cwd); seed(first, 'provider_a', cwd, parentId); seed(second, 'provider_b', cwd, parentId);
   seed(unrelated, 'provider_b', cwd); seed(randomUUID(), 'provider_b', other, parentId);
-  const service = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home: codex, workerHome: home, cwd, env, dev: true });
+  const service = await RuntimeService.create({ bin: nativeTestBinary(), home: codex, workerHome: home, cwd, env, dev: true });
   const child = (service.native as unknown as { child: ChildProcess }).child; let closed = false; child.once('close', () => { closed = true; });
   defer(async () => { await service.close(); expect(closed).toBe(true); expect(child.exitCode !== null || child.signalCode !== null).toBe(true); });
   const scope = { cwd, ancestorThreadId: parentId, sourceKinds: ['subAgentThreadSpawn'] }, context = { clientId: 'agent-list-fixture' };
@@ -167,7 +167,7 @@ test('native long-session tail can resume and send after an oversized persisted 
   const parent = path.resolve('.work/workflows-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'long-')), codex = path.join(home, 'codex'), project = path.join(home, 'project'), temporary = path.join(home, 'tmp');
   for (const dir of [codex, project, temporary]) mkdirSync(dir);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const env = nativeTestEnvironment({ home, codexHome: codex, temporary, fixtureApiKey: 'local-fixture' });
   let requests = 0;
   const provider = createServer((req, res) => { req.resume(); req.on('end', () => answer(res, ++requests)); });

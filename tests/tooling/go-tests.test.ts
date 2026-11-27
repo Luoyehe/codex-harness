@@ -110,7 +110,7 @@ test('runner uses isolated offline state, compiles the executable, and checks it
   const base = fixture(); const cache = path.join(base, '.work/prepared/modules'); mkdirSync(cache, { recursive: true });
   chmodSync(cache, 0o555);
   const binary = path.join(base, '.work/prepared/go-fixture'); writeFileSync(binary, 'fixture');
-  const ready = { status: 'ready', binary, moduleCache: cache, manifest: { platform: process.platform === 'win32' ? 'windows' : 'linux', goBinarySha256: createHash('sha256').update('fixture').digest('hex') } };
+  const ready = { status: 'ready', binary, moduleCache: cache, manifest: { platform: 'linux', architecture: 'amd64', goBinarySha256: createHash('sha256').update('fixture').digest('hex') } };
   const spawned = vi.fn((_binary: string, args: string[], options: any) => {
     expect(options.env).toMatchObject({ GOTOOLCHAIN: 'local', GOENV: 'off', GOWORK: 'off', GOAUTH: 'off', GOPROXY: 'off', GOFLAGS: '-mod=readonly' });
     expect(options.env.HOME).not.toBe('personal-home'); expect(options.env.OPENAI_API_KEY).toBeUndefined();
@@ -130,7 +130,7 @@ test('runner uses isolated offline state, compiles the executable, and checks it
 test('CI reconciliation requires all Go top levels, observed subtests and actual build/probe checks', () => {
   const base = fixture(); const head = 'a'.repeat(40), sourceDigest = 'b'.repeat(64);
   const plan = selectCiPlan({ changed: [goTestFile], available: [...dnsCoverage, 'tests/tooling/other.test.ts'], head, sourceDigest });
-  expect(plan.targets).toEqual(['linux', 'windows', 'linux-root']);
+  expect(plan.targets).toEqual(['linux', 'linux-root']);
   expect(plan.standardFiles).toEqual([goTestFile, dnsPortableFile]);
   expect(plan.rootFiles).toEqual([dnsRootFile]);
   const go = successful(base);
@@ -151,6 +151,6 @@ test('CI reconciliation requires all Go top levels, observed subtests and actual
   ]) { const changed = structuredClone(go); mutate(changed); expect(() => validateGoResult(changed, base)).toThrow(); }
   const changed = structuredClone(reports); changed[0]!.results = []; expect(() => reconcileCi(plan, changed, base)).toThrow(/Go execution/);
   expect(() => reconcileCi(plan, reports.filter(report => report.target !== 'linux-root'), base)).toThrow(/Every expected platform/);
-  const skippedRoot = structuredClone(reports); skippedRoot[2]!.exitCode = 3; skippedRoot[2]!.cases[0]!.status = 'skipped';
+  const skippedRoot = structuredClone(reports); skippedRoot[1]!.exitCode = 3; skippedRoot[1]!.cases[0]!.status = 'skipped';
   expect(() => reconcileCi(plan, skippedRoot, base)).toThrow(/Uncovered platform skips/);
 });

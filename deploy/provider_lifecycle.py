@@ -29,9 +29,8 @@ def private_file(path: Path) -> None:
     details = path.lstat()
     require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= PROVIDER_JSON_LIMIT,
             "Unsafe provider profile", "corrupt_state")
-    if os.name == "posix":
-        require(details.st_uid == os.geteuid() and not details.st_mode & 0o077,
-                "Provider profile ownership or permissions changed", "corrupt_state")
+    require(details.st_uid == os.geteuid() and not details.st_mode & 0o077,
+            "Provider profile ownership or permissions changed", "corrupt_state")
 
 
 class Profiles:
@@ -43,9 +42,8 @@ class Profiles:
             require(not self.root.is_symlink(), "Unsafe provider profile directory", "corrupt_state")
             return []
         require(not self.root.is_symlink() and self.root.is_dir(), "Unsafe provider profile directory", "corrupt_state")
-        if os.name == "posix":
-            info = self.root.stat()
-            require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Provider profile directory ownership or permissions changed", "corrupt_state")
+        info = self.root.stat()
+        require(info.st_uid == os.geteuid() and not info.st_mode & 0o077, "Provider profile directory ownership or permissions changed", "corrupt_state")
         records = []
         for path in self.root.iterdir():
             require(len(records) < MAX_PROFILES and re.fullmatch(r"[0-9a-f]{32}\.json", path.name),

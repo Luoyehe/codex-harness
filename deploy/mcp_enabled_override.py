@@ -21,8 +21,7 @@ def version(value: dict) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
-SYSTEM = (Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "OpenAI" / "Codex" / "config.toml"
-          if os.name == "nt" else Path("/etc/codex/config.toml"))
+SYSTEM = Path("/etc/codex/config.toml")
 STORE = "harness-mcp-enabled.json"
 
 
@@ -32,7 +31,7 @@ def _name(value):
 
 def _safe(info, directory=False):
     require((stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode) and info.st_nlink == 1)
-            and (os.name != "posix" or info.st_uid == os.geteuid() and not info.st_mode & 0o022),
+            and (info.st_uid == os.geteuid() and not info.st_mode & 0o022),
             "Unsafe native configuration entry", "config_conflict")
 
 

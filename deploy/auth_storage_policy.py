@@ -34,7 +34,7 @@ def check_file(path, uid, limit=LIMIT):
     except FileNotFoundError:
         return
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= limit and
-            (os.name != "posix" or info.st_uid in (0, uid) and not info.st_mode & 0o022),
+            (info.st_uid in (0, uid) and not info.st_mode & 0o022),
             "Unsafe authentication storage configuration", "configuration_conflict")
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
     try:

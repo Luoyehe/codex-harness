@@ -5,7 +5,6 @@ from .config_layer import edge_running
 
 import base64
 import json
-import os
 import re
 import stat
 import uuid
@@ -28,7 +27,7 @@ def snapshot(layout):
     for name, path in paths(layout).items():
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 128 * 1024 and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe execution snapshot", "integrity")
+                (info.st_uid == 0 and not info.st_mode & 0o022), "Unsafe execution snapshot", "integrity")
         result[name] = {"data": base64.b64encode(path.read_bytes()).decode(), "mode": stat.S_IMODE(info.st_mode)}
     return result
 

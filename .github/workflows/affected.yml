@@ -72,17 +72,7 @@ jobs:
   standard:
     needs: plan
     if: needs.plan.outputs.standard == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            target: linux
-            package: 0.169.0-linux-x64
-          - os: windows-2025
-            target: windows
-            package: 0.169.0-win32-x64
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
@@ -113,21 +103,21 @@ jobs:
           pnpm build
       - name: Prepare independent official CLI
         env:
-          CODEX_PACKAGE_VERSION: ${{ matrix.package }}
+          CODEX_PACKAGE_VERSION: 0.169.0-linux-x64
         run: |
           mkdir -p reference/runtime/ci-codex
           npm pack "@openai/codex@$CODEX_PACKAGE_VERSION" --registry=https://registry.npmjs.org --pack-destination reference/runtime/ci-codex --json > reference/runtime/ci-codex/pack.json
           node scripts/prepare-ci-native.mjs
-          python -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
+          python3 -c 'import os,sys; open(os.environ["GITHUB_ENV"],"a",encoding="utf-8").write("HARNESS_TEST_PYTHON="+sys.executable+"\n")'
       - name: Prepare pinned Go and authenticated public modules
         id: prepare_go
         if: needs.plan.outputs.go == 'true'
-        run: python -B scripts/prepare-ci-go.py
+        run: python3 -B scripts/prepare-ci-go.py
       - name: Retain failed Go preparation logs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && needs.plan.outputs.go == 'true' && steps.prepare_go.outcome == 'failure'
         with:
-          name: go-preparation-${{ matrix.target }}
+          name: go-preparation-linux
           path: |
             .work/ci-go/version.log
             .work/ci-go/download.log
@@ -135,19 +125,9 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
-      - name: Verify isolated Windows process controllers before native tests
-        if: runner.os == 'Windows'
-        run: node scripts/windows-controller-preflight.mjs .work/windows-controller-preflight.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && runner.os == 'Windows'
-        with:
-          name: windows-controller-preflight
-          path: .work/windows-controller-preflight.json
-          include-hidden-files: true
-          if-no-files-found: error
       - name: Run exact selection and retain platform skips for reconciliation
         env:
-          CI_TARGET: ${{ matrix.target }}
+          CI_TARGET: linux
         run: |
           code=0
           node scripts/ci-checks.mjs "$CI_TARGET" .work/ci-plan.json ".work/result-$CI_TARGET.json" || code=$?
@@ -155,21 +135,46 @@ jobs:
       - name: Require aggregate case report before publishing diagnostics
         if: always()
         env:
-          CI_TARGET: ${{ matrix.target }}
+          CI_TARGET: linux
         # A raw failure report must not mask a missing aggregate result.
         run: node --input-type=module -e 'import { statSync } from "node:fs"; if (!statSync(".work/result-" + process.env.CI_TARGET + ".json").isFile()) throw Error("Missing aggregate case report");'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: cases-${{ matrix.target }}
+          name: cases-linux
           # The shared .work root keeps result-*.json at the archive root.
           # Only explicit test reports are retained, never test/runtime homes.
           path: |
-            .work/result-${{ matrix.target }}.json
+            .work/result-linux.json
             .work/test-results/*/vitest.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
+
+  macos_development:
+    needs: plan
+    if: needs.plan.outputs.standard == 'true'
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+      - name: Verify pinned pnpm distribution
+        run: node scripts/prepare-ci-pnpm.mjs
+      - name: Install pinned dependencies and build the actual modules
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm exec tsc -p web/tsconfig.json --noEmit
+          pnpm typecheck:tests
+          pnpm build
+      - name: Verify developer and browser workflows
+        run: node scripts/run-tests.mjs --targeted tests/core/ledger.test.ts tests/runtime/posix-native.test.ts web/tests/model-picker.test.tsx
 
   root_deploy:
     needs: plan
@@ -249,7 +254,7 @@ jobs:
 
   coverage:
     name: Verified case coverage
-    needs: [plan, standard, root_deploy]
+    needs: [plan, standard, macos_development, root_deploy]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 10

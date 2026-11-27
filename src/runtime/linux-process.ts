@@ -1,6 +1,5 @@
 import { linuxOwnership } from './linux-ownership.js';
 import { DeliveryError, integer, object, type JsonObject } from './types.js';
-import type { WindowsProcessJob } from './windows-process.js';
 
 // The native protocol already creates a private pair of pipes per process
 // handle. The controller exclusively owns them. Target children receive
@@ -103,8 +102,13 @@ except BaseException:
 `;
 
 type Write = (bytes: string, beforeWrite?: () => void) => Promise<void>;
-export interface LinuxProcessJob extends WindowsProcessJob {
-  readonly transport: 'private-pipe';
+export interface LinuxProcessJob {
+  command: string[];
+  env: Record<string, string>;
+  started: Promise<number>;
+  exited: Promise<number>;
+  signal(): Promise<void>;
+  dispose(): void;
   feed(bytes: Buffer): void;
   control(type: 'input' | 'resize', data: JsonObject, beforeWrite: () => void): Promise<void>;
   endNative(): void;
@@ -112,6 +116,7 @@ export interface LinuxProcessJob extends WindowsProcessJob {
 }
 export function linuxProcessJob(command: string[], cwd: string, options: { tty: boolean; stdin: boolean; size?: JsonObject; cap: number | null },
   write: Write, output: (stream: 'stdout' | 'stderr', data: string, capReached: boolean) => void): LinuxProcessJob {
+  if (process.platform !== 'linux') throw new DeliveryError('unsupported_platform', 'Owned process execution requires Linux subreaping');
   let ready!: (pid: number) => void, finish!: (code: number) => void, rejectReady!: (error: Error) => void, rejectExit!: (error: Error) => void;
   const started = new Promise<number>((resolve, reject) => { ready = resolve; rejectReady = reject; });
   const exited = new Promise<number>((resolve, reject) => { finish = resolve; rejectExit = reject; });
@@ -128,7 +133,7 @@ export function linuxProcessJob(command: string[], cwd: string, options: { tty: 
   const send = (seq: number, type: string, body: JsonObject, beforeWrite?: () => void) =>
     write(Buffer.from(JSON.stringify({ ...body, seq, type }) + '\n').toString('base64'), beforeWrite);
   const job: LinuxProcessJob = {
-    transport: 'private-pipe', command: ['/usr/bin/python3', '-I', '-u', '-c', controller],
+    command: ['/usr/bin/python3', '-I', '-u', '-c', controller],
     env: { HARNESS_LINUX_PROCESS_COMMAND: JSON.stringify({ command, cwd, ...options }) }, started, exited, drainTimedOut: false,
     feed(bytes) {
       if (ended) return;

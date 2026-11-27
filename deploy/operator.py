@@ -36,7 +36,7 @@ def installed_instances(directory: Path = Path("/etc/codex-harness")) -> list[st
 
 
 def require_host() -> None:
-    require(platform.system() == "Linux" and hasattr(os, "geteuid") and os.geteuid() == 0,
+    require(platform.system() == "Linux" and os.geteuid() == 0,
             "请在 Linux 服务器上使用 sudo sh ./harness.sh 启动管理菜单。", "unsupported_platform")
     release = {}
     for line in Path("/etc/os-release").read_text().splitlines():

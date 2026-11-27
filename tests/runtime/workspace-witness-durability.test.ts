@@ -22,38 +22,31 @@ function fixture() {
   return { home, directory, file: path.join(directory, 'witness.sqlite') };
 }
 
-/** Linux uses real directory descriptors/fsync. Windows models only those syscalls. */
+/** Trace real directory descriptors and inject failures at their durability barriers. */
 function barriers(home: string) {
   const directory = path.join(home, 'workspace-witness');
-  const original = { open: fs.openSync, close: fs.closeSync, stat: fs.fstatSync, lstat: fs.lstatSync, sync: fs.fsyncSync };
-  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!, emulate = process.platform === 'win32';
-  const handles = new Map<number, { path: string; stat: fs.Stats }>(), synced: string[] = [], flags: number[] = [];
-  let next = -100;
+  const original = { open: fs.openSync, close: fs.closeSync, sync: fs.fsyncSync };
+  const handles = new Map<number, { path: string }>(), synced: string[] = [], flags: number[] = [];
   const control = { fail: undefined as string | undefined, beforeSync: undefined as ((name: string) => void) | undefined };
-  if (emulate) Object.defineProperty(process, 'platform', { ...platform, value: 'linux' });
   const spies = [
     vi.spyOn(fs, 'openSync').mockImplementation(((...args: Parameters<typeof fs.openSync>) => {
       if (args[0] !== home && args[0] !== directory) return original.open(...args);
-      const fd = emulate ? next-- : original.open(...args);
-      flags.push(Number(args[1])); handles.set(fd, { path: String(args[0]), stat: original.lstat(args[0]) }); return fd;
+      const fd = original.open(...args);
+      flags.push(Number(args[1])); handles.set(fd, { path: String(args[0]) }); return fd;
     }) as typeof fs.openSync),
-    vi.spyOn(fs, 'fstatSync').mockImplementation(((...args: Parameters<typeof fs.fstatSync>) => {
-      const entry = handles.get(args[0]); return entry && emulate ? entry.stat : original.stat(...args);
-    }) as typeof fs.fstatSync),
     vi.spyOn(fs, 'fsyncSync').mockImplementation(fd => {
       const entry = handles.get(fd); if (!entry) return original.sync(fd);
       synced.push(entry.path); control.beforeSync?.(entry.path);
       if (control.fail === entry.path) throw Object.assign(new Error('Injected directory sync failure'), { code: 'EIO' });
-      if (!emulate) original.sync(fd);
+      original.sync(fd);
     }),
     vi.spyOn(fs, 'closeSync').mockImplementation(fd => {
-      if (!handles.delete(fd) || !emulate) original.close(fd);
+      handles.delete(fd); original.close(fd);
     }),
   ];
   syncBuiltinESMExports();
   return { control, handles, synced, flags, restore() {
     for (const spy of spies) spy.mockRestore(); syncBuiltinESMExports();
-    if (emulate) Object.defineProperty(process, 'platform', platform);
   } };
 }
 
@@ -99,7 +92,7 @@ test('parent or witness directory symlinks cannot become durable witness storage
   for (const target of ['parent', 'child']) {
     const { home, directory } = fixture(), outside = fixture().home;
     const link = target === 'parent' ? home + '-link' : directory;
-    symlinkSync(outside, link, process.platform === 'win32' ? 'junction' : 'dir');
+    symlinkSync(outside, link, 'dir');
     expect(() => new WorkspaceWitness(target === 'parent' ? link : home)).toThrow(expect.objectContaining({ code: 'witness_storage' }));
     expect(existsSync(path.join(outside, 'witness.sqlite'))).toBe(false);
     expect(existsSync(path.join(outside, 'workspace-witness'))).toBe(false);

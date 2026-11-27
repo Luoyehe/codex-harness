@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { Attachments } from '../../src/runtime/attachments.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import * as compatibility from '../../src/runtime/thread-history-compatibility.js';
 import { withFixtureCleanup, type FixtureCleanup } from './fixture-cleanup.js';
 
@@ -62,8 +62,8 @@ async function providerFixture(defer: FixtureCleanup, responseGate?: Promise<voi
   const definitions = ['a', 'b'].flatMap(id => [`[model_providers.provider_${id}]`, `name = "Local ${id}"`, `base_url = "http://127.0.0.1:${port}/${id}/v1"`, 'env_key = "HARNESS_PROVIDER_API_KEY"', 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0', 'stream_max_retries = 0']);
   writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "provider_a"', 'approval_policy = "on-request"', 'sandbox_mode = "read-only"', 'developer_instructions = "PRESERVED_GLOBAL_DEVELOPER"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'check_for_update_on_startup = false', '[features]', 'goals = true', ...definitions].join('\n'));
   const registry = { defaultProviderId: 'default', nativeCatalogProvider: 'provider_a', connections: ['a', 'b'].map((id, i) => ({ id: i ? 'b'.repeat(32) : 'default', modelProvider: 'provider_' + id, kind: 'responses', name: id, enabled: true, model: 'harness-loopback-fixture', models: [{ id: 'harness-loopback-fixture', defaultEffort: 'low', efforts: ['low'] }], catalogPath: catalog })) };
-  env.HARNESS_DEV_PYTHON = process.env.HARNESS_TEST_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
-  const config = { bin: process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
+  env.HARNESS_DEV_PYTHON = process.env.HARNESS_TEST_PYTHON ?? 'python3';
+  const config = { bin: nativeTestBinary(), home: codex, workerHome: home, cwd, env, dev: true, providerRegistry: registry };
   return { config, registry, home, codex, cwd, requests, errors };
 }
 

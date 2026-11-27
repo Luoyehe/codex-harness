@@ -31,7 +31,7 @@ test('publication is withheld until both workflow results and version match, wit
     save('verification/audit-evidence/release-closeout/authorization.json', auth);
     const sha = commit();
     const coverage = { status: 'passed', mode: 'authorized-full', head: sha, sourceDigest: source.digest, files: 1, cases: 1,
-      targets: ['linux', 'windows', 'linux-root'], authorizationSha256: createHash('sha256').update(auth).digest('hex'), coverageGaps: [] };
+      targets: ['linux', 'linux-root'], authorizationSha256: createHash('sha256').update(auth).digest('hex'), coverageGaps: [] };
     const proof = '.work/release-coverage/1/reconciled.json';
     save(proof, JSON.stringify(coverage));
     const env = { GITHUB_REPOSITORY: 'Luoyehe/codex-harness', GITHUB_SHA: sha, GITHUB_REF_NAME: 'v2.4.0', GH_TOKEN: 'synthetic' };
@@ -50,7 +50,7 @@ test('publication is withheld until both workflow results and version match, wit
     expect(fetcher.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0);
     annotated = true; currentTag = sha; fetcher.mockClear();
     await expect(publishRelease(base, env, fetcher)).rejects.toThrow('Unknown POST outcome'); expect(fetcher).toHaveBeenCalledTimes(5);
-    for (const invalid of [{ mode: 'targeted' }, { authorizationSha256: '0'.repeat(64) }, { files: 2 }, { targets: ['linux'] }, { coverageGaps: ['windows'] }]) {
+    for (const invalid of [{ mode: 'targeted' }, { authorizationSha256: '0'.repeat(64) }, { files: 2 }, { targets: ['linux'] }, { coverageGaps: ['unverified-case'] }]) {
       save(proof, JSON.stringify({ ...coverage, ...invalid })); fetcher.mockClear();
       await expect(publishRelease(base, env, fetcher)).rejects.toThrow('coverage evidence');
       expect(fetcher.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0);

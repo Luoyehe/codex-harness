@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 // bounded chunks; callers never need to buffer a large blob to scan its tail.
 export class GitObjectReader {
   constructor(root) {
-    this.child = spawn('git', ['cat-file', '--batch'], { cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
+    this.child = spawn('git', ['cat-file', '--batch'], { cwd: root, stdio: ['pipe', 'pipe', 'ignore'] });
     this.closed = new Promise(resolve => { this.child.once('error', () => resolve(false)); this.child.once('close', code => resolve(code === 0)); });
     this.child.stdin.on('error', error => { this.inputError = error; });
     this.iterator = this.child.stdout[Symbol.asyncIterator]();

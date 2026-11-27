@@ -1,8 +1,6 @@
 """Official Xray distributions; no proxy protocol or inherited network credentials."""
 from __future__ import annotations
 
-import ctypes
-import errno
 import hashlib
 import io
 import json
@@ -23,7 +21,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .build import architecture
-from .common import DeployError, Layout, canonical, fsync_directory, require
+from .common import rename_noreplace, DeployError, Layout, canonical, fsync_directory, require
 from .dns_caddy_build import validate_download_proxy
 from .safe_fs import bounded_names, stable_identity
 
@@ -76,11 +74,11 @@ def core_path(layout: Layout, identity: str) -> Path:
 
 
 def _root_owner(info) -> bool:
-    return os.name != "posix" or info.st_uid == 0
+    return info.st_uid == 0
 
 
 def _require_root() -> None:
-    require(os.name != "posix" or os.geteuid() == 0, "Proxy core preparation requires root", "permission_denied")
+    require(os.geteuid() == 0, "Proxy core preparation requires root", "permission_denied")
 
 
 def _chain(layout: Layout, directory: Path, *, create: bool = False) -> None:
@@ -97,8 +95,8 @@ def _chain(layout: Layout, directory: Path, *, create: bool = False) -> None:
                 pass
         info = current.lstat()
         require(stat.S_ISDIR(info.st_mode) and not current.is_symlink() and
-                not getattr(info, "st_file_attributes", 0) & 0x400 and _root_owner(info) and
-                (os.name != "posix" or not info.st_mode & 0o022), "Unsafe proxy core directory", "integrity")
+                _root_owner(info) and
+                (not info.st_mode & 0o022), "Unsafe proxy core directory", "integrity")
         if create:
             fsync_directory(current)
             if current != layout.root:
@@ -111,7 +109,7 @@ def _read(path: Path, limit: int, mode: int) -> bytes:
         before = os.fstat(descriptor)
         require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 < before.st_size <= limit and
                 not path.is_symlink() and _root_owner(before) and
-                (os.name != "posix" or stat.S_IMODE(before.st_mode) == mode), "Unsafe proxy core file", "integrity")
+                (stat.S_IMODE(before.st_mode) == mode), "Unsafe proxy core file", "integrity")
         chunks, size = [], 0
         while data := os.read(descriptor, min(1024**2, limit + 1 - size)):
             size += len(data)
@@ -119,8 +117,6 @@ def _read(path: Path, limit: int, mode: int) -> bytes:
             chunks.append(data)
         after, current = os.fstat(descriptor), path.lstat()
         left, right = stable_identity(after), stable_identity(current)
-        if os.name != "posix":
-            left, right = left[:-1], right[:-1]
         require(stable_identity(before) == stable_identity(after) and left == right,
                 "Proxy core changed during verification", "integrity")
         return b"".join(chunks)
@@ -287,26 +283,15 @@ def _write(path: Path, data: bytes, mode: int) -> None:
     with path.open("xb") as stream:
         stream.write(data)
         stream.flush()
-        os.fchmod(stream.fileno(), mode) if os.name == "posix" else os.chmod(path, mode)
+        os.fchmod(stream.fileno(), mode)
         os.fsync(stream.fileno())
 
 
 def _publish(source: Path, target: Path) -> None:
-    if os.name == "posix":
-        # Linux renameat2 is an atomic no-replace publication even if another
-        # preparation publishes the same identity concurrently.
-        libc = ctypes.CDLL(None, use_errno=True)
-        function = getattr(libc, "renameat2", None)
-        require(function is not None, "Atomic no-replace publication is unavailable", "unsupported_platform")
-        function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-        function.restype = ctypes.c_int
-        if function(-100, os.fsencode(source), -100, os.fsencode(target), 1):
-            code = ctypes.get_errno()
-            if code == errno.EEXIST:
-                raise FileExistsError(code, "Core generation already exists")
-            raise OSError(code, "Core publication failed")
-    else:
-        os.rename(source, target)
+    try:
+        rename_noreplace(source, target)
+    except FileExistsError as error:
+        raise FileExistsError(error.errno, "Core generation appeared concurrently") from error
 
 
 def prepare_core(layout: Layout, version: str, *, download_proxy: str | None = None, expected_sha256: str | None = None) -> dict:

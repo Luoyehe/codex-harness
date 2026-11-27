@@ -12,7 +12,7 @@ function fixture() {
   const goroot = path.join(base, 'runtime/go'), binary = path.join(goroot, 'bin/go'), entry = path.join(base, 'wrapper/go');
   for (const folder of [path.dirname(binary), path.dirname(entry), path.join(base, 'deploy/caddy_dns_source'), path.join(base, '.work')]) mkdirSync(folder, { recursive: true });
   writeFileSync(binary, 'fixture'); writeFileSync(entry, 'fixture');
-  const identity = { GOVERSION: 'go1.26.10', GOROOT: goroot, GOOS: process.platform === 'win32' ? 'windows' : 'linux', GOARCH: 'amd64' };
+  const identity = { GOVERSION: 'go1.26.10', GOROOT: goroot, GOOS: 'linux', GOARCH: 'amd64' };
   const prepared = { status: 'ready', version: '1.26.10', binary, moduleCache: path.join(base, 'modules'), manifest: { platform: identity.GOOS, architecture: 'amd64' } };
   const prerequisite = vi.fn(() => prepared), env = { CODEQL_ACTION_GO_BINARY: entry };
   return { base, entry, binary, identity, prerequisite, env };

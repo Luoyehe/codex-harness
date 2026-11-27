@@ -1,6 +1,5 @@
 import { EpochIdentities } from './epoch-identities.js';
 import { createHash, randomUUID } from 'node:crypto';
-import { pathToFileURL } from 'node:url';
 import { canonical, DeliveryError, jsonBytes, object, onlyKeys, string, type CallContext, type JsonObject, type JsonValue } from './types.js';
 import { validateOfficial } from './validation.js';
 import type { WorkflowMutation } from './workflows.js';
@@ -10,7 +9,7 @@ export const guardianMethods = new Set(['thread/guardian/list', 'thread/approveG
 // Internal GuardianAssessmentEvent is not the public camelCase notification. Keep
 // this deliberately enumerated adapter tied to the pinned CLI, never case-rewrite
 // arbitrary JSON or accept a browser-supplied serialized assessment.
-function uri(value: JsonValue): string { const path = string(value, 'native action path'); return /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\') ? pathToFileURL(path, { windows: true }).href : path; }
+function actionPath(value: JsonValue): string { return string(value, 'native action path'); }
 function fileSystem(value: JsonValue): JsonObject {
   const f = object(value); onlyKeys(f, ['read', 'write', 'globScanMaxDepth', 'entries']);
   // The public notification includes legacy path projections alongside entries.
@@ -34,7 +33,7 @@ function action(value: JsonValue): JsonObject {
   switch (a.type) {
     case 'command': onlyKeys(a, ['type', 'source', 'command', 'cwd']); return { type: 'command', source: source!, command: a.command!, cwd: a.cwd! };
     case 'execve': onlyKeys(a, ['type', 'source', 'program', 'argv', 'cwd']); return { type: 'execve', source: source!, program: a.program!, argv: a.argv!, cwd: a.cwd! };
-    case 'writeStdin': onlyKeys(a, ['type', 'approvalId', 'processId', 'stdin', 'cwd']); return { type: 'write_stdin', approval_id: a.approvalId!, process_id: a.processId!, stdin: a.stdin!, cwd: uri(a.cwd!) };
+    case 'writeStdin': onlyKeys(a, ['type', 'approvalId', 'processId', 'stdin', 'cwd']); return { type: 'write_stdin', approval_id: a.approvalId!, process_id: a.processId!, stdin: a.stdin!, cwd: actionPath(a.cwd!) };
     case 'applyPatch': onlyKeys(a, ['type', 'cwd', 'files']); return { type: 'apply_patch', cwd: a.cwd!, files: a.files! };
     case 'networkAccess': onlyKeys(a, ['type', 'target', 'host', 'protocol', 'port']); return { type: 'network_access', target: a.target!, host: a.host!, protocol: a.protocol === 'socks5Tcp' ? 'socks5_tcp' : a.protocol === 'socks5Udp' ? 'socks5_udp' : a.protocol!, port: a.port! };
     case 'mcpToolCall': onlyKeys(a, ['type', 'server', 'toolName', 'connectorId', 'connectorName', 'toolTitle']); return { type: 'mcp_tool_call', server: a.server!, tool_name: a.toolName!, connector_id: a.connectorId!, connector_name: a.connectorName!, tool_title: a.toolTitle! };

@@ -16,6 +16,5 @@ def publish(path, data, mode=0o440):
         run(["/usr/sbin/visudo", "-cf", str(path)])
     finally:
         if candidate.exists():
-            if os.name != "posix": os.chmod(candidate, 0o600)
             candidate.unlink()
             fsync_directory(candidate.parent)

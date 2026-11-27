@@ -5,12 +5,12 @@ import path from 'node:path';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonValue } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 
 test('official pinned CLI discovers and calls isolated local MCP tools and resources without model inference', async () => {
   const parent = path.resolve('.work/mcp-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')); const home = path.join(workerHome, 'codex'); const temp = path.join(workerHome, 'tmp'); mkdirSync(home); mkdirSync(temp);
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: temp });
-  const log = path.join(workerHome, 'mcp.jsonl'); const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const log = path.join(workerHome, 'mcp.jsonl'); const bin = nativeTestBinary();
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup = false', '[mcp_servers.local]', `command = ${JSON.stringify(process.execPath)}`, `args = ${JSON.stringify([path.resolve('tests/runtime/mcp-fixture.mjs'), log])}`, 'startup_timeout_sec = 10', 'tool_timeout_sec = 45'].join('\n'));
   const runtime = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const context = { clientId: 'mcp-native', eventChannelId: 'test', beforeWrite: () => {} }; let identities: { pid: number; identity: string | null }[] = [];
   try {
@@ -56,7 +56,7 @@ test.each([[undefined, 320_000], [1, 21_000], [600, 620_000], [1801, null]] as c
       'args = ' + JSON.stringify([path.resolve('tests/runtime/mcp-fixture.mjs'), log]),
       ...(seconds === undefined ? [] : ['tool_timeout_sec = ' + seconds]),
     ].join('\n'));
-    const service = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome, cwd: workerHome, env, dev: true });
+    const service = await RuntimeService.create({ bin: nativeTestBinary(), home, workerHome, cwd: workerHome, env, dev: true });
     const context = { clientId: 'timeout-check', eventChannelId: 'test', beforeWrite: () => {} };
     try {
       const threadId = object(object(await service.call('thread/start', { cwd: workerHome }, context)).thread).id!;
@@ -84,7 +84,7 @@ test('a defaults probe leaves a literal dotted MCP server dormant until the ordi
   const log = path.join(root, 'mcp.jsonl'), name = 'fixture.with.dots';
   writeFileSync(path.join(home, 'config.toml'), ['check_for_update_on_startup=false', '[mcp_servers."fixture.with.dots"]',
     'command=' + JSON.stringify(process.execPath), 'args=' + JSON.stringify([path.resolve('tests/runtime/mcp-fixture.mjs'), log])].join('\n'));
-  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true });
+  const runtime = await RuntimeService.create({ bin: nativeTestBinary(), home, workerHome: root, cwd: root, env, dev: true });
   const context = { clientId: 'dotted-probe' };
   try {
     await runtime.call('defaults/read', { cwd: root }, context);
@@ -104,7 +104,7 @@ test('the native startup flag changes only the inherited MCP switch while a sepa
   const file = path.join(home, 'config.toml'), name = 'fixture.with.dots';
   writeFileSync(file, ['check_for_update_on_startup=false', '[mcp_servers."fixture.with.dots"]', 'command=' + JSON.stringify(process.execPath),
     '[mcp_servers."fixture.with.dots".env]', 'FIXTURE_VALUE="local-sentinel"'].join('\n'));
-  const bin = process.env.HARNESS_TEST_CODEX_BIN!;
+  const bin = nativeTestBinary();
   for (const override of [true, false]) {
     const rpc = new NativeRpc({ bin, home, cwd: root, env, dev: true,
       args: ['app-server', '--listen', 'stdio://', ...(override ? ['-c', 'mcp_servers={"fixture.with.dots"={enabled=false}}'] : [])] });

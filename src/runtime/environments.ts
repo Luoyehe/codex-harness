@@ -58,7 +58,7 @@ export class Environments {
     if (method === 'environment/info') return this.host.configure(async write => {
       const info = remoteResponse('EnvironmentInfoResponse', await write(method, params), 64 * 1024);
       if (info.cwd != null) {
-        try { const uri = new URL(string(info.cwd, 'environment cwd', 4096)); if (uri.protocol !== 'file:' || uri.search || uri.hash) throw new Error(); const windows = /^\/[A-Za-z]:\//.test(uri.pathname) || !!uri.hostname; entry.cwd = fileURLToPath(uri, { windows }); }
+        try { const uri = new URL(string(info.cwd, 'environment cwd', 4096)); if (uri.protocol !== 'file:' || uri.search || uri.hash) throw new Error(); entry.cwd = fileURLToPath(uri); }
         catch { throw new DeliveryError('unsupported_environment_path', 'Remote default directory cannot be represented safely; it was not selected', 'unknown'); }
       } else delete entry.cwd;
       entry.info = info; return { environmentId: entry.environmentId, inspected: true, selectionReady: entry.cwd !== undefined };

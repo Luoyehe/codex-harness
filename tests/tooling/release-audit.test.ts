@@ -8,7 +8,7 @@ import { auditGitObjects, auditSource, scanFiles, scanStream } from '../../scrip
 const fixtures: string[] = [];
 function fixture(): string { const parent = path.resolve('.work/tooling-audit'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'case-')); fixtures.push(root); return root; }
 function put(root: string, name: string, content: string | Buffer): void { const file = path.join(root, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, content); }
-function git(root: string, args: string[], input?: string): string { return execFileSync('git', args, { cwd: root, input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }); }
+function git(root: string, args: string[], input?: string): string { return execFileSync('git', args, { cwd: root, input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }); }
 afterEach(() => { for (const root of fixtures.splice(0)) rmSync(root, { recursive: true, force: true }); });
 
 test('scans ordinary source and redacts every secret/private-path diagnostic', async () => {
@@ -21,7 +21,7 @@ test('scans ordinary source and redacts every secret/private-path diagnostic', a
   expect(report.findings).toEqual(expect.arrayContaining([
     { path: 'src/config.txt', line: 2, rule: 'api-token' },
     { path: 'src/config.txt', line: 3, rule: 'private-key' },
-    { path: 'src/config.txt', line: 4, rule: 'windows-private-home' },
+    { path: 'src/config.txt', line: 4, rule: 'drive-private-home' },
   ]));
   const output = JSON.stringify(report); expect(output).not.toContain(token); expect(output).not.toContain(key); expect(output).not.toContain('private-fixture');
 });

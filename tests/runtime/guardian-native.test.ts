@@ -31,7 +31,7 @@ async function fixture(guardian: boolean | 'permissions', defer: FixtureCleanup)
   const models = JSON.parse(readFileSync('tests/runtime/fixture-model-catalog.json', 'utf8')); if (guardian) models.models[0].shell_type = 'unified_exec'; writeFileSync(catalog, JSON.stringify(models));
   writeFileSync(path.join(home, 'config.toml'), `check_for_update_on_startup=false\nmodel="harness-loopback-fixture"\nmodel_provider="fixture"\nmodel_catalog_json=${JSON.stringify(catalog)}\napproval_policy="on-request"\napprovals_reviewer="auto_review"\nsandbox_mode="read-only"\n[projects.${JSON.stringify(root)}]\ntrust_level="trusted"\n[model_providers.fixture]\nname="Fixture"\nbase_url="${url}/v1"\nwire_api="responses"\nrequires_openai_auth=false\nsupports_websockets=false\nrequest_max_retries=0\nstream_max_retries=0\n`);
   if (guardian === 'permissions') writeFileSync(path.join(home, 'config.toml'), `${readFileSync(path.join(home, 'config.toml'), 'utf8')}\n[features]\nrequest_permissions_tool=true\n`);
-  const env: NodeJS.ProcessEnv = { HOME: root, USERPROFILE: root, CODEX_HOME: home, TEMP: temp, TMP: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1' }; for (const key of ['PATH', 'SystemRoot', 'WINDIR', 'COMSPEC']) if (process.env[key]) env[key] = process.env[key];
+  const env: NodeJS.ProcessEnv = { HOME: root, CODEX_HOME: home, TMPDIR: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1' }; if (process.env.PATH) env.PATH = process.env.PATH;
   const config = { bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true }, service = await RuntimeService.create(config), events: RuntimeEvent[] = []; service.on('event', event => events.push(event));
   defer(() => service.close());
   const context = { clientId: 'fixture', eventChannelId: 'channel', beforeWrite: () => {} };
@@ -57,7 +57,7 @@ test.each([true, 'permissions'] as const)('real CLI denial %s is captured once a
     expect(f.errors).toEqual([]);
     expect(object(await f.service.call('thread/guardian/list', { threadId }, f.context)).data).toEqual([]);
 }), 30000);
-test('fixed native CLI PTY exposes the real hook trust flow and requests one automatic refresh after proven cleanup', () => withFixtureCleanup(async defer => {
+test.runIf(process.platform === 'linux')('fixed native CLI PTY exposes the real hook trust flow and requests one automatic refresh after proven cleanup', () => withFixtureCleanup(async defer => {
   const f = await fixture(false, defer); let terminalId: JsonValue | undefined, unansweredQueries = 0;
   const restart = vi.fn(); f.service.on('restart-required', restart);
   const transcript = new PtyTranscript(), pending: Promise<unknown>[] = [], replyErrors: unknown[] = [];
@@ -120,7 +120,7 @@ test('fixed native CLI PTY exposes the real hook trust flow and requests one aut
   }
 }), 45000);
 
-test('real CLI account preflight rejects unsigned Cloud without a PTY or refresh and leaves local work available', () => withFixtureCleanup(async defer => {
+test.runIf(process.platform === 'linux')('real CLI account preflight rejects unsigned Cloud without a PTY or refresh and leaves local work available', () => withFixtureCleanup(async defer => {
   const f = await fixture(false, defer), nativeCall = vi.spyOn(f.service.native, 'call'), restart = vi.fn();
   defer(() => nativeCall.mockRestore()); f.service.on('restart-required', restart);
   const epoch = object(f.service.status()).epoch;

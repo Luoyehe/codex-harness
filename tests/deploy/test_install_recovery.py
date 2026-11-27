@@ -1,7 +1,6 @@
 """First-start/enable retry boundaries; no systemd or downloaded tools required."""
 import io
 import json
-import os
 import secrets
 import tempfile
 import unittest
@@ -64,15 +63,6 @@ class InstallationRecoveryTests(unittest.TestCase):
         self.manager.release_accounts = lambda release: False
         self.manager.recover_control = lambda: self.system.events.append("recover-control")
         self.manager.healthy = lambda: self.system.events.append("health")
-        # Windows cannot create symlinks without an elevated token. Linux runs
-        # the actual pointer implementation; Windows substitutes only creation
-        # and reading, while real unlink and persisted transaction I/O remain.
-        if os.name == "nt":
-            def selected(name="current"):
-                path = self.layout.app / name
-                return path.read_text() if path.exists() else None
-            self.manager.selected = selected
-            self.manager.select = lambda release, name="current": (self.layout.app / name).write_text(release)
 
     def pending(self):
         write_json(self.marker, {"format": 1, "phase": "pending", "release": None})

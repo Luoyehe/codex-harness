@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { root } from './snapshot.mjs';
 
 const pins = {
-  linux: ['0.169.0-linux-x64', 'sha512-o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww=='],
-  win32: ['0.169.0-win32-x64', 'sha512-nC+McFU8xRNL9tk3IhxcKdhcyOElwF/HhPO+gzSQCY7yjh3XdzSajX+MYWcHUVHWRHajfwn3/WgJYJK2wS+XWg=='],
+  x64: ['0.169.0-linux-x64', 'sha512-o05NyAOCDygSPRo1yinzxvkRSdmsZyBD9E7mbpmjRanSfM8lypqWtQgEo4XfNkwhuCR2aFu8mlGOsQGFXVbVww=='],
+  arm64: ['0.169.0-linux-arm64', 'sha512-NZ/DaQUpcQmxmqee7Z9uC1rzw3GhSbooawcaTe1LN5Yk+WlinUKGdTXJgClRT/9ogQEEM9TWxYzvxPfj5G/xFg=='],
 };
 /** @param {unknown} pack @param {string} platform @param {string} arch */
 export function validatePackageMetadata(pack, platform = process.platform, arch = process.arch) {
-  const pin = Object.hasOwn(pins, platform) ? pins[platform] : undefined;
-  if (!pin || arch !== 'x64') throw Error('CI native preparation requires a supported x64 runner');
+  const pin = platform === 'linux' && Object.hasOwn(pins, arch) ? pins[arch] : undefined;
+  if (!pin) throw Error('CI native preparation requires a supported Linux runner');
   if (!Array.isArray(pack) || pack.length !== 1) throw Error('Expected exactly one packed official CLI package');
   const entry = pack[0];
   // npm flattens @scope/name to scope-name when choosing the archive filename.
@@ -23,11 +23,9 @@ export function validatePackageMetadata(pack, platform = process.platform, arch 
 }
 
 export function extractArchive(directory, filename) {
-  if (typeof filename !== 'string' || !filename || path.posix.basename(filename) !== filename || path.win32.basename(filename) !== filename || /[:\x00-\x1f]/u.test(filename)) throw Error('Expected an archive basename');
-  // Git Bash may put GNU tar before the Windows bsdtar executable. GNU tar
-  // treats the colon in an absolute D:\\... archive as a remote-host delimiter.
-  // A verified basename and native process cwd work with both implementations.
-  execFileSync('tar', ['-xzf', filename], { cwd: directory, stdio: 'inherit', windowsHide: true });
+  if (typeof filename !== 'string' || !filename || path.posix.basename(filename) !== filename || filename.includes('\\') || /[:\x00-\x1f]/u.test(filename)) throw Error('Expected an archive basename');
+  // Use a verified basename and keep tar in its private extraction directory.
+  execFileSync('tar', ['-xzf', filename], { cwd: directory, stdio: 'inherit' });
 }
 
 export function nativePreparationDirectory(base) {
@@ -65,7 +63,7 @@ export function prepareCiNative(base = root, env = process.env) {
     for (const item of readdirSync(folder, { withFileTypes: true })) {
       const file = path.join(folder, item.name);
       if (item.isDirectory()) visit(file);
-      else if (item.isFile() && item.name === (process.platform === 'win32' ? 'codex.exe' : 'codex')) binaries.push(file);
+      else if (item.isFile() && item.name === 'codex') binaries.push(file);
     }
   }
   visit(path.join(extracted, 'package/vendor'));

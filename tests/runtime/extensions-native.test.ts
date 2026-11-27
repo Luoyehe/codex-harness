@@ -6,11 +6,11 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import { object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 
-const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+const bin = nativeTestBinary();
 // Each scenario verifies several real CLI round trips and native-identity helper processes.
 // Keep each operation's own deadline and allow a minute for the complete sequence.
 const scenarioTimeout = 60_000;
@@ -19,7 +19,7 @@ test('official CLI updates isolated user configuration with version conflicts, r
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
   const home = mkdtempSync(path.join(parent, 'home-')); const codex = path.join(home, 'codex'); const project = path.join(home, 'project'); const temp = path.join(home, 'tmp');
   [codex, project, temp].forEach(folder => mkdirSync(folder));
-  execFileSync('git', ['init', '--quiet', project], { windowsHide: true });
+  execFileSync('git', ['init', '--quiet', project]);
   writeFileSync(path.join(project, 'CLAUDE.md'), '# Isolated import fixture\nPreserve instruction content as user-reviewed source.\n');
   const skills = path.join(project, '.agents', 'skills', 'fixture'); mkdirSync(skills, { recursive: true });
   writeFileSync(path.join(skills, 'SKILL.md'), '---\nname: fixture\ndescription: Isolated extension acceptance fixture.\n---\nNever call an external tool in this fixture.\n');
@@ -38,9 +38,9 @@ test('official CLI updates isolated user configuration with version conflicts, r
     defer(() => runtime?.close());
     const catalog = path.join(home, 'models.json'); writeFileSync(catalog, readFileSync('tests/runtime/fixture-model-catalog.json'));
     writeFileSync(path.join(codex, 'config.toml'), ['model = "harness-loopback-fixture"', 'model_provider = "fixture"', `model_catalog_json = ${JSON.stringify(catalog)}`, 'model_reasoning_effort = "low"', 'check_for_update_on_startup = false', '[model_providers.fixture]', 'name = "Local fixture"', `base_url = "${url}/v1"`, 'wire_api = "responses"', 'requires_openai_auth = false', 'supports_websockets = false', 'request_max_retries = 0'].join('\n'));
-    const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, CODEX_HOME: codex, TEMP: temp, TMP: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1,localhost' };
-    for (const key of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATH']) if (process.env[key]) env[key] = process.env[key];
-    expect(execFileSync(bin, ['--version'], { env, windowsHide: true, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
+    const env: NodeJS.ProcessEnv = { HOME: home, CODEX_HOME: codex, TMPDIR: temp, HTTP_PROXY: url, HTTPS_PROXY: url, ALL_PROXY: url, NO_PROXY: '127.0.0.1,localhost' };
+    if (process.env.PATH) env.PATH = process.env.PATH;
+    expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
     runtime = await RuntimeService.create({ bin, home: codex, workerHome: home, cwd: project, env, dev: true });
     const context = { clientId: 'extensions', operationId: '00000000-0000-0000-0000-000000000001', beforeWrite: () => {} };
     expect(await runtime.call('account/gatewayOAuth/read', {}, context)).toMatchObject({ required: false, status: null });
@@ -179,7 +179,7 @@ test('locates disabled user MCP servers with colliding display names through the
     'check_for_update_on_startup=false', '[mcp_servers.notes-lilac]', 'command="first-local"', 'enabled=false',
     '[mcp_servers.notes-amber]', 'command="second-local"', 'enabled=false',
   ].join('\n'));
-  const runtime = await RuntimeService.create({ bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true });
+  const runtime = await RuntimeService.create({ bin: nativeTestBinary(), home, workerHome: root, cwd: root, env, dev: true });
   const context = { clientId: 'mcp-names', beforeWrite: () => {} };
   const read = async () => object(await runtime.call('mcp/config/read', { cwd: root }, context));
   const update = (params: JsonObject) => runtime.call('mcp/config/write', { ...params, cwd: root }, context);
@@ -216,7 +216,7 @@ test('cold-reloads MCP environment forwarding, header helpers and HTTP-only sett
   const parent = path.resolve('.work/extensions-native'); mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(path.join(parent, 'mcp-fields-')), home = path.join(root, 'codex');
   const env = nativeTestEnvironment({ home: root, codexHome: home, temporary: path.join(root, 'tmp') });
-  const options = { bin: process.env.HARNESS_TEST_CODEX_BIN!, home, workerHome: root, cwd: root, env, dev: true };
+  const options = { bin: nativeTestBinary(), home, workerHome: root, cwd: root, env, dev: true };
   writeFileSync(path.join(home, 'config.toml'), [
     'check_for_update_on_startup=false', '[mcp_servers.stdio]', 'command="inert-fixture"', 'enabled=false',
     'env_vars=["PLAIN_LABEL", {name="STRUCTURED_LABEL", source="local"}]', 'args=["old"]',

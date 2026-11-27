@@ -28,7 +28,7 @@ test('explicit development resources reject escaped roots and linked directories
   const preview = await devResource(root, 'resource/plugin/preview', { path: 'plugin' }, []); expect(preview.files).toMatchObject([{ path: 'file.txt', bytes: 5 }]);
   writeFileSync(path.join(plugin, 'file.txt'), 'second'); expect((await devResource(root, 'resource/plugin/preview', { path: 'plugin' }, [])).revision).not.toBe(preview.revision);
   await expect(devResource(root, 'resource/directory/resolve', { path: '../outside' }, [])).rejects.toHaveProperty('code', 'resource_scope');
-  const outside = mkdtempSync(path.join(parent, 'outside-')); symlinkSync(outside, path.join(root, 'link'), process.platform === 'win32' ? 'junction' : 'dir');
+  const outside = mkdtempSync(path.join(parent, 'outside-')); symlinkSync(outside, path.join(root, 'link'), 'dir');
   await expect(devResource(root, 'resource/directory/resolve', { path: 'link' }, [])).rejects.toHaveProperty('code', 'resource_scope');
   writeFileSync(path.join(outside, 'SKILL.md'), 'private'); await expect(devResource(root, 'resource/skill/read', { path: path.join(outside, 'SKILL.md') }, [])).rejects.toHaveProperty('code', 'resource_scope');
 });
@@ -71,16 +71,13 @@ test('special files are rejected without starving unrelated filesystem work in a
   writeFileSync(path.join(root, 'regular', 'SKILL.md'), 'ordinary skill'); writeFileSync(path.join(root, 'marker.txt'), 'responsive');
   for (let index = 0; index < 4; index++) {
     const filename = path.join(root, `special-${index}`, 'SKILL.md');
-    // POSIX exercises the blocking FIFO case; Windows uses a non-regular
-    // directory because its filesystem does not provide POSIX FIFOs.
-    if (process.platform === 'win32') mkdirSync(filename);
-    else execFileSync('mkfifo', ['--', filename], { timeout: 2000 });
+    execFileSync('mkfifo', [filename], { timeout: 2000 });
   }
   for (const name of ['types', 'dev-resources']) writeFileSync(path.join(root, `${name}.js`), stripTypeScriptTypes(readFileSync(new URL(`../../src/runtime/${name}.ts`, import.meta.url), 'utf8'), { mode: 'transform' }));
   writeFileSync(path.join(root, 'package.json'), '{"type":"module"}');
-  const env: NodeJS.ProcessEnv = { HOME: path.join(root, 'home'), USERPROFILE: path.join(root, 'home'), TEMP: path.join(root, 'tmp'), TMP: path.join(root, 'tmp'), TMPDIR: path.join(root, 'tmp'), UV_THREADPOOL_SIZE: '4' };
-  for (const key of ['PATH', 'SystemRoot', 'WINDIR']) if (process.env[key]) env[key] = process.env[key];
-  const output = execFileSync(process.execPath, [path.resolve('tests/runtime/dev-resources-special-file-fixture.mjs'), path.join(root, 'dev-resources.js')], { cwd: root, env, timeout: 3000, killSignal: 'SIGKILL', maxBuffer: 4096, encoding: 'utf8', windowsHide: true });
+  const env: NodeJS.ProcessEnv = { HOME: path.join(root, 'home'), TMPDIR: path.join(root, 'tmp'), UV_THREADPOOL_SIZE: '4' };
+  if (process.env.PATH) env.PATH = process.env.PATH;
+  const output = execFileSync(process.execPath, [path.resolve('tests/runtime/dev-resources-special-file-fixture.mjs'), path.join(root, 'dev-resources.js')], { cwd: root, env, timeout: 3000, killSignal: 'SIGKILL', maxBuffer: 4096, encoding: 'utf8' });
   const result = JSON.parse(output); expect(result).toMatchObject({ baseline: 'ordinary skill', unrelatedFile: 'responsive' });
-  expect(result.reads).toHaveLength(4); expect(result.reads.every((read: { rejected: boolean; code: string }) => read.rejected && (process.platform === 'win32' ? ['resource_scope', 'EISDIR'].includes(read.code) : read.code === 'resource_scope'))).toBe(true);
+  expect(result.reads).toHaveLength(4); expect(result.reads.every((read: { rejected: boolean; code: string }) => read.rejected && read.code === 'resource_scope')).toBe(true);
 });

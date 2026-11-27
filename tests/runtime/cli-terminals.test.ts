@@ -2,16 +2,17 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
-import type { WindowsProcessJob } from '../../src/runtime/windows-process.js';
+import type { linuxProcessJob } from '../../src/runtime/linux-process.js';
+import { processControllerFixture } from './process-controller-fixture.js';
 import type { NativeOptions, NativeRpc } from '../../src/runtime/native.js';
 import { DeliveryError, object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-const fixture = vi.hoisted(() => ({ jobs: [] as (WindowsProcessJob & { finish(code: number): void; fail(): void })[], commands: [] as string[][], gate: undefined as Promise<void> | undefined }));
-vi.mock('../../src/runtime/windows-process.js', () => ({ windowsProcessJob: async (command: string[]) => {
-  fixture.commands.push(command); await fixture.gate; let finish!: (code: number) => void, fail!: () => void;
-  const exited = new Promise<number>((resolve, reject) => { finish = resolve; fail = () => reject(new Error('Missing independent cleanup proof')); }); void exited.catch(() => {});
-  const job = { command: ['owned-controller'], env: { HARNESS_WINDOWS_PROCESS_COMMAND: 'private' }, started: Promise.resolve(42), exited, finish, fail, signal: vi.fn(async () => {}), dispose: vi.fn() }; fixture.jobs.push(job); return job;
+const fixture = vi.hoisted(() => ({ jobs: [] as ReturnType<typeof processControllerFixture>[], commands: [] as string[][], gate: undefined as Promise<void> | undefined }));
+vi.mock('../../src/runtime/linux-process.js', () => ({ linuxProcessJob: async (...args: Parameters<typeof linuxProcessJob>) => {
+  fixture.commands.push(args[0]);
+  await fixture.gate;
+  const job = processControllerFixture(args[3], args[4]);
+  fixture.jobs.push(job); return job;
 } }));
-vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (await import('../../src/runtime/windows-process.js')).windowsProcessJob }));
 import { RuntimeService } from '../../src/runtime/service.js';
 class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = []; gates = new Map<string, Promise<void>>(); account: JsonValue = { type: 'chatgpt', email: null, planType: 'plus' };

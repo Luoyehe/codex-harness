@@ -7,7 +7,6 @@ import { DeliveryError, jsonBytes, LIMITS, type JsonValue } from './types.js';
 import { APP_VERSION } from './metadata.js';
 import { DiagnosticRedactor } from './redaction.js';
 import { nativeCommand, type NativeLauncher } from './native-launch.js';
-import { windowsJob } from './windows-job.js';
 import { posixNative } from './posix-native.js';
 
 export interface NativeConfig { bin: string; home: string; cwd: string; env: NodeJS.ProcessEnv; dev?: boolean; isolatedGroup?: boolean; args?: string[]; requestTimeoutMs?: number; launcher?: NativeLauncher; catalogProvider?: string }
@@ -34,21 +33,18 @@ export class NativeRpc extends EventEmitter {
   private exitCode: number | null = null;
   private closePromise?: Promise<void>;
   private exitPromise: Promise<void>;
-  private windowsSignal?: () => Promise<void>;
   private posixController = false;
   private redactor: DiagnosticRedactor;
   constructor(readonly config: NativeConfig) {
     super();
     this.redactor = new DiagnosticRedactor(config.env);
     let command = nativeCommand({ ...config, env: { ...config.env, CODEX_HOME: config.home } }, 'app-server');
-    if (process.platform === 'win32' && !config.launcher && (config.dev || config.isolatedGroup)) {
-      const job = windowsJob(command); command = job.command; this.windowsSignal = job.signal;
-    } else if (process.platform !== 'win32' && !config.launcher && (config.dev || config.isolatedGroup)) {
+    if (!config.launcher && (config.dev || config.isolatedGroup)) {
       command = posixNative(command); this.posixController = true;
     }
     // The local POSIX controller alone gets a separate stop pipe. Its native
     // child receives exactly three descriptors; service descriptors stay out.
-    this.child = spawn(command.bin, command.args, { cwd: command.cwd, env: command.env, stdio: this.posixController ? ['pipe', 'pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'], windowsHide: true }) as ChildProcessWithoutNullStreams;
+    this.child = spawn(command.bin, command.args, { cwd: command.cwd, env: command.env, stdio: this.posixController ? ['pipe', 'pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'] }) as ChildProcessWithoutNullStreams;
     this.child.stdio[3]?.on('error', error => this.fail(error));
     this.child.once('exit', code => { this.exitCode = code; this.fail(new Error('Native process exited')); });
     this.exitPromise = new Promise(resolve => {
@@ -247,23 +243,6 @@ export class NativeRpc extends EventEmitter {
   }
   private async stop(): Promise<void> {
     this.fail(new Error('Native runtime closed'));
-    if (this.windowsSignal) {
-      let timeout: NodeJS.Timeout | undefined;
-      try {
-        if (!this.exited && this.exitCode === null) {
-          // Stop is independent of stdin: a blocked native reader cannot delay
-          // the job controller. Natural exit may close the event first.
-          try { await this.windowsSignal(); } catch (error) { if (!this.exited || this.exitCode !== 0) throw error; }
-        }
-        await Promise.race([this.exitPromise, new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error('Windows native cleanup was not confirmed')), 6000); })]);
-        if (this.exitCode !== 0) throw new Error('Windows native launcher exited without confirming cleanup');
-      } catch (error) {
-        // Closing the sole job-owning process handle kills every remaining job
-        // member even if its controller failed. Do not call that an acknowledgement.
-        this.child.kill(); throw error;
-      } finally { if (timeout) clearTimeout(timeout); }
-      return;
-    }
     if (this.config.launcher) {
       // The root-owned launcher supervises the different-UID process tree. A zero exit is its cleanup acknowledgement.
       // fail() has classified written work as unknown and queued work as

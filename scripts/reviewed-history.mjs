@@ -54,7 +54,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (source.status !== 'clean') throw Error('Current source scan is not clean');
     const history = await auditGitObjects(root);
     writeFileSync(path.join(root, '.work/history-security-raw.json'), JSON.stringify(history, null, 2) + '\n');
-    const entries = execFileSync('git', ['ls-tree', '-r', '--format=%(objectname)', 'HEAD'], { cwd: root, encoding: 'utf8', windowsHide: true });
+    const entries = execFileSync('git', ['ls-tree', '-r', '--format=%(objectname)', 'HEAD'], { cwd: root, encoding: 'utf8' });
     const result = reviewHistory(history, new Set(entries.trim().split('\n')));
     writeFileSync(path.join(root, '.work/history-security-reviewed.json'), JSON.stringify(result, null, 2) + '\n');
     console.log(JSON.stringify(result));

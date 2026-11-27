@@ -53,7 +53,7 @@ def table_name(layout):
 def private_file(path: Path, *, limit=256 * 1024):
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= limit and
-            (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
+            (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
             "Proxy input must be a bounded root-owned mode0600 regular file", "integrity")
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
     with os.fdopen(fd, "rb") as source:
@@ -153,7 +153,7 @@ def _save_configuration(layout, document):
         for directory in (layout.config / "proxy", layout.config / "proxy/configurations", target.parent):
             if directory.exists() or directory.is_symlink():
                 info = directory.lstat()
-                require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
+                require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
                         "Unsafe proxy configuration directory", "integrity")
             else:
                 mkdir(directory, 0o700)
@@ -538,7 +538,7 @@ def status(manager):
 def helper(layout, action):
     from .manager import Manager
     allowed = {"proxy-core-check": ("proxy",), "proxy-routes-start": ("proxy-routes",), "proxy-ready": ("worker", "gateway")}
-    require(action in allowed and hasattr(os, "geteuid") and os.geteuid() == 0 and
+    require(action in allowed and os.geteuid() == 0 and
             current_cgroup() in ["system.slice/" + layout.unit(role) for role in allowed[action]],
             "Proxy helpers require their fixed root systemd service context", "permission")
     manager = Manager(layout)

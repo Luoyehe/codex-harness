@@ -92,13 +92,13 @@ def verify_system_layers(layout: Layout) -> dict:
     record = directory / "host-layers.json"
     details = record.lstat()
     require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= HOST_LIMIT and
-            (os.name != "posix" or details.st_uid == 0 and stat.S_IMODE(details.st_mode) == 0o600), "Unsafe host layer fingerprint", "integrity")
+            (details.st_uid == 0 and stat.S_IMODE(details.st_mode) == 0o600), "Unsafe host layer fingerprint", "integrity")
     require(read_json(record) == manifest, "Host Codex policy changed; refresh the configuration layer before starting", "configuration_conflict")
     for name, content in expected.items():
         path = directory / name
         details = path.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_nlink == 1 and details.st_size <= LAYER_LIMIT and
-                (os.name != "posix" or details.st_uid == 0 and details.st_gid == config["workerGid"] and stat.S_IMODE(details.st_mode) == 0o640) and
+                (details.st_uid == 0 and details.st_gid == config["workerGid"] and stat.S_IMODE(details.st_mode) == 0o640) and
                 path.read_bytes() == content, "Generated system provider layer changed", "integrity")
     require(os.readlink(layout.config / "providers/current") == selected, "Provider changed during host policy check", "configuration_conflict")
     return {"providerConfigLayer": LAYER_MODE, "providerRevision": selected, "hostPolicyVerified": True}
@@ -189,7 +189,7 @@ def _ancestors(layout: Layout, directory: Path) -> None:
         except FileNotFoundError:
             info = None
         if info is not None:
-            require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and not info.st_mode & 0o022),
                     "Host Codex configuration has an unsafe ancestor", "configuration_conflict")
         if current == layout.root:
             break
@@ -204,7 +204,7 @@ def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = Fal
     while parent != layout.root:
         if parent.exists():
             info = parent.stat()
-            require(os.name != "posix" or info.st_mode & 0o001 or info.st_gid == worker_gid and info.st_mode & 0o010,
+            require(info.st_mode & 0o001 or info.st_gid == worker_gid and info.st_mode & 0o010,
                     "Host Codex configuration parent is not native-traversable", "configuration_conflict")
         parent = parent.parent
     documents, records = {}, {}
@@ -216,7 +216,7 @@ def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = Fal
             documents[name], records[name] = {}, {"exists": False}
             continue
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= HOST_LIMIT and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022 and
+                (info.st_uid == 0 and not info.st_mode & 0o022 and
                  (info.st_mode & 0o004 or info.st_gid == worker_gid and info.st_mode & 0o040)),
                 "Host Codex configuration must be ordinary, immutable to native, and already native-readable", "configuration_conflict")
         fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
@@ -225,7 +225,7 @@ def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = Fal
             require((info.st_dev, info.st_ino) == (before.st_dev, before.st_ino), "Host configuration changed during inspection", "configuration_conflict")
             require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= HOST_LIMIT,
                     "Host configuration type changed during inspection", "configuration_conflict")
-            require(os.name != "posix" or before.st_uid == 0 and not before.st_mode & 0o022 and
+            require(before.st_uid == 0 and not before.st_mode & 0o022 and
                     (before.st_mode & 0o004 or before.st_gid == worker_gid and before.st_mode & 0o040),
                     "Host configuration permissions changed during inspection", "configuration_conflict")
             data = bytearray()
@@ -234,7 +234,7 @@ def read_host_layers(layout: Layout, worker_gid: int, *, synchronize: bool = Fal
                 if not block:
                     break
                 data.extend(block)
-            if synchronize and os.name == "posix":
+            if synchronize:
                 # A prior empty-target creation may have stopped before its
                 # file fsync. Flush the same verified descriptor we read, with
                 # no writes/chmod/chown to an administrator's existing policy.
@@ -267,8 +267,7 @@ def ensure_mount_targets(layout: Layout, expected: dict, *, worker_gid: int = 0)
         except FileExistsError as exc:
             raise DeployError("configuration_conflict", "Host mount target appeared during preparation") from exc
         try:
-            if os.name == "posix":
-                os.fchmod(fd, 0o644)
+            os.fchmod(fd, 0o644)
             os.fsync(fd)
         finally:
             os.close(fd)

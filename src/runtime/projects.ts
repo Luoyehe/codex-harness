@@ -4,24 +4,22 @@ import { constants } from 'node:fs';
 import { createNativeProject, resolveNativeProject, type LaunchConfig } from './native-launch.js';
 import { DeliveryError, jsonBytes, string, type JsonObject } from './types.js';
 
-/** Production uses Linux path syntax regardless of the supervisor test platform. */
-export function projectPath(value: unknown, paths = path.posix): string {
+export function projectPath(value: unknown): string {
   const requested = string(value, 'project path', 4096);
   if (/[\u0000-\u001f\u007f]/.test(requested)) throw new DeliveryError('invalid_project_directory', '项目路径不能包含控制字符。');
-  const normalized = paths.normalize(requested), root = paths.parse(normalized).root;
-  return normalized.length > root.length ? normalized.replace(paths === path.win32 ? /[\\/]+$/ : /\/+$/, '') : normalized;
+  const normalized = path.posix.normalize(requested), root = path.posix.parse(normalized).root;
+  return normalized.length > root.length ? normalized.replace(/\/+$/, '') : normalized;
 }
 
 export async function resolveProject(config: LaunchConfig, requested: string, nativeHome = config.cwd): Promise<JsonObject> {
-  const paths = !config.launcher && process.platform === 'win32' ? path.win32 : path.posix;
-  const selected = projectPath(requested, paths);
+  const selected = projectPath(requested);
   jsonBytes({ path: selected }, 4096);
   if (config.launcher) return resolveNativeProject(config, selected);
   try {
-    const target = paths.isAbsolute(selected) ? selected : path.resolve(nativeHome, 'projects', selected);
+    const target = path.posix.isAbsolute(selected) ? selected : path.resolve(nativeHome, 'projects', selected);
     const resolved = await realpath(target), info = await stat(resolved);
     if (!info.isDirectory()) throw new DeliveryError('project_not_directory', '所选路径不是目录。');
-    await access(resolved, constants.R_OK | (process.platform === 'win32' ? 0 : constants.X_OK));
+    await access(resolved, constants.R_OK | constants.X_OK);
     return { path: resolved, name: path.basename(resolved) || resolved };
   } catch (error) {
     if (error instanceof DeliveryError) throw error;
@@ -35,9 +33,8 @@ export async function resolveProject(config: LaunchConfig, requested: string, na
 }
 
 export async function createProject(config: LaunchConfig, nativeHome: string, requested: unknown, beforeWrite: () => void): Promise<JsonObject> {
-  const paths = !config.launcher && process.platform === 'win32' ? path.win32 : path.posix;
-  const directory = projectPath(requested, paths), absolute = paths.isAbsolute(directory);
-  if (absolute && directory === paths.parse(directory).root) throw new DeliveryError('invalid_project_directory', '根目录已存在，不能作为新项目创建。');
+  const directory = projectPath(requested), absolute = path.posix.isAbsolute(directory);
+  if (absolute && directory === path.posix.parse(directory).root) throw new DeliveryError('invalid_project_directory', '根目录已存在，不能作为新项目创建。');
   // The fixed helper reads at most 4096 bytes, including JSON syntax/escaping.
   jsonBytes({ directory }, 4096);
   beforeWrite();
@@ -53,7 +50,7 @@ export async function createProject(config: LaunchConfig, nativeHome: string, re
     }
     checkingParent = true;
     if (!(await stat(path.dirname(project))).isDirectory()) throw new DeliveryError('project_parent_unavailable', '父路径不是目录，无法创建项目。');
-    if (process.platform !== 'win32') await access(path.dirname(project), constants.X_OK);
+    await access(path.dirname(project), constants.X_OK);
     checkingParent = false;
     await mkdir(project, { mode: 0o700 }); created = true;
     const resolved = await realpath(project);

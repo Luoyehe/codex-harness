@@ -12,15 +12,15 @@ function home() {
 test('native test environments discard inherited credentials, config loaders and proxy bypasses', () => {
   const options = home();
   const env = nativeTestEnvironment(options, {
-    Path: 'fixture-system-path', SystemRoot: 'fixture-system-root',
-    HOME: 'inherited-home', USERPROFILE: 'inherited-profile', CODEX_HOME: 'inherited-codex', APPDATA: 'inherited-appdata', TMPDIR: 'inherited-temporary',
+    PATH: 'fixture-system-path',
+    HOME: 'inherited-home', CODEX_HOME: 'inherited-codex', TMPDIR: 'inherited-temporary',
     OPENAI_API_KEY: 'inherited-key', HARNESS_PROVIDER_API_KEY: 'inherited-provider', AWS_PROFILE: 'inherited-profile', PERSONAL_TEST_SETTING: 'inherited-value',
     NODE_OPTIONS: '--import inherited-code', PYTHONSTARTUP: 'inherited-code', GIT_CONFIG_GLOBAL: 'inherited-config',
     HTTP_PROXY: 'http://external.invalid', https_proxy: 'http://external.invalid', All_Proxy: 'http://external.invalid', NO_PROXY: '*', no_proxy: '*',
   });
-  expect(env).toMatchObject({ HOME: options.home, USERPROFILE: options.home, CODEX_HOME: options.codexHome, TEMP: options.temporary, TMP: options.temporary, TMPDIR: options.temporary,
-    APPDATA: path.join(options.home, 'appdata'), LOCALAPPDATA: path.join(options.home, 'localappdata'), PATH: 'fixture-system-path', SystemRoot: 'fixture-system-root',
-    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null',
+  expect(env).toMatchObject({ HOME: options.home, CODEX_HOME: options.codexHome, TMPDIR: options.temporary,
+    PATH: 'fixture-system-path',
+    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
     HTTP_PROXY: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost,::1,[::1]' });
   for (const name of ['OPENAI_API_KEY', 'HARNESS_PROVIDER_API_KEY', 'AWS_PROFILE', 'PERSONAL_TEST_SETTING', 'NODE_OPTIONS', 'PYTHONSTARTUP', 'https_proxy', 'All_Proxy', 'no_proxy']) expect(env[name]).toBeUndefined();
 });

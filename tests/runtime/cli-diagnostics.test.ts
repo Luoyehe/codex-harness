@@ -4,16 +4,17 @@ import * as workspace from '../../src/runtime/workspace.js';
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
-import type { WindowsProcessJob } from '../../src/runtime/windows-process.js';
+import type { linuxProcessJob } from '../../src/runtime/linux-process.js';
+import { processControllerFixture } from './process-controller-fixture.js';
 import type { NativeOptions, NativeRpc } from '../../src/runtime/native.js';
 import { object, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-const fixture = vi.hoisted(() => ({ jobs: [] as (WindowsProcessJob & { finish(code: number): void; fail(): void })[], commands: [] as string[][], gate: undefined as Promise<void> | undefined }));
-vi.mock('../../src/runtime/windows-process.js', () => ({ windowsProcessJob: async (command: string[]) => {
-  fixture.commands.push(command); await fixture.gate; let finish!: (code: number) => void, fail!: () => void;
-  const exited = new Promise<number>((resolve, reject) => { finish = resolve; fail = () => reject(new Error('No cleanup proof')); }); void exited.catch(() => {});
-  const job = { command: ['owned-controller'], env: {}, started: Promise.resolve(42), exited, finish, fail, signal: vi.fn(async () => {}), dispose: vi.fn() }; fixture.jobs.push(job); return job;
+const fixture = vi.hoisted(() => ({ jobs: [] as ReturnType<typeof processControllerFixture>[], commands: [] as string[][], gate: undefined as Promise<void> | undefined }));
+vi.mock('../../src/runtime/linux-process.js', () => ({ linuxProcessJob: async (...args: Parameters<typeof linuxProcessJob>) => {
+  fixture.commands.push(args[0]);
+  await fixture.gate;
+  const job = processControllerFixture(args[3], args[4]);
+  fixture.jobs.push(job); return job;
 } }));
-vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (await import('../../src/runtime/windows-process.js')).windowsProcessJob }));
 import { RuntimeService } from '../../src/runtime/service.js';
 class Native extends EventEmitter {
   connected = true; budget = { pending: 0, retainedBytes: 0 }; calls: { method: string; params: JsonValue }[] = [];
@@ -26,7 +27,7 @@ function setup() {
   const cwd = mkdtempSync(path.join(parent, 'home-')), native = new Native(), events: RuntimeEvent[] = [];
   const service = new RuntimeService({ bin: process.execPath, home: cwd, workerHome: cwd, cwd, env: { HARNESS_PROVIDER_API_KEY: 'fixture-private-key' } }, native as unknown as NativeRpc); services.push(service); service.on('event', event => events.push(event));
   const notify = (method: string, params: JsonValue) => native.emit('notification', { method, params });
-  return { cwd, service, native, events, run: () => service.call('diagnostics/cli/run', { kind: 'models-bundled' }, owner), handle: () => object(native.calls.at(-1)!.params).processHandle!, output: (processHandle: JsonValue, text: string, capReached = false, stream = 'stdout') => notify('process/outputDelta', { processHandle, deltaBase64: Buffer.from(text).toString('base64'), capReached, stream }), exit: (processHandle: JsonValue) => notify('process/exited', { processHandle, exitCode: 0, stdout: '', stderr: '', stdoutCapReached: false, stderrCapReached: false }) };
+  return { cwd, service, native, events, run: () => service.call('diagnostics/cli/run', { kind: 'models-bundled' }, owner), handle: () => object(native.calls.at(-1)!.params).processHandle!, output: (_handle: JsonValue, text: string, capped = false, stream: 'stdout' | 'stderr' = 'stdout') => fixture.jobs[0]!.output(stream, Buffer.from(text).toString('base64'), capped), exit: (processHandle: JsonValue) => notify('process/exited', { processHandle, exitCode: 0, stdout: '', stderr: '', stdoutCapReached: false, stderrCapReached: false }) };
 }
 beforeEach(() => { fixture.jobs.length = 0; fixture.commands.length = 0; fixture.gate = undefined; });
 afterEach(async () => { await Promise.all(services.splice(0).map(service => service.close())); vi.useRealTimers(); });

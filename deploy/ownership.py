@@ -4,7 +4,6 @@ An instance.json file alone is not evidence that initialization claimed a unit.
 Exact managed contents also recognize installations made before this check was
 introduced, without trusting a new ownership record written after a collision.
 """
-import os
 import stat
 
 from .common import Layout, require
@@ -24,7 +23,7 @@ def present(path):
 def regular(path, expected: set[bytes]) -> None:
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
-            (info.st_uid == 0 and not info.st_mode & 0o022 if os.name == 'posix' else True) and
+            info.st_uid == 0 and not info.st_mode & 0o022 and
             path.read_bytes() in expected, "Service definition is not owned by this instance", "ownership_conflict")
 
 
@@ -68,7 +67,7 @@ def require_owned(layout: Layout, config: dict, *, allow_absent: bool = False,
         dropins = layout.units / (unit + ".d")
         if present(dropins):
             info = dropins.lstat()
-            require(stat.S_ISDIR(info.st_mode) and (os.name != 'posix' or info.st_uid == 0 and not info.st_mode & 0o022),
+            require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and not info.st_mode & 0o022),
                     "Unsafe service drop-in directory", "ownership_conflict")
             allowed_dropins = {
                 "90-codex-harness-control-maintenance.conf": f"[Unit]\nConditionPathExists=!{layout.config / 'control-maintenance' / role}\n".encode(),

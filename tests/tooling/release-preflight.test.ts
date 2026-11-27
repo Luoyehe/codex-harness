@@ -9,7 +9,7 @@ import { snapshot } from '../../scripts/snapshot.mjs';
 const fixtures: string[] = [], fixtureRoot = path.resolve('.work/release-preflight-tests');
 const authorizationPath = 'verification/audit-evidence/release-closeout/authorization.json';
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
-const git = (base: string, ...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const git = (base: string, ...args: string[]) => execFileSync('git', args, { cwd: base, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 function put(base: string, name: string, value: string) { const file = path.join(base, name); mkdirSync(path.dirname(file), { recursive: true }); writeFileSync(file, value); }
 function commit(base: string, message: string) {
   git(base, 'add', '.'); git(base, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', message);
@@ -54,7 +54,7 @@ test('preflight binds main, PR and merge queue plans and reusable build outputs 
   expect(result.plans.pullRequest).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase, selection: { status: 'selected' } });
   expect(result.triggers.mergeGroup).toBe(true);
   expect(result.plans.mergeGroup).toMatchObject({ mode: 'authorized-full', files: [...files].sort(), baseCommit: options.pushBase });
-  expect(result.plans.pullRequest.targets).toEqual(['linux', 'windows', 'linux-root']);
+  expect(result.plans.pullRequest.targets).toEqual(['linux', 'linux-root']);
   expect(existsSync(path.join(base, 'dist/stale.js'))).toBe(false);
   const calls = readFileSync(path.join(base, '.work/build-invocations.txt'), 'utf8');
   expect(calls.trim().split('\n').map(line => JSON.parse(line))).toEqual([['--noEmit', '-p', 'web/tsconfig.json'], ['-p', 'tsconfig.server.json'], ['build', '--config', 'web/vite.config.ts']]);

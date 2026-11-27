@@ -211,7 +211,6 @@ it('offers only native projects that include current cwd and never changes the t
     threadId: 'thread-one',
     nativeProjectId: 'native-folder',
   });
-  expect(sameRoot('D:\\work\\project', 'd:/work/project/')).toBe(true);
   expect(sameRoot('/work/Project', '/work/project')).toBe(false);
 });
 it.each([
@@ -221,12 +220,6 @@ it.each([
   ['/srv/Project', '/srv/project', false],
   ['/', '', false],
   ['/', '///', true],
-  ['D:\\', 'd:/', true],
-  ['D:/', 'D:', false],
-  ['D:\\work\\project', 'd:/WORK/project/', true],
-  ['\\\\Server\\Share\\Work', '\\\\server/share/work/', true],
-  ['\\\\Server\\Share', '\\\\server/share/', true],
-  ['\\\\server\\share\\work', '//server/share/work', false],
 ])('compares explicit path identities %s and %s as %s', (left, right, equal) => {
   expect(sameRoot(left as string, right as string)).toBe(equal);
   expect(sameRoot(right as string, left as string)).toBe(equal);
@@ -235,8 +228,6 @@ it.each([
 const rootCases = [
   ['POSIX literal backslash', '/srv/alpha\\beta', '/srv/alpha\\beta/', '/srv/alpha/beta'],
   ['POSIX root', '/', '///', '/srv'],
-  ['Windows drive', 'D:\\work\\project', 'd:/WORK/project/', 'd:/work/other'],
-  ['Windows UNC', '\\\\Server\\Share\\Work', '\\\\server/share/work/', '//server/share/work'],
 ] as const;
 it.each(rootCases)('replacing %s directory scope submits only its matching registered project ID', async (_kind, rootPath, matchingPath, unrelatedPath) => {
   const matching = { id: 'matching', name: 'Matching directory', cwd: matchingPath };

@@ -1,14 +1,12 @@
 """Request admission/lifetime faults using isolated files and a controlled unit model.
 
 Root UID enforcement is exercised separately in root/test_request_spool.py.
-Windows substitutes flock with nonblocking locks; Linux uses the actual flock.
+The tests use the actual nonblocking file lock.
 """
-import contextlib
 import io
 import json
 import os
 import tempfile
-import threading
 import unittest
 import uuid
 from pathlib import Path
@@ -43,11 +41,10 @@ class FixtureSpool(RequestSpool):
         info = path.lstat()
         # Only replace UID in the unprivileged fixture. File type, link count,
         # size and private permission checks still use real filesystem values.
-        if os.name == "posix":
-            values = list(info)
-            values[4] = 0
-            with patch.object(Path, "lstat", return_value=os.stat_result(values)):
-                return super().ordinary(path, directory=directory)
+        values = list(info)
+        values[4] = 0
+        with patch.object(Path, "lstat", return_value=os.stat_result(values)):
+            return super().ordinary(path, directory=directory)
         return super().ordinary(path, directory=directory)
 
 
@@ -71,21 +68,6 @@ class RequestSpoolTests(unittest.TestCase):
         self.manager.require_service_ownership = Mock()
         self.manager.providers.read = Mock(return_value=self.current)
         self.manager.restart = Mock(return_value={"restarted": True})
-        if os.name != "posix":
-            locks = {}
-            @contextlib.contextmanager
-            def exclusive(path):
-                lock = locks.setdefault(str(path), threading.Lock())
-                if not lock.acquire(blocking=False):
-                    raise DeployError("busy", "fixture lock held")
-                try:
-                    yield
-                finally:
-                    lock.release()
-            for target in ("deploy.cli.exclusive", "deploy.requests.exclusive"):
-                item = patch(target, exclusive)
-                item.start()
-                self.addCleanup(item.stop)
 
     def unit(self, ident):
         return f"codex-harness-fixture-manage-{ident}.service"

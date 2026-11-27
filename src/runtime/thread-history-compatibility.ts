@@ -16,7 +16,7 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
     const here = path.dirname(fileURLToPath(import.meta.url));
     const root = [path.resolve(here, '../..'), path.resolve(here, '../../..')].find(root => existsSync(path.join(root, 'deploy', 'thread_history.py')));
     if (!root) throw new DeliveryError('history_compatibility_unavailable', '找不到历史兼容检查工具。');
-    return { bin: config.env.HARNESS_DEV_PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3'),
+    return { bin: config.env.HARNESS_DEV_PYTHON ?? 'python3',
       args: ['-B', '-m', 'deploy.thread_history', '--home', config.home], cwd: root, env: config.env };
   })();
     const attachmentProof = ['attachment-index', 'attachment-inspect'].includes(String(request.action));
@@ -27,7 +27,7 @@ export async function historyHelper(config: NativeConfig, request: JsonObject, m
     return new Promise((resolve, reject) => {
       // Do not dispatch a helper after the operation's caller/epoch was revoked.
       try { if (mutating) beforeWrite?.(); } catch (error) { reject(error); return; }
-      const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env, windowsHide: true,
+      const child = execFile(command.bin, command.args, { cwd: command.cwd, env: command.env,
         timeout: mutating || request.action === 'attachment-index' ? 60000 : 15000, maxBuffer, encoding: 'utf8' }, (error, stdout) => {
         try {
           const result = object(JSON.parse(stdout));

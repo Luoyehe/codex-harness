@@ -10,14 +10,14 @@ import { Ledger } from '../../src/core/ledger.js';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { NativeRpc } from '../../src/runtime/native.js';
 import { object, type JsonObject, type RuntimeEvent } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 
 test('official 0.169.0 isolated account, probes beyond cache capacity with verified process exit, and interactive PTY without inference', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const root = path.resolve('.work/runtime-smoke'); mkdirSync(root, { recursive: true }); const workerHome = mkdtempSync(path.join(root, 'home-')); const home = path.join(workerHome, 'codex'); mkdirSync(home);
   const temporary = path.join(workerHome, 'tmp'); mkdirSync(temporary);
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary });
-  const version = execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }); expect(version.trim()).toBe('codex-cli 0.169.0');
+  const version = execFileSync(bin, ['--version'], { env, encoding: 'utf8' }); expect(version.trim()).toBe('codex-cli 0.169.0');
   const configText = 'check_for_update_on_startup = false\n'; writeFileSync(path.join(home, 'config.toml'), configText);
   const service = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const events: RuntimeEvent[] = []; service.on('event', event => events.push(event));
   const stopped = new Set<NativeRpc>(); const originalClose = NativeRpc.prototype.close;
@@ -47,13 +47,13 @@ test('official 0.169.0 isolated account, probes beyond cache capacity with verif
     const terminal = object(await service.call('terminal/open', { cwd: workerHome, rows: 24, cols: 80 }, { clientId: 'smoke' })); expect(typeof terminal.terminalId).toBe('string');
     await service.call('terminal/resize', { terminalId: terminal.terminalId!, rows: 30, cols: 100 }, { clientId: 'smoke' });
     const ended = new Promise<void>((resolve, reject) => { const timeout = setTimeout(() => reject(new Error('PTY did not exit')), 10000); const handler = (event: RuntimeEvent): void => { if (event.type === 'terminal' && object(event.data).terminalId === terminal.terminalId && object(event.data).type === 'exit') { clearTimeout(timeout); service.off('event', handler); resolve(); } }; service.on('event', handler); });
-    await service.call('terminal/write', { terminalId: terminal.terminalId!, text: process.platform === 'win32' ? 'echo runtime-smoke-ok\r\nexit\r\n' : 'printf runtime-smoke-ok\\n\nexit\n' }, { clientId: 'smoke' }); await ended;
+    await service.call('terminal/write', { terminalId: terminal.terminalId!, text: 'printf runtime-smoke-ok\\n\nexit\n' }, { clientId: 'smoke' }); await ended;
     const output = events.filter(event => event.type === 'terminal' && object(event.data).type === 'output').map(event => Buffer.from(String(object(event.data).deltaBase64), 'base64').toString('utf8')).join(''); expect(output).toContain('runtime-smoke-ok');
   } finally { await service.close(); closeSpy.mockRestore(); }
 }, 60000);
 
 test('official CLI reports and logs out a shared ChatGPT account while an API-key provider is default', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const base = path.resolve('.work/provider-account-native'); mkdirSync(base, { recursive: true });
   const workerHome = mkdtempSync(path.join(base, 'case-')), home = path.join(workerHome, 'codex'), temporary = path.join(workerHome, 'tmp');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary, fixtureApiKey: 'local-api-fixture' });
@@ -98,7 +98,7 @@ test('official CLI reports and logs out a shared ChatGPT account while an API-ke
 }, 45000);
 
 test('official CLI routes simultaneous equal model IDs to separate providers and resumes after catalog generation replacement', async () => {
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const base = path.resolve('.work/provider-native'); mkdirSync(base, { recursive: true });
   const workerHome = mkdtempSync(path.join(base, 'case-')), home = path.join(workerHome, 'codex'), temporary = path.join(workerHome, 'tmp');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary });

@@ -4,7 +4,7 @@ import path from 'node:path';
 const allowedParents = new Set(['test-homes', 'go-test-runs']);
 function owned(directory) {
   const absolute = path.resolve(directory), parent = path.dirname(absolute);
-  const rootTemporary = process.platform !== 'win32' && parent === realpathSync('/tmp') && /^harness-test-root-[A-Za-z0-9]+$/.test(path.basename(absolute));
+  const rootTemporary = parent === realpathSync('/tmp') && /^harness-test-root-[A-Za-z0-9]+$/.test(path.basename(absolute));
   if (!rootTemporary && (!allowedParents.has(path.basename(parent)) || path.basename(path.dirname(parent)) !== '.work' || !/^run-[A-Za-z0-9]+$/.test(path.basename(absolute)))) throw Error('Unrecognized test workspace');
   if (realpathSync(parent) !== parent || realpathSync(absolute) !== absolute || !lstatSync(absolute).isDirectory() || lstatSync(absolute).isSymbolicLink()) throw Error('Test workspace must be an ordinary local directory');
   if (rootTemporary && lstatSync(absolute).uid !== process.getuid()) throw Error('Test workspace owner changed');

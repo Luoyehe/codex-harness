@@ -139,8 +139,6 @@ def dependency_lock(path: Path) -> str:
         require(stat.S_ISREG(before.st_mode), "Lock must be an ordinary file", "unsafe_path")
         data = stream.read(MAX_LOCK_BYTES + 1)
         require(len(data) <= MAX_LOCK_BYTES, "Lock file exceeds byte budget", "budget")
-        # Compare each metadata API with itself: Windows stat/fstat ctime
-        # fields differ, while device/inode still identify the same file.
         require(before.st_size == len(data) and os.path.samestat(selected, before) and
                 stable_identity(before) == stable_identity(os.fstat(stream.fileno())) and
                 stable_identity(selected) == stable_identity(path.stat()),
@@ -242,8 +240,7 @@ def publish_release(layout: Layout, export: Path, manifest: dict) -> str:
     record = layout.config / "manifests" / (release + ".json")
     if target.exists() or target.is_symlink():
         details = target.lstat()
-        require(stat.S_ISDIR(details.st_mode) and (os.name != "posix" or
-                (details.st_uid == 0 and not details.st_mode & 0o022)), "Unsafe existing release directory", "integrity")
+        require(stat.S_ISDIR(details.st_mode) and details.st_uid == 0 and not details.st_mode & 0o022, "Unsafe existing release directory", "integrity")
         require(inspect_tree(target, root_owned=True) == manifest, "Existing release content changed", "integrity")
         if record.exists():
             require(read_json(record, 64 * 1024**2) == manifest, "Existing release manifest changed", "integrity")

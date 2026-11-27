@@ -7,7 +7,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type JsonObject, type JsonValue, type RuntimeEvent } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 
 function stream(res: ServerResponse, item: JsonObject, number: number) {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
@@ -25,9 +25,9 @@ test('official CLI command approval keeps invalid answers pending, cancels witho
   const base = path.resolve('.work/approval-native'); mkdirSync(base, { recursive: true }); const root = mkdtempSync(path.join(base, 'run-'));
   const home = path.join(root, 'codex'), project = path.join(root, 'project'), temporary = path.join(root, 'tmp');
   for (const directory of [home, project, temporary]) mkdirSync(directory);
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   const env = nativeTestEnvironment({ home: root, codexHome: home, temporary, fixtureApiKey: 'local-protocol-fixture' });
-  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8', windowsHide: true }).trim()).toBe('codex-cli 0.169.0');
+  expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
   let requests = 0; let nextTool = true; const errors: string[] = []; const received: JsonObject[] = [];
   const provider = createServer((req, res) => { void (async () => {
     if (req.method !== 'POST' || req.url !== '/v1/responses') throw new Error('Unexpected provider route');

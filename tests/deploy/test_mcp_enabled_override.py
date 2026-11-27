@@ -9,7 +9,6 @@ from deploy import mcp_enabled_override as switches
 from deploy.common import DeployError
 
 
-@unittest.skipUnless(os.name == "posix", "native MCP launcher filesystem")
 class McpEnabledOverrides(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
@@ -154,7 +153,6 @@ class McpEnabledOverrides(unittest.TestCase):
         self.assertEqual(switches.launch_arguments(self.home, system=self.system), ["-c", 'mcp_servers={"vision" = {enabled = false}}'])
 
 
-@unittest.skipUnless(os.name == "posix", "native provider control filesystem")
 class ManagedSwitchLifecycle(unittest.TestCase):
     def setUp(self):
         from unittest.mock import Mock, patch

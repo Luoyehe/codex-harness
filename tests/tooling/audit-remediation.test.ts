@@ -19,14 +19,15 @@ function put(base: string, name: string, content: string) { const full = path.jo
 afterEach(() => { for (const base of fixtures.splice(0)) rmSync(base, { recursive: true, force: true }); });
 
 test.each(['failure', 'cancelled', 'skipped', undefined])('coverage rejects planning result %s', result => {
-  expect(() => requireSuccessfulJobs({ plan: { result }, standard: { result: 'skipped' }, root_deploy: { result: 'skipped' } })).toThrow();
+  expect(() => requireSuccessfulJobs({ plan: { result }, standard: { result: 'skipped' }, macos_development: { result: 'skipped' }, root_deploy: { result: 'skipped' } })).toThrow();
 });
 test('coverage checks selected jobs while preserving an explicitly empty successful plan', () => {
-  const needs = { plan: { result: 'success', outputs: { standard: 'false', root: 'false' } }, standard: { result: 'skipped' }, root_deploy: { result: 'skipped' } };
+  const needs = { plan: { result: 'success', outputs: { standard: 'false', root: 'false' } }, standard: { result: 'skipped' }, macos_development: { result: 'skipped' }, root_deploy: { result: 'skipped' } };
   expect(requireSuccessfulJobs(needs)).toBe(true);
   needs.plan.outputs.standard = 'true';
   for (const result of ['skipped', 'failure', 'cancelled']) { needs.standard.result = result; expect(() => requireSuccessfulJobs(needs)).toThrow(); }
-  needs.standard.result = 'success'; expect(requireSuccessfulJobs(needs)).toBe(true);
+  needs.standard.result = 'success'; expect(() => requireSuccessfulJobs(needs)).toThrow();
+  needs.macos_development.result = 'success'; expect(requireSuccessfulJobs(needs)).toBe(true);
   delete (needs.plan.outputs as Partial<typeof needs.plan.outputs>).root; expect(() => requireSuccessfulJobs(needs)).toThrow();
 });
 
@@ -60,9 +61,8 @@ test('actual Vitest executes exactly the selected colocated test', () => {
   expect(runVitest(['web/components/select model.test.ts'], base)).toMatchObject({ status: 'passed', cases: [{ file: 'web/components/select model.test.ts', status: 'passed' }] });
 });
 test('Git executable mode is portable without hiding POSIX working-tree chmod changes', () => {
-  expect(sourceExecutableBits({ mode: 0o666 }, '100755', 'win32')).toBe(0o111);
-  expect(sourceExecutableBits({ mode: 0o755 }, '100755', 'linux')).toBe(0o111);
-  expect(sourceExecutableBits({ mode: 0o644 }, '100755', 'linux')).toBe(0);
+  expect(sourceExecutableBits({ mode: 0o755 })).toBe(0o111);
+  expect(sourceExecutableBits({ mode: 0o644 })).toBe(0);
 });
 test('clean local build removes obsolete output and preserves source', () => {
   const base = fixture(); put(base, 'src/still.ts', 'source'); put(base, 'dist/src/removed.js', 'obsolete');
@@ -76,17 +76,17 @@ test('the local build entrypoint invokes the installed compiler path and removes
   put(base, 'node_modules/typescript/package.json', '{"name":"typescript","version":"7.0.2","bin":{"tsc":"./commands/compiler.cjs"}}');
   put(base, 'node_modules/typescript/commands/compiler.cjs', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/partial.js','partial');process.exit(1);");
   put(base, 'dist/stale.js', 'old output');
-  expect(() => execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, windowsHide: true, stdio: 'pipe' })).toThrow();
+  expect(() => execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, stdio: 'pipe' })).toThrow();
   expect(existsSync(path.join(base, 'dist'))).toBe(false);
   put(base, 'node_modules/typescript/commands/compiler.cjs', "const fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/built.js','built');");
-  execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, windowsHide: true, stdio: 'pipe' });
+  execFileSync(process.execPath, ['scripts/build-server.mjs'], { cwd: base, stdio: 'pipe' });
   expect(readFileSync(path.join(base, 'dist/built.js'), 'utf8')).toBe('built');
 });
 test('ordinary Git additions ignore harmless OS files and private credential paths', () => {
-  const base = fixture(); execFileSync('git', ['init', '-q'], { cwd: base, windowsHide: true });
+  const base = fixture(); execFileSync('git', ['init', '-q'], { cwd: base });
   put(base, '.gitignore', readFileSync('.gitignore', 'utf8'));
   for (const name of ['.DS_Store', 'auth.json', 'key.pem']) put(base, name, 'synthetic nonsecret placeholder');
-  const ignored = execFileSync('git', ['check-ignore', '.DS_Store', 'auth.json', 'key.pem'], { cwd: base, windowsHide: true, encoding: 'utf8' });
+  const ignored = execFileSync('git', ['check-ignore', '.DS_Store', 'auth.json', 'key.pem'], { cwd: base, encoding: 'utf8' });
   expect(ignored.trim().split(/\r?\n/)).toEqual(['.DS_Store', 'auth.json', 'key.pem']);
 });
 test('pinned package distribution rejects changed bytes before extraction', () => { expect(() => verifyPnpmArchive(Buffer.from('changed'))).toThrow(/checksum/); });
@@ -94,7 +94,7 @@ test('pinned package distribution rejects changed bytes before extraction', () =
 test.each(['.work', '.work/ci-pnpm'])('pnpm preparation rejects redirected ancestor %s before writing outside the workspace', relative => {
   const base = fixture(), outside = fixture(), link = path.join(base, relative);
   mkdirSync(path.dirname(link), { recursive: true });
-  put(outside, 'sentinel.txt', 'keep'); symlinkSync(outside, link, 'junction');
+  put(outside, 'sentinel.txt', 'keep'); symlinkSync(outside, link, 'dir');
   expect(() => createPnpmDirectory(base)).toThrow(/Invalid pnpm output/);
   expect(readFileSync(path.join(outside, 'sentinel.txt'), 'utf8')).toBe('keep');
   expect(existsSync(path.join(outside, 'ci-pnpm'))).toBe(false);
@@ -103,7 +103,7 @@ test.each(['.work', '.work/ci-pnpm'])('pnpm preparation rejects redirected ances
 test('pnpm preparation never extracts into a pre-existing package or launcher tree', () => {
   const base = fixture(), outside = fixture();
   put(outside, 'sentinel.txt', 'keep'); put(base, '.work/ci-pnpm/pnpm.tgz', 'old');
-  symlinkSync(outside, path.join(base, '.work/ci-pnpm/package'), 'junction');
+  symlinkSync(outside, path.join(base, '.work/ci-pnpm/package'), 'dir');
   const first = createPnpmDirectory(base), second = createPnpmDirectory(base);
   expect(first).not.toBe(second);
   expect(path.dirname(first)).toBe(path.join(base, '.work/ci-pnpm'));

@@ -36,7 +36,7 @@ export function selectCiPlan({ changed, available, head, sourceDigest, authoriza
   return {
     schemaVersion: 1, head, sourceDigest, mode: full ? 'authorized-full' : selected.status,
     files, standardFiles, rootFiles,
-    targets: [...(standardFiles.length ? ['linux', 'windows'] : []), ...(rootFiles.length ? ['linux-root'] : [])],
+    targets: [...(standardFiles.length ? ['linux'] : []), ...(rootFiles.length ? ['linux-root'] : [])],
     selection: selected, ...(full ? { authorization } : {}),
   };
 }
@@ -78,16 +78,16 @@ export function buildCiPlan(base = root, env = process.env, suppliedEvent) {
   if ((env.HARNESS_CI_BASE || pullRequestBase) && !commit(baseCommit)) throw Error('Explicit and pull-request bases must be valid nonzero commits');
   if (!commit(baseCommit)) baseCommit = authorization?.baseCommit;
   if (!commit(baseCommit) || !commit(head)) throw Error('Provide an explicit nonzero base/head or a source-bound release authorization for a new ref');
-  const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+  const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: base, encoding: 'utf8' }).trim();
   if (actual !== head) throw Error('CI checkout does not match the requested head');
   const requestedBaseCommit = baseCommit;
   if (pullRequestBase) {
     // PR base branches may advance independently. Review only changes introduced
     // by the topic branch from the explicitly identified common ancestor.
-    baseCommit = execFileSync('git', ['merge-base', '--all', baseCommit, head], { cwd: base, encoding: 'utf8', windowsHide: true }).trim();
+    baseCommit = execFileSync('git', ['merge-base', '--all', baseCommit, head], { cwd: base, encoding: 'utf8' }).trim();
     if (!commit(baseCommit)) throw Error('Pull request must have exactly one valid common ancestor');
   } else {
-    execFileSync('git', ['merge-base', '--is-ancestor', baseCommit, head], { cwd: base, stdio: 'ignore', windowsHide: true });
+    execFileSync('git', ['merge-base', '--is-ancestor', baseCommit, head], { cwd: base, stdio: 'ignore' });
   }
   if (pullRequestBase && env.GITHUB_ACTIONS === 'true' && !env.HARNESS_CI_HEAD) {
     const parents = execFileSync('git', ['show', '-s', '--format=%P', head], { cwd: base, encoding: 'utf8' }).trim().split(' ');
@@ -121,7 +121,7 @@ export function reconcileCi(plan, reports, base = root) {
       const results = report.results?.filter(item => item.group === 'go');
       if (results?.length !== 1) throw Error('Required Go execution evidence is missing');
       validateGoResult(results[0], base);
-      if (results[0].runtime.platform !== (target === 'windows' ? 'windows' : 'linux')) throw Error('Go runtime evidence belongs to another platform');
+      if (results[0].runtime.platform !== 'linux') throw Error('Go runtime evidence belongs to another platform');
       const goCases = report.cases.filter(item => goTestPattern.test(item.file));
       if (JSON.stringify(goCases) !== JSON.stringify(results[0].cases)) throw Error('Go case evidence differs from the platform report');
     }
@@ -166,7 +166,7 @@ export function runCiGroup(group, execute, log = line => console.log(line)) {
 
 export function runCi(plan, target, base = root) {
   if (!plan.targets.includes(target) || snapshot(base).digest !== plan.sourceDigest) throw Error('Unknown target or source changed before execution');
-  if ((target === 'windows') !== (process.platform === 'win32') || target.startsWith('linux') && process.platform !== 'linux' || target === 'linux-root' && process.getuid?.() !== 0 || target === 'linux' && process.getuid?.() === 0) throw Error('Wrong platform or execution identity');
+  if (!['linux', 'linux-root'].includes(target) || process.platform !== 'linux' || target === 'linux-root' && process.getuid?.() !== 0 || target === 'linux' && process.getuid?.() === 0) throw Error('Wrong platform or execution identity');
   if (plan.mode === 'authorized-full') {
     const full = prepareRun('--full', ['--authorization', plan.authorization.path, '--sha256', plan.authorization.sha256], base);
     if (JSON.stringify(full.files) !== JSON.stringify(plan.files)) throw Error('Authorized full plan must include the exact complete inventory');
@@ -203,10 +203,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         appendFileSync(process.env.GITHUB_OUTPUT, `tests=${plan.files.length > 0}\nstandard=${plan.standardFiles.length > 0}\nroot=${plan.rootFiles.length > 0}\ngo=${plan.files.some(name => goTestPattern.test(name))}\n`);
       }
       console.log(JSON.stringify({ mode: plan.mode, base: plan.baseCommit, head: plan.head, files: plan.files.length, targets: plan.targets }));
-    } else if (['linux', 'windows', 'linux-root'].includes(mode)) {
+    } else if (['linux', 'linux-root'].includes(mode)) {
       const result = runCi(json(input), mode); save(output, result); process.exitCode = result.exitCode;
     } else if (mode === 'reconcile') {
-      const reports = readdirSync(output).filter(name => /^result-(?:linux|windows|linux-root)\.json$/.test(name)).map(name => json(path.join(output, name)));
+      const reports = readdirSync(output).filter(name => /^result-[^/]+\.json$/.test(name)).map(name => json(path.join(output, name)));
       const result = reconcileCi(json(input), reports); save(path.join(output, 'reconciled.json'), result); console.log(JSON.stringify(result));
     } else throw Error('Use plan, a platform target, or reconcile');
   } catch (error) { console.error('CI validation refused: ' + error.message); process.exitCode = 1; }

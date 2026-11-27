@@ -50,7 +50,6 @@ class WorktreeValidationTests(unittest.TestCase):
             files, _ = checkout_data(SimpleNamespace(root=None), "a" * 40)
         self.assertEqual(files[0][0], path)
 
-    @unittest.skipIf(os.name == "nt", "POSIX file descriptor traversal")
     def test_streamed_revision_matches_saved_v1_manifest_and_reports_blocked_relative_path(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp).resolve(); checkout = base / "checkout"; checkout.mkdir()

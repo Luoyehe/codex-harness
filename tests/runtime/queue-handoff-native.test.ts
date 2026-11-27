@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { InputContext } from '../../src/runtime/input-context.js';
 import { object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 import { withFixtureCleanup } from './fixture-cleanup.js';
 import { loopbackProvider } from './loopback-provider.js';
 import { expectNativeClosed } from './process-identity.js';
@@ -60,7 +60,7 @@ test.each(['tool-reference to image', 'image to tool-reference', 'oversized nati
   const home = path.join(root, 'codex'), cwd = path.join(root, 'project'), temporary = path.join(root, 'temp');
   for (const dir of [home, cwd, temporary]) mkdirSync(dir);
   const env = nativeTestEnvironment({ home: root, codexHome: home, temporary, fixtureApiKey: 'fixture-local' });
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe');
+  const bin = nativeTestBinary();
   expect(execFileSync(bin, ['--version'], { env, encoding: 'utf8' }).trim()).toBe('codex-cli 0.169.0');
   let held = true; let release!: () => void;
   const paused = new Promise<void>(resolve => { release = resolve; });

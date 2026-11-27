@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 import unittest
-import zipfile
+import tarfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -24,10 +24,12 @@ class PrepareCiGoTests(unittest.TestCase):
         (self.base / ".work").mkdir()
 
     def archive(self, entries=None):
-        output = self.base / ".work/fixture.zip"
-        with zipfile.ZipFile(output, "w") as bundle:
-            for name, data in (entries or {"go/bin/go.exe": b"fixture Go runtime"}).items():
-                bundle.writestr(name, data)
+        output = self.base / ".work/fixture.tar.gz"
+        with tarfile.open(output, "w:gz") as bundle:
+            for name, data in (entries or {"go/bin/go": b"fixture Go runtime"}).items():
+                member = tarfile.TarInfo(name)
+                member.mode, member.size = 0o755, len(data)
+                bundle.addfile(member, io.BytesIO(data))
         return output
 
     def prepare(self, archive, action=None, seed_cache=None):
@@ -37,19 +39,19 @@ class PrepareCiGoTests(unittest.TestCase):
             calls.append((arguments, env, timeout))
             if action:
                 action(arguments, source)
-            return "go version go1.26.10 windows/amd64\n" if arguments == ["version"] else "verified\n"
+            return "go version go1.26.10 linux/amd64\n" if arguments == ["version"] else "verified\n"
 
-        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), \
-             patch.dict(helper.ARCHIVE_BYTES, windows=archive.stat().st_size), patch.object(helper, "run_go", side_effect=run):
-            result = helper.prepare(self.base, archive=archive, seed_cache=seed_cache, system="Windows", machine="AMD64")
+        with patch.dict(helper.GO_HASHES, amd64=helper.sha256(archive)), \
+             patch.dict(helper.ARCHIVE_BYTES, amd64=archive.stat().st_size), patch.object(helper, "run_go", side_effect=run):
+            result = helper.prepare(self.base, archive=archive, seed_cache=seed_cache, system="Linux", machine="x86_64")
         return result, calls
 
     def test_official_pins_and_unsupported_platforms(self):
         self.assertEqual(helper.pin("Linux", "x86_64")["archiveSha256"], helper.GO_HASHES["amd64"])
-        self.assertEqual(helper.pin("Windows", "AMD64")["archiveSha256"], "7ecd2d7260e82c59bcbd7f1077a07cee2dea607295b858df67195a1e4e09629b")
+        self.assertEqual(helper.pin("Linux", "aarch64")["archiveSha256"], helper.GO_HASHES["arm64"])
         self.assertEqual(helper.pin("Linux", "x86_64")["archiveBytes"], 66_936_659)
-        self.assertEqual(helper.pin("Windows", "AMD64")["archiveBytes"], 75_004_774)
-        for system, machine in (("Darwin", "x86_64"), ("Linux", "aarch64"), ("Windows", "arm64")):
+        self.assertEqual(helper.pin("Linux", "arm64")["archiveBytes"], 63_827_526)
+        for system, machine in (("Darwin", "x86_64"), ("Linux", "riscv64")):
             with self.subTest(system=system, machine=machine), self.assertRaises(ValueError):
                 helper.pin(system, machine)
 
@@ -88,7 +90,7 @@ class PrepareCiGoTests(unittest.TestCase):
         self.assertTrue(all(env["GOPROXY"] == "off" for _, env, _ in calls))
         self.assertTrue(all(env["HTTPS_PROXY"] == "http://127.0.0.1:9" for _, env, _ in calls))
 
-    def test_readonly_cache_file_with_windows_executable_suffix_copies_safely(self):
+    def test_readonly_cache_file_copies_safely(self):
         source = self.base / ".work/Client-Cipher-aes128-gcm@openssh.com"
         destination = self.base / ".work/copied-fixture"
         source.write_bytes(b"readonly module fixture")
@@ -112,52 +114,48 @@ class PrepareCiGoTests(unittest.TestCase):
         archive = self.archive()
         with patch.object(helper, "extract") as extract, patch.object(helper, "run_go") as run:
             with self.assertRaisesRegex(ValueError, "checksum"):
-                helper.prepare(self.base, archive=archive, system="Windows", machine="AMD64")
+                helper.prepare(self.base, archive=archive, system="Linux", machine="x86_64")
         extract.assert_not_called()
         run.assert_not_called()
 
     def test_archive_traversal_and_symlinks_are_rejected(self):
-        for name in ("../escape", "go/../../escape", "other/bin/go.exe", "go/bin/../go.exe", "go\\escape"):
-            archive = self.base / ".work/bad.zip"
-            with zipfile.ZipFile(archive, "w") as bundle:
-                member = zipfile.ZipInfo("placeholder")
-                member.filename = name
-                bundle.writestr(member, b"fixture")
+        destination = self.base / ".work/extracted"
+        for name in ("../escape", "go/../../escape", "other/bin/go", "go/bin/../go", "go\\escape"):
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "Unsafe Go archive path"):
-                helper.extract(archive, self.base / ".work/extracted", True)
-        archive = self.base / ".work/link.zip"
-        with zipfile.ZipFile(archive, "w") as bundle:
-            link = zipfile.ZipInfo("go/link")
-            link.create_system = 3
-            link.external_attr = 0o120777 << 16
-            bundle.writestr(link, "../../outside")
-        with self.assertRaisesRegex(ValueError, "Special file"):
-            helper.extract(archive, self.base / ".work/extracted", True)
+                helper.extract(self.archive({name: b"fixture"}), destination)
+        for member_type in (tarfile.SYMTYPE, tarfile.LNKTYPE):
+            archive = self.base / ".work/link.tar.gz"
+            with tarfile.open(archive, "w:gz") as bundle:
+                link = tarfile.TarInfo("go/link")
+                link.type, link.linkname = member_type, "../../outside"
+                bundle.addfile(link)
+            with self.subTest(member_type=member_type), self.assertRaisesRegex(ValueError, "Special file"):
+                helper.extract(archive, destination)
 
     def test_cache_and_archive_inputs_must_be_in_task_owned_directories(self):
         outside = self.base / "outside"
         outside.mkdir()
         with self.assertRaisesRegex(ValueError, "task-owned"):
-            helper.prepare(self.base, archive=outside / "go.zip", system="Windows", machine="AMD64")
+            helper.prepare(self.base, archive=outside / "go.tar.gz", system="Linux", machine="x86_64")
         with self.assertRaisesRegex(ValueError, "task-owned"):
-            helper.prepare(self.base, archive=self.archive(), seed_cache=outside, system="Windows", machine="AMD64")
+            helper.prepare(self.base, archive=self.archive(), seed_cache=outside, system="Linux", machine="x86_64")
 
     def test_download_refuses_unexpected_origin_and_inherited_proxy(self):
         response = io.BytesIO(b"fixture")
-        response.url = "https://untrusted.invalid/go.zip"
+        response.url = "https://untrusted.invalid/go.tar.gz"
         opener = SimpleNamespace(open=lambda *args, **kwargs: response)
         with patch.object(helper.urllib.request, "build_opener", return_value=opener) as build:
             with self.assertRaisesRegex(ValueError, "origin"):
-                helper.download(helper.pin("Windows", "AMD64"), self.base / ".work/download.zip")
+                helper.download(helper.pin("Linux", "x86_64"), self.base / ".work/download.tar.gz")
         self.assertEqual(build.call_args.args[0].proxies, {})
         redirect = build.call_args.args[1]
         with self.assertRaisesRegex(ValueError, "redirect"):
-            redirect.redirect_request(None, None, 302, "found", {}, "https://untrusted.invalid/go.zip")
+            redirect.redirect_request(None, None, 302, "found", {}, "https://untrusted.invalid/go.tar.gz")
 
     def transfer(self, responses, *, data=b"abcdef", action=None):
-        selected = {**helper.pin("Windows", "AMD64"), "archiveBytes": len(data),
+        selected = {**helper.pin("Linux", "x86_64"), "archiveBytes": len(data),
                     "archiveSha256": hashlib.sha256(data).hexdigest()}
-        target = self.base / ".work/distribution.zip"
+        target = self.base / ".work/distribution.tar.gz"
         opener = Mock()
         opener.open.side_effect = responses
         with patch.object(helper.urllib.request, "build_opener", return_value=opener), patch.object(helper.time, "sleep"):
@@ -171,7 +169,7 @@ class PrepareCiGoTests(unittest.TestCase):
     @staticmethod
     def response(data, *, status=200, headers=None, chunks=None):
         incoming = io.BytesIO(data)
-        incoming.url = "https://dl.google.com/go/go1.26.10.windows-amd64.zip"
+        incoming.url = "https://dl.google.com/go/go1.26.10.linux-amd64.tar.gz"
         incoming.status = status
         incoming.headers = headers or {}
         if chunks is not None:
@@ -179,7 +177,7 @@ class PrepareCiGoTests(unittest.TestCase):
         return incoming
 
     def test_slow_progress_past_five_minutes_and_verified_publish(self):
-        # The actual Windows failure occurred 301 seconds after the step started.
+        # The overall deadline must allow a 301-second transfer while bounding each read.
         now = [0]
         def progress(size):
             now[0] += 105
@@ -253,7 +251,7 @@ class PrepareCiGoTests(unittest.TestCase):
         response = self.response(b"bad", headers={"Content-Length": "3"})
         with patch.object(helper.urllib.request, "build_opener", return_value=SimpleNamespace(open=lambda *a, **kw: response)):
             with self.assertRaisesRegex(ValueError, "declared length"):
-                helper.prepare(self.base, system="Windows", machine="AMD64")
+                helper.prepare(self.base, system="Linux", machine="x86_64")
         self.assertFalse((self.base / "reference/runtime/ci-go").exists())
         self.assertFalse((self.base / ".work/ci-go").exists())
         result, _ = self.prepare(archive)
@@ -278,14 +276,14 @@ class PrepareCiGoTests(unittest.TestCase):
         original = archive.read_bytes()
         directory = self.base / "reference/runtime/go-1.26.10"
         directory.mkdir(parents=True)
-        existing = directory / "go.zip"
+        existing = directory / "go.tar.gz"
         archive.rename(existing)
         output, _ = self.prepare(existing)
         self.assertEqual(existing.read_bytes(), original)
-        self.assertEqual(Path(json.loads(output.read_text())["binary"]), self.base / "reference/runtime/ci-go/go/bin/go.exe")
+        self.assertEqual(Path(json.loads(output.read_text())["binary"]), self.base / "reference/runtime/ci-go/go/bin/go")
 
     def test_explicit_download_proxy_is_bounded_and_cannot_enable_offline_network(self):
-        selected = helper.pin("Windows", "AMD64")
+        selected = helper.pin("Linux", "x86_64")
         proxy = "http://127.0.0.1:18790"
         online = helper.environment(self.base, self.base, selected, network=True, download_proxy=proxy)
         offline = helper.environment(self.base, self.base, selected, network=False, download_proxy=proxy)
@@ -299,11 +297,11 @@ class PrepareCiGoTests(unittest.TestCase):
 
     def test_failed_or_wrong_version_runtime_cannot_publish_success(self):
         archive = self.archive()
-        with patch.object(helper, "WINDOWS_SHA256", helper.sha256(archive)), \
-             patch.dict(helper.ARCHIVE_BYTES, windows=archive.stat().st_size), \
-             patch.object(helper, "run_go", return_value="go version go1.27.0 windows/amd64\n"):
+        with patch.dict(helper.GO_HASHES, amd64=helper.sha256(archive)), \
+             patch.dict(helper.ARCHIVE_BYTES, amd64=archive.stat().st_size), \
+             patch.object(helper, "run_go", return_value="go version go1.27.0 linux/amd64\n"):
             with self.assertRaisesRegex(ValueError, "version mismatch"):
-                helper.prepare(self.base, archive=archive, system="Windows", machine="AMD64")
+                helper.prepare(self.base, archive=archive, system="Linux", machine="x86_64")
         self.assertFalse((self.base / ".work/ci-go/prepared.json").exists())
 
     def test_failed_subcommand_identifies_phase_and_retains_output_without_printing_it(self):

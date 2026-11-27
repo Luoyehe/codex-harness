@@ -22,7 +22,8 @@ class DirectoryDescriptorTests(unittest.TestCase):
 
     def test_restrictive_umask_only_normalizes_new_directories(self):
         shared = self.root / "shared"
-        shared.mkdir(mode=0o750)
+        shared.mkdir()
+        shared.chmod(0o750)
         old = os.umask(0o077)
         try:
             mkdir(shared / "new/private", 0o700)
@@ -70,7 +71,7 @@ class DirectoryDescriptorTests(unittest.TestCase):
 
     def test_symlink_ancestor_and_final_symlink_never_change_external_metadata(self):
         external = self.root / "external"
-        external.mkdir(mode=0o750)
+        external.mkdir(); external.chmod(0o750)
         link = self.root / "link"
         link.symlink_to(external, target_is_directory=True)
         before = external.stat()
@@ -83,7 +84,7 @@ class DirectoryDescriptorTests(unittest.TestCase):
 
     def test_directory_replaced_with_symlink_between_create_and_open_is_rejected(self):
         external = self.root / "external"
-        external.mkdir(mode=0o750)
+        external.mkdir(); external.chmod(0o750)
         target = self.root / "collection"
         original = os.mkdir
         def replace(name, mode=0o777, *, dir_fd=None):
@@ -98,7 +99,8 @@ class DirectoryDescriptorTests(unittest.TestCase):
 
     def test_initialization_lock_parent_failure_blocks_lock_and_preserves_shared_mode(self):
         shared = self.root / "shared"
-        shared.mkdir(mode=0o750)
+        shared.mkdir()
+        shared.chmod(0o750)
         lock = shared / "instance.lock"
         original = common.fsync_directory
         def fail(path, **kwargs):

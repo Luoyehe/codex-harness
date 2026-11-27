@@ -16,7 +16,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     cleanBuildDirectory(base);
     const compiler = buildTool(base, 'tsc');
-    const result = spawnSync(process.execPath, [compiler, '-p', 'tsconfig.server.json'], { cwd: base, stdio: 'inherit', windowsHide: true });
+    const result = spawnSync(process.execPath, [compiler, '-p', 'tsconfig.server.json'], { cwd: base, stdio: 'inherit' });
     if (result.error || result.status !== 0) { cleanBuildDirectory(base); process.exitCode = result.status || 1; }
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

@@ -561,7 +561,7 @@ export class Attachments {
     }
     if (moved) this.publishHandoffs(next);
   }
-  private syncDirectory(): void { if (process.platform !== 'win32') { const fd = openSync(this.dir, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); try { fsyncSync(fd); } finally { closeSync(fd); } } }
+  private syncDirectory(): void { const fd = openSync(this.dir, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)); try { fsyncSync(fd); } finally { closeSync(fd); } }
   private public(item: Attachment): JsonObject { return { attachmentId: item.attachmentId, name: item.name, mimeType: item.mimeType, size: item.size }; }
   get root(): string { return this.dir; }
   get activeImageDigests(): string {

@@ -3,7 +3,7 @@ import { threadListTime } from '../shared/thread-list-time.js';
 import { DeliveryError, jsonBytes, object, string, type JsonObject, type JsonValue } from './types.js';
 
 const text = (value: JsonValue | undefined, maximum: number): string => typeof value === 'string' ? Array.from(value).slice(0, maximum).join('') : '';
-const samePath = (a: string, b: string): boolean => process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b);
+const samePath = (a: string, b: string): boolean => path.resolve(a) === path.resolve(b);
 
 /** Creation acknowledgements bridge native indexing lag, never replace persisted pagination. */
 export class LiveThreadList {

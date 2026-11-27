@@ -149,7 +149,7 @@ class System:
 
 
 def require_linux() -> None:
-    require(os.name == "posix" and hasattr(os, "geteuid") and os.geteuid() == 0,
+    require(os.geteuid() == 0,
             "Installation and management require Linux root", "unsupported_platform")
     import platform
     require(platform.system() == "Linux", "Linux is required", "unsupported_platform")

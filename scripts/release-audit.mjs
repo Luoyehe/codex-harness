@@ -18,7 +18,7 @@ const rules = [
   ['bearer-token', /\bBearer[ \t]{1,512}[A-Za-z0-9_+/.=-]{24,}/gi],
   ['bearer-layout-overflow', /\bBearer[ \t]{513}/gi],
   ['url-credentials', /https?:\/\/[^\s/:@"'<>]{1,128}:[^\s/@"'<>]{1,128}@/gi],
-  ['windows-private-home', /\b[A-Z]:[\\/]{1,512}(?:Users|Documents and Settings)[\\/]{1,512}[^\\/\s"'<>]{1,80}/gi],
+  ['drive-private-home', /\b[A-Z]:[\\/]{1,512}(?:Users|Documents and Settings)[\\/]{1,512}[^\\/\s"'<>]{1,80}/gi],
   ['path-layout-overflow', /\b[A-Z]:(?:[\\/]{513}|[\\/]{1,512}(?:Users|Documents and Settings)[\\/]{513})/gi],
   ['unix-private-home', /\/(?:home|Users)\/[A-Za-z0-9._-]+/g],
 ];
@@ -108,7 +108,7 @@ export async function scanFiles(root, names, { open = createReadStream } = {}) {
 }
 
 function git(root, args) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 export async function auditSource(root = ownRoot) {

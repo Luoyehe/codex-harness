@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import os
 import re
 import stat
 import uuid
@@ -27,7 +26,7 @@ def service_paths(layout, config=None):
 def read_private(path):
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 4 * 1024**2 and
-            (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
+            (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
             "Unsafe service lifecycle record", "integrity")
     return read_json(path, 4 * 1024**2)
 
@@ -71,7 +70,7 @@ def bindings(manager):
             continue
         info = path.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
-                (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+                (info.st_uid == 0 and not info.st_mode & 0o022),
                 "Unsafe retained instance configuration", "integrity")
         files[name] = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "mode": stat.S_IMODE(info.st_mode),
                        "uid": info.st_uid, "gid": info.st_gid}
@@ -101,7 +100,7 @@ def barriers(manager, allowed=()):
     root = layout.config / "service-lifecycle"
     if present(root):
         info = root.lstat()
-        require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
+        require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
                 "Unsafe service lifecycle barrier directory", "integrity")
     mkdir(root, 0o700)
     for role in service_roles(manager.config, ROLES):
@@ -113,7 +112,7 @@ def barriers(manager, allowed=()):
         directory = layout.units / (layout.unit(role) + ".d")
         if present(directory):
             info = directory.lstat()
-            require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and not info.st_mode & 0o022),
                     "Unsafe service lifecycle drop-in directory", "ownership_conflict")
         mkdir(directory, 0o755)
         target = directory / DROPIN

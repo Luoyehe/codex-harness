@@ -103,7 +103,6 @@ class DependencyPatchTests(unittest.TestCase):
         with patch("deploy.dependency_patch.os.fstat", side_effect=changing), self.assertRaises(DeployError):
             bounded_file(selected, MAX_PATCH_BYTES)
 
-    @unittest.skipUnless(os.name == "posix", "POSIX links and special files")
     def test_linked_directory_symlink_file_and_fifo_are_rejected_before_open(self):
         source = self.source()
         selected = source / PATCH_PATH

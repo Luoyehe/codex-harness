@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { DeliveryError, object, type JsonObject, type JsonValue } from '../../src/runtime/types.js';
-import type { WindowsProcessJob } from '../../src/runtime/windows-process.js';
-const fixture = vi.hoisted(() => ({ jobs: [] as (WindowsProcessJob & { finish(code: number): void })[], gate: undefined as Promise<void> | undefined }));
-vi.mock('../../src/runtime/windows-process.js', () => ({ windowsProcessJob: async () => {
-  await fixture.gate; let finish!: (code: number) => void;
-  const job = { command: ['fixture-controller'], env: { HARNESS_WINDOWS_PROCESS_COMMAND: 'private' }, started: Promise.resolve(42), exited: new Promise<number>(resolve => { finish = resolve; }), finish: (code: number) => finish(code), signal: vi.fn(async () => {}), dispose: vi.fn() }; fixture.jobs.push(job); return job;
+import type { linuxProcessJob } from '../../src/runtime/linux-process.js';
+import { processControllerFixture } from './process-controller-fixture.js';
+const fixture = vi.hoisted(() => ({ jobs: [] as ReturnType<typeof processControllerFixture>[], gate: undefined as Promise<void> | undefined }));
+vi.mock('../../src/runtime/linux-process.js', () => ({ linuxProcessJob: async (...args: Parameters<typeof linuxProcessJob>) => {
+  await fixture.gate;
+  const job = processControllerFixture(args[3], args[4]);
+  fixture.jobs.push(job); return job;
 } }));
-vi.mock('../../src/runtime/linux-process.js', async () => ({ linuxProcessJob: (await import('../../src/runtime/windows-process.js')).windowsProcessJob }));
 import { Processes } from '../../src/runtime/processes.js';
 const context = { clientId: 'owner', eventChannelId: 'channel', beforeWrite: () => {} };
 const instances: Processes[] = [];
@@ -35,22 +36,10 @@ test('interactive output keeps streaming after its bounded local history rolls o
   expect(await processes.call('process/read', { processHandle }, context)).toMatchObject({ outputDrainTimedOut: true });
 });
 
-test.runIf(process.platform === 'win32')('forces the final Windows spawn environment to disable cache despite case-variant user overrides', async () => {
-  const { processes, calls } = setup();
-  const env = { PSModuleAnalysisCachePath: 'canonical-cache', PSMODULEANALYSISCACHEPATH: 'uppercase-cache', psmoduleanalysiscachepath: 'lowercase-cache', PSModulePath: 'caller-modules', PSMODULEPATH: 'caller-uppercase', psmodulepath: null, Kept: 'value', Removed: null };
-  const originalEnv = { ...env };
-  await spawn(processes, { env });
-  const finalEnv = object(object(calls[0]!.params).env);
-  expect(Object.entries(finalEnv).filter(([key]) => key.toLowerCase() === 'psmoduleanalysiscachepath')).toEqual([['PSModuleAnalysisCachePath', 'NUL']]);
-  const modulePaths = Object.entries(finalEnv).filter(([key]) => key.toLowerCase() === 'psmodulepath');
-  expect(modulePaths).toHaveLength(1); expect(modulePaths[0]![0]).toBe('PSModulePath'); expect(String(modulePaths[0]![1])).toMatch(/\\System32\\WindowsPowerShell\\v1\.0\\Modules$/i);
-  expect(finalEnv).toMatchObject({ Kept: 'value', Removed: null, HARNESS_WINDOWS_PROCESS_COMMAND: 'private' });
-  expect(env).toEqual(originalEnv);
-});
 test('private output and native exit wait for an independent process-tree cleanup proof', async () => {
   const { processes, events } = setup(); const processHandle = await spawn(processes, { outputBytesCap: 1024 });
   for (const owner of [{ ...context, clientId: 'other' }, { ...context, eventChannelId: 'other' }]) await expect(processes.call('process/read', { processHandle }, owner)).rejects.toMatchObject({ code: 'not_found' });
-  processes.notification('process/outputDelta', { processHandle, stream: 'stdout', deltaBase64: Buffer.alloc(1024, 65).toString('base64'), capReached: true });
+  fixture.jobs[0]!.output('stdout', Buffer.alloc(1024, 65).toString('base64'), true);
   expect(events).toMatchObject([{ channel: 'channel', data: { type: 'output', clientId: 'owner', processHandle, capReached: true } }]);
   exit(processes, processHandle); await Promise.resolve(); expect(object(await processes.call('process/read', { processHandle }, context)).status).toBe('running');
   fixture.jobs[0]!.finish(7); await expect.poll(async () => object(await processes.call('process/read', { processHandle }, context)).status).toBe('exited');

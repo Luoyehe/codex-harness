@@ -4,14 +4,14 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import path from 'node:path';
 import { RuntimeService } from '../../src/runtime/service.js';
 import { object, type RuntimeEvent } from '../../src/runtime/types.js';
-import { nativeTestEnvironment } from '../fixtures/native-env.js';
+import { nativeTestBinary, nativeTestEnvironment } from '../fixtures/native-env.js';
 
-test('official CLI process workflows preserve real terminal input, output caps, exit codes and descendant cleanup', async () => {
+test.runIf(process.platform === 'linux')('official CLI process workflows preserve real terminal input, output caps, exit codes and descendant cleanup', async () => {
   const parent = path.resolve('.work/process-native'); mkdirSync(parent, { recursive: true }); const workerHome = mkdtempSync(path.join(parent, 'home-')), home = path.join(workerHome, 'codex'), tmp = path.join(workerHome, 'tmp'); mkdirSync(home); mkdirSync(tmp); writeFileSync(path.join(home, 'config.toml'), 'check_for_update_on_startup = false\n');
   const env = nativeTestEnvironment({ home: workerHome, codexHome: home, temporary: tmp });
-  const bin = process.env.HARNESS_TEST_CODEX_BIN ?? path.resolve('reference/runtime/codex-0.169.0/package/vendor/x86_64-pc-windows-msvc/bin/codex.exe'); const runtime = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const events: RuntimeEvent[] = []; runtime.on('event', event => events.push(event)); const context = { clientId: 'process-native', eventChannelId: 'owner', beforeWrite: () => {} }; const childFile = path.join(workerHome, 'child.json'); let children: Awaited<ReturnType<typeof captureProcesses>> = [];
+  const bin = nativeTestBinary(); const runtime = await RuntimeService.create({ bin, home, workerHome, cwd: workerHome, env, dev: true }); const events: RuntimeEvent[] = []; runtime.on('event', event => events.push(event)); const context = { clientId: 'process-native', eventChannelId: 'owner', beforeWrite: () => {} }; const childFile = path.join(workerHome, 'child.json'); let children: Awaited<ReturnType<typeof captureProcesses>> = [];
   try {
-    const fixture = path.join(workerHome, 'root.mjs'); writeFileSync(fixture, "import {spawn} from 'node:child_process';import {writeFileSync,existsSync} from 'node:fs';const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:true,windowsHide:true});writeFileSync(process.argv[2],JSON.stringify({child:child.pid}));child.unref();process.stdout.write('x'.repeat(4096));setInterval(()=>{if(existsSync(process.argv[2]+'.exit'))process.exit(7)},20);");
+    const fixture = path.join(workerHome, 'root.mjs'); writeFileSync(fixture, "import {spawn} from 'node:child_process';import {writeFileSync,existsSync} from 'node:fs';const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:true});writeFileSync(process.argv[2],JSON.stringify({child:child.pid}));child.unref();process.stdout.write('x'.repeat(4096));setInterval(()=>{if(existsSync(process.argv[2]+'.exit'))process.exit(7)},20);");
     const spawned = object(await runtime.call('process/spawn', { cwd: workerHome, command: [process.execPath, fixture, childFile], outputBytesCap: 1024 }, context));
     const read = () => runtime.call('process/read', { processHandle: spawned.processHandle! }, context);
     await expect.poll(() => existsSync(childFile), { timeout: 10000 }).toBe(true); children = await captureProcesses([JSON.parse(readFileSync(childFile, 'utf8')).child]); writeFileSync(childFile + '.exit', 'exit');

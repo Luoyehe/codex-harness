@@ -101,7 +101,7 @@ describe('single administrator authentication', () => {
       auth.close(); auth = new Authentication({ database }, 'https://harness.example');
       expect(auth.require(cookie)).toEqual(login.session); expect(auth.client(auth.require(cookie), tab)).toBe(owner);
       const bytes = readFileSync(database).toString('latin1'); expect(bytes).not.toContain(cookie.split('=')[1]!); expect(bytes).not.toContain(credentials.password);
-      if (process.platform !== 'win32') expect(statSync(database).mode & 0o777).toBe(0o600);
+      expect(statSync(database).mode & 0o777).toBe(0o600);
     } finally { auth.close(); rmSync(directory, { recursive: true, force: true }); }
   });
   it('changes passwords once, rejects stale revisions and revokes every session', async () => {

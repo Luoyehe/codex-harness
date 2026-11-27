@@ -22,7 +22,7 @@ def record_path(layout: Layout) -> Path:
 def private_record(path: Path) -> dict:
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 4 * 1024**2 and
-            (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
+            (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
             "Initialization record is not a private root-owned file", "integrity")
     value = read_json(path, 4 * 1024**2)
     require(isinstance(value, dict), "Invalid initialization record", "corrupt_state")
@@ -207,13 +207,13 @@ class CreationPlan:
     def verify(self, path: Path):
         expected = self.entries[path]
         info = path.lstat()
-        require(os.name != "posix" or info.st_uid == expected["uid"] and info.st_gid == expected["gid"],
+        require(info.st_uid == expected["uid"] and info.st_gid == expected["gid"],
                 "Initialization material ownership changed", "integrity")
         kind = expected["kind"]
         if kind == "link":
             require(stat.S_ISLNK(info.st_mode) and os.readlink(path) == expected["target"], "Initialization pointer changed", "integrity")
         else:
-            require(stat.S_IMODE(info.st_mode) == expected["mode"] if os.name == "posix" else True,
+            require((stat.S_IMODE(info.st_mode) == expected["mode"]),
                     "Initialization material permissions changed", "integrity")
             require(stat.S_ISDIR(info.st_mode) if kind == "directory" else stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
                     "Initialization material type changed", "integrity")
@@ -258,7 +258,7 @@ class CreationPlan:
                                    (entry["uid"], entry["gid"], entry.get("mode", 0)))
                         require((stat.S_ISDIR(info.st_mode) and not any(path.iterdir()) if entry["kind"] == "directory" else
                                  stat.S_ISREG(info.st_mode) and info.st_nlink == 1) and
-                                (os.name != "posix" or (info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)) in allowed),
+                                ((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)) in allowed),
                                 "Unsafe interrupted initialization staging file", "integrity")
 
     def publish(self, path: Path):
@@ -275,15 +275,12 @@ class CreationPlan:
                 temporary.rmdir()
             temporary.mkdir(mode=0o700)
             os.chmod(temporary, entry["mode"])
-            if os.name == "posix": os.chown(temporary, entry["uid"], entry["gid"])
+            os.chown(temporary, entry["uid"], entry["gid"])
             fsync_directory(temporary)
-            if os.name == "posix":
-                from .workspace_paths import rename_absent
-                fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-                try: rename_absent(fd, temporary.name, fd, path.name)
-                finally: os.close(fd)
-            else:
-                os.rename(temporary, path)
+            from .workspace_paths import rename_absent
+            fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try: rename_absent(fd, temporary.name, fd, path.name)
+            finally: os.close(fd)
         elif entry["kind"] == "link":
             os.symlink(entry["target"], path)
         else:
@@ -292,7 +289,7 @@ class CreationPlan:
             if present(temporary):
                 info = temporary.lstat()
                 require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
-                        (os.name != "posix" or (info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)) in
+                        ((info.st_uid, info.st_gid, stat.S_IMODE(info.st_mode)) in
                          ((0, 0, 0o600), (0, 0, entry["mode"]), (entry["uid"], entry["gid"], entry["mode"]))),
                         "Unsafe initialization staging file", "integrity")
                 temporary.unlink()
@@ -302,8 +299,8 @@ class CreationPlan:
             # A hardlink provides no-replace publication. A crash before unlink
             # leaves the known staging link, which is finalized on a retry.
             os.chmod(temporary, entry["mode"])
-            if os.name == "posix": os.chown(temporary, entry["uid"], entry["gid"])
-            with temporary.open("rb" if os.name == "posix" else "r+b") as stream: os.fsync(stream.fileno())
+            os.chown(temporary, entry["uid"], entry["gid"])
+            with temporary.open("rb") as stream: os.fsync(stream.fileno())
             os.link(temporary, path)
             temporary.unlink()
         durable_directory(path if entry["kind"] == "directory" else path.parent)

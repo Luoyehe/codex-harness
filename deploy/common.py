@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import errno
 import hashlib
 import json
 import os
 import re
-import stat
 import tempfile
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,16 +44,32 @@ def read_json(path: Path, limit: int = 1024 * 1024):
     return json.loads(data)
 
 
+def rename_noreplace(source: str | Path, target: str | Path, *, source_fd: int | None = None,
+                     target_fd: int | None = None) -> None:
+    """Atomically refuse a racing destination, including directories."""
+    libc = ctypes.CDLL(None, use_errno=True)
+    if sys.platform == "darwin":
+        rename, exclusive, cwd = getattr(libc, "renameatx_np", None), 0x4, -2  # RENAME_EXCL
+    else:
+        rename, exclusive, cwd = getattr(libc, "renameat2", None), 1, -100  # RENAME_NOREPLACE
+    require(rename is not None, "Atomic no-replace rename is unavailable", "unsupported_platform")
+    rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+    rename.restype = ctypes.c_int
+    if rename(cwd if source_fd is None else source_fd, os.fsencode(source),
+              cwd if target_fd is None else target_fd, os.fsencode(target), exclusive) != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+
+
 def fsync_directory(path: Path, *, descriptor: int | None = None) -> None:
-    if os.name == "posix":
-        if descriptor is not None:
-            os.fsync(descriptor)
-            return
-        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
+    if descriptor is not None:
+        os.fsync(descriptor)
+        return
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def atomic_write(path: Path, data: bytes, mode: int = 0o600, uid: int | None = None, gid: int | None = None) -> None:
@@ -62,8 +79,8 @@ def atomic_write(path: Path, data: bytes, mode: int = 0o600, uid: int | None = N
         with os.fdopen(fd, "wb") as output:
             output.write(data)
             output.flush()
-            os.fchmod(output.fileno(), mode) if os.name == "posix" else os.chmod(name, mode)
-            if uid is not None and os.name == "posix":
+            os.fchmod(output.fileno(), mode)
+            if uid is not None:
                 os.fchown(output.fileno(), uid, gid if gid is not None else -1)
             os.fsync(output.fileno())
         os.replace(name, path)
@@ -96,24 +113,6 @@ def durable_directory(path: Path, *, create: bool = False, mode: int | None = No
         shared_root = shared_root.absolute()
         require(path.is_relative_to(shared_root), "Shared directory escaped its deployment root", "unsafe_path")
     chain = list(reversed(path.parents)) + [path]
-    if os.name != "posix":
-        # Windows is a portable validation environment, not a directory-fsync
-        # implementation. Still reject links/reparse points before chmod.
-        for directory in chain:
-            if create and directory != Path(path.anchor):
-                try:
-                    directory.mkdir()
-                except FileExistsError:
-                    pass
-            info = directory.lstat()
-            require(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode) and
-                    not getattr(info, "st_file_attributes", 0) & 0x400,
-                    "Directory is not a real directory", "unsafe_path")
-        if mode is not None:
-            os.chmod(path, mode)
-        for directory in reversed(chain):
-            fsync_directory(directory)
-        return
     descriptors = []
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     try:

@@ -108,7 +108,7 @@ it('actually dispatches recovery while a separate ordinary subprocess remains hu
     });`;
   vi.mocked(spawn).mockImplementation((_command, _args, options) => {
     const child = actual.spawn(process.execPath, ['--input-type=module', '-e', fixture, directory], { ...options, cwd: directory,
-      env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) } });
+      env: {  } });
     closed.push(new Promise(resolve => child.once('close', () => resolve()))); return child;
   });
   const manager = client(), calls: Promise<unknown>[] = [];
@@ -160,7 +160,7 @@ it('keeps real concurrent helper subprocesses from competing for their exclusive
   vi.mocked(spawn).mockImplementation((command, args, options) => {
     expect(command).toBe('/usr/bin/sudo'); expect(args).toEqual(['-n', '/trusted/manage', 'rpc']);
     const child = actual.spawn(process.execPath, ['--input-type=module', '-e', fixture, directory], {
-      ...options, cwd: directory, env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) },
+      ...options, cwd: directory, env: {  },
     });
     closed.push(new Promise(resolve => child.once('close', () => resolve()))); return child;
   });

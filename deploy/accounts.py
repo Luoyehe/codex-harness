@@ -55,7 +55,7 @@ def write_bootstrap(layout, config: dict, value: dict) -> None:
     if target.exists() or target.is_symlink():
         info = target.lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
-                (os.name != "posix" or info.st_uid == 0 and info.st_gid == config["gatewayGid"] and stat.S_IMODE(info.st_mode) == 0o640),
+                (info.st_uid == 0 and info.st_gid == config["gatewayGid"] and stat.S_IMODE(info.st_mode) == 0o640),
                 "Account bootstrap ownership or permissions changed", "integrity")
     write_json(target, value, mode=0o640, uid=0, gid=config["gatewayGid"])
 
@@ -66,7 +66,7 @@ def verify_bootstrap(layout, config: dict) -> bool:
         return False  # A legacy instance can initialize once through its old token.
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 4096 and
-            (os.name != "posix" or info.st_uid == 0 and info.st_gid == config["gatewayGid"] and stat.S_IMODE(info.st_mode) == 0o640),
+            (info.st_uid == 0 and info.st_gid == config["gatewayGid"] and stat.S_IMODE(info.st_mode) == 0o640),
             "Account bootstrap ownership or permissions changed", "integrity")
     value = read_json(path, 4096)
     require(isinstance(value, dict) and set(value) == {"schemaVersion", "revision", "username", "passwordHash"} and
@@ -90,7 +90,7 @@ def instance_proof_key(manager) -> bytes:
     try:
         info = os.fstat(descriptor)
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 4096 and
-                (os.name != "posix" or info.st_uid == 0 and info.st_gid == manager.config["gatewayGid"] and
+                (info.st_uid == 0 and info.st_gid == manager.config["gatewayGid"] and
                  stat.S_IMODE(info.st_mode) == 0o640), "Unsafe instance proof key", "integrity")
         value = os.read(descriptor, 4097)
         require(stable_identity(info) == stable_identity(os.fstat(descriptor)) and len(value) <= 4096,

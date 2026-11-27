@@ -81,7 +81,7 @@ class Store:
 
     def __enter__(self):
         try:
-            require(os.name == "posix" and os.geteuid() == 0, "Shared authentication requires trusted Linux control", "integrity")
+            require(os.geteuid() == 0, "Shared authentication requires trusted Linux control", "integrity")
             parent = self.directory(str(self.layout.state))
             if self.create:
                 try:

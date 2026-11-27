@@ -32,14 +32,14 @@ def _project_path(value: str, native_home: Path | None, *, creation: bool = Fals
     if normalized.startswith("/"):
         return Path("/" + normalized.lstrip("/")), False
     if native_home is None:
-        # Legacy callers supplied only absolute paths (including Windows tests).
+        # Legacy callers supplied only absolute paths.
         require(Path(value).is_absolute(), "Project path must be absolute", code)
         return Path(value), False
     return Path(os.path.abspath(native_home / "projects" / normalized)), True
 
 
 def _project_permission(action: str) -> DeployError:
-    advice = ("请检查目录访问控制或挂载权限。" if getattr(os, "geteuid", lambda: -1)() == 0 else
+    advice = ("请检查目录访问控制或挂载权限。" if os.geteuid() == 0 else
               "请调整目录权限，或由服务器管理员授权后在网页开启 ROOT；不会自动提权。")
     return DeployError("project_permission_denied", action + advice)
 

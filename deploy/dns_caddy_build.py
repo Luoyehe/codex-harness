@@ -41,8 +41,8 @@ GO_HASHES = {
 SOURCE_HASHES = {
     "main.go": "70928d12028bebfa467001f2ab0b0153d460795631b2bde39a439a630784411f",
     "main_test.go": "937077ddfa710e09ab19e8845fe2c112aab158fd1ba19edcaf2e3b54478efa83",
-    "go.mod": "a79aea92f4f648bc37e9def1eefc8b91638ac1dd8ca7e7837f0e86eba6ed4af8",
-    "go.sum": "be97bc40a8c81b3e893b438c10e084c63b912471a1b4adc24039c617a56e6975",
+    "go.mod": "21c33979eb3d080f4e418a7c30f764ac4a9acc138ae267ed1e856cbd626b1e03",
+    "go.sum": "361f78918e08d228c60c484c269736ab0bd29a2dba20a9e71c7cc868636d3c44",
 }
 SOURCE_NAMES = ("main.go", "main_test.go", "go.mod", "go.sum")
 HEX = re.compile(r"[0-9a-f]{64}")
@@ -53,7 +53,7 @@ MAX_BINARY = 256 * 1024**2
 
 def _directory(path: Path, *, root_owned: bool = True) -> None:
     info = path.lstat()
-    require(stat.S_ISDIR(info.st_mode) and (not root_owned or os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+    require(stat.S_ISDIR(info.st_mode) and (not root_owned or info.st_uid == 0 and not info.st_mode & 0o022),
             "Unsafe DNS Caddy directory", "integrity")
 
 
@@ -71,7 +71,7 @@ def _read(path: Path, limit: int, *, executable: bool = False, root_owned: bool 
     try:
         before = os.fstat(descriptor)
         require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= limit and
-                not path.is_symlink() and (os.name != "posix" or (not root_owned or before.st_uid == 0 and not before.st_mode & 0o022) and
+                not path.is_symlink() and ((not root_owned or before.st_uid == 0 and not before.st_mode & 0o022) and
                 (not executable or stat.S_IMODE(before.st_mode) == 0o755)), "Unsafe DNS Caddy file", "integrity")
         chunks, size = [], 0
         while data := os.read(descriptor, min(1024**2, limit + 1 - size)):
@@ -79,13 +79,10 @@ def _read(path: Path, limit: int, *, executable: bool = False, root_owned: bool 
             size += len(data)
             require(size <= limit, "DNS Caddy file exceeds budget", "budget")
         after, current = os.fstat(descriptor), path.lstat()
-        # Windows exposes different ctime meanings through stat and fstat.
         # Keep the complete descriptor comparison; compare every other field
         # against the pathname there. Linux retains the full ownership check.
         path_identity = stable_identity(current)
         descriptor_identity = stable_identity(after)
-        if os.name != "posix":
-            path_identity, descriptor_identity = path_identity[:-1], descriptor_identity[:-1]
         require(stable_identity(before) == stable_identity(after) and descriptor_identity == path_identity,
                 "DNS Caddy file changed during verification", "integrity")
         return b"".join(chunks)

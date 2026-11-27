@@ -17,18 +17,17 @@ type Props = {
   onOpen: (projectId: string) => void;
 };
 // Resolve lexical path segments without treating this project base as a sandbox.
-function normalizePath(value: string, windows = false) {
-  const drive = windows ? /^[A-Za-z]:\//.exec(value)?.[0].slice(0, 2) ?? '' : '';
-  const path = drive ? value.slice(2) : value, absolute = path.startsWith('/'), unc = windows && path.startsWith('//');
+function normalizePath(path: string) {
+  const absolute = path.startsWith('/');
   const parts: string[] = [];
   for (const part of path.split('/')) {
     if (!part || part === '.') continue;
     if (part === '..') {
-      if (parts.length > (unc ? 2 : 0) && parts.at(-1) !== '..') parts.pop();
+      if (parts.length > 0 && parts.at(-1) !== '..') parts.pop();
       else if (!absolute) parts.push(part);
     } else parts.push(part);
   }
-  return drive + (unc ? '//' : absolute ? '/' : '') + parts.join('/') || (absolute ? '/' : '.');
+  return (absolute ? '/' : '') + parts.join('/') || (absolute ? '/' : '.');
 }
 export function ProjectDialog({
   api, epoch = '', executionMode, executionModeConfirmed = false, enabled = true,
@@ -48,16 +47,13 @@ export function ProjectDialog({
   // reuse old defaults or let an old operation navigate/close the current form.
   const defaults = useResource(`project-defaults:${scope.generation}`, signal => api.call('project/defaults', {}, signal), enabled);
   const root = typeof defaults.data?.directory === 'string' ? defaults.data.directory : '';
-  const windows = /^[A-Za-z]:[\\/]/.test(root) || root.startsWith('\\\\');
-  const defaultsIssue = defaults.loading ? '' : defaults.error || (!(root.startsWith('/') || windows) || /[\u0000-\u001f\u007f]/u.test(root)
+  const defaultsIssue = defaults.loading ? '' : defaults.error || (!root.startsWith('/') || /[\u0000-\u001f\u007f]/u.test(root)
     ? '默认项目目录无法确认，请重新读取后再操作。' : '');
   const suggestedDirectory = Array.from(name.trim().replace(/[^\p{L}\p{N} ._-]/gu, '-').replace(/^[^\p{L}\p{N}]+/u, '').replace(/[ .]+$/u, '')).slice(0, 80).join('');
   const rawPath = mode === 'create' ? directory || suggestedDirectory : cwd;
-  const path = windows ? rawPath.replaceAll('\\', '/') : rawPath;
-  const absolute = path.startsWith('/') || windows && /^[A-Za-z]:\//.test(path);
-  // A drive-like Linux filename is still relative; only / separates Linux paths.
-  const normalized = normalizePath(path, windows);
-  const preview = normalizePath(absolute ? normalized : `${windows ? root.replaceAll('\\', '/') : root}/${normalized}`, windows);
+  const absolute = rawPath.startsWith('/');
+  const normalized = normalizePath(rawPath);
+  const preview = normalizePath(absolute ? normalized : `${root}/${normalized}`);
   const invalidUnicode = Array.from(rawPath).some(char => char.length === 1 && char.charCodeAt(0) >= 0xd800 && char.charCodeAt(0) <= 0xdfff);
   const pathIssue = !rawPath ? '' : /[\u0000-\u001f\u007f]/u.test(rawPath) || invalidUnicode ? '项目路径不能包含控制字符或无效 Unicode。' :
     new TextEncoder().encode(rawPath).length > 4096 || new TextEncoder().encode(JSON.stringify({ [mode === 'create' ? 'directory' : 'path']: normalized })).length > 4096
@@ -104,7 +100,7 @@ export function ProjectDialog({
             required={mode === 'existing'} placeholder={mode === 'create' ? suggestedDirectory || 'my-project 或 /srv/my-project' : 'existing-project 或 /srv/existing-project'}
             maxLength={4096} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
         </label>
-        <p className="small muted"><strong>{absolute ? '绝对路径' : '相对路径'}</strong>：以 / 开头时使用服务器绝对位置，否则相对于默认项目根目录；支持多层路径、./ 和 ../。{windows && '此 Windows 开发环境也识别盘符绝对路径。'}</p>
+        <p className="small muted"><strong>{absolute ? '绝对路径' : '相对路径'}</strong>：以 / 开头时使用服务器绝对位置，否则相对于默认项目根目录；支持多层路径、./ 和 ../。</p>
         {mode === 'create' && !directory && suggestedDirectory && <p className="small muted">未填写路径时使用：<code>{suggestedDirectory}</code>（相对路径）。</p>}
         {identity?.mode === 'root' && <p className="small muted">{executionModeConfirmed ? '当前为 ROOT 执行身份。' : '上次确认的执行身份为 ROOT。'}路径规则相同，操作权限由服务器实际执行账号决定。</p>}
         {defaults.loading && <p className="small muted" role="status">正在读取默认项目目录…</p>}

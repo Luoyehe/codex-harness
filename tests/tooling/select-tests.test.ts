@@ -7,7 +7,7 @@ import { gitChanges, nativePrerequisite, nativeTestFiles, runSelection, selectTe
 const available = ['tests/core/ledger.test.ts', 'tests/gateway/auth.test.ts', 'tests/runtime/native.test.ts', ...nativeTestFiles, 'tests/deploy/test_deployment.py', 'web/tests/composer.test.tsx', 'tests/tooling/release-audit.test.ts', 'tests/tooling/select-tests.test.ts'];
 const fixtures: string[] = [];
 function fixture(): string { const parent = path.resolve('.work/tooling-selection'); mkdirSync(parent, { recursive: true }); const root = mkdtempSync(path.join(parent, 'case-')); fixtures.push(root); return root; }
-function git(root: string, args: string[]): string { return execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }).trim(); }
+function git(root: string, args: string[]): string { return execFileSync('git', ['-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); }
 afterEach(() => { vi.unstubAllEnvs(); for (const root of fixtures.splice(0)) rmSync(root, { recursive: true, force: true }); });
 
 test.each(['src/core/ledger.ts', 'src/core/automations.ts'])('selects online and offline journal contracts for %s', file => {
@@ -20,6 +20,8 @@ test('shared transport, media and form changes select their browser, gateway and
   const inventory = testInventory();
   for (const [file, expected] of [
     ['src/shared/mcp-timeouts.ts', ['tests/runtime/mcp.test.ts', 'tests/runtime/mcp-native.test.ts', 'tests/runtime/native.test.ts', 'tests/gateway/worker-client.test.ts', 'web/tests/operations.test.ts']],
+    ['tests/runtime/process-controller-fixture.ts', ['tests/runtime/cli-diagnostics.test.ts', 'tests/runtime/cli-terminals.test.ts', 'tests/runtime/processes.test.ts']],
+    ['tests/runtime/posix-process-fixture.mjs', ['tests/runtime/posix-native.test.ts']],
     ['tests/runtime/history-window-fixture.ts', ['tests/runtime/history-references.test.ts', 'web/tests/conversation-recovery.test.tsx']],
     ['src/shared/form-formats.ts', ['web/tests/prompts.test.tsx', 'tests/runtime/service.test.ts']],
     ['src/core/attachment-media.ts', ['web/tests/attachments.test.tsx', 'tests/runtime/visual-routing-native.test.ts']],
@@ -29,6 +31,19 @@ test('shared transport, media and form changes select their browser, gateway and
     expect(Object.values(plan.groups).flat()).toEqual(expect.arrayContaining([...expected]));
     expect(selectTests([file], inventory.filter(name => name !== expected[0])).requiresFullAudit)
       .toContainEqual({ path: expected[0], reason: 'missing-shared-consumer' });
+  }
+});
+
+test.each(['src/shared/worker-socket.ts', 'tests/fixtures/worker-socket.ts'])('selects the Unix socket endpoint and lifecycle tests for %s', changed => {
+  const inventory = testInventory();
+  const unit = ['tests/gateway/worker-client.test.ts', 'tests/runtime/server.test.ts'];
+  const native = ['tests/runtime/automation-native.test.ts', 'tests/runtime/gateway-native.test.ts'];
+  const plan = selectTests([changed], inventory);
+  expect(plan.status).toBe('selected');
+  expect(plan.groups).toEqual({ unit, native, deploy: [], 'deploy-root': [], go: [] });
+  for (const required of [...unit, ...native]) {
+    expect(selectTests([changed], inventory.filter(name => name !== required)).requiresFullAudit)
+      .toContainEqual({ path: required, reason: 'missing-shared-consumer' });
   }
 });
 
@@ -211,6 +226,12 @@ test('a deleted source still maps to surviving regressions and a deleted test de
   const plan = selectTests(['tests/runtime/removed.test.ts'], available); expect(plan.status).toBe('requires-full-audit'); expect(plan.requiresFullAudit[0]?.reason).toBe('deleted-test-requires-coverage-review');
 });
 
+test.each(['reference/select-protocol.py', 'reference/PROVENANCE.json'])('a protocol selection change to %s requires a complete review', changed => {
+  const plan = selectTests([changed], available);
+  expect(plan.status).toBe('requires-full-audit');
+  expect(plan.requiresFullAudit).toEqual([{ path: changed, reason: 'shared-protocol-generation' }]);
+});
+
 test('unknown files, absent coverage, dependency metadata and an empty diff cannot silently pass', () => {
   for (const changed of [['new-surface/config.toml'], ['.github/workflows/unmapped.yml'], ['verification/runtime-config.json'], ['verification/hidden.mjs'], ['package.json'], ['pnpm-lock.yaml'], ['web/vite.config.ts'], []]) expect(selectTests(changed, available).status).toBe('requires-full-audit');
   const missing = selectTests(['deploy/install.py'], available.filter(file => !file.endsWith('.py'))); expect(missing.status).toBe('requires-full-audit'); expect(missing.requiresFullAudit[0]?.reason).toBe('missing-test-coverage');
@@ -333,7 +354,7 @@ test('MCP form, native editor and installed helper changes select each side of t
 
 test('selects all actual Python importers, including transitive dependencies across ordinary and root jobs', () => {
   const inventory = testInventory();
-  const binary = process.env.HARNESS_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const binary = process.env.HARNESS_TEST_PYTHON || 'python3';
   const graph = JSON.parse(execFileSync(binary,['scripts/deploy-test-imports.py','.'], {encoding:'utf8'})) as Record<string,string[]>;
   const ordinary='tests/deploy/', privileged=ordinary+'root/';
   expect(graph[ordinary+'test_control_update.py']).toContain(privileged+'test_config_layer.py');
@@ -355,7 +376,7 @@ test('derives deployment impact from nested and relative Python imports without 
   writeFileSync(path.join(root,'tests/deploy/test_shared.py'),"raise Exception('AST fixtures must never run')\n");
   writeFileSync(path.join(dir,'test_child.py'),"def fixture():\n from .. import test_shared as shared\n");
   writeFileSync(path.join(dir,'test_grandchild.py'),"from .test_child import (\n fixture as common,\n)\n");
-  const binary = process.env.HARNESS_TEST_PYTHON || (process.platform==='win32'?'python':'python3');
+  const binary = process.env.HARNESS_TEST_PYTHON || 'python3';
   const graph=JSON.parse(execFileSync(binary,['scripts/deploy-test-imports.py',root],{encoding:'utf8'}));
   expect(graph).toEqual({'tests/deploy/test_shared.py':['tests/deploy/root/test_child.py'],
     'tests/deploy/root/test_child.py':['tests/deploy/root/test_grandchild.py']});

@@ -27,7 +27,7 @@ function setup(stage: string, startupDelayMs = 0) {
   }
   const args = [executableFixture];
   const service = new RuntimeService({ bin: process.execPath, args, home: root, workerHome: root, cwd: root, dev: true,
-    env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), HARNESS_FIXTURE_HOLD: stage, HARNESS_FIXTURE_PID_FILE: marker },
+    env: { HARNESS_FIXTURE_HOLD: stage, HARNESS_FIXTURE_PID_FILE: marker },
   }, main as unknown as NativeRpc);
   services.push(service); return { service, main, marker, root };
 }
@@ -40,7 +40,6 @@ function heldPid(marker: string, pending: Promise<unknown>): Promise<number> {
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') reject(error); }
     };
     watcher = watch(path.dirname(marker), check); watcher.once('error', reject);
-    // Match the real Windows controller startup budget in windows-job.test.ts.
     timer = setTimeout(() => reject(new Error('Defaults fixture did not reach its held stage within the controller startup budget')), 10000);
     void pending.then(value => reject(new Error('Defaults probe ended before held readiness', { cause: value })), reject);
     check();
@@ -101,7 +100,7 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
     async close() { this.connected = false; },
   });
   const service = new RuntimeService({ bin: process.execPath, args: [fixture], home: root, workerHome: root, cwd: root, dev: true,
-    env: { ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), STARTED: started, CONTROLS: controls },
+    env: { STARTED: started, CONTROLS: controls },
   }, main as unknown as NativeRpc);
   services.push(service);
   const starts = (): { pid: number; params: JsonObject }[] => existsSync(started) ? readFileSync(started, 'utf8').trim().split('\n').map(line => JSON.parse(line)) : [];
@@ -143,20 +142,12 @@ test('the identity guard rejects a live predecessor and cleanup preserves the ob
   const f = concurrentDefaults(), pending = f.read(); await f.held();
   const pid = f.starts()[0]!.pid, identity = await processIdentity(pid);
   expect(identity).not.toBeNull(); expect(await processIdentity(pid)).toBe(identity);
-  if (process.platform === 'win32') expect(BigInt(identity!)).toBeGreaterThan(BigInt(Number.MAX_SAFE_INTEGER));
   await expect(f.stopped()).rejects.toThrow();
   await f.service.close(); await f.stopped();
   // Observe only after the rejection has had a full event-loop turn: read()
   // must prevent an unhandled error without replacing the original promise.
   await new Promise<void>(resolve => setImmediate(resolve));
   await expect(pending).rejects.toMatchObject({ code: 'runtime_lost', delivery: 'unknown' });
-});
-
-test.skipIf(process.platform !== 'win32')('Windows identity lookup distinguishes absent processes from failed queries', async () => {
-  await expect(processIdentity(2147483647)).resolves.toBeNull();
-  // Outside GetProcessById's Int32 range: the real query must fail, not report
-  // an absent process. Access/query exceptions share this fail-closed branch.
-  await expect(processIdentity(2147483648)).rejects.toThrow();
 });
 
 test('concurrent identical defaults share one actual child and its completed cache', async () => {

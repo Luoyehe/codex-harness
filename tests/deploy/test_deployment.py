@@ -178,7 +178,6 @@ class ArchiveTests(unittest.TestCase):
             self.assertEqual(caught.exception.code, 'budget')
             self.assertEqual(len(consumed), 4)
 
-    @unittest.skipUnless(os.name == 'posix', 'Descriptor-safe import requires Linux')
     def test_snapshot_bounds_fd_enumeration_and_reserves_pending_siblings(self):
         for nested in (False, True):
             with self.subTest(nested=nested), tempfile.TemporaryDirectory() as folder:
@@ -225,7 +224,6 @@ class ArchiveTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 'unsafe_path')
                 self.assertEqual((root / 'output/a/child').read_bytes(), b'kept')
 
-    @unittest.skipUnless(os.name == 'posix', 'Real archive symlinks require Linux')
     def test_delayed_links_consume_entry_budget_before_parent_creation(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -443,11 +441,10 @@ class ArchiveTests(unittest.TestCase):
 
     def test_symlink_relative_scope(self):
         self.assertEqual(safe_link("node_modules/.bin/tool", "../pkg/bin/tool"), "node_modules/pkg/bin/tool")
-        for target in ("/etc/shadow", "../../../etc/shadow", "C:\\file"):
+        for target in ("/etc/shadow", "../../../etc/shadow", "invalid\\target"):
             with self.assertRaises(DeployError):
                 safe_link("dir/link", target)
 
-    @unittest.skipUnless(os.name == "posix", "Descriptor-safe import requires Linux")
     def test_stopped_snapshot_preserves_full_tree_and_rejects_hardlinks(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -465,7 +462,6 @@ class ArchiveTests(unittest.TestCase):
             with self.assertRaises(DeployError):
                 snapshot(source, root / "hard-copy", producer_stopped=True)
 
-    @unittest.skipUnless(os.name == "posix", "Linux permissions")
     def test_umask_077_does_not_hide_published_input(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

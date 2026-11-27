@@ -160,7 +160,6 @@ class ProviderProfilesTests(unittest.TestCase):
         self.assertEqual(result['result']['text'], '[redacted] [redacted] [redacted]')
 
 
-@unittest.skipUnless(os.name == 'posix', 'Real Linux symlink generation pointers')
 class ProviderRetentionTests(unittest.TestCase):
     def test_current_pending_recovery_and_recent_generations_are_retained(self):
         with tempfile.TemporaryDirectory() as folder:

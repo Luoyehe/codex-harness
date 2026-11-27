@@ -8,7 +8,7 @@ from deploy.workspace_paths import Root
 from deploy.workspace_resources import trust_roots
 
 
-@unittest.skipUnless(os.name == "posix" and hasattr(os, "O_PATH"), "native Linux descriptor verification")
+@unittest.skipUnless(hasattr(os, "O_PATH"), "native Linux descriptor verification")
 class ProjectTrustRoots(unittest.TestCase):
     def test_git_root_and_linked_primary_are_verified_but_ordinary_ancestors_are_excluded(self):
         # The test runner puts TMPDIR inside its own Git checkout. This negative

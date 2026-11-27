@@ -96,9 +96,8 @@ class CandidateArchiveTests(unittest.TestCase):
         self.assertEqual(read_json(self.prepared), self.proof)
         self.assertEqual(read_json(self.inventory)["phase"], "complete")
         self.manager.verify_release.assert_called_with(self.release)
-        if os.name == "posix":
-            self.assertEqual(self.root.stat().st_mode & 0o777, 0o700)
-            self.assertEqual(self.inventory.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(self.root.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.inventory.stat().st_mode & 0o777, 0o600)
         self.events.clear()
         self.assertTrue(self.perform()["alreadyArchived"])
         self.assertEqual(self.events, [])

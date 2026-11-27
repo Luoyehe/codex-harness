@@ -9,6 +9,7 @@ import { GatewayServer } from './server.js';
 import { Ledger } from '../core/ledger.js';
 import type { HarnessEvent } from '../core/contracts.js';
 import { AutomationScheduler } from './automation-scheduler.js';
+import { workerSocketPath } from '../shared/worker-socket.js';
 import { startupFailure } from './http-errors.js';
 
 let startupStage = 'configuration';
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
     if (capabilities?.journalRecovery !== 2) throw new Error('Update the control tools before the application');
   }
   startupStage = 'configuration';
+  const worker = new WorkerClient({ socketPath: workerSocketPath(required('HARNESS_WORKER_SOCKET'), dev) });
   const tokenFile = required('HARNESS_TOKEN_FILE'); const tokenInfo = lstatSync(tokenFile);
   if (!tokenInfo.isFile() || tokenInfo.isSymbolicLink() || tokenInfo.size > 4096 || (!dev && (tokenInfo.mode & 0o007) !== 0)) throw new Error('Invalid gateway token file');
   const token = readFileSync(tokenFile, 'utf8').trim();
@@ -32,7 +34,7 @@ async function main(): Promise<void> {
   startupStage = 'authentication';
   const auth = new Authentication({ database: path.join(state, 'auth.sqlite'), bootstrapToken: token,
     bootstrapFile: process.env.HARNESS_AUTH_BOOTSTRAP_FILE ?? path.join(path.dirname(tokenFile), 'auth-bootstrap.json'), strictFiles: !dev }, required('HARNESS_ORIGIN'));
-  const worker = new WorkerClient(dev ? { port: Number(process.env.HARNESS_WORKER_PORT ?? 4318), token: required('HARNESS_WORKER_TOKEN') } : { socketPath: required('HARNESS_WORKER_SOCKET') });
+
   startupStage = 'journal';
   const ledger = new Ledger(path.join(state, 'journal.sqlite')); ledger.recover();
   const dispatcher = new Dispatcher(ledger, worker, new ManagerClient(process.env.HARNESS_MANAGE_COMMAND));

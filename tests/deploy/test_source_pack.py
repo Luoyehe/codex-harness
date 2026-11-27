@@ -63,8 +63,7 @@ class SourcePackTests(unittest.TestCase):
             (source / "package.json").write_text("{}")
             tool = stage_build_tool(stage)
             self.assertEqual(tool.parent, stage)
-            if os.name == "posix":
-                self.assertEqual(tool.stat().st_mode & 0o777, 0o444)
+            self.assertEqual(tool.stat().st_mode & 0o777, 0o444)
             self.assertEqual(tool.read_bytes(), (Path(__file__).resolve().parents[2] / "deploy/build_tool.mjs").read_bytes())
             self.assertEqual([item.name for item in source.iterdir()], ["package.json"])
 

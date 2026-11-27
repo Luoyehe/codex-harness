@@ -263,7 +263,7 @@ def snapshot_configuration(layout: Layout) -> dict:
             continue
         details = path.lstat()
         require(stat.S_ISREG(details.st_mode) and details.st_size <= 1024 * 1024 and
-                (os.name != "posix" or details.st_uid == 0 and not details.st_mode & 0o022),
+                (details.st_uid == 0 and not details.st_mode & 0o022),
                 "Unsafe managed HTTPS configuration", "integrity")
         result[name] = {"data": base64.b64encode(path.read_bytes()).decode(), "mode": stat.S_IMODE(details.st_mode)}
     require(len(canonical(result)) <= 512 * 1024, "HTTPS recovery snapshot exceeds budget", "budget")
@@ -344,7 +344,7 @@ def recover_https_transaction(manager, journal_path: Path, journal: dict) -> Non
             decoded[name] = None
         else:
             require(isinstance(value, dict) and set(value) == {"data", "mode"} and type(value["mode"]) is int and
-                    0 <= value["mode"] <= 0o777 and (os.name != "posix" or not value["mode"] & 0o022),
+                    0 <= value["mode"] <= 0o777 and (not value["mode"] & 0o022),
                     "Invalid HTTPS snapshot permissions", "corrupt_state")
             data = base64.b64decode(value["data"], validate=True)
             require(len(data) <= 1024 * 1024, "HTTPS snapshot exceeds budget", "corrupt_state")
@@ -444,12 +444,12 @@ def tls_ca_path(layout: Layout, metadata: dict) -> Path | None:
     root = layout.config / "tls-ca"
     for directory in (root, root / revision):
         info = directory.lstat()
-        require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+        require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and not info.st_mode & 0o022),
                 "Unsafe managed TLS CA directory", "integrity")
     path = root / revision / "ca.pem"
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and
-            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            (info.st_uid == 0 and not info.st_mode & 0o022),
             "Unsafe managed TLS CA", "integrity")
     require(hashlib.sha256(read_pem(path, private=False)).hexdigest() == metadata.get("tlsCaSha256"),
             "Retained TLS CA changed", "integrity")
@@ -480,7 +480,7 @@ def read_https_metadata(layout: Layout) -> dict:
     require(present(path), "This instance has no HTTPS configuration", "not_installed")
     info = path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 1024 * 1024 and
-            (os.name != "posix" or info.st_uid == 0 and not info.st_mode & 0o022),
+            (info.st_uid == 0 and not info.st_mode & 0o022),
             "Unsafe HTTPS metadata", "integrity")
     value = read_json(path)
     require(isinstance(value, dict), "Invalid HTTPS metadata", "integrity")

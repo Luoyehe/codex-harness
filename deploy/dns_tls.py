@@ -25,7 +25,7 @@ def _read_private(path: Path) -> bytes:
     try:
         info = os.fstat(fd)
         require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_size <= 4096 and
-                (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
+                (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600),
                 "DNS credentials must be a root-owned mode 0600 regular file", "integrity")
         data = os.read(fd, 4097)
         require(len(data) <= 4096 and len(data) == info.st_size and
@@ -78,7 +78,7 @@ def dns_credentials_path(layout, metadata: dict) -> Path:
     root = layout.config / "dns"
     for directory in (root, root / revision):
         info = directory.lstat()
-        require(stat.S_ISDIR(info.st_mode) and (os.name != "posix" or info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
+        require(stat.S_ISDIR(info.st_mode) and (info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o700),
                 "Unsafe DNS credential directory", "integrity")
     path = root / revision / "credentials.env"
     data = _read_private(path)

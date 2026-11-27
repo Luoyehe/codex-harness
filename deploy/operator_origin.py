@@ -15,7 +15,7 @@ MANAGED = re.compile(r"(?:^|/)codex-harness-[a-z0-9-]+-(?:worker|gateway|manage-
 
 
 def require_external_operator(config: dict | None = None, *, proc: Path = Path("/proc"), pid: int | None = None) -> None:
-    require(os.name == "posix" and os.getuid() == os.geteuid() == 0,
+    require(os.getuid() == os.geteuid() == 0,
             "Root authorization requires an independent administrator SSH or console session", "operator_required")
     # Full host root has already been explicitly enabled. The administrator's
     # root tools remain real root; this workflow guard is for the closed mode.

@@ -49,7 +49,7 @@ export function runVitest(files, base = root, env = isolatedTestEnvironment(base
     // Positional Vitest filters are substrings. Explicitly exclude all unselected
     // files, so an exact .ts request cannot accidentally also run a .tsx sibling.
     const excludes = testInventory(base).filter(name => jsTest.test(name) && !files.includes(name)).flatMap(name => ['--exclude', name]);
-    const child = spawnSync(process.execPath, [entry, 'run', ...files, ...excludes, '--passWithNoTests=false', '--allowOnly=false', '--reporter=default', '--reporter=json', `--outputFile.json=${output}`], { cwd: base, env, stdio: 'inherit', shell: false, windowsHide: true });
+    const child = spawnSync(process.execPath, [entry, 'run', ...files, ...excludes, '--passWithNoTests=false', '--allowOnly=false', '--reporter=default', '--reporter=json', `--outputFile.json=${output}`], { cwd: base, env, stdio: 'inherit', shell: false });
     if (child.error || child.status !== 0) return { status: 'failed', exitCode: 1, tests: files };
     try {
       const report = JSON.parse(readFileSync(output, 'utf8'));

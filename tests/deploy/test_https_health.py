@@ -24,65 +24,37 @@ from deploy.https_health import https_health, require_https_ready
 
 
 def certificates(directory: Path):
-    """Use the OS test utility, or the bundled Windows cryptography runtime."""
+    """Issue real fixture certificates with the local OpenSSL utility."""
     now = datetime.now(timezone.utc)
     openssl = shutil.which("openssl")
-    if openssl:
-        def run(*args):
-            subprocess.run([openssl, *args], cwd=directory, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=15)
-        run("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem",
-            "-subj", "/CN=Isolated HTTPS Test CA", "-days", "30", "-addext", "basicConstraints=critical,CA:TRUE",
-            "-addext", "keyUsage=critical,keyCertSign,cRLSign")
-        for label, host in (("valid", "work.example.test"), ("wrong", "other.example.test"),
-                            ("expired", "work.example.test")):
-            extension = directory / (label + ".ext")
-            extension.write_text("subjectAltName=DNS:" + host + "\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n")
-            run("req", "-newkey", "rsa:2048", "-nodes", "-keyout", label + ".key", "-out", label + ".csr", "-subj", "/CN=" + host)
-            if label == "expired":
-                # Modern OpenSSL rejects negative -days. Sign an ordered validity
-                # interval wholly in the past using a fixture-local CA database.
-                (directory / "expired-ca.index").write_text("")
-                (directory / "expired-ca.serial").write_text("1000\n")
-                (directory / "expired-ca.cnf").write_text(
-                    "[ca]\ndefault_ca=fixture_ca\n[fixture_ca]\ncertificate=ca.pem\nprivate_key=ca.key\n"
-                    "database=expired-ca.index\nserial=expired-ca.serial\nnew_certs_dir=.\ndefault_md=sha256\n"
-                    "policy=fixture_policy\n[fixture_policy]\ncommonName=supplied\n[leaf]\n" + extension.read_text())
-                run("ca", "-batch", "-notext", "-config", "expired-ca.cnf", "-extensions", "leaf",
-                    "-in", "expired.csr", "-out", "expired.pem",
-                    "-startdate", (now - timedelta(days=2)).strftime("%Y%m%d%H%M%SZ"),
-                    "-enddate", (now - timedelta(days=1)).strftime("%Y%m%d%H%M%SZ"))
-            else:
-                run("x509", "-req", "-in", label + ".csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", label + ".pem",
-                    "-days", "7", "-extfile", extension.name)
-        return
-    try:
-        from cryptography import x509
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import rsa
-        from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
-    except ImportError as error:
-        raise unittest.SkipTest("Local TLS fixtures require openssl or the bundled cryptography runtime") from error
-    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Isolated HTTPS Test CA")])
-    ca = (x509.CertificateBuilder().subject_name(ca_name).issuer_name(ca_name).public_key(ca_key.public_key())
-          .serial_number(x509.random_serial_number()).not_valid_before(now - timedelta(days=2)).not_valid_after(now + timedelta(days=30))
-          .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
-          .add_extension(x509.KeyUsage(False, False, False, False, False, True, True, False, False), critical=True)
-          .sign(ca_key, hashes.SHA256()))
-    (directory / "ca.pem").write_bytes(ca.public_bytes(serialization.Encoding.PEM))
-    for label, host, end in (("valid", "work.example.test", now + timedelta(days=7)),
-                             ("wrong", "other.example.test", now + timedelta(days=7)),
-                             ("expired", "work.example.test", now - timedelta(days=1))):
-        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        cert = (x509.CertificateBuilder().subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, host)]))
-                .issuer_name(ca_name).public_key(key.public_key()).serial_number(x509.random_serial_number())
-                .not_valid_before(now - timedelta(days=2)).not_valid_after(end)
-                .add_extension(x509.SubjectAlternativeName([x509.DNSName(host)]), critical=False)
-                .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-                .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
-                .sign(ca_key, hashes.SHA256()))
-        (directory / (label + ".key")).write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
-        (directory / (label + ".pem")).write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    if not openssl:
+        raise RuntimeError("Local TLS fixtures require openssl")
+    def run(*args):
+        subprocess.run([openssl, *args], cwd=directory, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=15)
+    run("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem",
+        "-subj", "/CN=Isolated HTTPS Test CA", "-days", "30", "-addext", "basicConstraints=critical,CA:TRUE",
+        "-addext", "keyUsage=critical,keyCertSign,cRLSign")
+    for label, host in (("valid", "work.example.test"), ("wrong", "other.example.test"),
+                        ("expired", "work.example.test")):
+        extension = directory / (label + ".ext")
+        extension.write_text("subjectAltName=DNS:" + host + "\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n")
+        run("req", "-newkey", "rsa:2048", "-nodes", "-keyout", label + ".key", "-out", label + ".csr", "-subj", "/CN=" + host)
+        if label == "expired":
+            # Modern OpenSSL rejects negative -days. Sign an ordered validity
+            # interval wholly in the past using a fixture-local CA database.
+            (directory / "expired-ca.index").write_text("")
+            (directory / "expired-ca.serial").write_text("1000\n")
+            (directory / "expired-ca.cnf").write_text(
+                "[ca]\ndefault_ca=fixture_ca\n[fixture_ca]\ncertificate=ca.pem\nprivate_key=ca.key\n"
+                "database=expired-ca.index\nserial=expired-ca.serial\nnew_certs_dir=.\ndefault_md=sha256\n"
+                "policy=fixture_policy\n[fixture_policy]\ncommonName=supplied\n[leaf]\n" + extension.read_text())
+            run("ca", "-batch", "-notext", "-config", "expired-ca.cnf", "-extensions", "leaf",
+                "-in", "expired.csr", "-out", "expired.pem",
+                "-startdate", (now - timedelta(days=2)).strftime("%Y%m%d%H%M%SZ"),
+                "-enddate", (now - timedelta(days=1)).strftime("%Y%m%d%H%M%SZ"))
+        else:
+            run("x509", "-req", "-in", label + ".csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", label + ".pem",
+                "-days", "7", "-extfile", extension.name)
 
 
 class HttpsHealthTests(unittest.TestCase):
@@ -103,11 +75,11 @@ class HttpsHealthTests(unittest.TestCase):
         self.token = "synthetic-instance-proof-key-for-local-tests-only"
         (self.layout.config / "gateway-token").write_text(self.token)
         os.chmod(self.layout.config / "gateway-token", 0o640)
-        self.manager = SimpleNamespace(layout=self.layout, config={"origin": "https://work.example.test", "gatewayGid": os.getgid() if hasattr(os, "getgid") else 0})
+        self.manager = SimpleNamespace(layout=self.layout, config={"origin": "https://work.example.test", "gatewayGid": os.getgid()})
         self.metadata = {"host": "work.example.test", "tls": "provided", "httpsPort": 443, "authentication": "builtin", "phase": "active"}
         self.requests, self.server_names = [], []
         self.mode = "valid"
-        if os.name == "posix" and os.geteuid() != 0:
+        if os.geteuid() != 0:
             # Standard CI is unprivileged: only replace the two root-owned file
             # boundaries. TLS, certificate verification and proof HMAC stay real.
             def metadata(layout):

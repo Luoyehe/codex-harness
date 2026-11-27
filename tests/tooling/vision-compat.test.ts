@@ -27,7 +27,7 @@ function directory() {
 }
 test('the pinned real vision package retains all eight stdio schemas with reviewed SDK/Zod and no network or tool calls', () => {
   const output = path.join(directory(), 'stdio.json');
-  execFileSync(process.execPath, ['tests/deploy/vision_stdio_probe.mjs', root, output], { cwd: root, timeout: 40000, maxBuffer: 1024 * 1024, windowsHide: true });
+  execFileSync(process.execPath, ['tests/deploy/vision_stdio_probe.mjs', root, output], { cwd: root, timeout: 40000, maxBuffer: 1024 * 1024 });
   const report = JSON.parse(readFileSync(output, 'utf8'));
   const contract = JSON.parse(readFileSync('reference/BUILTIN-MCP-CONTRACT.json', 'utf8'));
   expect(report).toMatchObject({ vision: contract.servers[3].version, sdk: '1.32.2', zod: '4.6.7', toolCount: 8, networkAttempts: 0, toolCalls: 0, closed: { code: 0 } });
@@ -46,8 +46,8 @@ assert.equal(configurationService.getVisionConfig().url,'https://open.bigmodel.c
 const calls=[];globalThis.fetch=async(url,options)=>{assert.equal(url,'https://fixture.invalid/no-network');calls.push(options.headers.Authorization);return {ok:true,json:async()=>({fixture:true})};};
 for(const value of ['fixture-credential','Bearer fixture-credential']) assert.deepEqual(await new ChatService({getApiKey:()=>value}).chatCompletions('https://fixture.invalid/no-network',{}),{fixture:true});
 assert.deepEqual(calls,['Bearer fixture-credential','Bearer fixture-credential']);process.stdout.write('fixture-passed');`);
-  const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, TMP: home, TEMP: home, Z_AI_API_KEY: 'fixture-local-credential', Z_AI_MODE: 'ZHIPU' };
-  for (const name of ['SystemRoot', 'WINDIR', 'PATH']) if (process.env[name]) env[name] = process.env[name];
-  const result = execFileSync(process.execPath, [script], { cwd: home, env, encoding: 'utf8', timeout: 10000, maxBuffer: 65536, windowsHide: true });
+  const env: NodeJS.ProcessEnv = { HOME: home, TMPDIR: home, Z_AI_API_KEY: 'fixture-local-credential', Z_AI_MODE: 'ZHIPU' };
+  if (process.env.PATH) env.PATH = process.env.PATH;
+  const result = execFileSync(process.execPath, [script], { cwd: home, env, encoding: 'utf8', timeout: 10000, maxBuffer: 65536 });
   expect(result).toContain('fixture-passed');
 });

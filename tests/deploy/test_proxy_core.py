@@ -28,8 +28,7 @@ def archive(entries=None):
         for name, data in entries or [("xray", b"offline executable fixture"), ("geoip.dat", b"geoip fixture"), ("geosite.dat", b"geosite fixture")]:
             if isinstance(name, str):
                 info = zipfile.ZipInfo(name)
-                # Preserve hostile raw names on Windows instead of letting the
-                # fixture writer normalize backslashes before the reader sees them.
+                # Preserve the raw archive name so the validator sees it verbatim.
                 info.filename = info.orig_filename = name
             else:
                 info = name

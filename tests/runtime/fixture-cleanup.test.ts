@@ -23,8 +23,8 @@ async function resources() {
       await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
       defer(async () => { await closeServer(); afterServer?.(); });
       child = spawn(process.execPath, ['-e', "process.stdout.write('ready\\n');setTimeout(()=>process.exit(99),15000);setInterval(()=>{},1000)"], {
-        cwd: home, env: { HOME: home, USERPROFILE: home, TEMP: home, TMP: home, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) },
-        windowsHide: true, stdio: 'pipe',
+        cwd: home, env: { HOME: home, TMPDIR: home },
+        stdio: 'pipe',
       });
       closed = once(child, 'close'); void closed.catch(() => {});
       defer(async () => { await closeChild(); afterChild?.(); });
