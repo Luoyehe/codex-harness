@@ -1,6 +1,6 @@
 # macOS 开发与 Linux 运行环境的审计和验收
 
-本次交付承接 v2.5.0 的十项增量修复。开发与构建支持 macOS 和 Linux，生产部署使用 Linux 和 systemd。[M01–M10 的逐项修复与历史验收](https://github.com/Luoyehe/codex-harness/blob/b2f5a1f798e9fb26ba40eb79d8bb63ab93ca8052/verification/reports/v250-incremental-repair.md)
+2026 年 11 月 28 日完成验收。本次交付承接 v2.5.0 的十项增量修复。开发与构建支持 macOS 和 Linux，生产部署使用 Linux 和 systemd。[M01–M10 的逐项修复与历史验收](https://github.com/Luoyehe/codex-harness/blob/b2f5a1f798e9fb26ba40eb79d8bb63ab93ca8052/verification/reports/v250-incremental-repair.md)
 
 最终候选在同一份源码上连续通过两轮独立审计。GitHub 对 299 个测试文件的 3,908 个用例逐项核对，全部通过，零失败、零跳过，覆盖缺口为零。[GitHub 全量测试](https://github.com/Luoyehe/codex-harness/actions/runs/46044182984) · [依赖和 CodeQL 检查](https://github.com/Luoyehe/codex-harness/actions/runs/46044629976)
 
@@ -10,7 +10,21 @@
 | Linux root，隔离部署用例 | 27 | 375 |
 | **按用例身份核对** | **299** | **3,908** |
 
-GitHub 的 macOS 作业另完成固定依赖安装、类型检查、服务端和网页构建、开发与浏览器工作流测试。安全作业中的依赖检查，以及 JavaScript/TypeScript、Python、Go 和 Actions 的四项 CodeQL 分析均通过。Linux ARM64 另用本地官方 CLI 运行，375 项 root 验收和 2,766 项 JavaScript/TypeScript 用例全部通过。不同环境的重复用例不叠加到上表。
+GitHub 的 macOS 作业另完成固定依赖安装、类型检查、服务端和网页构建、开发与浏览器工作流测试。安全作业中的依赖检查，以及 JavaScript/TypeScript、Python、Go 和 Actions 的四项 CodeQL 分析均通过。另在独立 Debian ARM64 虚拟机执行相同的 299 个测试文件，使用官方 ARM64 CLI，以普通账号和 root 分别运行。3,908 个用例全部通过，零失败、零跳过。逐个比对用例身份与状态，结果与 GitHub Linux x64 完全一致，源码摘要在执行前后一致。ARM64 实测包含十万条目工作树、真实磁盘持久化和 Go 插件可执行文件验证。不同架构的重复用例不叠加到上表。
+
+## CodeQL 告警复核
+
+候选分支的扫描作业通过后，GitHub 仍列有 24 条开放告警，平台评级为 22 条高危、2 条中危。其中 23 条早于本轮，1 条中危告警由本轮新增测试触发。下表记录源码核验，平台告警状态均予保留。
+
+| 来源 | 核验结果 |
+| --- | --- |
+| 新增测试告警 #30 | 开发进程权限用例使用固定 shell 文本。掩码只有两个预设值，Node 可执行文件和编译入口通过独立、带引号的位置参数传递。核对未发现来自网页、用户输入或模型输出的命令文本。 |
+| 哈希与凭据传递 | 10 处 JavaScript 哈希用于附件、回执、缓存及导出内容的指纹。安装恢复程序对文件计算完整性摘要，其中可能包含随机管理令牌。用户密码另用带随机盐的 scrypt 保存。Bedrock 凭据助手通过受限的标准输出把真实令牌交给原生 CLI，调用者需要保持该通道私密。 |
+| 测试素材与官方文档 | 其余匹配来自合成凭据、回环 TLS、模拟地址、测试观察脚本及官方文档的文本提取。提取的文本只用于检查配置关键词。页面格式变化会影响判断，因此每轮还核对了官方配置的实际含义。 |
+
+这次逐项核验没有确认由上述告警引入的产品命令注入、公开凭据泄露或用户密码哈希缺陷。[对应的安全作业](https://github.com/Luoyehe/codex-harness/actions/runs/46044629976)
+
+[主分支首次提交后的全量复验](https://github.com/Luoyehe/codex-harness/actions/runs/46045411309) · [主分支安全作业](https://github.com/Luoyehe/codex-harness/actions/runs/46045411243)
 
 ## 平台范围
 
